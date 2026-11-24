@@ -140,7 +140,7 @@
       if (cs.goal) out.push('Reto: ' + low1(cs.goal));
       if (arb && !arb.rec) out.push(arb.line);
     } else if (info.sit) {   // la situación de la semana (ui.js introInfo): no cuenta en el balance; el intento de hoy
-      var si = info.sit.i | 0, sn = (info.sit.tries | 0) || 3;
+      var si = info.sit.i | 0, sn = (info.sit.tries | 0) || 3;   // (la jugada del día)
       if (si > 0) out.push('Intento ' + si + ' de ' + sn + ' de hoy');
     } else {
       var dn = info.diffName || 'Normal', b = info.byD;
@@ -467,18 +467,20 @@
     parts.push(INJ_TAG[n >= 6 ? 2 : n >= 3 ? 1 : 0]);
     return { name: name, n: n, rl: !!x.rl, t: '¡Ay! ' + name, parts: parts, sub: parts.join(' | ') };
   }
-  /** La situación de la semana en la hoja final → {title, lines[3], isBest} | null. «¡Salvada! 26-24» (empezabas por detrás o empatado),
-   *  «¡Cerrada! 25-23» (por delante) o «Se escapó: 23-25». */
+  /** La jugada del día en la hoja final → {title, lines[3], isBest, upLine} | null. «¡Salvada! 26-24» (empezabas por detrás o empatado),
+   *  «¡Cerrada! 25-23» (por delante) o «Se escapó: 23-25». La 3ª línea es tu mejor de hoy; con la victoria que cumple la jugada de hoy
+   *  (x.up), la racha: «¡Cumplida! Racha: 3 días seguidos» (upLine = su índice, en dorado). */
   function sitModel(x) {
     if (!x || !x.start) return null;
     var a = x.a | 0, b = x.b | 0, s0 = x.start, ahead = (s0[0] | 0) > (s0[1] | 0);
     var title = x.win ? (ahead ? '¡Cerrada! ' : '¡Salvada! ') + a + '-' + b : 'Se escapó: ' + a + '-' + b;
     var bl = x.best ? (x.best.w ? 'ganada ' : 'perdida ') + (x.best.a | 0) + '-' + (x.best.b | 0) : '';
+    var sk = x.streak | 0, up = !!(x.up && sk > 0);
     var lines = ['Empezaste ' + (s0[0] | 0) + '-' + (s0[1] | 0) + ' (' + noDot(String(x.label || '')) + ')',
-      x.i ? 'Intento ' + (x.i | 0) + ' de ' + ((x.tries | 0) || 3) + ' de hoy' + (x.left > 0 ? '' : ': mañana, 3 más') : (x.left > 0 ? 'Te quedan ' + plural(x.left, 'intento', 'intentos') + ' hoy' : 'Mañana, 3 intentos más'),
+      x.i ? 'Intento ' + (x.i | 0) + ' de ' + ((x.tries | 0) || 3) + ' de hoy' + (x.left > 0 ? '' : ': mañana, otra jugada') : (x.left > 0 ? 'Te quedan ' + plural(x.left, 'intento', 'intentos') + ' hoy' : 'Mañana, otra jugada'),
       // (el «¡Nuevo mejor!» en dorado solo con una ganada: una derrota que mejora otra derrota no se celebra)
-      bl ? (x.isBest && x.best.w ? '¡Nuevo mejor de la semana: ' + bl + '!' : 'Tu mejor de la semana: ' + bl) : ''].filter(Boolean);
-    return { title: title, lines: lines, isBest: !!(x.isBest && x.best && x.best.w) };
+      up ? '¡Cumplida! Racha: ' + (sk === 1 ? '1 día' : sk + ' días seguidos') : bl ? (x.isBest && x.best.w ? '¡Nuevo mejor de hoy: ' + bl + '!' : 'Tu mejor de hoy: ' + bl) : ''].filter(Boolean);
+    return { title: title, lines: lines, isBest: !!(x.isBest && x.best && x.best.w) || up, upLine: up ? 2 : -1 };
   }
   function endModel(d) {
     d = d || {};
