@@ -323,7 +323,8 @@
       courtSwap3: false,       // ya se cambió de campo a mitad del set decisivo (a los 8 si va a 15)
       // puntos por set (Partido rápido: 11 | 15 | 21 | 25); el set decisivo va a min(15, points). Ver setTarget.
       // La playa siempre a 21, salvo el partido a un solo set (opts.sets === 1: la prueba de la Carrera), que también acepta 11 o 15
-      points: (beach && opts.sets !== 1) ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : (beach ? 21 : 25),
+      // Partidos cortos (informe 4.5): el set a 7 solo con opts.quick (Partido rápido, main.js quickShort); no está en SET_POINTS (el online sigue en 11-25)
+      points: (beach && opts.sets !== 1) ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 || (opts.quick === true && +opts.points === 7) ? +opts.points : (beach ? 21 : 25),
       // pista de esta partida (ver C.BEACH): media longitud, media anchura y escala respecto a la de 18×9 (1 en el pabellón:
       // multiplicar por g.cs deja los números exactos y la huella 2v2 intacta)
       venue: beach ? 'beach' : 'hall', beach: beach,
@@ -385,6 +386,9 @@
       atkTeam: -1, atkHow: '', atkHits: 0, // último ataque/saque (para atribuir kill/ace aunque el rival lo toque y no lo salve)
       atkSet: null,            // colocador (2º toque del mismo equipo) del último ataque, o null (point.assist)
       jobMem: [null, null], jobMemT: [-1, -1], jobSwT: [-9, -9], jobHop: [-1, -1], // IA: memoria de quién va al balón (histéresis)
+      // IA variada (1.22.0, VB.AI.remember): por equipo, los 3 últimos remates y saques (casilla de openSpot, −1 = nada), los 2 últimos carriles
+      // de remate (1 diagonal, 2 línea), receptores del saque y atacantes de la colocación 6v6 (id). Datos planos: copyGame los copia; nunca g.rng
+      aiMem: { atk: [[-1, -1, -1], [-1, -1, -1]], lane: [[0, 0], [0, 0]], srv: [[-1, -1, -1], [-1, -1, -1]], rcv: [[-1, -1], [-1, -1]], set: [[-1, -1], [-1, -1]] },
       digMargin: 0,            // margen de defensa (s) del último remate (>0 el defensor llega con tiempo; <0 al hueco)
       lastPoint: null,         // {team, reason, text, how, highlight, digs, streak, savedSetPoint, clutch, signal, touchedOut, landSide, hold, setWon, matchWon}
       setPoint: -1, matchPoint: -1, // equipo con punto de set/partido en el saque actual (-1 nadie)
@@ -982,6 +986,24 @@
     return Math.max(0.05, 0.5 - 0.45 * (a - C.W_GOOD) / 0.2);
   }
   function gradeOf(q) { return q >= 0.78 ? 'perfect' : q >= 0.45 ? 'good' : 'poor'; }
+  /** Por qué salió flojo un toque (4.4 de la revisión, 22-nov-2026; ARREGLO): lee SOLO los datos del evento 'hit' (timing ya escalado,
+   *  strK, reachK, inSp, prevQ, dive), sin g ni g.rng. Devuelve '' (nota buena o sin causa clara), 'dive' (la plancha siempre sale
+   *  floja), o la causa que más calidad le quitó: 'early'/'late' (timing), 'far' (lejos del cuerpo: estirón o alcance), 'fast'
+   *  (remate o saque muy rápido); si ninguna pesa HIT_WHY.min, 'weak' con el pase anterior del equipo por debajo de SETQ.lo. */
+  var HIT_WHY = { min: 0.1 };
+  function hitWhy(e) {
+    if (!e || e.grade !== 'poor') return '';
+    if (e.dive) return 'dive';
+    var te = +e.timing || 0, a = Math.abs(te), best = '', bv = HIT_WHY.min;
+    var tl = a > C.W_PERFECT ? 1 - timingQ(te) : 0;
+    var rk = +e.reachK || 0, sk = +e.strK || 0, fl = 1 - (1 - 0.3 * clamp((rk - 0.55) / 0.45, 0, 1)) * (1 - STRETCH.q * sk);
+    var fs = 0.25 * clamp(((+e.inSp || 0) - 11) / 8, 0, 1);
+    if (tl >= bv) { best = te < 0 ? 'early' : 'late'; bv = tl; }
+    if (fl > bv) { best = 'far'; bv = fl; }
+    if (fs > bv) { best = 'fast'; bv = fs; }
+    if (!best && typeof e.prevQ === 'number' && e.prevQ < SETQ.lo) best = 'weak';
+    return best;
+  }
   /** Playa: prob. de que se piten dobles en una colocación de dedos del HUMANO (hit). te = desfase ya escalado por la ventana
    *  (atributos, insignias, ×JSET.win en salto), grade = nota del toque. 'perfect'/'good' nunca, ni |te| <= dblA0 (= C.W_GOOD).
    *  'poor': rampa lineal con |te| de BEACH.dblA0 (p dblP0) a BEACH.dblA1 (p dblP1) y plana después; en salto ×dblJump (tope dblMax). */
@@ -1944,7 +1966,8 @@
     var hev = emit(g, { type: 'hit', kind: kind, player: p, team: t, touch: count, quality: q, grade: grade, timing: te,
       power: power, shot: sub, dive: shot === 'dive', aim: aim ? [aim[0], aim[1]] : null, target: at ? [at[0], at[1]] : null,
       x: b.x, y: b.y, z: b.z, speed: b.speed, human: human, dig: isDig, recv: count === 1 && inKind === 'serve', jset: jset,
-      feint: feint, tempo: tempo, edge: edge, chain: g.mastery && t === cT ? g.chain : 0, mom: momQ, pipe: pipe, jaim: jaim });
+      feint: feint, tempo: tempo, edge: edge, chain: g.mastery && t === cT ? g.chain : 0, mom: momQ, pipe: pipe, jaim: jaim,
+      strK: strK, reachK: d / C.REACH, inSp: hardIn ? inSp : 0, prevQ: prevQ }); // (4.4: por qué salió flojo, hitWhy; solo datos que ya había)
     if (g.beach && kind === 'free' && sub === 'tip') hev.pokey = true; // playa: dejada de nudillos (UI: «Pokey»)
     if (feint) emit(g, { type: 'feint', player: p, team: t, shot: sub }); // E1: después del hit, en el mismo paso
     if (g.drill) drillOnHit(g, hev); // E6: nota del toque / fin de la repetición por toque
@@ -3019,6 +3042,20 @@
     else if (bswap) { g.courtSwapAt = a + bb; courtChange(g, 'swap'); }
     return ev;
   }
+  /** «Retomar el partido» en la Carrera (js/resume.js, main.js): se cerró con el punto en juego y ese punto no se repite; el equipo
+   *  team lo cede (punto para 1 - team, con su set y su partido si los cierra). Solo con el balón en 'serve' o 'rally'; sin g.rng;
+   *  silbato y equipo que saca, sin seña de falta (signal 'penalty'). Nunca se llama en una partida normal (las huellas no cambian).
+   *  Devuelve el evento 'point' o null. */
+  function concede(g, team) {
+    if ((team !== 0 && team !== 1) || g.finished || g.drill || g.online || (g.mode !== 'serve' && g.mode !== 'rally')) return null;
+    g._pendCall = null;
+    if (g.ritual && g.ritual.on) { g.ritual.on = false; g.ritual.phase = 'none'; }
+    if (g.cpuTossIn > 0) g.cpuTossIn = 0;
+    var n0 = g.events.length;
+    point(g, 1 - team, 'concede', 'Punto para el rival', null, 'penalty');
+    for (var i = n0; i < g.events.length; i++) if (g.events[i].type === 'point') return g.events[i];
+    return null;
+  }
   /* ---------- Challenge (B2/B3, notes/challenge-fivb.md) ----------
    * 2 por set (g.challenges), solo dentro/fuera de un bote; ventana de CHAL.window s desde el punto y hasta que se saca la
    * siguiente jugada. Acertado: se conserva y el punto pasa al otro equipo (instantánea previa al punto); fallado: se pierde.
@@ -3729,6 +3766,11 @@
     if (!g.beach && s.setNo === 3 && (a >= half || b >= half)) g.courtSwap3 = true;   // el cambio de los 8 ya pasó
     if (g.beach) { var sw = s.setNo === 3 ? BEACH.swap3 : BEACH.swap; g.courtSwapAt = (a + b) - ((a + b) % sw); }
   }
+  /** IA variada: vacía g.aiMem (en el sitio: misma forma para copyGame). */
+  function aiMemReset(M) {
+    if (!M) return;
+    for (var t = 0; t < 2; t++) { M.atk[t][0] = M.atk[t][1] = M.atk[t][2] = -1; M.srv[t][0] = M.srv[t][1] = M.srv[t][2] = -1; M.lane[t][0] = M.lane[t][1] = 0; M.rcv[t][0] = M.rcv[t][1] = -1; M.set[t][0] = M.set[t][1] = -1; }
+  }
   function newGame(g) {
     g.score = [0, 0]; g.sets = [0, 0]; g.setNo = 1; g.serving = 0; g.serverIdx = [0, 1]; g.setScores = [];
     // modo 'one' con el n.º 2 (ctrlIdx 1): orden de saque en espejo, así el jugador del humano saca primero como con el n.º 1
@@ -3740,6 +3782,7 @@
     g.challenges = [perSet(g), perSet(g)]; g.call = null; g.review = null; g.cpuChal = null; g._snap = null; g._pendCall = null;
     g.streakTeam = -1; g.streakN = 0;
     g.courtSwapAt = 0;
+    aiMemReset(g.aiMem); // IA variada: la memoria corta empieza vacía en cada partido
     if (g.st0) startAt(g);   // la situación de la semana: el partido empieza en ese marcador (sin gastar g.rng)
     emit(g, { type: 'newMatch', demo: g.demo, difficulty: g.difficulty, venue: g.venue });
     if (g.drill) drillStage(g); else setupServe(g); // E6: el montaje del ejercicio en lugar del primer saque
@@ -6147,7 +6190,7 @@
     // 6v6 con humano: puestos jugables (fila Controlar) y cambio de puesto
     CTRL_ROLES6: CTRL_ROLES6, setCtrlRole: setCtrlRole,
     // añadidos (opcionales)
-    hitWindow: hitWindow, aimPoint: aimPoint, predictKind: predictKind, canDive: canDive, canDiveMiss: canDiveMiss, missROf: missROf, diveROf: diveROf, accTOf: accTOf, aiReactEff: aiReactEff, blkTouchIn: blkTouchIn, preROf: preROf, preLate: preLate, missLands: missLands, landT: ballLandT, effortFail: effortFail, timingQ: timingQ, gradeOf: gradeOf,
+    hitWindow: hitWindow, aimPoint: aimPoint, predictKind: predictKind, canDive: canDive, canDiveMiss: canDiveMiss, missROf: missROf, diveROf: diveROf, accTOf: accTOf, aiReactEff: aiReactEff, blkTouchIn: blkTouchIn, preROf: preROf, preLate: preLate, missLands: missLands, landT: ballLandT, effortFail: effortFail, timingQ: timingQ, gradeOf: gradeOf, hitWhy: hitWhy, HIT_WHY: HIT_WHY,
     normDiff: normDiff, DIFF: DIFF, TIMING: TIMING,
     atkPhase: atkPhase, blockPressCase: blockPressCase, canJset: canJset, jsetReady: jsetReady, jsetVoid: jsetVoid, JSET: JSET, // colocación en salto
     // E1 (maestría, sprint 5): botón COLOCAR contextual, vista previa de la colocación dirigida, filo, azar sin g.rng, constantes
@@ -6161,7 +6204,7 @@
     // presentación del punto (SIM-01/03)
     skipHold: skipHold, highlightOf: highlightOf, clutchOf: clutchOf,
     // Ambiente de Carrera (P3): no-op sin g.amb
-    holdFor: holdFor, canPenalty: canPenalty, penalty: penalty,
+    holdFor: holdFor, canPenalty: canPenalty, penalty: penalty, concede: concede,
     // ritual del sacador CPU (SIM-04)
     ritualAt: ritualAt,
     // remate apuntado (A2) y challenge (B2)

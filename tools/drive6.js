@@ -118,6 +118,11 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
     await page.navigate(EXTRA);
     await sleep(3000);
     check(await evalJs("VB.ctx.state==='menu'&&VB.ctx.game.demo"), 'arranca en el menú');
+    // «Jugar ya» (1.22.0): perfil nuevo → el foco empieza en el billete «¡Jugar ya!» (#btnNow); ↓ baja a JUGAR (como tools/drive.js)
+    if (await evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")) {
+      await press('ArrowDown'); await sleep(250);
+      check(await evalJs("document.activeElement&&document.activeElement.id==='btnPlay'"), 'perfil nuevo: ↓ desde «¡Jugar ya!» llega a JUGAR');
+    }
     // JUGAR → tarjetas; → → hasta «6 contra 6»; Intro → preparación con Formato en 6 contra 6
     await press('Enter'); await sleep(450);
     check(await evalJs("VB.UI.menuPage()==='play'&&document.activeElement.id==='btnQuick'"), 'JUGAR abre los modos');

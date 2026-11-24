@@ -49,6 +49,7 @@
     // 6v6 (online de varios): cambios apagados online (subsOn, subWait), tu atleta en el banquillo (ctrlOut, por plaza), solapes de la
     // falta de posición y memorias de la IA de 6 (ai6.js _pq6 / _sp6), todo por equipo
     subsOn: 'as', subWait: 'as', ctrlOut: 'as', overlap: 'swap', _pq6: 'swap', _sp6: 'swap',   // online de varios (sim.js bloque MULTI): marca y «Continuar» por plaza (los índices son de plaza, no de equipo)
+    aiMem: 'as',             // IA variada (1.22.0): memoria corta de la IA por equipo; la vista no la lee
     fl: 'as',                // Online V2 «Fluida» (VB.Sim.flInit): estado canónico en datos planos; la vista no lo lee
     // gesto del hueco activo (SLOT_S de sim.js y aim3/swingAim/aimIn): pasan a ser los del invitado
     aim3: 'special', swingAim: 'special', aimIn: 'special', aimOn: 'slot', aimLen: 'slot', swingLen: 'slot', aimSet: 'slot',
@@ -84,9 +85,11 @@
     jv: 'as', mom: 'as', pipe: 'as', hard: 'as', jaim: 'as',  // (salto con impulso; jump.dir ya es 'vec')
     inP: 'ref', outP: 'ref', rot: 'as',   // (6v6: líbero que entra / sale; rotation.rot = dorsales por zona)
     seat: 'as',   // (online de varios: plaza que pidió skip / tiempo muerto / IA / «¡Pídela!» / líbero; índice de plaza, no cambia con el giro)
+    strK: 'as', reachK: 'as', inSp: 'as', prevQ: 'as',  // (hit: por qué salió flojo, Sim.hitWhy; 22-nov-2026)
     ok: 'as'   // (blockPress: pulsación del bloqueo activo a tiempo o no; faltaba, viewtest lo vio el 18-nov-2026 al cambiar los partidos de bots)
   };
   // claves conocidas de los objetos anidados que flip toca o deja (viewtest falla si aparece otra: habría que clasificarla)
+  // (ritual.jug: gesto «Giro» del saque de firma, booleano igual para los dos lados; faltaba desde la Carrera EA/2K, 22-nov-2026)
   var NESTED = {
     ball: 'x,y,z,vx,vy,vz,held,spin,speed,dip,wobA,wobF,wobP', pr1: 'x,y,z,t', pr3: 'x,y,z,t', aim3: 'on,x,y,kind', lastLand: 'x,y,inside,t',
     antennaHit: 'x,y,z', call: 'x,y,dist,truthIn,calledIn,wrong,team,t,alt,used,setNo,waived', _pendCall: 'x,y,dist,truthIn,calledIn,wrong,team,t,alt,used,setNo,waived',

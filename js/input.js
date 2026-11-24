@@ -517,7 +517,33 @@
       '.vt-pause{width:44px;height:44px}.vt-zoom{right:calc(68px + env(safe-area-inset-right));top:calc(16px + env(safe-area-inset-top))}}' +
     '@media (max-height:340px){.vt-hit{width:calc(78px*var(--vts,1));height:calc(78px*var(--vts,1))}.vt-jump{width:calc(60px*var(--vts,1));height:calc(60px*var(--vts,1));right:calc(120px*var(--vts,1) + env(safe-area-inset-right))}' +
       '.vt-sw{right:calc(12px + env(safe-area-inset-right));bottom:calc(118px*var(--vts,1) + env(safe-area-inset-bottom))}' +
-      '.vt-set{width:calc(52px*var(--vts,1));height:calc(52px*var(--vts,1));right:calc(124px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(84px*var(--vts,1) + env(safe-area-inset-bottom))}}';
+      '.vt-set{width:calc(52px*var(--vts,1));height:calc(52px*var(--vts,1));right:calc(124px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(84px*var(--vts,1) + env(safe-area-inset-bottom))}}' +
+    // DISPOSICIÓN (imprescindible 4.2, 1.22.0): espejo para zurdos (joystick en la mitad DERECHA) y opacidad elegida por botón. La
+    // opacidad va en filter (se multiplica con la de los estados: reposo, jugador detrás, balón muerto al 25 %); .dn y .off ya usan filter
+    '#touch.mirror .vt-zone{left:auto;right:0}' +
+    '.vt-op{filter:opacity(var(--vto,1))}.vt-btn.vt-op.dn{filter:brightness(1.12) opacity(var(--vto,1))}.vt-btn.vt-op.off{filter:saturate(.15) brightness(.8) opacity(var(--vto,1))}' +
+    // EDITOR de disposición (Ajustes › Controles › Táctil › Disposición de botones): pantalla completa con los botones de verdad
+    '.vte{position:fixed;inset:0;z-index:9000;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden;' +
+      'background:radial-gradient(ellipse at 50% 120%,rgba(232,178,96,.55),rgba(232,178,96,0) 60%),linear-gradient(180deg,#2b4f8f 0,#3a69b0 46%,#c99a58 46.2%,#b8864a 100%)}' +
+    '.vte::after{content:"";position:absolute;left:50%;top:46%;bottom:0;border-left:3px dashed rgba(255,244,220,.35);pointer-events:none}' +
+    '.vte-half{position:absolute;left:0;top:0;bottom:0;width:50%;background:rgba(21,16,42,.22);pointer-events:none}' +
+    '.vte.mirror .vte-half{left:auto;right:0}' +
+    '.vte .vt-btn{cursor:grab;transform:none!important;transition:none}' +
+    '.vte .vt-set{visibility:visible;opacity:.86}' +
+    '.vte .vt-btn.vte-fix{opacity:.45;cursor:default;pointer-events:none}' +
+    '.vte .vt-btn.sel{outline:3px solid #ffcb3d;outline-offset:5px}' +
+    '.vte .vt-joy.sel .vt-base{outline:3px solid #ffcb3d;outline-offset:5px}' +
+    // barra arriba a la izquierda (la pausa y la lupa, que no se mueven, quedan a la vista a su derecha); abajo si tapa menos botones
+    '.vte-bar{position:absolute;left:calc(10px + env(safe-area-inset-left));right:calc(118px + env(safe-area-inset-right));top:calc(10px + env(safe-area-inset-top));max-width:470px;transition:opacity .15s}' +
+    '.vte-in{padding:8px 10px;display:flex;flex-direction:column;gap:10px;color:#fff4dc;font:500 13px/1.2 var(--sp-ui,system-ui,sans-serif)}' +
+    '.vte-bar.low{top:auto;bottom:calc(12px + env(safe-area-inset-bottom))}' +
+    '.vte-bar.drag{opacity:.2;pointer-events:none}' +
+    '.vte-hd{display:flex;align-items:baseline;gap:8px;min-width:0}.vte-hd b{font:400 15px/1 var(--sp-pop,system-ui,sans-serif);color:#ffcb3d;letter-spacing:.03em;white-space:nowrap}' +
+    '.vte-hd small{font-size:12px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}' +
+    '.vte-sl{display:flex;gap:10px}.vte-sl label{flex:1;display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}.vte-sl label.off{visibility:hidden}' +
+    '.vte-sl input{flex:1;min-width:60px;height:44px;margin:0;accent-color:#ffcb3d;touch-action:none}.vte-sl output{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}' +
+    '.vte-act{display:flex;gap:11px;justify-content:space-between}.vte-act .sp-btn{flex:1 1 0;min-width:0;min-height:44px;--sp-px:6px;--sp-fs:clamp(12px,3.6vh,15px)}.vte-act .vte-rst{flex-grow:1.35}.vte-act .vte-ok{flex-grow:.85}' +
+    '@media (max-height:340px){.vte-in{padding:6px 8px;gap:10px}}';
 
   var ICON_HIT = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><g><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></svg>';
   var ICON_JUMP = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13l6-6 6 6M6 19l6-6 6 6"/></svg>';
@@ -617,7 +643,8 @@
   function clampJoy() {
     var W = ctx.width || 800, H = ctx.height || 400, R = T.R;
     if (W > R * 3 && H > R * 3) {
-      T.ox = Math.min(Math.max(SA.l + R + 8, T.ox), W * 0.62);
+      if (LAY.mirror) T.ox = Math.max(Math.min(W - SA.r - R - 8, T.ox), W * 0.38);   // (zurdos: el reflejo de lo de abajo)
+      else T.ox = Math.min(Math.max(SA.l + R + 8, T.ox), W * 0.62);
       T.oy = Math.min(Math.max(SA.t + R + 8, T.oy), H - SA.b - R - 8);
     }
   }
@@ -640,7 +667,7 @@
     var id = e.pointerId, q = localXY(e), x = q.x, y = q.y;
     if (ptrs[id]) endPtr(id);                       // (id reutilizado sin pointerup: se cierra el anterior)
     var role = hitTest(x, y), t0 = nowS();
-    if (!role) role = (x < q.w * 0.5 && T.joy === null) ? 'joy' : 'none';
+    if (!role) role = (joySide(x, q.w) && T.joy === null) ? 'joy' : 'none';   // (mitad izquierda; zurdos: derecha)
     ptrs[id] = { role: role, x: x, y: y, touch: e.pointerType === 'touch', t0: t0, x0: x, y0: y }; nPtr++;
     if (role === 'joy') joyStart(id, x, y); else if (role !== 'none') press(role);
     try { el.root.setPointerCapture(id); } catch (_) { }
@@ -661,7 +688,7 @@
       // se adopta como joystick desde donde está (no hace falta levantarlo). Sobre los botones NO (pulsaría solo).
       if (!T.shown || e.pointerType !== 'touch' || T.joy !== null || !(e.buttons & 1)) return;
       var q0 = localXY(e);
-      if (q0.x >= q0.w * 0.5 || hitTest(q0.x, q0.y)) return;
+      if (!joySide(q0.x, q0.w) || hitTest(q0.x, q0.y)) return;
       ptrs[id] = { role: 'joy', x: q0.x, y: q0.y, touch: true, t0: -9, x0: q0.x, y0: q0.y }; nPtr++; stats.adopt++;
       joyStart(id, q0.x, q0.y);
       try { el.root.setPointerCapture(id); } catch (_) { }
@@ -687,7 +714,7 @@
       // otro dedo esperando en la mitad izquierda: hereda el joystick desde donde está
       for (var k in ptrs) {
         var o = ptrs[k];
-        if (o.role === 'none' && o.x < (ctx.width || 800) * 0.5 && !hitTest(o.x, o.y)) { o.role = 'joy'; stats.promote++; joyStart(+k, o.x, o.y); break; }
+        if (o.role === 'none' && joySide(o.x, ctx.width || 800) && !hitTest(o.x, o.y)) { o.role = 'joy'; stats.promote++; joyStart(+k, o.x, o.y); break; }
       }
       placeJoy();
     } else if (p.role !== 'none') release(p.role);
@@ -731,6 +758,7 @@
     el.joy.style.setProperty('--d', (T.R * 2) + 'px');
     el.joy.style.setProperty('--k', Math.round(T.R * 0.9) + 'px');
     readSafe();
+    if (LAY.custom) placeOverlay();   // (disposición propia o zurdos: px recalculados con el tamaño y las zonas seguras de ahora)
   }
   /** Joystick: donde está el dedo o, en reposo, una guía tenue abajo a la izquierda (fuera del notch). */
   function placeJoy() {
@@ -738,8 +766,8 @@
     var on = T.joy !== null, x, y;
     if (on) { x = T.ox; y = T.oy; }
     else {
-      var h = ctx && ctx.height ? ctx.height : 400;
-      x = SA.l + T.R + 34; y = h - SA.b - T.R - 30;
+      var h = ctx && ctx.height ? ctx.height : 400, w = ctx && ctx.width ? ctx.width : 800;
+      x = LAY.mirror ? w - SA.r - T.R - 34 : SA.l + T.R + 34; y = h - SA.b - T.R - 30;
     }
     el.joy.classList.toggle('idle', !on);
     el.joy.style.transform = 'translate(' + x + 'px,' + y + 'px)';
@@ -818,7 +846,7 @@
     // modo «controlar 1 jugador» (sim g.ctrlMode 'one'): no hay cambio de jugador, fuera el botón ⇄. En 6v6 (sprint 3) se queda:
     // es «¡Pídela!» (sim g.ask6: el colocador te elige más)
     var swHide = g.ctrlMode === 'one' && g.size !== 6;
-    if (swHide !== T.swHide) { T.swHide = swHide; el.sw.style.display = swHide ? 'none' : ''; }
+    if (swHide !== T.swHide) { T.swHide = swHide; el.sw.style.display = swHide ? 'none' : ''; if (!swHide && LAY.custom) placeOverlay(); }
     var sw6 = g.size === 6 && g.ctrlMode === 'one';   // icono y etiqueta: «Pedir el balón» (mano) o «Cambiar de jugador» (flechas)
     if (sw6 !== T.sw6) { T.sw6 = sw6; el.sw.innerHTML = sw6 ? ICON_ASK : ICON_SW; el.sw.setAttribute('aria-label', sw6 ? 'Pedir el balón' : 'Cambiar de jugador'); }
     var tossing = myServe && g.serveState === 'toss';
@@ -1008,6 +1036,269 @@
     var v = ctx && ctx.settings ? +ctx.settings.touchSize : NaN;
     touchK = v === v && v > 0 ? Math.max(1, Math.min(1.3, v)) : 1;
     if (el.root) { el.root.style.setProperty('--vts', String(touchK)); GEO.ok = false; T.rects = null; }
+    applyTouchLayout();
+  }
+
+  // ---------------- Disposición táctil (imprescindible 4.2, 1.22.0) ----------------
+  // ctx.settings.touchLayout (make-the-cut.device, NO se sincroniza: cada móvil es distinto): null = de fábrica (las posiciones del CSS) o
+  // { hit|jump|set|sw: { x, y, s, o }, joy: { o } } con todo opcional. x, y = CENTRO del botón en fracciones 0-1 de la pantalla sin las zonas
+  // seguras (notch, barra de gestos), sin espejo; s = tamaño 0,7-1,5 (encima de touchSize); o = opacidad 0,3-1. ctx.settings.touchMirror
+  // (zurdos): el joystick pasa a la mitad DERECHA y los botones se reflejan a la izquierda. Pausa y lupa no se mueven (arriba a la derecha):
+  // un botón que se les echa encima se aparta. Lo de fábrica sin espejo no toca nada (CSS puro, como siempre).
+  var LAY_KEYS = ['hit', 'jump', 'set', 'sw', 'joy'], MOVE_KEYS = ['hit', 'jump', 'set', 'sw'];
+  var LAY = { lay: null, mirror: false, custom: false, dirty: false };
+  function fin(v) { return typeof v === 'number' && isFinite(v); }
+  function clampN(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function r3(v) { return Math.round(v * 1000) / 1000; }
+  function r2(v) { return Math.round(v * 100) / 100; }
+  /** Disposición saneada (null = de fábrica). Lo que no se entiende se ignora: una partida vieja o un valor roto nunca rompen los mandos. */
+  function cleanLayout(v) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+    var out = {}, n = 0;
+    for (var i = 0; i < LAY_KEYS.length; i++) {
+      var k = LAY_KEYS[i], e = v[k], o = {}, any = false;
+      if (!e || typeof e !== 'object') continue;
+      if (k !== 'joy' && fin(e.x) && fin(e.y)) { o.x = r3(clampN(e.x, 0, 1)); o.y = r3(clampN(e.y, 0, 1)); any = true; }
+      if (k !== 'joy' && fin(e.s)) { var sv = r2(clampN(e.s, 0.7, 1.5)); if (sv !== 1) { o.s = sv; any = true; } }
+      if (fin(e.o)) { var ov = r2(clampN(e.o, 0.3, 1)); if (ov !== 1) { o.o = ov; any = true; } }
+      if (any) { out[k] = o; n++; }
+    }
+    return n ? out : null;
+  }
+  /** Coloca los botones E (hit, jump, set, sw; pause y zoom fijos; joy solo opacidad) de un contenedor W×H con zonas seguras sa.
+   *  Quita primero lo puesto en línea y mide la posición de fábrica (offsetLeft/Top: sin transformaciones). Devuelve los centros
+   *  colocados { k: {cx, cy, r} } (px del contenedor), null si es lo de fábrica, o false si el contenedor no se ve (no se puede medir). */
+  function placeLayout(E, lay, mirror, sa, W, H) {
+    var i, k, e, b;
+    for (i = 0; i < LAY_KEYS.length; i++) {
+      k = LAY_KEYS[i]; b = E[k]; if (!b) continue;
+      e = lay && lay[k];
+      if (e && e.o < 1) { b.classList.add('vt-op'); b.style.setProperty('--vto', String(e.o)); } else { b.classList.remove('vt-op'); b.style.removeProperty('--vto'); }
+      if (k !== 'joy') { var st = b.style; st.left = st.top = st.right = st.bottom = st.width = st.height = st.fontSize = ''; }
+    }
+    var moved = false;
+    if (lay) for (i = 0; i < MOVE_KEYS.length; i++) { e = lay[MOVE_KEYS[i]]; if (e && (fin(e.x) || fin(e.s))) moved = true; }
+    if (!mirror && !moved) return null;
+    if (!(W > 0 && H > 0)) return false;
+    var uw = Math.max(1, W - sa.l - sa.r), uh = Math.max(1, H - sa.t - sa.b), M = {}, FX = [];
+    var fixed = ['pause', 'zoom'];
+    for (i = 0; i < fixed.length; i++) { b = E[fixed[i]]; if (b && b.offsetWidth) FX.push({ cx: b.offsetLeft + b.offsetWidth / 2, cy: b.offsetTop + b.offsetHeight / 2, r: b.offsetWidth / 2 }); }
+    // 1) medir lo de fábrica de todos (antes de escribir nada: escribir y leer alternando obligaría a recalcular el estilo cada vez)
+    for (i = 0; i < MOVE_KEYS.length; i++) {
+      k = MOVE_KEYS[i]; b = E[k]; if (!b || !b.offsetWidth) continue;
+      var cs = getComputedStyle(b);
+      M[k] = { d: b.offsetWidth, bw: cs.boxSizing === 'border-box' ? 0 : b.offsetWidth - b.clientWidth, cx: b.offsetLeft + b.offsetWidth / 2, cy: b.offsetTop + b.offsetHeight / 2, f: parseFloat(cs.fontSize) || 0 };
+    }
+    var out = {}, placed = [];
+    // (22-nov-2026, revisión de la rama) primero los botones que has movido y luego los de fábrica: un botón que se echa ENCIMA de uno ya
+    // colocado (se pisan los círculos) se aparta en línea recta hasta dejar 6 px, como con la pausa y la lupa. Antes podían quedar uno
+    // encima de otro (COLOCAR dentro de GOLPEAR con «Zurdos» y GOLPEAR movido) y el toque iba al que no era.
+    var order = [];
+    for (k in M) if (lay && lay[k] && fin(lay[k].x) && fin(lay[k].y)) order.push(k);
+    for (k in M) if (order.indexOf(k) < 0) order.push(k);
+    for (var oi = 0; oi < order.length; oi++) {
+      k = order[oi];
+      var m = M[k], s = 1, cx = m.cx, cy = m.cy;
+      e = lay && lay[k];
+      if (e && fin(e.s)) s = e.s;
+      if (e && fin(e.x) && fin(e.y)) { cx = sa.l + e.x * uw; cy = sa.t + e.y * uh; }
+      if (mirror) cx = sa.l + (W - sa.r - cx);                                   // (reflejo dentro de la zona segura)
+      var d = m.d * s, r = d / 2, pad = 4;
+      // fuera de la pausa y de la lupa (se aparta en línea recta) y dentro de la zona segura
+      for (var f = 0; f < FX.length; f++) {
+        var fx = FX[f], dx = cx - fx.cx, dy = cy - fx.cy, dl = Math.hypot(dx, dy), need = r + fx.r + 6;
+        if (dl < need) { if (dl < 1) { dx = 0; dy = 1; dl = 1; } cx = fx.cx + dx / dl * need; cy = fx.cy + dy / dl * need; }
+      }
+      // (solo si se pisan de verdad: lo de fábrica no se toca; hasta 4 vueltas, por si al apartarse de uno se echa encima de otro)
+      for (var pass = 0, hitAny = true; pass < 4 && hitAny; pass++) {
+        hitAny = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var po = placed[pi], ex = cx - po.cx, ey = cy - po.cy, el2 = Math.hypot(ex, ey);
+          if (el2 < r + po.r + 2) { var nd = r + po.r + 6; if (el2 < 1) { ex = 0; ey = -1; el2 = 1; } cx = po.cx + ex / el2 * nd; cy = po.cy + ey / el2 * nd; hitAny = true; }
+        }
+      }
+      cx = W - sa.l - sa.r > d + 2 * pad ? clampN(cx, sa.l + r + pad, W - sa.r - r - pad) : W / 2;
+      cy = H - sa.t - sa.b > d + 2 * pad ? clampN(cy, sa.t + r + pad, H - sa.b - r - pad) : H / 2;
+      out[k] = { cx: cx, cy: cy, r: r }; placed.push(out[k]);
+    }
+    // 2) escribir
+    for (k in out) {
+      var bs = E[k].style, o2 = out[k], m2 = M[k];
+      bs.left = (o2.cx - o2.r) + 'px'; bs.top = (o2.cy - o2.r) + 'px'; bs.right = 'auto'; bs.bottom = 'auto';
+      if (o2.r * 2 !== m2.d) { bs.width = bs.height = (o2.r * 2 - m2.bw) + 'px';   /* (el ancho CSS no lleva el borde) */ if (m2.f) bs.fontSize = (m2.f * o2.r * 2 / m2.d) + 'px'; }
+    }
+    return out;
+  }
+  /** Lee touchLayout / touchMirror y coloca el overlay del partido (si está oculto, al mostrarse: no se puede medir). */
+  function applyTouchLayout() {
+    if (!el.root || !ctx) return;
+    var st = ctx.settings || {};
+    LAY.lay = cleanLayout(st.touchLayout); LAY.mirror = st.touchMirror === true;
+    LAY.custom = LAY.mirror || !!LAY.lay;
+    el.root.classList.toggle('mirror', LAY.mirror);
+    placeOverlay();
+    if (T.joy !== null) clampJoy();
+    placeJoy();
+  }
+  function placeOverlay() {
+    if (!el.root) return;
+    if (el.root.hidden && LAY.custom) { LAY.dirty = true; return; }
+    var r = placeLayout(el, LAY.lay, LAY.mirror, SA, el.root.clientWidth, el.root.clientHeight);
+    LAY.dirty = r === false;
+    GEO.ok = false; T.rects = null;
+  }
+  /** ¿x (px del overlay, ancho w) cae en la mitad del joystick? (izquierda; con el espejo, derecha) */
+  function joySide(x, w) { return LAY.mirror ? x >= w * 0.5 : x < w * 0.5; }
+
+  // ---------------- Editor de disposición ----------------
+  var ED = null;
+  var ED_NAMES = { hit: 'Golpear', jump: 'Saltar', set: 'Colocar', sw: 'Cambiar', joy: 'Joystick' };
+  /** Abre el editor a pantalla completa (o.onClose al cerrar). Guarda cada cambio al momento con ctx.actions.setSetting. */
+  function editLayout(o) {
+    if (ED) return true;
+    if (!ctx || !document.body || !el.root) return false;
+    o = o || {};
+    var lay = JSON.parse(JSON.stringify(cleanLayout(ctx.settings.touchLayout) || {})), mir = ctx.settings.touchMirror === true;
+    var root = document.createElement('div');
+    root.className = 'vte'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Disposición de los botones táctiles');
+    root.style.setProperty('--vts', String(touchK));
+    var six = ctx.game && ctx.game.size === 6 && ctx.game.ctrlMode === 'one';
+    root.innerHTML = '<div class="vte-half"></div>' +
+      '<div class="vt-joy idle" data-k="joy"><div class="vt-base"></div><div class="vt-knob"></div><div class="vt-tip">MOVER</div></div>' +
+      '<div class="vt-btn vt-sw" data-k="sw" role="button" aria-label="' + (six ? 'Pedir el balón' : 'Cambiar de jugador') + '">' + (six ? ICON_ASK : ICON_SW) + '</div>' +
+      '<div class="vt-btn vt-jump" data-k="jump" role="button" aria-label="Saltar">' + ICON_JUMP + '<span>SALTAR</span></div>' +
+      '<div class="vt-btn vt-hit" data-k="hit" role="button" aria-label="Golpear">' + ICON_HIT + '<span>GOLPEAR</span></div>' +
+      '<div class="vt-btn vt-set" data-k="set" role="button" aria-label="Colocar">' + ICON_SET + '<span>COLOCAR</span></div>' +
+      '<div class="vt-btn vt-pause vte-fix" aria-hidden="true">' + ICON_PAUSE + '</div>' +
+      '<div class="vt-btn vt-zoom vte-fix" aria-hidden="true">' + ICON_ZOOM + '<b>3</b></div><div class="vt-safe"></div>' +
+      '<div class="vte-bar"><div class="vte-in sp-panel">' +
+        '<div class="vte-hd"><b class="vte-nm">Golpear</b><small class="vte-tip"></small></div>' +
+        '<div class="vte-sl"><label class="vte-ls">Tamaño <input type="range" class="vte-s" min="70" max="150" step="5" aria-label="Tamaño del botón"><output class="vte-sv"></output></label>' +
+        '<label>Opacidad <input type="range" class="vte-o" min="30" max="100" step="5" aria-label="Opacidad"><output class="vte-ov"></output></label></div>' +
+        '<div class="vte-act" data-sp-row><button type="button" class="sp-btn sp-sm sp-cream vte-mir" data-shape="1" aria-pressed="false"><span class="sp-t">Zurdos</span></button>' +
+        '<button type="button" class="sp-btn sp-sm sp-teal vte-rst" data-shape="2"><span class="sp-t">Restablecer</span></button>' +
+        '<button type="button" class="sp-btn sp-sm sp-kit vte-ok" data-shape="3"><span class="sp-t">Listo</span></button></div>' +
+      '</div></div>';
+    document.body.appendChild(root);
+    var q = function (s) { return root.querySelector(s); };
+    var E = { joy: q('.vt-joy'), hit: q('.vt-hit'), jump: q('.vt-jump'), set: q('.vt-set'), sw: q('.vt-sw'), pause: q('.vt-pause'), zoom: q('.vt-zoom'),
+              safe: q('.vt-safe'), bar: q('.vte-bar'), nm: q('.vte-nm'), tip: q('.vte-tip'), s: q('.vte-s'), o: q('.vte-o'), sv: q('.vte-sv'), ov: q('.vte-ov'), ls: q('.vte-ls'),
+              mir: q('.vte-mir'), rst: q('.vte-rst'), ok: q('.vte-ok') };
+    if (ctx.game && ctx.game.ctrlMode === 'one' && ctx.game.size !== 6) E.sw.style.display = 'none';
+    try { if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(root); } catch (_) { }
+    var sa = { t: 0, r: 0, b: 0, l: 0 }, P = null, sel = 'hit', drag = null;
+    function readSa() { try { var cs = getComputedStyle(E.safe); sa.t = parseFloat(cs.paddingTop) || 0; sa.r = parseFloat(cs.paddingRight) || 0; sa.b = parseFloat(cs.paddingBottom) || 0; sa.l = parseFloat(cs.paddingLeft) || 0; } catch (_) { } }
+    function place() {
+      readSa();
+      var W = root.clientWidth, H = root.clientHeight, L = cleanLayout(lay);
+      root.classList.toggle('mirror', mir);
+      P = placeLayout(E, L, mir, sa, W, H);
+      if (!P) { P = {}; for (var i = 0; i < MOVE_KEYS.length; i++) { var b = E[MOVE_KEYS[i]]; if (b.offsetWidth) P[MOVE_KEYS[i]] = { cx: b.offsetLeft + b.offsetWidth / 2, cy: b.offsetTop + b.offsetHeight / 2, r: b.offsetWidth / 2 }; } }
+      // joystick: la guía de reposo del partido (mismo radio y sitio que layoutTouch / placeJoy)
+      var R = Math.round(Math.max(42, Math.min(66, Math.min(W, H) * 0.15))), jx = mir ? W - sa.r - R - 34 : sa.l + R + 34, jy = H - sa.b - R - 30;
+      E.joy.style.setProperty('--d', (R * 2) + 'px'); E.joy.style.setProperty('--k', Math.round(R * 0.9) + 'px');
+      E.joy.style.transform = 'translate(' + jx + 'px,' + jy + 'px)';
+      P.joy = { cx: jx, cy: jy, r: R };
+      bar();
+    }
+    function bar() {
+      for (var i = 0; i < LAY_KEYS.length; i++) E[LAY_KEYS[i]].classList.toggle('sel', LAY_KEYS[i] === sel);
+      var e = lay[sel] || {}, s = sel === 'joy' ? 1 : (fin(e.s) ? e.s : 1), op = fin(e.o) ? e.o : 1;
+      E.nm.textContent = ED_NAMES[sel];
+      E.tip.textContent = sel === 'joy' ? 'Sale donde pones el dedo, en la mitad ' + (mir ? 'derecha' : 'izquierda') : 'Arrastra los botones para moverlos';
+      E.ls.classList.toggle('off', sel === 'joy');
+      E.s.value = String(Math.round(s * 100)); E.sv.textContent = Math.round(s * 100) + '%';
+      E.o.value = String(Math.round(op * 100)); E.ov.textContent = Math.round(op * 100) + '%';
+      E.mir.setAttribute('aria-pressed', mir ? 'true' : 'false'); E.mir.classList.toggle('sp-gold', mir); E.mir.classList.toggle('sp-cream', !mir);   // (en la hoja de tinta, pegatinas claras)
+      // la barra va arriba o abajo, donde tape menos botones (el elegido cuenta el doble); empate: arriba
+      var bw = E.bar.offsetWidth || 300, bh = E.bar.offsetHeight || 120, bl = E.bar.offsetLeft || 10, H = root.clientHeight, cTop = 0, cLow = 0;
+      for (var k in P) {
+        var c = P[k], wgt = k === sel ? 2 : 1;
+        if (k === 'joy' || E[k].style.display === 'none') continue;   // (el joystick no se arrastra: puede quedar debajo)
+        if (c.cx + c.r < bl || c.cx - c.r > bl + bw) continue;
+        if (c.cy - c.r < sa.t + 8 + bh) cTop += wgt;
+        if (c.cy + c.r > H - sa.b - 8 - bh) cLow += wgt;
+      }
+      E.bar.classList.toggle('low', cLow < cTop);
+    }
+    function save() {
+      var L = cleanLayout(lay);
+      if (ctx.actions && ctx.actions.setSetting) { ctx.actions.setSetting('touchLayout', L); ctx.actions.setSetting('touchMirror', mir); }
+      else { ctx.settings.touchLayout = L; ctx.settings.touchMirror = mir; applyTouchLayout(); }
+    }
+    function pick(x, y) {
+      var best = null, bd = 1e9;
+      for (var k in P) {
+        var c = P[k];
+        if (k !== 'joy' && E[k].style.display === 'none') continue;
+        var d = Math.hypot(x - c.cx, y - c.cy) - c.r;
+        if (d < 10 && d < bd) { bd = d; best = k; }
+      }
+      return best;
+    }
+    function xy(ev) { var r = root.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+    function onDown(ev) {
+      // en la barra, sus mandos mandan; en su fondo, un botón que haya quedado debajo se puede seguir cogiendo
+      if (E.bar.contains(ev.target) && (ev.target.closest('input,button,label,output') || !pick(xy(ev).x, xy(ev).y))) return;
+      if (ev.cancelable) ev.preventDefault();
+      if (drag) return;
+      var p = xy(ev), k = pick(p.x, p.y); if (!k) return;
+      sel = k;
+      if (k !== 'joy') { var c = P[k]; drag = { id: ev.pointerId, k: k, dx: c.cx - p.x, dy: c.cy - p.y }; E.bar.classList.add('drag'); try { root.setPointerCapture(ev.pointerId); } catch (_) { } }
+      bar();
+    }
+    function toFrac(k, cx, cy) {
+      var W = root.clientWidth, H = root.clientHeight, uw = Math.max(1, W - sa.l - sa.r), uh = Math.max(1, H - sa.t - sa.b);
+      if (mir) cx = sa.l + (W - sa.r - cx);
+      var e = lay[k] || (lay[k] = {});
+      e.x = r3(clampN((cx - sa.l) / uw, 0, 1)); e.y = r3(clampN((cy - sa.t) / uh, 0, 1));
+    }
+    function onMove(ev) {
+      if (!drag || ev.pointerId !== drag.id) return;
+      if (ev.cancelable) ev.preventDefault();
+      var p = xy(ev); toFrac(drag.k, p.x + drag.dx, p.y + drag.dy); place();
+    }
+    function onUp(ev) {
+      if (!drag || ev.pointerId !== drag.id) return;
+      var k = drag.k; drag = null; E.bar.classList.remove('drag');
+      if (P[k]) toFrac(k, P[k].cx, P[k].cy);      // (lo guardado = donde ha quedado de verdad, tras apartarse y el clamp)
+      place(); save();
+    }
+    function onSlide(ev) {
+      var e = lay[sel] || (lay[sel] = {}), v = (+ev.target.value || 100) / 100;
+      if (ev.target === E.s) { if (sel === 'joy') return; e.s = v; } else e.o = v;
+      place();
+      if (ev.type === 'change') save();
+    }
+    function onKey(ev) {
+      if (ev.key === 'Tab') return;
+      ev.stopImmediatePropagation();
+      if (ev.key === 'Escape' && ev.type === 'keydown') { if (ev.cancelable) ev.preventDefault(); close(); }
+    }
+    function onResize() { place(); }
+    function close() {
+      if (!ED) return;
+      drag = null;
+      save();
+      window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); window.removeEventListener('resize', onResize);
+      if (root.parentNode) root.parentNode.removeChild(root);
+      ED = null;
+      if (o.onClose) { try { o.onClose(); } catch (_) { } }
+    }
+    root.addEventListener('pointerdown', onDown, { passive: false });
+    root.addEventListener('pointermove', onMove, { passive: false });
+    root.addEventListener('pointerup', onUp); root.addEventListener('pointercancel', onUp); root.addEventListener('lostpointercapture', onUp);
+    root.addEventListener('contextmenu', function (ev) { if (ev.cancelable) ev.preventDefault(); });
+    E.s.addEventListener('input', onSlide); E.s.addEventListener('change', onSlide);
+    E.o.addEventListener('input', onSlide); E.o.addEventListener('change', onSlide);
+    E.mir.addEventListener('click', function () { mir = !mir; place(); save(); });
+    E.rst.addEventListener('click', function () { lay = {}; place(); save(); });
+    E.ok.addEventListener('click', close);
+    window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true); window.addEventListener('resize', onResize);
+    ED = { close: close, root: root, state: function () { return { sel: sel, mirror: mir, lay: cleanLayout(lay), P: JSON.parse(JSON.stringify(P)), sa: { t: sa.t, r: sa.r, b: sa.b, l: sa.l }, low: E.bar.classList.contains('low') }; } };
+    place();
+    try { E.ok.focus({ preventScroll: true }); } catch (_) { }
+    return true;
   }
 
   // ---------------- Vibración ----------------
@@ -1144,6 +1435,7 @@
       if (k == null || k === 'padKeys') buildPad();
       if (k == null || k === 'padDead') applyPadDead();
       if (k == null || k === 'touchSize') applyTouchSize();
+      else if (k === 'touchLayout' || k === 'touchMirror') applyTouchLayout();
       if (k == null || k === 'camZoom') zoomLabel();
     },
     /** E3: teclas y botones efectivos (copias): { keys: {acción: [c1, c2]}, pad: {acción: [botón]}, padStd (false = mando
@@ -1168,6 +1460,18 @@
     keyName: keyName,
     /** E3: nombre de un botón del mando estándar ('A', 'LB', 'RT' / PlayStation '✕', 'L1', 'R2'); fam por defecto la del mando activo. */
     padName: padName,
+    /** 1.22.0 (imprescindible 4.2): editor de la disposición táctil a pantalla completa (arrastrar, tamaño y opacidad por botón, zurdos,
+     *  restablecer). o.onClose() al cerrar («Listo», Esc o B del mando). Guarda al momento touchLayout / touchMirror (make-the-cut.device).
+     *  Devuelve false si no se puede abrir. */
+    editLayout: editLayout,
+    /** ¿está abierto el editor de disposición? */
+    editing: function () { return !!ED; },
+    /** Cierra el editor (guarda). */
+    closeEditor: function () { if (ED) ED.close(); },
+    /** Disposición saneada (null = de fábrica): ver «Disposición táctil» arriba. */
+    cleanLayout: cleanLayout,
+    /** OPCIONAL (pruebas: tools/touchedittest.js): estado del editor abierto { sel, mirror, lay, P (centros px), sa, low } o null. */
+    _editState: function () { return ED ? ED.state() : null; },
     /** OPCIONAL: pulso de challenge desde fuera (p. ej. un botón táctil propio de la UI): sale en el siguiente poll(). */
     pressChallenge: function () { T.chal = true; },
     resize: function (w, h) {
@@ -1198,7 +1502,7 @@
                       rest: pad.idx >= 0 && pad.rest[pad.idx] ? { x: pad.rest[pad.idx].x, y: pad.rest[pad.idx].y } : null },
                geo: JSON.parse(JSON.stringify({ hit: GEO.hit, jump: GEO.jump, sw: GEO.sw, pause: GEO.pause, set: GEO.set, zoom: GEO.zoom })), stats: JSON.parse(JSON.stringify(stats)), setOn: T.setOn,
                sigs: sigLog.slice(), dead: T.dead, dz: DZ, padSoft: PAD_SOFT, cap: CAP.on, hush: CAP.hush, touchK: touchK, setRoll: T.setRoll,
-               code: JSON.parse(JSON.stringify(CODE)), pb: JSON.parse(JSON.stringify(PB)) };
+               code: JSON.parse(JSON.stringify(CODE)), pb: JSON.parse(JSON.stringify(PB)), mirror: LAY.mirror, lay: LAY.lay ? JSON.parse(JSON.stringify(LAY.lay)) : null, layDirty: LAY.dirty };
     },
     /** Devuelve las intenciones del frame (objeto reutilizado). */
     poll: function (dt) {
@@ -1290,6 +1594,8 @@
       it.jset = jset;
       it.mx = mx; it.my = my; it.hit = hit; it.jump = jump; it.switchPlayer = sw; it.pause = pause; it.mute = mute;
       it.confirm = confirm; it.hitHeld = hitHeld; it.jumpHeld = jumpHeld; it.challenge = chal;
+      // editor de disposición abierto: los menús de debajo no reciben nada del mando; B (volver) lo cierra
+      if (ED) { if (navBack) { ED.close(); stats.out.navBack++; } navOk = navBack = false; navTab = 0; confirm = pause = false; it.confirm = it.pause = false; }
       it.navOk = navOk; it.navBack = navBack; it.navTab = navTab;
       it.zoom = zoom > 2 ? 2 : zoom < -2 ? -2 : zoom; it.zoomCycle = zoomCyc; if (zoom || zoomCyc) { ZM.n++; stats.out.zoom++; }
       it.padEvent = pad.event; pad.event = '';

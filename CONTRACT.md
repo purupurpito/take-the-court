@@ -6,7 +6,7 @@ Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `
 ## 1. Propiedad de ficheros (exacta)
 
 ```json
-{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js, js/look.js, js/splat.js and js/menu-jugador.js (SPLAT design system and home menu, notes/splat.md; wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
+{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js, js/look.js, js/splat.js, js/menu-jugador.js and js/resume.js (SPLAT design system and home menu, notes/splat.md; resume a match after the browser closes, notes/resume.md; wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
 ```
 
 `js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `make-the-cut.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
@@ -23,7 +23,7 @@ guardado `make-the-cut.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el me
 `tools/fp-mastery.json` (huella de la maestría, `node tools/fingerprint6.js --variant mastery`) de **sim**. Guardados nuevos:
 `make-the-cut.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
 12-nov-2026: `GYM_SYNC = true` en account.js), `make-the-cut.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
-padDead`), `make-the-cut.seen` (`{v}`: última versión cuyas Novedades se vieron), `make-the-cut.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
+padDead`, y desde 1.22.0 `touchLayout, touchMirror`), `make-the-cut.seen` (`{v}`: última versión cuyas Novedades se vieron), `make-the-cut.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
 al entrar; ui.js `retoAuto`, 16-nov-2026) y `make-the-cut.e1tips` (consejos de maestría vistos); estos NUNCA van a `DOCS`. Dentro de `make-the-cut.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
 `newsSeen`, `annals[≤40]`, `lead`, `tpl`; ≈ 13 KB a 12 temporadas) y `c.life.celeb` / `c.life.celebAnn`.
 
@@ -84,8 +84,8 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 - Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/splat.js` (SPLAT, 17-nov-2026) → `js/account.js` → `js/sim.js` → `js/ai.js` →
   `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/senas.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
-  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/main.js` (main arranca).
-  recap.js, retos.js, profile.js, replay.js y matchstats.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
+  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/resume.js` (retomar el partido) → `js/main.js` (main arranca).
+  recap.js, retos.js, profile.js, replay.js, matchstats.js y resume.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
   `tools/build-pages.js` falla si `CHANGELOG[0].v !== VERSION`, si falta `pages/og.png` o si no hay exactamente un `rel="icon"`.
@@ -161,12 +161,16 @@ main.js convierte con `VB.CameraRig.getBasis()` = `{fx, fy, rx, ry}` (adelante y
 Novedades automáticas), escenas `debug=drill_serve|drill_recv|drill_set|drill_atk|drill_block|drill_free|drill_end` (`&n=` repetición,
 `&t=` s). startMatch pasa `mastery: !6v6 && !autopilot` y `aimSet` a createGame, y en cada partido humano llama
 `VB.Players.setSignature(VB.CareerLife.signatureNow())` y `setRival(rivalNum | -1)` (en el duelo de la Carrera `nums[1] = [rivalNum, null]`).
-`settings` añade (validadas en `loadSettings`, por defecto en `DEFAULTS()`): `volume`, `crowdVol` (migración única: 0,85 × `sfxVol`), `xarVol` (0..1, 0,6: la charanga de la grada, audio.js),
+`settings` añade (validadas en `loadSettings`, por defecto en `DEFAULTS()`): `volume`, `crowdVol` (migración única: 0,85 × `sfxVol`), `xarVol` (0..1, 0,6: la charanga de la grada, audio.js), `toonSfx` y `onoma` (booleanos, true: capas de dibujo y «¡PAM!» de audio.js; Ajustes › Audio, desde 1.22.0),
 `resScale` (0 = auto, 1, .85, .7, .5: fija la escala y para la escala adaptativa), `fpsCap` (0 \| 30; con 30 la calidad adaptativa baja
 por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'far'), `camCuts` ('all' \| 'less'), `lessMotion` ('auto' \|
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
-acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `aimSet` (true: colocación dirigida de E1), `msTiming`
-(false: sello en ms). `DEVICE_KEYS` van a `make-the-cut.device`, no a `make-the-cut.settings`.
+acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `touchLayout` (null = de fábrica, o `{hit|jump|set|sw: {x, y, s, o}, joy: {o}}`
+con todo opcional: centro en fracciones 0-1 de la pantalla sin zonas seguras y sin espejo, tamaño 0,7-1,5, opacidad 0,3-1; input.js `cleanLayout`
+lo sanea campo a campo; desde 1.22.0, informe 4.2), `touchMirror` (false; zurdos: joystick en la mitad derecha y botones reflejados), `aimSet` (true: colocación dirigida de E1), `msTiming`
+(false: sello en ms), `ctrlMark` ('small' \| 'normal' \| 'large', por defecto 'normal'), `ctrlMarkCol` ('auto' \| 'contraste') y
+`landAid` ('auto' \| 'siempre' \| 'retira' \| 'no', por defecto 'auto') (desde 1.22.0, informe 4.6 / 4.7; solo visuales, Ajustes › Accesibilidad).
+`DEVICE_KEYS` van a `make-the-cut.device`, no a `make-the-cut.settings`.
 
 **Vestuario en `VB.ctx`** (main.js, 13-nov-2026): `noteHitch()` (la ventana de fps en curso no cuenta para la calidad adaptativa:
 `aq.skip = 1`), `actions.showroom(on, L, o)` (vista previa del Vestuario en el menú; ver «Vestuario» al final) y `actions.looksChanged()`
@@ -179,6 +183,36 @@ acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3)
 - `actions.portrait(req)` → `{key, url}` (cola de retratos: `url` al momento si está en la caché LRU de 12 URL `blob:`; si no, encola y
   avisa con el evento DOM `vb-portrait` `{key, url}`), `actions.portraitDrop(key)`, `portraitInfo()` (pruebas: `{queue, cached, n, ms, warm,
   freed}`). Los retratos solo se pintan en `'menu'`/`'over'`, nunca en `'playing'` (R8: la previa usa los ya precargados).
+- **(22-nov-2026, 4.3 «Jugar ya»)** `actions.playNow(via)` (via `'ya'` \| `'jugar'`): `startMatch({format:'2v2', introKind:'mini', sets:1,
+  points:15, playNow: via})`; quien no ha jugado nunca (récord a 0) pasa antes el ajuste `difficulty` al más fácil (salvo `?diff=`).
+  `startMatch` acepta `opts.playNow` y lo deja en `g.playNow` (fuera de la sim: ni huella ni g.rng). `?jugar` arranca `playNow('jugar')` tras
+  el telón (con un traspaso #mig pendiente, al acabar si no recarga) y se quita del enlace. `VB.UI.firstPoint()` → `{ms, m, via, d}` | null
+  (clave del aparato `make-the-cut.firstpt`, no la sube account.js). Pruebas: `debug=menu&now=1` (portada con «¡Jugar ya!»),
+  `debug=over&first=1` (hoja con «Y ahora»), `&fp=1` (apunta el primer punto en depuración). Detalle en notes/ui_main.md «Jugar ya».
+- **(22-nov-2026, 4.5 «Partidos cortos»)** Ajuste nuevo `matchLen` (`'full'` por defecto \| `'one'` \| `'clutch'`) y `setPoints` acepta 7.
+  `startMatch` (solo Partido rápido: sin `career`, `autopilot`, `reto`, `sit`, `start`, `playNow`, `sets` ni `points` en opts) llama a
+  `quickShort` → `sets:1` (un set), `start:{setNo:1, score:[p-5,p-5], bo1:true}` («Final apretado»: 20-20 a 25, 10-10 a 15, 16-16 en la
+  playa; saca quien diga la semilla) y `quick:true`; deja `g.short = {len, pts, from}` (fuera de la sim). Con `g.short`: sin récord, retos
+  (`VB.Retos` counts), insignias, XP del escuadrón ni XP de perfil. `?len=one|clutch` manda (pruebas). Sim: `createGame` acepta
+  `points: 7` solo con `opts.quick === true` (no está en `SET_POINTS`; el online sigue en 11-25). Detalle en notes/ui_main.md «Partidos cortos».
+- **(22-nov-2026, 4.9 «Retomar el partido»)** `js/resume.js` (`VB.Resume`, ui_main, sin DOM ni THREE): guarda el partido al acabar cada
+  punto en la clave del aparato `make-the-cut.resume` (no la sube account.js): `{f:1, v: VB.VERSION, t, kind:quick|career, opts (las
+  de startMatch sin career/kit), gOpts (las de Sim.createGame tal cual), map (sede), qs (partido corto), cm (firma del partido de Carrera),
+  sc:{score, sets, setNo, one, size}, h: Sim.stateHash, snap: Sim.serialize(g), mods:{ui, ms, bd, rt}}`. Otra versión → se descarta;
+  huella distinta al rehacer → se descarta. API: `arm(g, meta)`, `disarm()`, `armed()`, `onFrame(g, events)` (main.js tras
+  `UI.update`: guarda en `point` / `challengeResult` / `serveReady` si ya hay algún punto; `gameOver` borra), `save(g)`, `load()`,
+  `peek()` → `{kind, score, sets, setNo, one, size, label, sub}` | null, `apply(rec, g)` → bool, `mods(rec, g)`, `clear()`,
+  `setLabel(n)` → «1r set» / «2º set» / «3r set», `CAREER` (interruptor de la Carrera: `false`; `?resumecareer=1` lo enciende).
+  `actions.resumeMatch()` → bool (Partido rápido: `startMatch(rec.opts + {resume: rec})`; Carrera, solo con el interruptor:
+  `startCareerMatch({resume: rec})` si la jornada es la misma). `startMatch(opts)` acepta `opts.resume` (crea con `rec.gOpts`, aplica la
+  foto, sin previa, misma sede, devuelve `false` si no cuadra) y `startCareerMatch(o)` acepta `o.resume` (devuelve `false` si falla).
+  Se arma en Partido rápido (no autopilot, online, espectador, Entrenamiento, situación de la semana; la Carrera solo con `CAREER` y nunca
+  pruebas de fichaje ni extensiones). `setGame` de un partido de verdad nuevo lo borra; `toMenu` a mitad, también. Módulos con
+  `resumeGet(g)` / `resumeSet(o, g)` (datos planos; VB.Resume pasa los jugadores a `{$pid}` y la partida a `{$g}`): `VB.UI` (hoja
+  final: `stats` y lo sin ver del Vestuario), `VB.MatchStats` (`cur.r` como índice), `VB.Badges` y `VB.Retos` (sus contadores del
+  partido). `VB.UI.resumed(g)`: cinta «Seguimos · 18-15 | 2º set». Portada: `#btnSeguir` (billete SPLAT dorado en el sitio de «Jugar ya» /
+  «Continuar carrera», que tapa mientras hay algo guardado; `debug=menu&seguir=1` lo deja salir en depuración). Prueba:
+  `tools/resumetest.js`. Detalle en notes/resume.md.
 - `actions.playBest(i?)`: mejores jugadas desde la hoja final (`VB.Replay.playBest(i, VB.UI.replayDone)`); solo en `'over'`.
 - `actions.startMatch(opts)` admite además `map` (id de sede fuera de la Carrera; 6v6 solo sedes de pabellón), `noAttrs`, `noBadges`,
   `reto` (→ `g.reto` y `g.retoOpts`, copia de opts para «Otra vez») e `introKind` ('mini'|'short'|'long'). Los partidos humanos crean la
@@ -245,7 +279,16 @@ acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3)
 - **Funciones añadidas**: `hitWindow(g, p?, out?)` → `{t (s hasta el contacto ideal; <0 ya pasó), press (s hasta el momento ideal de PULSAR = t − WINDUP), d, dz, reach, kind, zc, x,y,z, active, canReach, attack, jumpT}`
   (reutiliza un objeto interno si no se pasa `out`), `aimPoint(g, out?, move?)` → `{x,y,kind:'serve'|'spike'|'tip'|'free', mode:1|2, aimed, spread, spreadPoor}`
   o null (destino previsto del golpe del humano sin el error de ejecución; `move` = `ctx.simMove`; lo usa fx.js para la retícula), `predictKind(g,p)`, `canDive(g,p)`, `timingQ(te)`, `gradeOf(q)`, `normDiff(d)`; `VB.DIFF`;
-  `VB.AI.serveTarget(g, sv)`, `VB.AI.openSpot(g, p, minDepth, out, atk)`; `VB.DIFF_ORDER`, `VB.TIMING`; internos de test `_inBlockVol`, `_serveRisk`, `_recvFail`, `_refreshPred`.
+  `VB.AI.serveTarget(g, sv)`, `VB.AI.openSpot(g, p, minDepth, out, atk, mem?)` (`mem` desde 1.22.0: 'atk' | 'srv' | omitido = lo de siempre), `VB.AI.remember(g, p, kind, x, y)` y `VB.AI.MEM` (1.22.0, IA variada; abajo); `VB.DIFF_ORDER`, `VB.TIMING`; internos de test `_inBlockVol`, `_serveRisk`, `_recvFail`, `_refreshPred`.
+- **IA variada (1.22.0, informe 4.8; notes/ia-variada.md)**: `g.aiMem` (en el literal de `createGame`, vaciada en `newGame`; datos planos que
+  `copyGame` copia; netview la clasifica 'as') = `{atk, srv: [[c, c, c] × 2], lane: [[l, l] × 2], rcv, set: [[id, id] × 2]}` por equipo: casillas de
+  openSpot (4 profundidades × 5 laterales, relativas al lado; −1 = nada) de los 3 últimos remates y saques de la IA, carriles de los 2 últimos
+  remates (1 diagonal, 2 línea), receptores (id) de los 2 últimos saques y atacantes (id) de las 2 últimas colocaciones 6v6. `openSpot(…, mem)`
+  resta `VB.AI.MEM.rep/lane/rcv` a lo repetido pero solo elige entre casillas a ≤ `MEM.tol` de la mejor; `serveTarget` no va a por el mismo
+  receptor 3 veces seguidas; `VB.AI6.chooseSet`/`previewSet` dan peso × `MEM.set` al atacante de la IA (nunca al humano) que recibió las 2
+  últimas. NUNCA gasta `g.rng` (mismas llamadas por decisión); sin `g.aiMem` (p. ej. una partida creada a mano sin la clave) todo es lo de
+  antes. Mueve las huellas a propósito: `fp-2v2.json`, `fp-mastery.json` y `fp-salto.json` regeneradas el 22-nov-2026; medidor y
+  comprobaciones en `tools/variedadtest.js` (variedad de destinos con y sin memoria, determinismo, rollback con copyGame y que Experto no se ablande).
 - **Sprint Carrera (9-nov-2026; detalle en notes/sim.md «Sprint Carrera»)**:
   - `opts.badges = [[b7, b11], [b3, b9]]` (misma forma que `attrs`), `b = {idInsignia: nivel 1-3}` o null → `p.badges = {id: nivel}` (o null). Sin `badges` la sim es idéntica
     (no gasta azar). `VB.Sim.BADGE_IDS` = `['canon','mira','rompemanos','seda','bombardero','flotador','muro','ancla','red','motor','sangrefria','lider']`; tablas por nivel en
@@ -513,6 +556,11 @@ ajuste; online por hueco `humans[i].jsetAim`); nunca en la demo ni con autopilot
 - `hit` añade siempre `mom` (0..1: bonus del remate con impulso del humano; 0 si no hay), `pipe` (bool: 6v6, zaguero que despegó detrás de la
   línea de 3 m, golpee donde golpee; etiqueta sin azar, para todos) y `jaim` (bool: colocación en salto a la diana movida); con `jaim`, `tempo` es
   el de la diana ('quick' \| 'lane' \| 'high').
+- **(22-nov-2026, 4.4 «por qué falló el toque»)** `hit` (no el saque) añade siempre `strK` (0..1, estirón del 1r toque del humano; 0 si
+  no hay), `reachK` (distancia al balón / `C.REACH`), `inSp` (m/s del remate o saque fuerte que llegaba; 0 si no era `hardIn`) y `prevQ`
+  (calidad del toque anterior del propio equipo; 1 si no hay). Solo datos que hit ya calculaba: ni g.rng ni estado. netview: los cuatro `'as'`.
+  `VB.Sim.hitWhy(e)` (pura, solo lee el evento) → `'' | 'early' | 'late' | 'far' | 'fast' | 'weak' | 'dive'`; `VB.Sim.HIT_WHY = {min}`.
+  Sin los campos (saque, partidas viejas) solo mira el timing. UI: rótulo del sello en el toque flojo propio (notes/ui_main.md).
 - `g.aim3.kind` puede ser `'jset'` (diana de la colocación en salto, con `g.jsetAim`): no es la del remate (`kind === 'spike'`).
 - Jugador: `avx, avy` (media de la carrera), `dj` (salto con dirección en curso), `jF` (deriva hacia la red del despegue), `tkX, tkY` (punto
   de despegue), `landT`. `g`: `djump, jsetAim, djLast` y, en el hueco (SLOT_S), `jdF, jdS, jdM, jdT, aimCarry, jsMv, jsAimD, jsetAim`.
@@ -693,11 +741,18 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `poll()` añade `navOk / navBack / navTab` (botones fijos 0, 1 y 4/5 del mando); `confirm` del mando = navOk o Start. `glyph()` cubre
   hit/jump. Fijas: Esc, Enter; reservadas: Tab, F1-F24, F, modificadores, ContextMenu, Backspace/Delete. El botón táctil COLOCAR usa
   `Sim.altReady` y lee «COLOCADO» con 'roll'. `--vts` (CSS) = `touchSize`.
+  1.22.0 (informe 4.2, disposición táctil): `editLayout({onClose})` → bool (editor a pantalla completa, `.vte`; guarda al momento
+  `touchLayout` / `touchMirror` con `setSetting`; Esc, «Listo» o B del mando lo cierran y mientras está abierto `poll()` no da navOk / navBack /
+  navTab / confirm / pause), `editing()`, `closeEditor()`, `cleanLayout(v)`, `_editState()` (pruebas). `onSettings` atiende `touchLayout` y
+  `touchMirror`; `OPTS` no cambia. Sin disposición ni espejo, el overlay es el CSS de siempre (sin estilos en línea). `_debug()` añade
+  `mirror, lay, layDirty`.
 - **CameraRig** (E3/E6): `OPTS = ['camDist','camCuts','lessMotion']`; `distK` 0,86 / 1 / 1,18; con `camCuts 'less'` o `g.drill` el punto
   no tiene plano de reacción, de héroe ni del sacador rival (`heroShot()` null) y la vuelta al saque es un corte 'serve' sin `nextCutIn`;
   `drillStage` → corte seco `lastCut.kind 'drill'` (sin cámara lenta, hit-stop ni seguimiento del remate). Intro, cierre de set/partido y
   grúa del cambio de campo, igual. El 6v6 no cambia.
-- **FX** (E3/E6/E1): `OPTS = ['cbColors','ballStyle']`, `onSettings(s, k)`; paleta para daltónicos (bote dentro azul / fuera naranja,
+- **FX** (E3/E6/E1): `OPTS = ['cbColors','ballStyle','landAid']`, `onSettings(s, k)`; `landAidOf(val, diff)` → 'siempre' \| 'retira' \| 'no'
+  (informe 4.7: 'auto' = 'siempre' en easy/normal y 'retira' en hard/expert; gradúa solo el aro de caída y la línea de altura, nunca el
+  aro amarillo `focusRing`; la demo del menú va siempre en 'siempre'); paleta para daltónicos (bote dentro azul / fuera naranja,
   retícula ámbar → azul perfecta, aro al filo magenta) y balón de contraste (textura rehecha una vez). Diana del ejercicio desde
   `g.drill.target` en el lote de calcomanías (0 dibujos más), pulso apagado con `ctx.reduceMotion`, destello con `drillRep.pts >= 3`.
   Retícula `kind 'roll'` verde, aro coral con `edge > 0,5`, marcador `Sim.setPreview` por tempo, sin estela con `shot 'roll'`, estela
@@ -705,6 +760,8 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - **Audio**: `preview(kind)` ('crowd' \| 'sfx' \| 'music' \| 'master' \| 'volume' \| 'xaranga'; false antes del 1r gesto o en silencio), `stats.chain`;
   xaranga (21-nov-2026): `setVolume('xaranga', v)`, `xarState()`, `xarPrep()`, `XAR_SOUNDS`, `XAR_WHEN` (dónde suena; notes/audio.md «Xaranga»);
   maneja `fx:floor`, `feint`, `drillRep`, `drillEnd`, `hit.shot 'roll'`, `hit.style 'jfloat'` y `hit.chain`.
+- **Players** (informe 4.6): `OPTS = ['ctrlMark','ctrlMarkCol']` (lee `ctx.settings` cada frame: halo y galón ×0,8 / ×1 / ×1,4; alto contraste
+  = textura del halo y geometría del galón alternativas, creadas una vez); `_marker()` añade `halo`, `hc` y `k`.
 - **Players** (E2): `CELEBS [{id, name, tier}]` (mismos ids que `CareerLife.CELEB_DEF`), `setSignature(id)` → id aceptado \| '',
   `setRival(num)` (vale para el partido que se crea con la llamada; -1 o ninguna llamada lo limpia). Rig de solo lectura: `persona, cvar,
   dvar, lvar, idle`. Pruebas: `_anim(p)` → `{persona, cvar, dvar, lvar, idle, celId, celV, leave, evG, blk, sig, rival}`, `_celeb(p, id)`,
@@ -803,7 +860,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
    Si llega `gameOver` en partido → `state = 'over'`. Con la tarjeta de presentación (`ctx.introLeft > 0`) la sim no avanza y los eventos iniciales salvo `newMatch` llegan al acabarla; cualquier botón la salta (sin golpear ni pausar). Antes del bucle de pasos: en `'point'`/`'over'` jugando, GOLPEAR, SALTAR, CAMBIAR o ACEPTAR llama a `Sim.skipHold(g)`; si recorta, se consume
    el flanco y se avisa a `UI.onHoldSkip()`.
 4. `Arena.update(g, gdt, ev)` → `Players.update` → (main.js añade a `ev` los `fx:*` de `Players.drainFx`) → `FX.update` → `CameraRig.update(g, realDt, ev)` →
-   `Audio.handle(ev, g)` → `Audio.update(g, realDt)` → `UI.update(g, gdt, ev)`.
+   `Audio.handle(ev, g)` → `Audio.update(g, realDt)` → `UI.update(g, gdt, ev)` → (`AmbienteUI.update`) → `Resume.onFrame(g, ev)` (1.22.0: guarda tras cada punto).
 5. `renderFn(ctx)` o `renderer.render(scene, camera)`.
 6. Calidad adaptativa (ventanas de 2 s): baja un nivel (`setQuality`) tras 2 ventanas < 45 fps o 3 seguidas < 52; en "baja" reduce la escala de render solo si
    el cuello es la GPU (`ctx.cpuBusy` < 0,40); tras cada escalón de escala mira 2 ventanas y, si los fps no suben ≥ 15 %, lo deshace y no vuelve a escalar en la
@@ -1142,6 +1199,15 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   (`{turn:[{urls, username, credential}], relayOnly}`; credenciales temporales servidas desde fuera, nunca fijas en el repositorio) `js/netrtc.js` negocia en
   `iceTransportPolicy: 'relay'`. `VB.NetRtc.relayOn()` (¿se usará TURN en la próxima conexión?), `VB.NetRtc._pcConfig()` (pruebas)
   y `_relayReset()`; si una conexión por TURN no abre, la siguiente va en directo.
+  **TURN de respaldo (1.22.0, informe 4.1; notes/turn.md, Worker en `turn-worker/`):** `VB.NET_TURN_URL` (netconfig, `''` = apagado,
+  sin peticiones). `VB.NetRtc.turnPrep(auth) → Promise<bool>` (nunca rechaza; como mucho `VB.NetRtc.TURN_WAIT_MS` = 2000 ms): con URL, POST
+  con `Authorization: Bearer <ID token>` (`auth() → Promise<token>`) y, si llega, `VB.NET_ICE = {turn, relayOnly:false, exp}` (policy 'all':
+  TURN + STUN, lo directo primero); caché hasta 10 min antes de `exp`, sin reintentar en 60 s tras un fallo. `VB.NetRtc.turnUrl()` (URL
+  válida o `''`: https, o http solo a localhost), `_turnParse`, `_turnReset` (pruebas). `VB.NET_ICE.exp` (opcional, ms): caducadas = sin TURN.
+  `Link.offer()/answer()` de un enlace cerrado rechazan sin abrir conexión. netlobby.js llama a `turnPrep` antes de cada offer/answer
+  (también al renegociar) y al abrir/entrar en la sala; nunca con `?netemu`, `?olmock` ni `?netice=none`; `?netturn=URL` (solo file:// o
+  localhost) la pone a mano. Worker: `POST /ice` → `{iceServers:[{urls, username, credential}], ttl, exp}` (solo TURN), 401/403/429/502.
+  Prueba: `node tools/turntest.js`.
 - `js/net.js`: `session.result.unverified = true` cuando al final ninguna huella cuadró o hay una distinta sin reparar.
 - `js/netrec.js`: `outcome` → `{kind:'unverified'}` («no válido», no suma ni a ganados ni a perdidos); `VB.NetRec.resume()` hereda
   la marca de partido de la página anterior (vuelta tras recargar). `end()` devuelve `{rec, entry, cap, outcome}`.
@@ -1494,8 +1560,8 @@ starts, w, l, kills, aces, blocks, digs, nS, nN, debut}, med{g, s, b}, seen, you
   clave (gym, look, legends, profile, retos); sin fusión propia o si falla, gana la más reciente. Mientras `VB.Migrate.pending()`,
   account.js no sincroniza ni escribe meta.
 
-### Online de varios: 2v2 × 4, 6v6 × 12 y Carrera cooperativa (1.22.0, sprint online-multi, 21/22-nov-2026)
-Versión **1.22.0** (la rama investigacion, también numerada 1.22.0 sin publicar, tiene que subir a 1.23.0: el online solo mira el número: salas `v = PROTO|VB.VERSION`,
+### Online de varios: 2v2 × 4, 6v6 × 12 y Carrera cooperativa (1.23.0, sprint online-multi, 21/22-nov-2026)
+Versión **1.23.0** (estaba numerada 1.22.0; la rama investigacion salió antes como 1.22.0 y se fusionó aquí el 24-nov, así que esta sube a 1.23.0: el online solo mira el número: salas `v = PROTO|VB.VERSION`,
 saludo de las sesiones con `VB.VERSION`; dos versiones distintas con el mismo número se tomarían por compatibles).
 Diseño en notes/online-multi-brief.md; protocolo, medidas y despliegue en notes/net.md «Online de varios»; quién pidió qué en
 notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de API ni de camino.
@@ -1522,7 +1588,7 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   por pareja dirigida).
 - Pruebas: `tools/net4test.js`, `tools/net12test.js` (bancos de N pares; adaptadores `precisa2`, `fluida2`, `precisaN`, `mixA/B`,
   `host4`, `host6`), `tools/hosttest.js` (6v6 entero, 12 plazas), `tools/lobbytest.js` (lobby de varios contra el emulador),
-  `tools/cooptest.js`, `tools/simbench.js`, `tools/fp-6v6.json` (`node tools/fingerprint6.js --variant 6v6`).
+  `tools/cooptest.js`, `tools/simbench.js`, `tools/fp-6v6.json` (`node tools/fingerprint6.js --variant 6v6`; regenerada el 24-nov-2026 al fusionar main 1.22.0, solo por la IA variada de ai6.js).
 
 **APIs nuevas en ficheros que ya existían:**
 - `js/sim.js` (**sim**, bloque `/* ==== MULTI ==== */`): `createGame({online, humans: [{team, idx | role, aimSet, jsetAim, attrs,

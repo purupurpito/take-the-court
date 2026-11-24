@@ -212,5 +212,8 @@
   VB.Badges = { LIST: LIST, IDS: IDS, BY: BY, TIERS: TIERS, svg: svg,
     ingest: ingest, endMatch: endMatch, forPlayer: forPlayer, forSquad: forSquad, slots: slots, equipped: equipped,
     equip: equip, unequip: unequip, toggle: toggle, level: level, levelFor: levelFor, progress: progress, label: label,
+    // «Retomar el partido» (js/resume.js): lo contado en el partido en curso (sin la partida, que vuelve en resumeSet) y su vuelta
+    resumeGet: function (g) { if (!cur || cur.g !== g) return null; var o = {}, k; for (k in cur) if (k !== 'g') o[k] = cur[k]; return o; },
+    resumeSet: function (o, g) { if (!o || !g) return; var c = newCur(g), k; for (k in o) if (k !== 'g' && k in c) c[k] = o[k]; cur = c; if (lastEndG === g) lastEndG = null; },
     _cur: function () { return cur; }, _reset: function () { cur = null; lastEndG = null; }, _force: false };
 })();

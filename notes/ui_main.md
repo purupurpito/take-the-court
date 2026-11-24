@@ -1991,3 +1991,80 @@ El juego estaba bien; la prueba se había quedado desfasada. Solo cambia `tools/
 - **(a)** espera a que `#app.replay` esté puesto antes de leer el DOM. rpTick lo pone un frame después de que la fase pase a 'play', y
   leer antes daba `app:false` / `skip:""` de vez en cuando.
 - `node tools/replaytest.js` (node + CDP, 2 min 35 s): TODO OK.
+
+## Por qué falló el toque (22-nov-2026, rama investigacion; imprescindible 4.4, ARREGLO, no novedad)
+- Antes el toque flojo del humano no decía nada (el sello solo salía con PERFECTO/BIEN). Ahora `stampHit` saca en el mismo sello (misma curva
+  y posición, clase `ms`: la de la repetición sin puntos del Entrenamiento) el motivo en palabra: **¡Pronto! / ¡Tarde! / Lejos / Pase flojo
+  (Colocación floja en el 3r toque) / En plancha / Balón muy rápido**, y lo lee `srSay`. Toque flojo sin causa clara: nada, como antes.
+- La causa la da `VB.Sim.hitWhy(e)` (sim.js, pura; CONTRACT «hit»): la plancha primero (siempre sale floja); si no, la que más calidad quita
+  entre timing (`1 − timingQ`, fuera del perfecto), lejos (alcance y estirón) y balón muy rápido, con un mínimo de `HIT_WHY.min` (0,1); si
+  ninguna llega, «Pase flojo» con el pase anterior del equipo < `SETQ.lo`. Decisión provisional en notes/pendientes-ferran.md.
+- No pisa el aviso del golpe al aire («¡Pronto!/¡Tarde!/No llegas», callout): si salió hace < 0,7 s, el toque flojo no pone sello. Respeta el
+  árbitro de capas UI-02 (la misma salida temprana de `stampHit`). Ancho estimado del sello por longitud del rótulo (568×320).
+- Entrenamiento: `gymLast.why` y tres consejos nuevos en `GYM_TIPS` (`reach`, `fast`, `dive`) que van antes del «un pelín pronto» por timing.
+- Pruebas: `node tools/hitwhytest.js` (sin navegador: casos de hitWhy, partidas 2v2/playa/6v6 con un bot, mismo stateHash y g.rng con y sin
+  hitWhy). Huellas idénticas; SIM_BASE de fluidsimtest pasa a db74554b (cambio de texto de sim.js).
+
+## Jugar ya (22-nov-2026, rama investigacion; imprescindible 4.3)
+Meta del informe: el primer punto en menos de 20 s para quien llega por un enlace. Antes: portada → JUGAR → Partido rápido → ¡A JUGAR! →
+panel «Primer partido» → Jugar (5 toques) y, en el móvil, podía salir antes el aviso de instalar.
+- **Portada (#btnNow):** solo con el récord de Partido rápido a 0 y sin Carrera activa (`syncHero` → `nowWanted`). menu-jugador.js lo pinta como
+  billete dorado (`.sp-ticket.sp-gold`, «Primera vez · ¡Jugar ya! · Un set a 15 contra la CPU», el balón en el talón) en el sitio de
+  «Continuar carrera» (nunca salen los dos). Con él, JUGAR pierde `.primary` y enseña su línea, el foco por defecto (`pageFocus`) es el
+  billete y `#menu.has-now-mj` aplica las mismas reglas de alto que la Carrera (en el móvil sin logotipo: con él la fila de ayuda se salía a
+  844×390). Portada de antes (?menu=old): `.has-now` en `.mlist`, como `.has-cont`.
+- **Un toque:** `goNow` → cortinilla → `actions.playNow('ya')`: 2v2, un set a 15 (`sets:1`, en la playa también, como la prueba de la
+  Carrera), previa mini, sin «Primer partido» (ese sigue para quien entra por JUGAR). Novato: ajuste de dificultad al más fácil. El audio se
+  desbloquea dentro del gesto (también con el mando). Nunca con el aviso de instalar abierto.
+- **?jugar:** directo al partido corto tras el telón (como `&drill=`), sin gesto: el audio arranca con el primer toque/tecla y no se pide
+  pantalla completa. Se quita del enlace (recargar no arranca otro). Con un traspaso #mig pendiente no arranca: si trae algo recarga (ya sin
+  `jugar`); si no, al acabar y solo si sigue en el menú sin panel.
+- **Revancha:** la de un partido «Jugar ya» repite el formato corto (`endPrimary` con `g.playNow`); «Reiniciar» repite `lastOpts`.
+- **Hoja final del PRIMER partido** (récord de 0 a 1): bloque «Y ahora» al final del Resumen (`endFirstRow`) con tres pegatinas crema
+  pequeñas: Carrera (al menú en Jugar y abre la Carrera), Vestuario y Cuenta (solo sin sesión). En el móvil sin la línea pequeña; a 568×320
+  van en dos filas. Solo esa vez.
+- **Aviso de instalar** (install.js): espera a que el récord tenga un partido (sale al volver al menú, como antes).
+- **Tiempo hasta el primer punto** (sin analítica, nada sale del aparato): `make-the-cut.firstpt` = `{ms, m, via, d}` la primera vez que hay
+  un punto en un partido de verdad con el récord a 0; `VB.UI.firstPoint()`. Ajustes no lo enseña.
+- **«Ya ha jugado» (22-nov, revisión de la rama):** el billete, el tiempo hasta el primer punto, «Y ahora» y el aviso de instalar ya no miran
+  solo `record.played` (récord del 2v2 largo, que no sube con 6v6, cortos, online ni la semana): `everPlayed()` (ui.js y main.js) =
+  `record.played > 0 || record.anyMatch > 0 || VB.Profile.stats().m > 0`. `record.anyMatch` (opcional, 0 en las partidas viejas) se pone
+  a 1 en showEnd con cualquier partido humano (no demo, autopilot, ejercicio ni espectador). «Y ahora» sale tras el primer partido de
+  cualquier modo salvo Carrera, online y la semana. install.js `played()` mira lo mismo.
+- **«Jugar ya» solo cuenta la primera vez (22-nov):** main.js, si `g.playNow` y `everPlayed()`, `g.short = {len:'one', pts:15}`: la revancha
+  y `?jugar` de quien ya ha jugado son un corto más (sin récord, retos, insignias ni XP; la hoja dice «Partido corto»).
+- Pruebas: `node tools/jugaryatest.js` (portada, toque, partido corto, primer punto, «Y ahora», ?jugar, aviso de instalar en el móvil);
+  mobaudit `home-jugarya` y `final-primero`; drive.js baja con ↓ del billete a JUGAR en el perfil nuevo.
+
+## Partidos cortos (22-nov-2026, rama investigacion; imprescindible 4.5)
+- **Menú:** fila «Duración» (`#optLen`, ajuste `matchLen`) en Partido rápido, junto a Dificultad (Dificultad deja de ocupar la fila entera:
+  la rejilla sigue en 3 filas de 2 y cabe a 568×320): Completo → Un set → «Desde 20-20» (el valor dice desde dónde empieza: `puntos-5`).
+  «Puntos por set» suma el 7 (7, 11, 15, 21, 25). En la playa los puntos siguen fijos a 21 (un set a 21; final desde el 16-16).
+- **Partido:** main.js `quickShort` (solo el Partido rápido elegido desde el menú y su revancha / reiniciar) → `sets:1`, `start` (sim
+  `startOf` con `bo1`), `quick:true` para el 7; `g.short = {len, pts, from}`. Ningún punto vale más: es un set reglamentario más corto.
+  Completo con sets a 7 también es corto (al mejor de 3 a 7). 6 contra 6 también. «Jugar ya», retos, semana, Carrera y online no lo leen.
+- **No cuenta** (para que no se farmeen): récord (`record.*`), retos y maestría (`VB.Retos` counts), insignias y XP del escuadrón
+  (`VB.Prog.award` / `VB.Badges.endMatch`) ni XP de perfil (`VB.Profile.noteMatch`). La hoja final lo dice en Estadísticas («Partido corto: no
+  cuenta para el récord ni da experiencia») y la ayuda de la fila también. La previa: «Un set a 25, desde el 20-20»; antetítulo de la hoja:
+  «Desde el 20-20» / «Set único a 15».
+- **Prueba:** tools/cortostest.js (navegador, de una en una); fila `quick-corto` en tools/mobaudit.js (Experto + «Desde 20-20»).
+- **Huellas:** simtest y fingerprint6 idénticas; solo cambia la firma de texto SIM_BASE de fluidsimtest (db74554b → b7b6d738) por la
+  línea de `points` de `createGame` (el 7 con `opts.quick`), sin g.rng.
+
+## Marca de tu jugador e indicador de caída (22-nov-2026, rama investigacion; imprescindibles 4.6 y 4.7)
+Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fluidsimtest iguales). Prueba: `node tools/a11ymarktest.js`.
+- **Ajustes** (main.js `DEFAULTS()` + `loadSettings`, lo corrupto o lo que falte vuelve al valor por defecto; partidas viejas cargan igual):
+  `ctrlMark` 'small' | 'normal' | 'large', `ctrlMarkCol` 'auto' | 'contraste', `landAid` 'auto' | 'siempre' | 'retira' | 'no'. Entran en
+  «Restablecer este apartado» de Accesibilidad (`TAB_KEYS.a11y`).
+- **Marca** (players.js `markLook()`): ×0,8 / ×1 / ×1,4 sobre el halo (después de la atenuación junto al aro amarillo y del ×1,3 del 6v6) y
+  sobre el galón. Alto contraste: halo blanco grueso entre dos filos negros y galón blanco con filo negro (no amarillo: es del aro de
+  golpeo). No hay «No»: la marca no se apaga nunca, tampoco en Experto (las pistas de sitio del 6v6 son otra cosa).
+- **Indicador de caída** (fx.js `landAidOf`, `LA_T0` 0,8 s / `LA_T1` 0,35 s): «Siempre» como antes; «Se retira» = el aro de caída solo en
+  el último tramo del vuelo (aparece a 0,8 s del bote y está entero a 0,35 s) y la línea de altura a la mitad; «No» quita los dos. El aro
+  amarillo de golpeo (`focusRing`) sale siempre. «Auto» = Siempre en Fácil/Normal, Se retira en Difícil/Experto (`g.difficulty`).
+- **Avisos** (ui.js `laNoteOf` / `a11yPv`): con «Auto», al cambiar de dificultad la ayuda de la fila Dificultad dice 4 s «Aro de caída:
+  solo al final del vuelo» / «otra vez todo el vuelo». La ayuda de la fila dice siempre lo que hace ahora («Auto (Difícil): solo al final»;
+  con «No», que el aro amarillo sigue).
+- **Vista previa**: icono dibujado (SVG) a la derecha del nombre de la fila: marca con su tamaño y contraste, y el vuelo con o sin aro. En
+  el móvil va en la 2ª columna de la etiqueta; no sale si la ayuda va recortada (el botón ⓘ ocupa ese sitio) ni por debajo de 600 px de
+  ancho (a 568×320 no cabía sin partir el nombre en tres líneas).

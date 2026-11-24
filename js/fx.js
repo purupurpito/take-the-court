@@ -119,12 +119,22 @@
   // en sim.js; si no, V8 depreca el mapa con la primera ráfaga de la partida y desoptimiza todo a la vez).
   function dblFields(o) { for (var k in o) { var v = o[k]; if (typeof v === 'number' && (v | 0) === v) { o[k] = 0.5; o[k] = v; } } return o; }
   var land = { x: 0, y: 0, z: 0, t: 0 };
+  /* Indicador de caída graduable (informe 4.7; ctx.settings.landAid, Ajustes › Accesibilidad): 'auto' | 'siempre' | 'retira' | 'no'.
+   * Gradúa SOLO el aro de caída (marker) y la línea de altura (dropLine); el aro amarillo de timing (focusRing) sale siempre.
+   * 'auto' = 'siempre' en Fácil y Normal, 'retira' en Difícil y Experto. 'retira': el aro de caída aparece en el último tramo del
+   * vuelo (desde LA_T0 s antes del bote, entero a LA_T1 s) y la línea de altura va a la mitad; nunca se apaga solo. Solo visual (sin g.rng). */
+  var LA_T0 = 0.8, LA_T1 = 0.35, LA_VALS = ['auto', 'siempre', 'retira', 'no'];
+  /** Modo efectivo del indicador de caída: val = ajuste landAid, diff = dificultad ('easy'|'normal'|'hard'|'expert'). */
+  function landAidOf(val, diff) {
+    if (LA_VALS.indexOf(val) < 1) return diff === 'hard' || diff === 'expert' ? 'retira' : 'siempre';
+    return val;
+  }
   var qScale = 1; // factor de partículas por calidad
 
   var TEAM_LIN = null; // colores lineales por equipo
 
   /* ---------- Sprint 5: opciones de accesibilidad (E3), diana del ejercicio (E6) y lecturas de la maestría (E1) ----------
-   * VB.FX.OPTS = ['cbColors', 'ballStyle'] (ajustes que lee este módulo; ui.js esconde la fila si falta FX).
+   * VB.FX.OPTS = ['cbColors', 'ballStyle', 'landAid'] (ajustes que lee este módulo; ui.js esconde la fila si falta FX).
    * cbColors: dentro azul / fuera naranja (marcas del bote, onda de FUERA y huella del challenge) y diana ámbar → azul
    * (perfecto), saque blanco. Las DOS paletas se crean al arrancar (PAL[0] clásica, PAL[1] daltonismo) y applyPal copia una en
    * los colores activos: nada por frame. La X de FUERA (forma) se queda. Las pistas de fase del 6v6 se distinguen por forma
@@ -1766,7 +1776,9 @@
       applyOpts(ctx.settings);
     },
     /** Sprint 5 (E3): ajustes que lee FX (ui.js esconde las filas con data-need="FX" si falta). */
-    OPTS: ['cbColors', 'ballStyle'],
+    OPTS: ['cbColors', 'ballStyle', 'landAid'],
+    /** Informe 4.7: modo efectivo del indicador de caída ('siempre' | 'retira' | 'no') para el ajuste landAid y la dificultad dadas. */
+    landAidOf: landAidOf,
     /** main.js: onSettings(s, k) al cambiar un ajuste (k = clave) y al arrancar (k = null). */
     onSettings: function (s, k) { if (s && (k == null || k === 'cbColors' || k === 'ballStyle')) applyOpts(s); },
     /** Partículas en coordenadas de simulación (interfaz del contrato). */
@@ -1858,12 +1870,13 @@
 
       var inPlay = g.mode === 'rally' && !b.held, rpG = rpOn || !!g.replay; // C1: en la repetición no hay ayudas de juego
       // ---- línea de altura ----
-      dropLine.visible = inPlay && b.z > 1.4;
+      var laM = g.demo ? 'siempre' : landAidOf(ctx.settings && ctx.settings.landAid, g.difficulty);   // informe 4.7 (la demo del menú, como siempre)
+      dropLine.visible = inPlay && b.z > 1.4 && laM !== 'no';
       if (dropLine.visible) {
         var la = dropLine.geometry.attributes.position.array;
         la[0] = ballPivot.position.x; la[1] = ballPivot.position.y - C.BR; la[2] = ballPivot.position.z; la[3] = la[0]; la[4] = 0.02; la[5] = la[2];
         dropLine.geometry.attributes.position.needsUpdate = true;
-        dropLine.material.opacity = Math.min(0.22, (b.z - 1.4) * 0.12);
+        dropLine.material.opacity = Math.min(0.22, (b.z - 1.4) * 0.12) * (laM === 'retira' ? 0.5 : 1);
       }
       // ---- aro amarillo (dónde jugará el balón tu equipo): el objetivo principal ----
       // 6v6 con humano (control Uno por puesto): el aro solo marca TU balón; si lo juega un compañero, no hay aro (seguirlo
@@ -2020,9 +2033,13 @@
         tkMk.material.map = tkOk ? rimInTex : rimOutTex; tkMk.material.color.copy(tkOk ? RIM_IN : RIM_OUT); tkMk.material.opacity = 0.9 * tkA;
       }
       // ---- marcador de caída (secundario si el aro amarillo está activo) ----
-      marker.visible = inPlay && !rpG && b.vz < 6 && b.z > 0.5;   // en la repetición no hay ayudas de juego
+      marker.visible = inPlay && !rpG && b.vz < 6 && b.z > 0.5 && laM !== 'no';   // en la repetición no hay ayudas de juego (ni con landAid 'no')
+      var laK = 1;
       if (marker.visible) {
         Sim.predictLanding(g, land);
+        if (laM === 'retira') { var lt = clampN((LA_T0 - land.t) / (LA_T0 - LA_T1), 0, 1); laK = lt * lt * (3 - 2 * lt); if (laK < 0.02) marker.visible = false; }
+      }
+      if (marker.visible) {
         marker.position.x = land.x; marker.position.z = -land.y;
         var tt = Math.min(1, Math.max(0, land.t) / 1.3), sc = 0.6 + tt * 0.7 + Math.sin(ctx.time * 9) * 0.03;
         marker.scale.set(sc, sc, sc); marker.rotation.z = ctx.time * 0.8;
@@ -2034,7 +2051,7 @@
         else if (mine && !focusVis && !(six && g.jobs && g.jobs[0])) { markerMat.color.setRGB(YEL[0], YEL[1], YEL[2]); mo = 0.95; } // nadie tuyo va: el bote es lo que importa (6v6: si va un compañero, blanco)
         else if (mine) { markerMat.color.setRGB(1, 1, 1); mo = 0.6; }                             // blanco: no compite con el aro amarillo
         else { markerMat.color.setRGB(0.55, 0.8, 1); mo = 0.6; }
-        markerMat.opacity = mo * (out ? 0.55 : 1);
+        markerMat.opacity = mo * (out ? 0.55 : 1) * laK;
       }
       // ---- retícula de apuntado (saque / remate del humano) ----
       var am = rpG ? 0 : aimTarget(g, aimOut), rdt = ctx.realDt || 0;

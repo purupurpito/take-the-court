@@ -793,7 +793,7 @@
     if (u.award) return 'Premio: ' + awardLabel(u.award);
     if (u.gym) return 'Entrenamiento: ' + (u.gym.m >= 3 ? 'oro' : u.gym.m === 2 ? 'plata' : 'medalla') + ' en ' + gymLabel(u.gym.id);
     if (u.gymN) return 'Entrenamiento: ' + plural(u.gymN, 'medalla', 'medallas');
-    if (u.rec) return 'Récord: ' + (u.rec.k === 'wins' ? plural(u.rec.n, 'victoria', 'victorias') : u.rec.k === 'played' ? plural(u.rec.n, 'partido', 'partidos') : 'racha de ' + u.rec.n + ' victorias');
+    if (u.rec) return 'Récord: ' + (u.rec.k === 'wins' ? plural(u.rec.n, 'victoria', 'victorias') : u.rec.k === 'played' ? plural(u.rec.n, 'partido', 'partidos') : plural(u.rec.n, 'punto seguido', 'puntos seguidos') + ' en un partido');   // rec.streak = record.bestStreak: puntos seguidos, no victorias (arreglo 1.22.0)
     if (u.boss) return 'Jefe: gana a un ' + (BOSS_NAME[u.boss] || u.boss);
     if (u.reto) return 'Reto: ' + retoLabel(u.reto.id) + ' (' + (MEDAL[u.reto.m] || MEDAL[0]) + ')';
     if (u.retoN) return 'Retos: ' + plural(u.retoN, 'medalla', 'medallas');

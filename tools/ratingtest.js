@@ -127,8 +127,8 @@ if (!E.bots) console.log('(aviso: no se pudieron cargar los bots de tools/simtes
 section('Tabla, fmt y soft');
 {
   const ids = Object.keys(R.ACTS);
-  ok(ids.length === 18 && ids.every(id => typeof R.ACTS[id].txt === 'string' && R.ACTS[id].txt && typeof R.ACTS[id].w === 'number'), 'tabla de acciones: 18 con texto y peso (' + ids.join(', ') + ')');
-  ok(['ace', 'kill', 'tip', 'block', 'assist', 'dig', 'recvP'].every(id => R.ACTS[id].w > 0) && ['srvErr', 'atkErr', 'net', 'dbl', 'four', 'pos', 'err', 'blocked', 'recvErr', 'poor'].every(id => R.ACTS[id].w <= 0), 'las buenas suman y las malas restan');
+  ok(ids.length === 19 && ids.every(id => typeof R.ACTS[id].txt === 'string' && R.ACTS[id].txt && typeof R.ACTS[id].w === 'number'), 'tabla de acciones: 19 con texto y peso (' + ids.join(', ') + ')');
+  ok(['ace', 'kill', 'tip', 'block', 'assist', 'dig', 'recvP'].every(id => R.ACTS[id].w > 0) && ['srvErr', 'atkErr', 'net', 'dbl', 'four', 'pos', 'err', 'blocked', 'recvErr', 'poor', 'quit'].every(id => R.ACTS[id].w <= 0), 'las buenas suman y las malas restan');
   ok(!R.ACTS.perfect.toast && !R.ACTS.poor.toast && R.ACTS.ace.toast && R.ACTS.srvErr.toast, 'toques perfectos o flojos: sin aviso');
   ok(!/·/.test(ids.map(id => R.ACTS[id].txt).join(' ')), 'textos sin «·»');
   ok(R.fmt(0.3) === '+0,3' && R.fmt(-0.2) === '−0,2' && R.fmt(0.04) === '' && R.fmt(-0.04) === '' && R.fmt(0) === '' && R.fmt(1.25) === '+1,3', 'fmt: coma, signo menos de verdad, vacío si redondea a 0,0');

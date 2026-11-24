@@ -70,15 +70,25 @@ const SCREENS = [
   { id: 'jugar', area: 'portada', q: M0, open: "return M.page('play');", primary: '' },
   { id: 'quick-2v2', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','2v2'); return M.page('quick');" },
   { id: 'quick-6v6', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','6v6'); return M.page('quick');" },
+  // (partidos cortos, informe 4.5: los valores más largos de Dificultad y Duración)
+  { id: 'quick-corto', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','2v2'); VB.ctx.actions.setSetting('difficulty','expert'); VB.ctx.actions.setSetting('matchLen','clutch'); VB.ctx.actions.setSetting('setPoints',25); return M.page('quick');" },
   { id: 'entreno', area: 'portada', q: M0, open: "return M.page('gym');", primary: '' },
   ...SET_TABS.map(t => ({ id: 'ajustes-' + t, area: 'portada', q: M0, open: `return M.panel('#btnSettings','#pnSet','#setTabs','${t}');`, primary: '' })),
   ...CTL_TABS.map(t => ({ id: 'controles-' + t, area: 'portada', q: M0, open: `return M.panel('#btnControls','#pnCtl','#ctlTabs','${t}');`, primary: '' })),
+  // disposición táctil (1.22.0, imprescindible 4.2): el editor a pantalla completa, de fábrica y con zurdos + un botón movido y más grande
+  // (carga propia: el editor tapa la pantalla y las filas que comparten carga lo heredarían)
+  { id: 'controles-touch-editor', area: 'portada', q: M0 + '&ma=te', open: "if (!(await M.panel('#btnControls','#pnCtl','#ctlTabs','touch'))) return false; var b = document.querySelector('[data-tedit]'); if (!b) return false; b.click(); await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok', primary: '' },
+  { id: 'controles-touch-editor-zurdos', area: 'portada', q: M0 + '&ma=tz', open: "await M.ensureMenu(); VB.Input.closeEditor(); VB.ctx.actions.setSetting('touchMirror', true); VB.ctx.actions.setSetting('touchLayout', { hit: { x: 0.7, y: 0.55, s: 1.3 }, jump: { o: 0.6 } }); if (!VB.Input.editLayout()) return false; await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok', primary: '' },
   ...[0, 1, 2, 3, 4, 5].map(k => ({ id: 'comojuega-' + (k + 1), area: 'portada', q: M0, open: `return M.tutStep(${k});` })),
   ...[0, 1, 2].map(k => ({ id: 'jugadores-g' + k, area: 'portada', q: M0, open: `return M.panel('#btnSquad','#pnSquad','#sqTabs','g${k}');`, primary: '' })),
   { id: 'acerca-novedades', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('news'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'acerca-creditos', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('credits'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'aviso-colocador', area: 'portada', q: M0 + '&setnote=1', open: "await M.ensureMenu(); VB.UI.setterNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="later"]' },
   { id: 'primer-partido', area: 'portada', q: M0 + '&panel=first', open: "return M.until(()=>VB.UI.isPanelOpen(),2000);" },
+  { id: 'home-jugarya', area: 'portada', q: M0 + '&now=1', open: 'return M.ensureMenu();', exit: '', primary: '#btnNow' },   // «Jugar ya» (1.22.0): portada de quien no ha jugado nunca
+  // «Seguir el partido» (1.22.0, informe 4.9): portada con un partido a medias guardado (lo guardado es de mentira: solo se pinta)
+  { id: 'home-seguir', area: 'portada', q: M0 + '&seguir=1&ma=sg', open: "localStorage.setItem('make-the-cut.resume', JSON.stringify({ f: 1, v: VB.VERSION, t: Date.now(), kind: 'quick', opts: {}, gOpts: {}, snap: { v: 2 }, sc: { score: [18, 15], sets: [1, 0], setNo: 2, one: false, size: 2 } })); VB.UI.refreshMenu(); await M.sleep(200); return M.ensureMenu();", exit: '', primary: '#btnSeguir' },
+  { id: 'home-seguir-carrera', area: 'portada', q: M0 + '&seguir=1&ma=sgc', open: "M.seedCareer('beach'); localStorage.setItem('make-the-cut.resume', JSON.stringify({ f: 1, v: VB.VERSION, t: Date.now(), kind: 'quick', opts: {}, gOpts: {}, snap: { v: 2 }, sc: { score: [24, 23], sets: [0, 0], setNo: 1, one: true, size: 6 } })); VB.UI.refreshMenu(); await M.sleep(300); return M.ensureMenu();", exit: '', primary: '#btnSeguir' },
   { id: 'home-carrera', area: 'portada', q: M0 + '&ma=hc', open: "M.seedCareer('beach'); await M.sleep(300); return M.ensureMenu();", exit: '', primary: '#btnPlay' },
   { id: 'retos-hoy', area: 'portada', q: 'debug=retos', open: "await M.ensureMenu(); return VB.UI.openRetos('hoy');" },
   { id: 'retos-maestria', area: 'portada', q: 'debug=retos', open: "await M.ensureMenu(); return VB.UI.openRetos('maestria');" },
@@ -115,6 +125,8 @@ const SCREENS = [
   // ---------------- CARRERA (playa y pista; la de muestra se crea en la página)
   { id: 'carrera-crear-playa', area: 'carrera', q: M0 + '&ma=cc', open: "await M.ensureMenu(); VB.CareerUI.open('create',{from:'main'}); await M.sleep(80); M.click('#career [data-act=\"mode\"][data-m=\"beach\"]'); await M.sleep(80); return VB.CareerUI._state().view==='create';" },
   { id: 'carrera-crear-pista', area: 'carrera', q: M0 + '&ma=cc', open: "await M.ensureMenu(); VB.CareerUI.open('create',{from:'main'}); await M.sleep(80); M.click('#career [data-act=\"mode\"][data-m=\"hall\"]'); await M.sleep(80); return VB.CareerUI._state().view==='create';" },
+  // «Seguir el partido» en la Carrera (22-nov-2026): el hub bloqueado con el partido a medias (foto de muestra con la firma del partido que toca)
+  { id: 'carrera-a-medias', area: 'carrera', q: M0 + '&ma=crl', open: "if (!M.seedCareer('beach')) return false; localStorage.setItem('make-the-cut.resume.career', JSON.stringify({ f: 1, v: VB.VERSION, t: Date.now(), kind: 'career', cm: VB.Career.matchSig(), opts: {}, gOpts: {}, snap: { v: 2 }, sc: { score: [14, 12], sets: [1, 0], ss: [[21, 18]], setNo: 2, one: false, size: 2, pts: 21, tw: 2 } })); if (!M.career()) return false; await M.sleep(150); return !!document.querySelector('#career [data-act=\"lock-go\"]');", primary: '#career [data-act="lock-go"]' },
   { id: 'carrera-ofertas-playa', area: 'carrera', q: M0 + '&ma=cp', open: "if (!M.seedCareer('beach','pick')) return false; return M.career();" },
   { id: 'carrera-ofertas-pista', area: 'carrera', q: M0 + '&ma=cp6', open: "if (!M.seedCareer('hall','pick')) return false; return M.career();" },
   ...['beach', 'hall'].flatMap(m => CR_TABS.filter(t => !(m === 'beach' && t[1] === 'cups')).map(t => {
@@ -160,8 +172,10 @@ const SCREENS = [
   { id: 'carrera-juvenil-hoja', area: 'carrera', q: 'debug=over&cr=1&ext=pro&k=end', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
   { id: 'carrera-crear-juvenil', area: 'carrera', q: M0 + '&ma=cc', open: "await M.ensureMenu(); VB.CareerUI.open('create',{from:'main'}); await M.sleep(80); var b = document.querySelector('#career [data-act=\"pro-start\"]'); if (!b) return false; b.scrollIntoView({block:'center'}); return true;" },   // (fila «Inicio» de crear: desde juvenil o directo)
   // «Te tienen estudiado» (21-nov-2026): informe del rival con estudio (en el móvil, la hoja abierta desde la tira)
-  { id: 'carrera-playa-informe', area: 'carrera', q: M0 + '&ma=cb', open: "if (!M.seedCareer('beach')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(60); var b = document.querySelector('#career [data-act=\"est\"]'); if (b) { b.click(); await M.sleep(120); } return !!document.querySelector('#career .cr-est, #career .cr-est-b');", primary: '.sp-sheet .sp-dock button' },
-  { id: 'carrera-pista-informe', area: 'carrera', q: M0 + '&ma=ch', open: "if (!M.seedCareer('hall')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(60); var b = document.querySelector('#career [data-act=\"est\"]'); if (b) { b.click(); await M.sleep(120); } return !!document.querySelector('#career .cr-est, #career .cr-est-b');", primary: '.sp-sheet .sp-dock button' },
+  // (carga de página propia —mx=informe—: con la muestra compartida de ma=cb/ch, «partido-baja» deja al jugador lesionado y la Carrera
+  //  ya no ofrece partido ni informe; fallaba «no se pudo abrir» en la pasada entera, 22-nov-2026)
+  { id: 'carrera-playa-informe', area: 'carrera', q: M0 + '&ma=cb&mx=informe', open: "if (!M.seedCareer('beach')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(60); var b = document.querySelector('#career [data-act=\"est\"]'); if (b) { b.click(); await M.sleep(120); } return !!document.querySelector('#career .cr-est, #career .cr-est-b');", primary: '.sp-sheet .sp-dock button' },
+  { id: 'carrera-pista-informe', area: 'carrera', q: M0 + '&ma=ch&mx=informe', open: "if (!M.seedCareer('hall')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(60); var b = document.querySelector('#career [data-act=\"est\"]'); if (b) { b.click(); await M.sleep(120); } return !!document.querySelector('#career .cr-est, #career .cr-est-b');", primary: '.sp-sheet .sp-dock button' },
   // «Te tienen estudiado» con la tira CERRADA en el hub (ticket + tira + barra: que quepan sin desplazar; las de arriba abren la hoja)
   ...['beach', 'hall'].map(m => ({ id: 'carrera-' + (m === 'beach' ? 'playa' : 'pista') + '-informe-tira', area: 'carrera', q: M0 + '&ma=' + (m === 'beach' ? 'cbt' : 'cht'),
     open: `if (!M.seedCareer('${m}')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(80); return !!document.querySelector('#career .cr-est, #career .cr-est-b');` })),
@@ -198,6 +212,7 @@ const SCREENS = [
 
   // ---------------- PARTIDO
   { id: 'hud-2v2', area: 'partido', q: 'debug=hud', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 1200, exit: HUD_EXIT, primary: '' },
+  { id: 'hud-2v2-zurdos', area: 'partido', q: 'debug=rally', open: "await M.until(()=>VB.ctx.state==='playing',5000); VB.ctx.actions.setSetting('touchMirror', true); return true;", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-2v2-peloteo', area: 'partido', q: 'debug=rally', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-6v6', area: 'partido', q: 'debug=rally6h', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-punto', area: 'partido', q: 'debug=setpoint', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
@@ -223,6 +238,7 @@ const SCREENS = [
   { id: 'cambios-6v6', area: 'partido', q: 'debug=subs6menu', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'cambios-6v6-elegido', area: 'partido', q: 'debug=subs6menu&pick=1', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'final-resumen', area: 'partido', q: 'debug=over', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); return M.click('#endTabs [data-tab=\"sum\"]') || true;", wait: 600 },
+  { id: 'final-primero', area: 'partido', q: 'debug=over&first=1', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); M.click('#endTabs [data-tab=\"sum\"]'); var r=document.querySelector('#endSum .rc-first'); if (r) r.scrollIntoView({block:'nearest'}); return !!r;", wait: 600 },   // «Y ahora» tras el primer partido (1.22.0)
   { id: 'final-stats', area: 'partido', q: 'debug=over', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(300); return M.click('#endTabs [data-tab=\"stats\"]');", wait: 500 },
   { id: 'final-jugadas', area: 'partido', q: 'debug=best&tab=plays', open: "await M.until(()=>VB.ctx.state==='over',8000); await M.sleep(600); M.click('#endTabs [data-tab=\"plays\"]'); return VB.ctx.state==='over';", wait: 600 },
   { id: 'final-reto', area: 'partido', q: 'debug=reto_end', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },

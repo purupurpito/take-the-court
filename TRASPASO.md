@@ -222,9 +222,9 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 - **Repo de redirección**: la URL antigua de Pages (/voley-3d/) da 404. ¿Se crea la redirección en el repo `purupurpito.github.io`?
 
 ### To-do
-- **Online de varios (1.22.0, publicado 22-nov), lo que falta:**
-  0. **Versión**: online de varios salió como 1.22.0; la rama investigacion (también numerada 1.22.0) tiene que pasar a 1.23.0 al
-     fusionarse (VERSION, CHANGELOG, bridge/version.json): el online decide quién juega con quién SOLO por el número.
+- **Online de varios (1.23.0, rama online-multi SIN publicar; main 1.22.0 fusionada el 24-nov), lo que falta:**
+  0. **Versión**: la rama investigacion salió antes como 1.22.0 «A tu manera»; online de varios pasa a 1.23.0 (VERSION, CHANGELOG
+     encima de la entrada 1.22.0, bridge/version.json): el online decide quién juega con quién SOLO por el número. HECHO 24-nov en la fusión.
   1. **Ferran: desplegar las reglas v3 ANTES de publicar el cliente** (`npx firebase-tools deploy --only firestore:rules`; aditivas,
      el 1v1 de 1.21.0 sigue igual; incluyen `ban` de la revisión). Sin ellas, «Las salas de varios aún no están activadas».
      notes/net.md «Despliegue de las reglas».
@@ -303,6 +303,22 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     compartir de la semana. Fallos que ya estaban en la base 1.19.2 (a2eef35), comprobados en una copia aparte: camtest serve 2/12 y
     fovpump 0/3 (ver notes/camera_input.md; wide mejora de 1/3 a 2/3), abouttest «og:image absoluta» (la prueba espera ?v=x.y.z y el
     build pone la huella de la imagen) y touchplay «pestaña Equipación» y «deslizar a la izquierda» en Ajustes.
+  - **Rama investigacion: imprescindibles del informe (22-nov-2026, versión 1.22.0 «A tu manera», publicada en main 34bffd4; fusionada en online-multi el 24-nov):** sale de
+    main 1.21.0 y hace los 9 imprescindibles de estudios/revision-juegos-voley-2026-11-21.md §4 y los arreglos de §7. Nuevo para el
+    jugador: «¡Jugar ya!» y `?jugar` (4.3), partidos cortos en Partido rápido (Duración: un set o «Desde 20-20», sets a 7; no cuentan
+    nada, 4.5), disposición táctil con modo zurdos (4.2, `make-the-cut.device`), marca de tu jugador y aro de caída graduables (4.6/4.7),
+    IA variada (4.8, `g.aiMem`, sin `g.rng` nuevo) y «Seguir el partido» (4.9, js/resume.js, clave `make-the-cut.resume`; la Carrera
+    detrás de `VB.Resume.CAREER = false`). Arreglos, sin Novedades: el toque flojo dice por qué falla (4.4, `VB.Sim.hitWhy`), récord de
+    puntos seguidos, `toonSfx`/`onoma` guardados con filas en Ajustes › Audio, sin «Data Volley», K1/K2. TURN (4.1) preparado y apagado:
+    Worker en turn-worker/ sin desplegar y `VB.NET_TURN_URL = ''` (pasos en turn-worker/README.md). Notas: notes/resume.md,
+    notes/ia-variada.md, notes/turn.md, notes/ui_main.md («Jugar ya», «Partidos cortos», «Marca de tu jugador…», «Por qué falló el
+    toque») y notes/camera_input.md («Disposición táctil»). Huellas regeneradas a propósito solo por la IA variada (fp-2v2, fp-mastery,
+    fp-salto, referencia §1 de subtest; SIM_BASE 74daeb88); simtest y fluidtest recalibrados (medidos y confirmados el 22-nov contra main: notes/pendientes-ferran.md 4.8.5-4.8.6). Pruebas nuevas:
+    hitwhytest, jugaryatest, cortostest, a11ymarktest, touchedittest, variedadtest, resumetest y turntest; filas nuevas de mobaudit
+    (home-jugarya, final-primero, quick-corto, controles-touch-editor*, hud-2v2-zurdos, home-seguir*). Pasada final de una en una: todo
+    OK; viewtest, touchplay 667×375, camtest y mobaudit (informe del rival), que fallaban también en main, arreglados el 22-nov (camtest sin tocar la cámara: fallos conocidos con tope, CAMZERO=1 exige 0).
+    Decisiones provisionales, TURN paso a paso, lo que hay que probar a mano y avisos de huellas: notes/pendientes-ferran.md
+    «Imprescindibles 1.22.0».
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
     sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club
     como partidillo con petos (1 set a 15, 3 objetivos, nota B ficha). Diseño en notes/pruebas-entrenos-spec.md. PENDIENTE (backlog):
@@ -531,7 +547,19 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
-- **Online de varios (1.22.0, 21/22-nov-2026, rama online-multi):** 2 contra 2 con hasta 4 personas (Precisa-N:
+- **Fusión de main 1.22.0 en online-multi → 1.23.0 (24-nov-2026, sin publicar):** merge de origin/main 34bffd4 (investigacion, «A tu
+  manera») en online-multi. Conflictos: js/career.js (almacén en memoria de la coop + «dos pestañas» de main: `store()` mira primero
+  `memStore`; con él, `freshen` y el evento 'storage' no hacen nada; `_useStore` y `_reset` vacían `seen`), js/main.js (dos bloques
+  nuevos seguidos), js/netview.js (claves de los dos), js/version.js (1.23.0 encima de 1.22.0), tools/fingerprint6.js y
+  tools/fluidsimtest.js (SIM_BASE sin MULTI ni FLUIDA = 54344682, la de main). Añadido: `startCoopCareerMatch` del anfitrión pasa por
+  `careerLockGate` (Carrera con partido a medias: primero ese). Huella fp-6v6.json regenerada SOLO por la IA variada de main (ai6.js
+  lee `g.aiMem.set`): idéntica en 1348c7a~1, distinta en 1348c7a, escrita en origin/main e idéntica en la fusión; las otras tres son
+  las de main e idénticas. Pasada entera en verde (simtest, 4 huellas, mptest, nettest, net3/4/12, hosttest, stresstest r150/burst,
+  viewtest, netreplaytest, fluid*, roomtest, lobbytest, netlogtest, cooptest, careertest, settest, abouttest, migtest, synctest,
+  proftest, las 8 de investigacion, netdrive 1v1 Precisa/Fluida, --multi 4, coop 2, 6v6 × 12, --coop, NDRELOAD 2v2/6v6/coop, NDHOST=away,
+  build-pages). contacttest y balltest fallan igual que en origin/main. mobaudit 568x320 + 360x640 comparado con main: sin solapes,
+  recortes ni salidas nuevas en las pantallas de main.
+- **Online de varios (1.23.0, 21/22-nov-2026, rama online-multi; numerada 1.22.0 hasta fusionar main el 24-nov):** 2 contra 2 con hasta 4 personas (Precisa-N:
   rollback de N plazas en estrella), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js), salas con Formato y sitios (esquema v3,
   lobby de varios) y Carrera cooperativa de playa (js/career-coop.js). Cada persona lleva un jugador y la IA llena los huecos; el
   1 contra 1 no cambia (4 huellas idénticas). Integración y lag (P8): netdrive de N páginas (`--multi`, BcLink de pareja,
@@ -543,7 +571,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   telemetría «prefail», pegatina Beta del 6v6), lane B (ritmo de envío a 60 Hz, vueltas por otro enlace, tope de predicción), STRESS
   (tope 60, suavizado más largo; tools/stresstest.js) y revisión 2 (la conexión lenta ya no echa a nadie con un anfitrión de 165-240 Hz,
   el anfitrión reofrece mientras se puede volver —120 s en el 6v6—, la marca de vuelta se reapunta con la pestaña oculta, versión
-  1.22.0). Medidas, protocolo y pruebas en notes/net.md «Online de varios» y notes/online-multi-requests.md; API en CONTRACT.md.
+  1.22.0, que pasa a 1.23.0 al fusionar main 1.22.0 el 24-nov). Medidas, protocolo y pruebas en notes/net.md «Online de varios» y notes/online-multi-requests.md; API en CONTRACT.md.
 - **Take the Court (1.20.0)** (20/21-nov-2026, rama nombre, con main 1.19.2 fusionado; marca libre y dominio takethecourt.com comprados por Ferran): el juego pasa
   a llamarse «Take the Court» en todo lo visible (título de la pestaña, metadatos, manifest,
   instalar, compartir sala, acta, gorra «TTC», letras «T T C» de la red, vallas y banda de playa). Las claves y los ids internos se
@@ -802,6 +830,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `storyuitest.js`, de una en una. Regla de oro, `c.story` y claves de azar `st-*` en notes/carrera.md §«Carrera con vida».
 - Vestuario (1.18.0): `node tools/looktest.js` (también `--gl` y `--sweep`), `lookvis.js`, `lookshots.js`, `lookzoom.js`,
   `vestuxaudit.js`, `vestuxprobe.js` y `vestuxwp6.js`. Plan y lista final en notes/vestuario-plan.md §4; detalle en notes/players.md § Vestuario.
+- Imprescindibles 1.22.0 (rama investigacion): `node tools/hitwhytest.js`, `jugaryatest.js`, `cortostest.js`, `a11ymarktest.js`,
+  `touchedittest.js [568x320]`, `resumetest.js [--node|--browser]`, `turntest.js` y `variedadtest.js [segundos] [--base <ref>]` (13 min).
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

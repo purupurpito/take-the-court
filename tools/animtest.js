@@ -32,7 +32,9 @@ const [SECS = '240', SEEDS = '7,99', MAPS = 'hall,beach', DIFF = 'hard'] = proce
 // Regenerada el 18-nov-2026 con el modelo de esfuerzo de la IA (VB.EFFORT: cambia la sim y la plancha fallida; antes a0837b709e6d3e5b)
 // y otra vez el mismo día con su calibración (antes 1f0995598d782f62), con su revisión (antes 5d840ae097fa9356) y con su afinado
 // (lectura variable, preR; antes 99f20e9aee7b2f44) y con la revisión del afinado (rkHi, preT, humAcc; antes 5f0e0e1ea959bba9)
-const NEUTRAL_FP = 'f4e460a33457818a';
+// y el 22-nov-2026 con la IA variada (1.22.0, g.aiMem: cambia lo que simula cada lado; antes f4e460a33457818a, comprobado con
+// NEUTRAL_FP=imprimir en una copia de main y en la del commit de la IA variada)
+const NEUTRAL_FP = 'f78d214318942149';
 
 function page(SECS, SEED, DIFF, VENUE, SIG, RIVAL) {
   var ctx = VB.ctx, S = VB.Sim, P = VB.Players, orig = P.__orig || P.update; P.__orig = orig;

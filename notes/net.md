@@ -638,6 +638,7 @@ Decisión 7 de Ferran: la entrada «Online» se ve en el menú y él pondrá gen
   colgado del pabellón con «TÚ / CPU». (SUPERADO casi todo: escribir con mando en «Lobby rediseñado y teclado en pantalla»; maestría
   y marcador colgado en «Fase 5»; vuelta del invitado y soporte de TURN en «Robustez y privacidad». Queda: vuelta del anfitrión y
   activar TURN con una cuenta.)
+  (22-nov-2026, 1.22.0: TURN de respaldo preparado y apagado, con Worker en turn-worker/; ver notes/turn.md.)
 - Las Novedades del online las escribe la sesión principal (esta fase no toca Novedades ni Controles).
 
 ---
@@ -1364,10 +1365,11 @@ caché de 10 min del index) y «Luego». Nunca en partido. Las salas «Otra vers
 lleva `ver` y el resultado `rv`: main.js dice «Tienes una versión anterior» o «Tu rival tiene una versión anterior». Pruebas: `&vnew=X.Y.Z`.
 Los móviles con 1.15.0 o antes no tienen este código: el aviso les sale a partir de la primera vez que recarguen.
 
-## Online de varios (1.22.0, sprint online-multi, 21/22-nov-2026)
+## Online de varios (1.23.0, sprint online-multi, 21/22-nov-2026)
 
-Versión **1.22.0**. La rama investigacion también estaba numerada 1.22.0 sin publicar: tiene que subir a 1.23.0, porque el online
-decide si dos versiones juegan juntas solo por el número (salas: `v = PROTO|VB.VERSION`; sesiones: el saludo compara `VB.VERSION`).
+Versión **1.23.0**. La rama investigacion salió antes como 1.22.0 «A tu manera» (main 34bffd4) y se fusionó aquí el 24-nov-2026; online
+de varios, que estaba numerado 1.22.0 sin publicar, pasa a 1.23.0, porque el online decide si dos versiones juegan juntas solo por el
+número (salas: `v = PROTO|VB.VERSION`; sesiones: el saludo compara `VB.VERSION`).
 
 Diseño: notes/online-multi-brief.md (§3 la red, §4 salas, §5 interfaz, §6 coop). Peticiones entre paquetes y su estado:
 notes/online-multi-requests.md. Reglas de Ferran: cada persona lleva UN jugador, la IA llena los sitios vacíos, el que tenga mejor
@@ -1426,7 +1428,7 @@ borran en cuanto abre el enlace. API: `rooms.open({…, mode, cap, fmt})`, `join
 `beat({cnt, state, lineup})`, `putSig/getSig/delSig(id, kind, uidInvitado)`. La conexión de la sala de varios sale del formato
 (`roomModel`: 6v6 → 'host', 2v2 y coop → Precisa); desde L3 además `multiCfg` pone `net: 'host'` en todo 6v6 (y en vs 2v2 de 4 si se
 pide) y las reglas lo validan ('host' en 6v6 o con 4 plazas, 'fluida' solo en vs de 2); `roomModel` lo lee además del formato.
-`LOBBY = 3` en netlobby.js: un 1.21.0 ve las salas vs de un 1.22.0 como «Otra versión».
+`LOBBY = 3` en netlobby.js: un 1.21.0 o un 1.22.0 ve las salas vs de un 1.23.0 como «Otra versión».
 - **Coop fuera de 1.21.0** (L3): una coop esperando compañero va en `state: 'coop'` (nunca 'open'; reglas `multiMode`, escritas con
   ternarios: con `!=` o `||` de varios `&&` el emulador da HTTP 500 al validar). `byCode` busca solo por código y filtra 'open' | 'coop'
   en el cliente; `VB.NetRoom.joinable(room)`. Un 1.21.0 en caché no la ve en la lista ni por código y no puede entrar.
@@ -1462,11 +1464,11 @@ hub). Hoja modal `#coSheet` del invitado (esperando la Carrera, corte con su jug
 endX, showSum, sheet, hostState, p2Rec, matchWatch, _demo, _tick}`. Los retos (VB.Retos) no cuentan en ningún online (ui.js no llama
 a `Retos.endMatch` con `g.online`), así que su `ingest` de lo presentado no tiene efecto en el coop.
 
-### Despliegue de las reglas (Ferran, ANTES de publicar el cliente 1.22.0)
+### Despliegue de las reglas (Ferran, ANTES de publicar el cliente 1.23.0)
 Las reglas v3 NO están desplegadas. Orden: primero las reglas, luego el cliente.
 1. `npx firebase-tools deploy --only firestore:rules` (con la sesión guardada; reglas en firebase/firestore.rules). Son aditivas: el
-   1 contra 1 de 1.21.0 sigue funcionando igual con ellas.
-2. Después publicar 1.22.0. Sin las reglas, crear una sala de varios da «Las salas de varios aún no están activadas» y el 1v1 va igual.
+   1 contra 1 de 1.21.0 y 1.22.0 sigue funcionando igual con ellas.
+2. Después publicar 1.23.0. Sin las reglas, crear una sala de varios da «Las salas de varios aún no están activadas» y el 1v1 va igual.
 Comprobado contra el emulador con las reglas del repositorio: `node tools/roomtest.js`, `node tools/lobbytest.js` y los netdrive
 `--multi` con `NDRTC=1` y `--coop` de abajo.
 

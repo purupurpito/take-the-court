@@ -21,7 +21,8 @@
  *    se sincronizan desde el 21-nov-2026 (S4_SYNC = true; reglas desplegadas el 16-nov-2026). Con false volverían a TRACK (solo la hora).
  *    Lo nuevo del sprint «único» viaja DENTRO de esos guardados: c.life.bond (rencor/cariño), c.world.arb (árbitros) y c.study (scouting)
  *    en la Carrera; profile.sen (Cuaderno del árbitro) en el perfil. 'make-the-cut.semana' (El mismo 22-24) es del aparato: nunca a DOCS.
- *  - Conflictos en cola (Carrera y Carrera de pista, la primera vez); antes de pisar una Carrera local, copia en '<clave>.prev'.
+ *  - Conflictos en cola (Carrera y Carrera de pista, la primera vez, y solo si son Carreras DISTINTAS: la misma Carrera —misma semilla
+ *    y creación— nunca se pregunta, gana la más avanzada; careerPick); antes de pisar una Carrera local, copia en '<clave>.prev'.
  *  - Las bajadas solo se aplican en el menú (fuera, quedan pendientes hasta VB.Account.menuReady()); tras la primera recarga de la
  *    pestaña, las claves con caché llaman a su gancho (Prog._reload, Career.beach/hall._reset) y VB.UI.refreshMenu.
  *  - Tope de subida 390 000 caracteres (las reglas admiten 400 000): lo que pase no se sube hasta su siguiente cambio.
@@ -204,6 +205,22 @@
     if (MERGE[k]) { try { var o = MERGE[k](L, R, !!incomingNewer); if (typeof o === 'string') return o; } catch (e) { } }
     return incomingNewer ? R : L;
   }
+  /** Carreras (22-nov-2026, revisión de «Seguir el partido»): ¿la local L y la remota R son la MISMA Carrera (misma semilla y fecha
+   *  de creación)? Entonces no se pregunta ni se mira la hora: gana la que va más avanzada (temporada, jornadas jugadas, jornada,
+   *  partidos, mensajes), así cerrar sesión, jugar (y perder) y volver a entrar no deja recuperar la de antes del partido. Con el mismo
+   *  avance: '' si es la primera entrada (se queda la local) o la hora decide. Devuelve 'local' | 'remote' | 'tie' | '' (distintas o
+   *  ilegibles: se pregunta como siempre). */
+  function careerPick(Lraw, Rraw) {
+    var a = null, b = null; try { a = JSON.parse(Lraw); b = JSON.parse(Rraw); } catch (e) { return ''; }
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || a.seed == null || a.seed !== b.seed || (a.created || 0) !== (b.created || 0)) return '';
+    var pa = careerProg(a), pb = careerProg(b);
+    for (var i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] > pb[i] ? 'local' : 'remote';
+    return 'tie';
+  }
+  function careerProg(c) {
+    var p = c.player || {};
+    return [c.season | 0, Array.isArray(c.notes) ? c.notes.length : 0, c.week | 0, p.matches | 0, c.msgN | 0];
+  }
   /** Une lo local con lo remoto. first: primera entrada en este dispositivo (sin fechas fiables). Devuelve {changed, keys (claves
    *  cambiadas en local), conflicts:[{k, remote, local, at}], conflict (el primero o null)}. Los conflictos también quedan en la
    *  cola del módulo (los resuelve act('keepRemote'|'keepLocal') uno a uno). */
@@ -218,7 +235,12 @@
       if (Rd === L) { synced[k] = R.at; return; }
       if (L == null) { put(Rd); meta[k] = R.at; synced[k] = R.at; return; }
       if (Rd == null) { if (first || Lt > R.at) dirty[k] = 1; else { put(null); meta[k] = R.at; } return; }
-      if (CONFLICT[k] && first) { found.push({ k: k, remote: Rd, local: L, at: R.at }); return; }
+      if (CONFLICT[k]) {
+        var pk = careerPick(L, Rd);
+        if (pk === 'remote') { put(Rd); meta[k] = R.at; synced[k] = R.at; return; }
+        if (pk === 'local' || (pk === 'tie' && first)) { meta[k] = Math.max(Lt, R.at + 1); dirty[k] = 1; return; }
+        if (!pk && first) { found.push({ k: k, remote: Rd, local: L, at: R.at }); return; }
+      }
       if (MERGE[k]) {   // gym por máximo, look y retos por unión, perfil conmutativo, Salón de la Fama por unión (top 20)
         var Mx = MERGE[k](L, Rd, first || R.at > Lt);
         if (Mx !== L) put(Mx);
@@ -875,7 +897,7 @@
     _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _mergeLook: mergeLook, _lookSync: LOOK_SYNC, _push: function () { markDirty(); return push(); },
     // pruebas (tools/synctest.js)
     _merge: merge, _docs: function () { return Object.assign({}, DOCS); }, _track: function () { return Object.assign({}, TRACK); },
-    _mergeLegends: mergeLegends, _s4Sync: S4_SYNC, _conflicts: function () { return conflicts.slice(); }, _resolve: resolve,
+    _mergeLegends: mergeLegends, _careerPick: careerPick, _merge: function (remote, first) { return merge(remote, first); }, _s4Sync: S4_SYNC, _conflicts: function () { return conflicts.slice(); }, _resolve: resolve,
     _pendingDown: function () { return pendingDown; }, _afterDown: afterDown, _MAX_RAW: MAX_RAW,
     _careerInfo: careerInfo, _lastErr: function () { return lastErr; },
     // pruebas (tools/googletest.js): vista actual del panel y si el SDK de Google ya está cargado

@@ -45,7 +45,7 @@
  *   lineup (opcional) texto del anfitrión (≤ 4000; p. ej. JSON de plazas/equipos/roles) para el lobby.
  *   Estado: 'open' mientras se puede entrar (las reglas paran en cap-1 aunque siga 'open'); el anfitrión lo pasa a 'full'/'play'.
  *         Una coop esperando compañero va en 'coop' (nunca 'open'): los clientes 1.21.0 en caché listan y buscan por código solo
- *         state == 'open', así que no la ven; los 1.22.0 entran por código (byCode acepta 'open' y 'coop') o por enlace.
+ *         state == 'open', así que no la ven (los 1.22.0 publicados tampoco); los 1.23.0 entran por código (byCode acepta 'open' y 'coop') o por enlace.
  *   net   (opcional) 'fluida' (vs, cap 2, 2v2) | 'host' (modelo del anfitrión: siempre en 6v6; las reglas lo dejan también en vs 2v2
  *         de 4 plazas). Sin la clave = Precisa. multiCfg lo pone solo.
  *   Señalización POR PAREJA (anfitrión ↔ cada invitado), la clave de la pareja es SIEMPRE el uid del invitado:

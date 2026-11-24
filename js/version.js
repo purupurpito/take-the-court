@@ -49,23 +49,26 @@
  * 1.21.0 (21-nov-2026): sprint «único» (señas del
  *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
  *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
- * 1.22.0 (22-nov-2026): online de varios (sprint online-multi, notes/net.md «Online de varios»): 2 contra 2 con hasta 4 personas
+ * 1.22.0 (22-nov-2026, rama investigacion, publicada): imprescindibles del informe de la revisión (Jugar ya, partidos cortos,
+ *   disposición táctil, marca e indicador de caída, IA variada, Retomar el partido). Versión nueva OBLIGATORIA: la IA variada cambia
+ *   lo que simula cada lado y el lobby online y el sello de Retomar separan por VB.VERSION (una 1.21.0 en caché no debe cruzarse).
+ * 1.23.0 (24-nov-2026): online de varios (sprint online-multi, notes/net.md «Online de varios»): 2 contra 2 con hasta 4 personas
  *   (Precisa-N), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js; beta), salas con formato y sitios, y Carrera cooperativa
- *   de playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas. La rama investigacion, que también
- *   estaba numerada 1.22.0 sin publicar, tiene que pasar a 1.23.0 al fusionarse: el online decide si dos versiones juegan juntas SOLO
- *   por este número (salas: v = PROTO|VB.VERSION; sesiones: el saludo compara VB.VERSION).
+ *   de playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas. La rama online-multi se numeró
+ *   1.22.0 sin publicar; la investigacion salió antes como 1.22.0, así que esta es 1.23.0: el online decide si dos versiones juegan
+ *   juntas SOLO por este número (salas: v = PROTO|VB.VERSION; sesiones: el saludo compara VB.VERSION).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.22.0';
-  VB.VERSION_DATE = '2026-11-22';
+  VB.VERSION = '1.23.0';
+  VB.VERSION_DATE = '2026-11-24';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.22.0', d: '2026-11-22', t: 'Online con amigos',
+      v: '1.23.0', d: '2026-11-24', t: 'Online con amigos',
       items: [
         'Online 2 contra 2: hasta 4 personas, cada una con su jugador. La IA llena los huecos.',
         'Online 6 contra 6 en pista (beta): hasta 12 personas, cada una en su puesto.',
@@ -73,6 +76,18 @@
         'Sala de espera con sitios: elige el tuyo, mira el ping de cada uno y pulsa «Listo».',
         'Carrera cooperativa de playa: juega la liga y el Open con otra persona como tu pareja.',
         'Tu pareja sube de nivel con su propio jugador, y la Carrera sigue siendo tuya.'
+      ]
+    },
+    {
+      v: '1.22.0', d: '2026-11-22', t: 'A tu manera',
+      items: [
+        '¡Jugar ya!: la primera vez, un botón en la portada te pone a jugar sin pasar por menús.',
+        'Partidos cortos: en Partido rápido elige un set, un final apretado o sets a 7.',
+        'Coloca los botones táctiles a tu gusto: sitio, tamaño, opacidad y modo zurdos.',
+        'La marca de tu jugador, más grande o en alto contraste (Ajustes › Accesibilidad).',
+        'El aro de caída, a tu gusto: siempre, solo al final del vuelo o nunca.',
+        'La CPU ya no repite el mismo ataque: cambia de zona, de carril y de receptor.',
+        'Seguir el partido: se guarda punto a punto, también en la Carrera, y sigues donde ibas.'
       ]
     },
     {

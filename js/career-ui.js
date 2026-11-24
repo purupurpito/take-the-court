@@ -825,6 +825,8 @@
     Q + ' .confirm{padding:10px 12px}',
     // próximo partido: brochazo (no se pulsa), parche + Simular y la hoja de detalles
     Q + ' .cr-next{margin:4px 0 24px}',
+    // partido de Carrera a medias («Retomar el partido»): el marcador grande y «Seguir el partido»
+    Q + ' .cr-lock .cr-lock-sc{font:400 clamp(26px,6vh,40px)/1.1 var(--font-display,inherit);margin:6px 0 10px;letter-spacing:.02em}',
     Q + ' .cr-tk{--sp-h:clamp(66px,15vh,116px);--sp-cs:clamp(34px,7.2vh,60px);--sp-tilt:-.8deg;cursor:default;margin:0 0 14px}',
     Q + ' .cr-tk:hover{transform:rotate(var(--sp-tilt))}',
     Q + ' .cr-tk .sp-tk-stub{gap:4px;padding-left:calc(3.5% + 12px)}',
@@ -1522,6 +1524,26 @@
     });
     try { if (VB.Splat && VB.Splat.sync) VB.Splat.sync(); } catch (e) { }
   }
+  /** «Retomar el partido» en la Carrera (main.js careerLock): el partido a medias con candado {sub, score, lost, label, ext} o null. Si
+   *  no había foto que valga, main.js ya lo ha resuelto desde el marcador y devuelve null (el hub enseña el resultado). */
+  function lockNow() { var A = VB.ctx && VB.ctx.actions; if (!A || !A.careerLock) return null; try { return A.careerLock(); } catch (e) { return null; } }
+  /** Hub bloqueado: solo el partido a medias, con su marcador y «Seguir el partido» (nada se simula ni avanza hasta acabarlo). */
+  function renderLock(c, lk) {
+    var n = null; try { n = C().next(c); } catch (e) { n = null; }
+    var lbl = lk.label || (n && n.label) || '', rv = !lk.ext && n && n.rival ? n.rival.name : '';
+    head.innerHTML = backBtn() + '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + (c.season | 0)], 'd') + '</small><b>Partido a medias</b></div>';
+    tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
+    body.innerHTML = '<div class="card cr-lock"><h3>' + esc(lbl || 'Partido de Carrera') + '</h3>' + (rv ? '<p>Contra ' + esc(rv) + '</p>' : '') +
+      '<p class="cr-lock-sc"><b>' + esc(lk.sub) + '</b></p>' +
+      '<p class="muted">' + (lk.lost ? 'Cerraste con el punto en juego: ese punto es para el rival. ' : '') + 'Se guarda al acabar cada punto: la Carrera sigue cuando acabes este partido.</p>' +
+      '<div class="acts"><button class="pri" data-act="lock-go">Seguir el partido</button></div></div>';
+  }
+  function lockGo() {
+    var go = function () { var A = VB.ctx && VB.ctx.actions; if (A && A.resumeMatch) A.resumeMatch('career'); };
+    close(true);
+    var w = false; try { w = !!(VB.UI && VB.UI.wipe && VB.UI.wipe(2, go)); } catch (e) { w = false; }
+    if (!w) go();
+  }
   function renderBroken() {
     head.innerHTML = backBtn() + '<div class="cr-title"><small>Carrera</small><b>Guardado dañado</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
@@ -1534,6 +1556,7 @@
     if (dbgTrial) { renderTrialPre(dbgTrial); return; }   // (?debug=trial&pre=1: la previa con datos de muestra)
     var c = C() && C().get();
     if (view === 'create' || !c) { renderCreate(c); return; }
+    var LK = lockNow(); if (LK) { renderLock(c, LK); return; }   // (partido de Carrera a medias: la Carrera espera a que lo acabes)
     var XT = xTake(c); if (XT) { renderTake(c, XT); return; }   // (una extensión toma el hub entero: prólogo juvenil)
     if (c.phase === 'pick') { renderPick(c); return; }
     if (trialI >= 0) { if (c.offers && c.offers[trialI] && c.offers[trialI].trial) { renderTrialPre(trialInfo(c, trialI)); return; } trialI = -1; }   // previa de una invitación a prueba (mitad o fin de temporada)
@@ -3014,6 +3037,7 @@
         note = ph === 'ok' ? 'El fisio te deja como nuevo: fatiga −' + C().PHYSIO_FAT + ' (' + eur(pc) + ').' : ph === 'done' ? 'Ya has ido al fisio esta jornada.' : ph === 'none' ? 'No tienes fatiga.' : ph === 'money' ? 'No te llega: cuesta ' + eur(pc) + '.' : '';
         snd(ph === 'ok' ? 'toggle' : 'back'); keepFocus(b, render); return;
       }
+      case 'lock-go': snd('start'); lockGo(); return;   // (partido a medias: «Seguir el partido»)
       case 'sim': {
         var s = C().simulateNext(c); if (!s) return;
         // el foco se queda en «Simular» (antes saltaba a «Jugar partido» y un segundo Intro arrancaba un partido; al acabar la
@@ -3422,6 +3446,8 @@
     }
     return true;
   }
+  /** Partido de Carrera a medias guardado (VB.Resume.peek, sin resolver nada) o null: para el subtítulo de la fila «Carrera». */
+  function lockPeek() { var R = VB.Resume; if (!R || !R.peek) return null; try { var p = R.peek(); return p && p.kind === 'career' ? p : null; } catch (e) { return null; } }
   function syncMenu0() {
     var s = document.getElementById('careerSub'); if (!s || !C()) return;
     var c = C().get(), t;
@@ -3431,6 +3457,7 @@
     var hl = isHall(c);
     if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';
     else if (xTake(c) && xFn(xTake(c), 'hero')) { var xq = xTry(xTake(c), 'hero', [c], {}) || {}; chip = xq.chip || ''; t = xq.line || xq.title || ''; }
+    else if (lockPeek()) { chip = 'Partido a medias'; t = lockPeek().sub; }
     else if (c.phase === 'pick') { chip = plural((c.offers || []).length, 'oferta', 'ofertas'); t = 'Elige club'; }
     else if (c.phase === 'off') { chip = 'T' + c.season; t = 'Fin de temporada, ofertas'; }
     else { var n = C().next(c); chip = 'T' + c.season + (n ? (n.kind === 'league' ? ' J' + (n.week + 1) : (n.round === 0 ? ' Semifinal' : ' Final')) : ''); t = n ? C().myClub(c).short + ' — ' + n.rival.short : C().myClub(c).name; if (n && hl && n.kind === 'ko') chip = 'T' + c.season + ' ' + n.compName; }

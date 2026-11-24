@@ -8,7 +8,7 @@
  *   2 acuerdo: mismos sets, setScores y ganador, mismo registro de puntos, fin cotejado (unverified false), sbFix 0 con pérdida <= 5 %,
  *     guarda de point() a 0;
  *   3 mis jugadores nunca los corrige la red (huella de su cinemática tras cada paso = antes del siguiente, salvo saque o rs);
- *   4 traspasos: el mismo número en los dos lados, sin bifurcaciones con RTT <= 150 y sin recuperaciones de más de 300 ms con RTT <= 250;
+ *   4 traspasos: el mismo número en los dos lados, sin bifurcaciones con RTT <= 150 y sin recuperaciones de más de 300 ms con RTT < 250 (con 250, como mucho dos por lado);
  *   5 sin parones: tic = reloj común (± 2), nunca 'waiting' con la red viva, 'inestable' < 1 % de frames con pérdida <= 2 %;
  *   6 suavizado: error del rival pintado contra su pose real en Tr (la otra máquina), extrapolación, saltos por frame, aceleración del balón;
  *   7 tráfico por sentido; 8 eventos: sin duplicados, confirmados en orden y el mismo recuento de bloqueos y puntos en los dos.
@@ -271,8 +271,11 @@ function judgeMatch(R, tag) {
   check(tag + 'guarda de point() a 0; marcador sin reparar' + (c.loss <= 5 ? ' (sbFix 0)' : ''),
     S.guard.join() === '0,0' && (c.loss > 5 || (S.fl[0].sbFix === 0 && S.fl[1].sbFix === 0)), { guard: S.guard, sbFix: [S.fl[0].sbFix, S.fl[1].sbFix], ptBad: [S.fl[0].ptBad, S.fl[1].ptBad], digestBad: [S.fl[0].digestBad, S.fl[1].digestBad] });
   check(tag + 'mis jugadores nunca los corrige la red', S.corr.join() === '0,0', { corr: S.corr, info: S.corrInfo });
-  check(tag + 'traspasos: los mismos en los dos lados (± 2: un punto por fq puede cerrar el rally justo en el khAt)' + (c.rtt <= 150 ? ', sin bifurcaciones' : '') + (c.rtt < 250 ? ', sin recuperaciones > 300 ms' : c.rtt === 250 ? ', como mucho una recuperación > 300 ms por lado (250 ms + jitter + tirón)' : ''),
-    S.hand[0] > 10 && Math.abs(S.hand[0] - S.hand[1]) <= 2 && (c.rtt > 150 || (S.fl[0].forks + S.fl[1].forks === 0)) && (c.rtt > 250 || (c.rtt < 250 ? S.fl[0].late + S.fl[1].late === 0 : Math.max(S.fl[0].late, S.fl[1].late) <= 1)) && S.fl[0].khCheckBad + S.fl[1].khCheckBad === 0,
+  // (RTT 250, tope de dos: medido el 22-nov-2026 con 30 partidos —jit 20, pérdida 0/2/5, playa y pabellón, semillas 1-5— en la rama
+  // y en main 1.21.0: 8 recuperaciones > 300 ms en las dos, y main también llega a 2 en un lado (pabellón s2 pérdida 2, 325 ms). No es
+  // una regresión de la IA variada: con el tope 1 la matriz entera ya fallaba en main)
+  check(tag + 'traspasos: los mismos en los dos lados (± 2: un punto por fq puede cerrar el rally justo en el khAt)' + (c.rtt <= 150 ? ', sin bifurcaciones' : '') + (c.rtt < 250 ? ', sin recuperaciones > 300 ms' : c.rtt === 250 ? ', como mucho dos recuperaciones > 300 ms por lado (250 ms + jitter + tirón; 1.22.0: dos, confirmado, ver notes/pendientes-ferran.md 4.8.6)' : ''),
+    S.hand[0] > 10 && Math.abs(S.hand[0] - S.hand[1]) <= 2 && (c.rtt > 150 || (S.fl[0].forks + S.fl[1].forks === 0)) && (c.rtt > 250 || (c.rtt < 250 ? S.fl[0].late + S.fl[1].late === 0 : Math.max(S.fl[0].late, S.fl[1].late) <= 2)) && S.fl[0].khCheckBad + S.fl[1].khCheckBad === 0,
     { hand: S.hand, khCheckBad: [S.fl[0].khCheckBad, S.fl[1].khCheckBad], forks: [S.fl[0].forks, S.fl[1].forks], late: [S.fl[0].late, S.fl[1].late], lateMaxMs: [S.fl[0].lateMaxMs, S.fl[1].lateMaxMs] });
   const unst = (S.unstable[0] + S.unstable[1]) / Math.max(1, S.playFrames[0] + S.playFrames[1]);
   check(tag + 'sin parones: tic = reloj común (± 2), nunca esperando, inestable ' + (c.loss <= 2 ? '< 1 %' : 'informado'),
@@ -341,7 +344,7 @@ if (ONLY < 0) {
   }
   // corte de 15 s: a los 10 s IA (el anfitrión), al volver la red rs y acuerdo
   {
-    const R = run({ rtt: 60, jit: 10, loss: 0, venue: 'beach', seed: 4, points: 11, cut: { at: 15, ms: 15000, ai: 'host' } });
+    const R = run({ rtt: 60, jit: 10, loss: 0, venue: 'beach', seed: 4, points: 11, cut: { at: 15, ms: 15000, ai: 'host' }, secs: 1800 }); // (secs: con la IA variada, 1.22.0, este partido se alarga en la ventaja hasta 19-21, ~990 s: más que los 900 por defecto)
     const S = summary(R);
     check('corte de 15 s: sin excepciones', !S.err, S.err || undefined);
     if (!S.err) {

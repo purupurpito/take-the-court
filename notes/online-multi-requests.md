@@ -357,7 +357,7 @@ Pendiente / visto:
   - L3/L4 → ui_main: «Jugar» recortado 4 px en 667×375, «DIRECTO» a 11,5 px, #btnVer 18 px, píldora de insignia nueva a 11,5 px en
     568×320. Son del menú y del Resumen de siempre, no del online.
   - L3 (1v1, sin tocar por «1v1 igual»): latido lite y 65 s de latido viejo también en el 1v1.
-  - Reglas SIN desplegar (orden: reglas y luego cliente 1.22.0).
+  - Reglas SIN desplegar (orden: reglas y luego cliente 1.23.0; era 1.22.0 antes de fusionar main el 24-nov).
 - **Arreglo de P8 en js/main.js (sección ONLINE, una rama)**: en el modelo host el ANFITRIÓN pasa también por `netPlayersSmooth`
   (solo su vista; los invitados ya interpolan). Pintaba a cada invitado con su última pose extrapolada y cada pose nueva con su jitter
   daba un tirón. netdrive 6v6 × 12 a 150 ms, jugadores de los demás en la vista del anfitrión (> 0,15 / > 0,5 m, máx, p99): 1137 / 45,

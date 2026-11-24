@@ -55,7 +55,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await fresh('debug=settings&panel=set&nonews=1');
       const tabs = await J(`[].map.call(document.querySelectorAll('#setTabs .tab'), function (b) { return b.getAttribute('data-tab'); })`);
       check('7 pestañas en orden (audio, image, cam, game, a11y, kit, info)', tabs.join() === 'audio,image,cam,game,a11y,kit,info', tabs);
-      const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
+      const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol', 'toonSfx', 'onoma'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
         game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'msTiming'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'], kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'] };
       for (const t of Object.keys(rows)) {
         await tab(t);
@@ -63,8 +63,17 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
         check('pestaña ' + t + ': filas ' + rows[t].join(', '), rows[t].every(k => seen.indexOf(k) >= 0), seen);
         check('pestaña ' + t + ': «Restablecer este apartado»', await E(vis(`.opt-g[data-tab="${t}"] .opt-reset`)));
       }
+      // arreglo 1.22.0: toonSfx / onoma se guardan (antes no estaban en DEFAULTS) y las partidas viejas cargan con los dos en Sí
+      await E(`VB.ctx.actions.setSetting('toonSfx', false), VB.ctx.actions.setSetting('onoma', false), 1`);
+      const sv = await LS('make-the-cut.settings');
+      await page.navigate('debug=settings&panel=set&nonews=1'); await ready();
+      const back = await S();
+      check('toonSfx y onoma se guardan y vuelven al recargar', sv && sv.toonSfx === false && sv.onoma === false && back.toonSfx === false && back.onoma === false, [sv && sv.toonSfx, sv && sv.onoma, back.toonSfx, back.onoma]);
+      await fresh('debug=settings&panel=set&nonews=1', { 'make-the-cut.settings': { muted: false, sfxVol: 0.5 } });
+      const old = await S();
+      check('ajustes viejos sin toonSfx / onoma: los dos en Sí', old.toonSfx === true && old.onoma === true && old.sfxVol === 0.5, [old.toonSfx, old.onoma, old.sfxVol]);
       await tab('info');
-      const info = await J(`[document.getElementById('optVer').textContent, document.getElementById('optSave').textContent, [].map.call(document.querySelectorAll('.opt-g[data-tab="info"] [data-go]'), function (b) { return b.getAttribute('data-go'); })]`);
+      const info =await J(`[document.getElementById('optVer').textContent, document.getElementById('optSave').textContent, [].map.call(document.querySelectorAll('.opt-g[data-tab="info"] [data-go]'), function (b) { return b.getAttribute('data-go'); })]`);
       check('Info: versión, progreso, Novedades, Créditos y Traer tu partida', /^\d+\.\d+\.\d+ \(\d+ [a-z]{3} \d{4}\)$/.test(info[0]) && /Guardado en/.test(info[1]) && info[2].join() === 'news,credits,mig', info);
       await tab('cam');
       await E(`window.__o = VB.CameraRig.OPTS; VB.CameraRig.OPTS = []; window.__f = VB.FX.OPTS; VB.FX.OPTS = ['cbColors']; VB.ctx.actions.setSetting('camSens', 1.1); 1`);

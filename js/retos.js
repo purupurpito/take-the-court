@@ -363,6 +363,7 @@
   function counts(g) {
     if (!g || g.demo || g.drill || spectator(g)) return false;
     if (g.sit) return false;   // la situación de la semana (js/semana.js): sin medallas ni XP (Ferran, 20-nov-2026)
+    if (g.short || g.rsNc) return false;   // partido corto del Partido rápido (informe 4.5, main.js quickShort): tampoco, para que no se farmeen
     if (VB.Retos._force) return true;
     if (dbg()) return !!g.reto;
     return !g.autopilot;
@@ -617,6 +618,20 @@
     load: load, save: save, clean: clean, mergeRaw: mergeRaw,
     reset: function () { try { root.localStorage.removeItem(KEY); } catch (e) { } rRaw = null; rCache = null; lostF = false; roF = false; },
     lost: function () { read(); return lostF; }, readOnly: function () { read(); return roF; },
+    // «Retomar el partido» (js/resume.js): los contadores del partido en curso (y su copia del deshacer) sin la partida, y su vuelta
+    // (sobre el MISMO objeto preasignado: solo se reasignan sus campos)
+    resumeGet: function (g) {
+      if (!cur.on || cur.g !== g) return null;
+      var o = { c: {}, b: {} }, k; for (k in cur) if (k !== 'g') o.c[k] = cur[k]; for (k = 0; k < CNT.length; k++) o.b[CNT[k]] = bak[CNT[k]];
+      return o;
+    },
+    resumeSet: function (o, g) {
+      if (!o || !o.c || !g) return;
+      resetCur(g); var k;
+      for (k in o.c) if (k !== 'g' && k in cur && typeof o.c[k] === typeof cur[k]) cur[k] = o.c[k];
+      if (o.b) for (k = 0; k < CNT.length; k++) if (typeof o.b[CNT[k]] === 'number') bak[CNT[k]] = o.b[CNT[k]];
+      cur.g = g; cur.on = true; if (lastEndG === g) { lastEndG = null; lastRes = null; }
+    },
     _cur: function () { return cur.on ? cur : null; }, _reset: function () { cur.on = false; cur.g = null; lastEndG = null; lastRes = null; },
     _hash: hashStr, _force: false
   };
