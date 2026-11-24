@@ -357,7 +357,7 @@
     return function () { a = (a + 0x6d2b79f5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
   function pick(r, arr) { return arr[Math.floor(r() * arr.length) % arr.length]; }
-  function fmtEur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function fmtEur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function now() { return Date.now(); }
   /** 'hall' | 'beach' a partir de lo que pasen (true / 'Y' / 'beach' = playa); null si no dice (= las dos, en fix y ok). */
   function venueOf(v) {

@@ -1670,7 +1670,7 @@
     }).join('');
   }
   function stars(n) { var s = ''; for (var i = 0; i < 5; i++) s += i < n ? '★' : '<span class="off">★</span>'; return '<span class="stars" aria-label="Prestigio ' + n + ' de 5">' + s + '</span>'; }
-  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function money(v) { return eur(v) + ' al mes'; }
   function fact(label, val) { return '<div><small>' + esc(label) + '</small><b>' + val + '</b></div>'; }
   /** Pista (titularidad): «De inicio | 40 de 52 puntos en pista | Te cambiaron en el 2º set» / «Entraste en el 2º set | …» / «No llegaste a entrar». */
@@ -2014,7 +2014,7 @@
       fact('Compañero', mp ? esc(mp.name) + mateLine(mp, cov, false) : 'Media ~' + o.mate) +
       (o.objective && !oh ? fact('Objetivo', esc(o.objective)) : '') +
       fact('Rol prometido', esc(o.role) + (o.firm ? ' <span class="muted">(firme)</span>' : '') + ' <span class="muted">(entrenador: ' + Math.max(0, Math.min(100, (C().ROLE_COACH || [45, 55, 65])[rl] + (CD() && !isHall(c) ? CD()[dkey(c)].coach0 | 0 : 0) - (early ? C().EARLY_COACH : 0) - (o.negNo ? C().NEG_COACH : 0))) + ' de confianza)</span>') +
-      (o.salary && !(oh && !(c.contract && c.contract.salary && c.phase !== 'pick')) ? fact('Sueldo (ficticio)', money(o.salary) + (c.contract && c.contract.salary && c.phase !== 'pick' ? ' <span class="muted">(ahora ' + eur(c.contract.salary) + ')</span>' : '')) : '') + '</div>';
+      (o.salary && !(oh && !(c.contract && c.contract.salary && c.phase !== 'pick')) ? fact('Sueldo', money(o.salary) + (c.contract && c.contract.salary && c.phase !== 'pick' ? ' <span class="muted">(ahora ' + eur(c.contract.salary) + ')</span>' : '')) : '') + '</div>';
     // lo que significa el rol prometido (ya no es solo texto: rotación = alguna jornada al banquillo; titular incumplido = te vas sin pegas)
     if (!o.trial && C().ROLE_HINT) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
@@ -2297,7 +2297,7 @@
     var ct = c.contract || {};
     var rl = C().roleIdx ? C().roleIdx(c) : 1, brk = c.broken === c.season, lo = ct.loan === 1;   // (lo: cedido —career-loan.js—; vuelves a tu club al acabar)
     var h = '<div class="card"><h3>Contrato</h3><div class="fact">' + fact('Rol', esc(ct.role || '—')) + fact((ct.left | 0) === 1 ? 'Queda' : 'Quedan', plural(ct.left | 0, 'temporada', 'temporadas') + ((ct.left | 0) === 1 ? ' (esta)' : ', con esta')) +
-      fact('Sueldo (ficticio)', ct.salary ? money(ct.salary) : '—') + fact('Ahorros', eur(c.money || 0)) + (lo ? fact('Cesión', 'Hasta final de temporada') : fact('Firmado', 'T' + (ct.since || 1) + ' por ' + plural(ct.years | 0, 'temporada', 'temporadas'))) + '</div>' +
+      fact('Sueldo', ct.salary ? money(ct.salary) : '—') + fact('Ahorros', '<i class="sp-salpi" aria-hidden="true"></i>' + eur(c.money || 0)) + (lo ? fact('Cesión', 'Hasta final de temporada') : fact('Firmado', 'T' + (ct.since || 1) + ' por ' + plural(ct.years | 0, 'temporada', 'temporadas'))) + '</div>' +
       (C().ROLE_HINT ? '<p><b>' + esc(ct.role || '') + ':</b> ' + esc(C().ROLE_HINT[rl]) + (isHall(c)
         // pista (titularidad): de inicio, desde el banquillo y sin jugar
         ? ((c.stats.starts | 0) + (c.stats.subIn | 0) + (c.stats.bench | 0) ? ' Esta temporada: ' + (c.stats.starts | 0) + ' de inicio, ' + (c.stats.subIn | 0) + ' desde el banquillo, ' + (c.stats.bench | 0) + ' sin jugar.' : '')
@@ -2652,7 +2652,7 @@
     h += '<div class="fact">' + (oh ? '' : fact('País', esc(f.country)) + fact('Liga', esc(f.league) + ' <span class="muted">(nivel ' + f.strength + ')</span>') + fact('Media del club', o.ovr)) +
       fact('Puesto', esc(posName(c.player.roleKey))) + (o.depth ? fact('Tu sitio', depthTxt6(o.depth)) : '') + fact('Estilo', esc(f.style) + styleTrain(f.style)) + (o.objective && !oh ? fact('Objetivo', esc(o.objective)) : '') +
       fact('Rol prometido', esc(o.role) + (o.firm ? ' <span class="muted">(firme)</span>' : '') + ' <span class="muted">(entrenador: ' + (C().ROLE_COACH[rl] - (early ? C().EARLY_COACH : 0) - (o.negNo ? C().NEG_COACH : 0)) + ' de confianza)</span>') +
-      (oh && !(c.contract && c.contract.salary && c.phase !== 'pick') ? '' : fact('Sueldo (ficticio)', money(o.salary) + (c.contract && c.contract.salary && c.phase !== 'pick' ? ' <span class="muted">(ahora ' + eur(c.contract.salary) + ')</span>' : ''))) + '</div>';
+      (oh && !(c.contract && c.contract.salary && c.phase !== 'pick') ? '' : fact('Sueldo', money(o.salary) + (c.contract && c.contract.salary && c.phase !== 'pick' ? ' <span class="muted">(ahora ' + eur(c.contract.salary) + ')</span>' : ''))) + '</div>';
     if (!o.trial) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
@@ -2816,9 +2816,9 @@
         offs.map(function (o, i) {
           var k = C().club(c, o.club), f = C().clubInfo(c, k);
           return '<tr><td class="club">' + crest(k, 22, c) + esc(k.name) + '<br><span class="muted">' + stars(f.stars) + '</span></td><td class="hide-s nw">' + esc(isHall(c) ? C().league(o.lid).short : C().league(o.lvl).short) + (o.trial ? '&nbsp;(prueba)' : '') + '</td><td>' + o.ovr + '</td><td>' + (isHall(c) ? esc(C().league(o.lid).country) : o.mate + (o.ovr != null && o.mate != null ? ' <span class="muted">(' + sgn(o.mate - o.ovr) + ')</span>' : '')) +
-            '</td><td class="hide-s">' + esc(o.role) + '</td><td class="hide-s l">' + esc(objShort(o.objective)) + '</td><td class="nw">' + Math.round(o.salary) + '&nbsp;€/mes</td><td class="hide-s">' + (o.trial ? 1 : (yrs[o.club] || o.years || 1)) +
+            '</td><td class="hide-s">' + esc(o.role) + '</td><td class="hide-s l">' + esc(objShort(o.objective)) + '</td><td class="nw">' + Math.round(o.salary) + '&nbsp;salpis/mes</td><td class="hide-s">' + (o.trial ? 1 : (yrs[o.club] || o.years || 1)) +
             '</td><td><button data-sub="' + i + '" aria-label="Ver ' + esc(k.name) + '">Ver</button></td></tr>';
-        }).join('') + '</tbody></table><p class="muted">Sueldo ficticio, en euros al mes. Los años del contrato los eliges al firmar.</p></div>';
+        }).join('') + '</tbody></table><p class="muted">Sueldo en salpis al mes. Los años del contrato los eliges al firmar.</p></div>';
     } else if (offs.length) h += offerCard(c, offs[+sub.pick], +sub.pick, true);
     // resultado de la prueba: el que acaba de pasar (arriba del todo, con los objetivos) o, si no, el último guardado en corto
     var trc = takeTrialRes(c), prs = c.pick && c.pick.res;

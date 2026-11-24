@@ -84,7 +84,7 @@
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function int(v, a, b) { v = +v; return v >= 0 && isFinite(v) ? clamp(Math.floor(v), a, b) : a; }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
-  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
   function obj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
   function hall(c) { return !!(c && c.mode === 'hall'); }

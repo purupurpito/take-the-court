@@ -40,7 +40,7 @@
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function round1(v) { return Math.round(v * 10) / 10; }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
-  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function num(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   function rngOf() { var a = Array.prototype.slice.call(arguments), C = VB.Career.beach || VB.Career; return C._rng(C._hash.apply(null, a)); }
   function pick(r, a) { return a[Math.floor(r() * a.length) % a.length]; }
@@ -273,7 +273,7 @@
   var SPONSORS = ['Chanclas Voladoras', 'Cremas Quemadito', 'Horchatería El Bloqueo', 'Seguros Arena Mojada', 'Toallas Sin Arena', 'Marisquería El Pulpo Feliz',
     'Gafas Mediodía', 'Bocatas Remate', 'Helados Punto de Set', 'Sombrillas Tie-Break', 'Zumos La Dejada', 'Autoescuela Saque Flotante', 'Panadería La Colocadora',
     'Colchones El Banquillo', 'Peluquería Tie-Break', 'Fontanería Toque de Red', 'Croquetas Doble Contacto', 'Paellas Cambio de Campo', 'Ferretería El Muro', 'Gimnasio Salto Vertical'];
-  var SP_PAY = [0, 120, 400, 1200, 3500, 9000, 20000];   // € por jornada según tu escalón de fama
+  var SP_PAY = [0, 120, 400, 1200, 3500, 9000, 20000];   // salpis por jornada según tu escalón de fama
   var SP_GOALS = [
     { stat: 'aces', per: 1.6, txt: '{n} aces en la temporada' },
     { stat: 'kills', per: 9, txt: '{n} remates punto en la temporada' },
@@ -759,7 +759,7 @@
     else got.forEach(one);
     return got.map(function (g) { return g.id; });
   }
-  /** Precio en la tienda del objeto x (su desbloqueo {shop: €}); 0 si no se vende. */
+  /** Precio en la tienda del objeto x (su desbloqueo {shop: salpis}); 0 si no se vende. */
   function lookPrice(x) { var u = unlocksOf(x); for (var i = 0; i < u.length; i++) if (u[i] && +u[i].shop > 0) return Math.round(+u[i].shop); return 0; }
   /** Fama › Tienda › Vestuario: todo lo que se vende (sin rotación), por precio. [{id, name, slot, venue, rarity, price, owned}]. */
   function lookShop(c) {

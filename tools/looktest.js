@@ -348,16 +348,16 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
 // --- precios y textos
 {
   const shopIt = C.filter(x => L.price(x.id) > 0);
-  check(shopIt.filter(x => L.price(x.id) < 1500).length >= 4, 'al menos 4 objetos de tienda por debajo de 1.500 € (' + shopIt.filter(x => L.price(x.id) < 1500).map(x => x.id).join(', ') + ')');
+  check(shopIt.filter(x => L.price(x.id) < 1500).length >= 4, 'al menos 4 objetos de tienda por debajo de 1.500 salpis (' + shopIt.filter(x => L.price(x.id) < 1500).map(x => x.id).join(', ') + ')');
   const lux = C.filter(x => x.lux);
-  check(lux.length === 3 && lux.every(x => L.price(x.id) >= 40000 && L.price(x.id) <= 60000 && x.rarity === 3), '3 objetos de lujo entre 40.000 y 60.000 € (' + lux.map(x => x.id + ' ' + L.price(x.id)).join(', ') + ')');
+  check(lux.length === 3 && lux.every(x => L.price(x.id) >= 40000 && L.price(x.id) <= 60000 && x.rarity === 3), '3 objetos de lujo entre 40.000 y 60.000 salpis (' + lux.map(x => x.id + ' ' + L.price(x.id)).join(', ') + ')');
   const band = [[500, 1200], [3000, 8000], [15000, 20000], [40000, 60000]];
   check(shopIt.every(x => { const p = L.price(x.id), b = band[x.lux ? 3 : x.rarity]; return p >= b[0] && p <= b[1]; }), 'precios por rareza (común 500-1.200, rara 3.000-8.000, épica 15.000-20.000, lujo 40.000-60.000)');
-  check(L.lockText('manguitoCuadros') === 'Tienda de la Carrera: 6.000 €', 'lockText: «Tienda de la Carrera: 6.000 €»');
+  check(L.lockText('manguitoCuadros') === 'Tienda de la Carrera: 6.000 salpis', 'lockText: «Tienda de la Carrera: 6.000 salpis»');
   // (fame = índice de TIERS de career-life.js, contra tierIdx(fameMax): 4 Estrella, 5 Ídolo, 6 Leyenda viva)
-  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 € o Reto: Rodillo (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
+  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 salpis o Reto: Rodillo (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
   check(L.lockText('dedos') === 'Logro: b50 (50 bloqueos punto) o Entrenamiento: medalla en Bloqueo', 'lockText sin la Carrera cargada enseña el id: «' + L.lockText('dedos') + '»');
-  check(L.lockText('manguitoLlamas').indexOf('Entrenamiento: oro en Saque') > 0 && L.lockText('cresta') === 'Tienda de la Carrera: 3.000 € o Entrenamiento: 3 medallas', 'lockText: oro en Saque; 3 medallas');
+  check(L.lockText('manguitoLlamas').indexOf('Entrenamiento: oro en Saque') > 0 && L.lockText('cresta') === 'Tienda de la Carrera: 3.000 salpis o Entrenamiento: 3 medallas', 'lockText: oro en Saque; 3 medallas');
   check(L.lockText('kinesio').endsWith('Récord: 1 partido') && L.lockText('rayasEq').indexOf('Récord: 25 victorias') > 0 && L.lockText('desparejados').endsWith('Récord: 5 puntos seguidos en un partido'), 'lockText: récords');
   check(L.lockText('doradas').indexOf('Premio: MVP') >= 0 && L.lockText('tupe') === '' && L.lockText('deporte').indexOf('Fama: Conocido en el circuito') === 0 && L.lockText('deporte', true).indexOf('Fama: Conocido en la liga') === 0, 'lockText: premio, inicio vacío, fama por modo');
   const names = { m50: ['Veterano de la arena', 'Veterano del parqué'], b50: ['Muralla'], top: ['En la élite'] };
@@ -402,7 +402,7 @@ console.log('== sprint 2-4 (T9) ==');
   check(X.lockText('munhCanon') === 'Jefe: gana a un Cañón' && X.lockText('dedosMuro') === 'Jefe: gana a un Muro' && X.lockText('manguitoMazo') === 'Jefe: gana a un Martillo' && X.lockText('rodiPulpo') === 'Jefe: gana a un Pulpo' && X.lockText('tobiPulpo') === 'Jefe: gana a un Pulpo', 'lockText jefe: «' + X.lockText('dedosMuro') + '»');
   check(X.lockText('bandana').endsWith(' o Reto: Lluvia de aces (plata)') && X.lockText('deporte').endsWith('Reto: Pase al dedo (plata)'), 'lockText reto: «' + X.lockText('bandana') + '»');
   check(X.lockText('tTurquesa').endsWith('Retos: 30 medallas') && X.lockText('tVerde').endsWith('Reto del día: 7 oros'), 'lockText retoN / dias: «' + X.lockText('tTurquesa') + '», «' + X.lockText('tVerde') + '»');
-  check(X.lockText('manguitoRayas') === 'Tienda de la Carrera: 1.200 € o Perfil: Nv 8' && X.lockText('tAzul') === 'Tienda de la Carrera: 1.200 € o Perfil: Nv 10', 'lockText lvl: «' + X.lockText('tAzul') + '»');
+  check(X.lockText('manguitoRayas') === 'Tienda de la Carrera: 1.200 salpis o Perfil: Nv 8' && X.lockText('tAzul') === 'Tienda de la Carrera: 1.200 salpis o Perfil: Nv 10', 'lockText lvl: «' + X.lockText('tAzul') + '»');
   check(X.lockText('rayasEq').endsWith('Química: Pareja de oro') && X.lockText('rayasEq', true).endsWith('Química: Equipo de oro'), 'lockText chem por modo: «' + X.lockText('rayasEq', true) + '»');
   const S2 = sandbox({ Retos: { BY: { r_aces: { name: 'Aces a mansalva' } } }, CareerLife: { CHEM_LV: [[0, 'a'], [30, 'b'], [60, 'c'], [90, 'Dúo de oro']], CHEM_LV6: ['a', 'b', 'c', 'Bloque de oro'] } });
   check(S2.L.lockText('bandana').endsWith('Reto: Aces a mansalva (plata)') && S2.L.lockText('rayasEq').endsWith('Química: Dúo de oro') && S2.L.lockText('rayasEq', true).endsWith('Química: Bloque de oro'), 'lockText lee los nombres de VB.Retos.BY y VB.CareerLife.CHEM_LV/CHEM_LV6');

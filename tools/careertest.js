@@ -283,6 +283,16 @@ const c2 = C.get();
 ok(c2 && c2.seed === c.seed && c2.player.name === c.player.name && c2.clubs.length === 40, 'carga igual');
 ok(JSON.stringify(c2.sched) === JSON.stringify(c.sched), 'calendario igual tras cargar');
 c = c2;
+{ // la moneda (24-nov-2026): los euros ficticios pasan a salpis 1:1; los mensajes guardados en euros se reescriben al cargar
+  const o = JSON.parse(mem['make-the-cut.career']), m0 = o.money;
+  o.inbox.push({ id: 9990, k: 'offer', t: 'Negociación: aceptada', x: 'Firmarías como titular (1500 € al mes). Cobras 2.400&nbsp;€.', s: 1, w: 1, ph: 'league', r: 1 });
+  mem['make-the-cut.career'] = JSON.stringify(o); C._reset();
+  const cm = C.get(), mm = cm.inbox.filter(m => m.id === 9990)[0];
+  ok(mm && mm.x === 'Firmarías como titular (1500 salpis al mes). Cobras 2.400 salpis.' && cm.money === m0, 'moneda: el mensaje viejo en euros pasa a salpis y los ahorros no cambian (' + (mm && mm.x) + ')');
+  cm.inbox = cm.inbox.filter(m => m.id !== 9990); C.save(cm);
+  ok(!JSON.stringify(cm.inbox).includes('€'), 'moneda: ningún € en la bandeja');
+  c = cm;
+}
 
 // ------------------------------------------------------------------ partido jugado (eventos falsos)
 section('Partido jugado: eventos → estadísticas → nota');
@@ -735,7 +745,7 @@ section('Rol prometido y sueldo: banquillo, titularidad, promesa incumplida, aho
     } else { C.simulateNext(c); prevB = false; }
   }
   ok(benches >= 1 && benches <= 7 && !two, 'rotación con confianza 40: banquillo en ' + benches + ' de 12 jornadas, nunca dos seguidas');
-  ok(c.money > m0, 'el sueldo se cobra cada jornada (ahorros ' + c.money + ' €)');
+  ok(c.money > m0, 'el sueldo se cobra cada jornada (ahorros ' + c.money + ' salpis)');
   ok(c.stats.bench === benches && c.career.bench === benches, 'banquillos contados en la temporada y en la carrera');
   // de la rotación a titular con PROMOTE_AT
   c.contract.role = 'Rotación'; const s0 = c.contract.salary; c.coach = C.PROMOTE_AT + 5; let g3 = 0;
@@ -752,7 +762,7 @@ section('Rol prometido y sueldo: banquillo, titularidad, promesa incumplida, aho
   // fisio: cuesta, baja la fatiga, una vez por jornada
   if (c.phase === 'league') {
     c.money = 0; c.fatigue = 60; ok(C.physio() === 'money', 'fisio sin dinero: no');
-    c.money = 5000; const pc = C.physioCost(c); ok(C.physio() === 'ok' && c.fatigue === 60 - C.PHYSIO_FAT && c.money === 5000 - pc, 'fisio: −' + C.PHYSIO_FAT + ' de fatiga por ' + pc + ' €');
+    c.money = 5000; const pc = C.physioCost(c); ok(C.physio() === 'ok' && c.fatigue === 60 - C.PHYSIO_FAT && c.money === 5000 - pc, 'fisio: −' + C.PHYSIO_FAT + ' de fatiga por ' + pc + ' salpis');
     ok(C.physio() === 'done', 'fisio: una vez por jornada');
   }
   // compañero: techo en el partido (desvío + racha ≤ MATE_CAP sobre el club)
@@ -1335,7 +1345,7 @@ else {
     ok(C.load().player.st.recv === before.attrs[0][0].recv || true, 'el atleta no cambia');
     ok(Lf.toggleSvc('nutri') === 'on', 'servicio contratado');
     c = C.load(); c.fatigue = 50; C.save(c); const mo = C.load().money; C.simulateNext(); c = C.load();
-    ok(c.money < mo + 100000 && c.life.spent > 0, 'el servicio se cobra por jornada (gastado ' + c.life.spent + ' €)');
+    ok(c.money < mo + 100000 && c.life.spent > 0, 'el servicio se cobra por jornada (gastado ' + c.life.spent + ' salpis)');
     ok(Lf.toggleSvc('nutri') === 'off', 'servicio cancelado'); }
   // decisiones: fuerza una y contéstala
   { c = C.load(); c.life.ev = { key: 'party', id: 50 }; const ch0 = c.mate.chem | 0; C.save(c);
@@ -2012,7 +2022,7 @@ else {
     const sNo = C.beach.offerScore(Object.assign({}, c, { life: undefined })), sYes = C.beach.offerScore(c), sct = c.life.scout === c.season ? 2 : 0;
     ok(Lf.offerBonus(c) > 0 && Math.abs(sYes - sNo - Lf.offerBonus(c) - sct) < 1e-9, 'la fama (y el ojeador) suman interés en las ofertas de pista (offerScore, que usa genOffers6): +' + Lf.offerBonus(c));
     ok(Lf.signSponsor(0) && C.get().life.sponsor && Lf.SPONSORS6.indexOf(C.get().life.sponsor.name) >= 0, 'patrocinio firmado: ' + C.get().life.sponsor.name);
-    const m1 = C.get().money, sp = C.get().life.sponsor.pay; C.simulateNext(); ok(C.get().money >= m1 + sp - 1 || C.get().phase === 'off', 'el patrocinio paga cada jornada (' + sp + ' €)'); }
+    const m1 = C.get().money, sp = C.get().life.sponsor.pay; C.simulateNext(); ok(C.get().money >= m1 + sp - 1 || C.get().phase === 'off', 'el patrocinio paga cada jornada (' + sp + ' salpis)'); }
   // decisiones: las de pabellón (solo en la pista) y la química del equipo
   { c = C.get(); c.life.ev = { key: 'speech', id: 900 }; const ch0 = c.chem | 0; C.save(c);
     const pe = Lf.pendingEvent(C.get()); ok(pe && pe.title === 'Charla en el vestuario' && pe.opts.length === 3, 'decisión de pabellón: «' + (pe && pe.title) + '»');
@@ -2219,7 +2229,7 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
     c = K.load(); c.money = 100000; const sp0 = c.life.spent, gear0 = !!c.life.ach.gear, sl0 = c.life.spentLook | 0; K.save(c);
     ok(L.buyLook(cheap.id) === 'ok' && X.owned(cheap.id), 'buyLook: «ok» y ya está en tu vestuario (' + cheap.name + ')');
     c = K.load();
-    ok(c.money === 100000 - cheap.price && c.life.spentLook === sl0 + cheap.price, 'buyLook descuenta ' + cheap.price + ' € y suma en l.spentLook (' + c.life.spentLook + ')');
+    ok(c.money === 100000 - cheap.price && c.life.spentLook === sl0 + cheap.price, 'buyLook descuenta ' + cheap.price + ' salpis y suma en l.spentLook (' + c.life.spentLook + ')');
     ok(c.life.spent === sp0 && !!c.life.ach.gear === gear0 && Object.keys(L.gearBonus(c)).length === 0, 'comprar cosméticos no toca l.spent, el logro «gear» ni el material');
     ok(L.buyLook(cheap.id) === 'owned' && K.load().money === 100000 - cheap.price, 'buyLook de algo que ya tienes: «owned» y no se cobra');
     ok(L.buyLook('noExiste') === '' && (!m1Items.length || L.buyLook(m1Items[0]) === (shop.some(x => x.id === m1Items[0]) ? 'owned' : '')), 'buyLook: «» si no existe o no se vende');

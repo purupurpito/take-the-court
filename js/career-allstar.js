@@ -59,7 +59,7 @@
   function round1(v) { return Math.round(v * 10) / 10; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
   function num(v) { return String(Math.round(+v || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-  function eur(v) { return num(v) + ' €'; }
+  function eur(v) { return num(v) + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function ordn(n) { n = n | 0; return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   function dec(v) { return v == null ? '' : String(round1(v)).replace('.', ','); }
   function copy(o) { return JSON.parse(JSON.stringify(o)); }

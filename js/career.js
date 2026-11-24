@@ -133,7 +133,7 @@
   var MATE_STYLES = { atk: ['Rematador potente', 'Saltador', 'Muro en la red'], cr: ['Colocador fino', 'Pulpo en la arena', 'Receptor seguro'], uni: ['Todoterreno', 'Jugador listo', 'Sacador'] };
   var ROLE_LV = ['Rotación', 'Titular', 'Titular indiscutible'];
   var ROLE_COACH = [45, 55, 65];   // confianza inicial del entrenador según el rol firmado
-  var SALARY = [600, 1500, 4000, 9000, 20000];   // € al mes (ficticio) por liga, × nivel del club × rol
+  var SALARY = [600, 1500, 4000, 9000, 20000];   // salpis al mes por liga, × nivel del club × rol
 
   // ------------------------------------------------------------------ nombres (inventados)
   var CITIES = [
@@ -285,6 +285,7 @@
     var fixRole = function (m) { if (m && m.st) { m.roleKey = ROLES[m.roleKey] ? m.roleKey : 'uni'; m.role = ROLES[m.roleKey].name; if (!num(m.form)) m.form = 0; } };
     fixRole(o.mate); (Array.isArray(o.squad) ? o.squad : []).forEach(fixRole); (Array.isArray(o.offers) ? o.offers : []).forEach(function (x) { if (x) fixRole(x.mateP); });
     o.inbox = o.inbox.filter(function (m) { return m && typeof m.t === 'string'; }).slice(-INBOX_MAX);
+    o.inbox.forEach(coinMsg);   // (24-nov-2026: la moneda pasa a salpis; los mensajes viejos en euros, también)
     o.msgN = num(o.msgN) ? o.msgN | 0 : o.inbox.reduce(function (s, m) { return Math.max(s, (m.id | 0) + 1); }, 0);
     if (TRAIN_KEYS.indexOf(o.train) < 0) o.train = 'bal';
     if (!o.tp || typeof o.tp !== 'object') o.tp = {};
@@ -593,6 +594,11 @@
     c.inbox.push(m);
     if (c.inbox.length > INBOX_MAX) c.inbox = c.inbox.slice(-INBOX_MAX);
     return m;
+  }
+  /** La moneda del juego es el salpi (24-nov-2026; antes, euros ficticios, 1 € = 1 salpi): reescribe las cifras en euros de un
+   *  mensaje guardado. Idempotente. */
+  function coinMsg(m) {
+    ['t', 'x'].forEach(function (k) { if (typeof m[k] === 'string' && m[k].indexOf('€') >= 0) m[k] = m[k].replace(/(\d)(\s|&nbsp;)*€/g, '$1 salpis').replace(/€/g, 'salpis'); });
   }
   function unread(c) { c = c || load(); return c && c.inbox ? c.inbox.filter(function (m) { return !m.r; }).length : 0; }
   function readMsg(id) { var c = load(); if (!c || !c.inbox) return false; var ok = false; c.inbox.forEach(function (m) { if (m.id === id && !m.r) { m.r = 1; ok = true; } }); if (ok) save(c); return ok; }
@@ -2152,7 +2158,7 @@
     if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salaryOf(o.lvl, o.q != null ? o.q : k.q, rl + 1); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.bondRole = 0; o.interest = round1(o.interest - 2); }
     else o.negNo = true;
     o.firm = true;
-    msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' € al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
+    msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' salpis al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
     save(c); return ok ? 'ok' : 'no';
   }
 
@@ -2241,7 +2247,7 @@
     if (!c.contract || roleIdx(c) !== 0 || c.coach < PROMOTE_AT) return;
     var k = myClub(c), s = Math.max(c.contract.salary | 0, salaryOf(k.lvl, k.q, 1));
     c.contract.role = ROLE_LV[1]; c.contract.salary = s;
-    msg(c, 'coach', 'Te has ganado la titularidad', 'Ya no eres de la rotación: desde hoy eres titular, y el club te sube el sueldo a ' + s + ' € al mes.');
+    msg(c, 'coach', 'Te has ganado la titularidad', 'Ya no eres de la rotación: desde hoy eres titular, y el club te sube el sueldo a ' + s + ' salpis al mes.');
   }
   function coachFloor(c) { c.coach = Math.max(c.coach, ROLE_FLOOR[roleIdx(c)] || 0); }
 
@@ -2546,6 +2552,7 @@
     if (!o.career || typeof o.career !== 'object') o.career = newSeasonStats6();
     [o.stats, o.career].forEach(function (x) { var z = newSeasonStats6(); for (var k in z) if (!num(x[k])) x[k] = 0; });
     o.inbox = o.inbox.filter(function (m) { return m && typeof m.t === 'string'; }).slice(-INBOX_MAX);
+    o.inbox.forEach(coinMsg);   // (24-nov-2026: la moneda pasa a salpis; los mensajes viejos en euros, también)
     o.msgN = num(o.msgN) ? o.msgN | 0 : o.inbox.reduce(function (s, m) { return Math.max(s, (m.id | 0) + 1); }, 0);
     if (TRAIN_KEYS.indexOf(o.train) < 0) o.train = 'bal';
     if (!o.tp || typeof o.tp !== 'object') o.tp = {};
@@ -2658,7 +2665,7 @@
     var l = lgClubs6(c, lid || k.lid).map(function (x) { return x.ovr; }), lo = Math.min.apply(null, l), hi = Math.max.apply(null, l);
     return hi > lo ? clamp((k.ovr - lo) / (hi - lo), 0, 1) : 0.5;
   }
-  /** Sueldo base del mes según la fuerza de la liga (ficticio): 400 € en una liga de 50, ~2.500 en una de 70, ~15.000 en la élite. */
+  /** Sueldo base del mes según la fuerza de la liga (en salpis): 400 en una liga de 50, ~2.500 en una de 70, ~15.000 en la élite. */
   function salBase6(s) { return 400 * Math.exp((clamp(s, 30, 100) - 50) / 11); }
   function salary6(c, k, rl, lid) {
     var L = lg6(c, lid || k.lid), v = salBase6(L ? L.strength : 50) * (0.8 + 0.4 * qOf6(c, k, lid)) * [0.8, 1, 1.25][clamp(rl | 0, 0, 2)];
@@ -3488,7 +3495,7 @@
     var q = c.sq6; if (!c.contract || roleIdx(c) !== 0 || !q || (q.run | 0) < STARTS_PROMOTE) return;
     var k = myClub(c), s = Math.max(c.contract.salary | 0, salary6(c, k, 1));
     c.contract.role = ROLE_LV[1]; c.contract.salary = s; q.run = 0;
-    msg(c, 'coach', 'Te has ganado la titularidad', 'Ya no eres de la rotación: desde hoy eres titular, y el club te sube el sueldo a ' + s + ' € al mes.');
+    msg(c, 'coach', 'Te has ganado la titularidad', 'Ya no eres de la rotación: desde hoy eres titular, y el club te sube el sueldo a ' + s + ' salpis al mes.');
   }
   /** Insignias de un partido sin contadores (simulado, o tu puesto fuera de los huecos 0-1 de badges.js): partidos y victorias. */
   function simBadges6(c, win) {
@@ -3640,7 +3647,7 @@
     var r = rng(hash(c.seed, 'neg6', c.season, c.phase, o.club, c.week)), ok = o.interest + r() * 4 > ROLE_NEED[rl + 1], k = kk;
     if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salary6(c, k, rl + 1, o.lid); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.bondRole = 0; o.interest = round1(o.interest - 2); } else o.negNo = true;
     o.firm = true; offerDepth6(c, o);   // («Tu sitio» con el rol nuevo, o con la confianza de llegada más baja)
-    msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' € al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
+    msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' salpis al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
     save6(c); return ok ? 'ok' : 'no';
   }
   function rejectAll6() {
