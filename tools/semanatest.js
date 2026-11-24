@@ -8,7 +8,8 @@
  *     deuce; 3r set siempre a 15; playa a 21; 6v6 solo en pista con rotación 0-5 y control «Uno»; pesos del formato (50/30/20), de los
  *     tipos (30/20/20/15/15), del 3r set (40 %) y de Difícil (60 %); días seguidos distintos.
  *  3) Intentos: 3 al día y el 4º begin() da null; el cambio de día da 3 nuevos y vacía el mejor; abandon() cuenta como perdido; un
- *     intento abierto de otra sesión se da por perdido; con dos pestañas, ninguna pisa lo que guardó la otra; peek() no cierra intentos.
+ *     intento abierto de otra sesión se da por perdido; con dos pestañas, ninguna pisa lo que guardó la otra; peek() no cierra intentos;
+ *     uno de otra pestaña sin señal de vida (open.t) en Semana.LIVE ms no quita la ventana al entrar.
  *  4) Racha: ganar la cumple (done, popWanted false) y sube 1 por día seguido; una 2ª victoria el mismo día no suma; un día sin cumplir
  *     la pone a 0 (la mejor se queda); sin intentos no hay ventana; finish en seco no guarda; el guardado v1 (semanal) se migra con el nombre.
  *  5) Enlace: ida y vuelta exacta; un carácter cambiado → null; nombres con '@', '<' o largos, saneados; otro día = solo lectura; el
@@ -154,6 +155,19 @@ console.log('3) Intentos, mejor y cambio de día');
     const sh2 = fakeStorage(), C = load(sh2).Semana, D = load(sh2).Semana;
     C._now(20261125); D._now(20261125); C._sid('tabC'); D._sid('tabD'); C.begin(); D.peek();
     ok('peek() no cierra el intento abierto de otra pestaña (y sin ventana mientras)', !!JSON.parse(sh2.getItem(C.KEY)).open && D.popWanted() === false);
+    // pestaña muerta: el intento de C deja de dar señales de vida (cerrada o matada por el sistema a medias) → la ventana vuelve
+    const t0 = JSON.parse(sh2.getItem(C.KEY)).open.t;
+    D._ms(t0 + 30000); ok('pestaña viva (señal hace 30 s): sin ventana', D.popWanted() === false);
+    C._ms(t0 + 60000); C._touch(); D._ms(t0 + 100000);
+    ok('la señal de vida renueva open.t y sigue sin ventana', JSON.parse(sh2.getItem(C.KEY)).open.t === t0 + 60000 && D.popWanted() === false);
+    D._ms(t0 + 60000 + D.LIVE + 1000);
+    ok('pestaña muerta (sin señal): la ventana sale aunque quede el intento colgado', D.popWanted() === true && !!JSON.parse(sh2.getItem(C.KEY)).open);
+    const so = D.begin(), fin2 = JSON.parse(sh2.getItem(C.KEY));
+    ok('pestaña muerta: begin() da el colgado por perdido y abre otro', !!so && fin2.n === 2 && fin2.tries.length === 1 && fin2.open.sid === 'tabD', sh2.getItem(C.KEY));
+    const sh3 = fakeStorage({}), E = load(sh3).Semana; E._now(20261125);
+    sh3.setItem(E.KEY, J({ v: 2, day: 20261125, me: 'abc', n: 1, open: { sid: 'viejo', i: 1 }, tries: [], best: null, streak: { cur: 0, best: 0, last: 0 } }));
+    ok('intento colgado de antes (sin open.t): no quita la ventana', E.popWanted() === true);
+    C._ms(0); D._ms(0);
   }
   ok('sin XP ni medallas: Retos no cuenta un partido con g.sit', VB.Retos.endMatch({ sit: { wk: 1 }, demo: false, teams: [[], []], size: 2 }, { win: true }) === null);
 }

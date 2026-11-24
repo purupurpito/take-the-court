@@ -37,7 +37,7 @@
  *   shareText() → «La jugada del día (24 nov): levanta el 22-24 y gana el set. Yo la gané 26-24. Llevo 3 días seguidos. ¿Y tú?»
  *   myName(), resLbl(e) → «Ganada 26-24» / «Perdida 23-25»
  *   peek() → {wk, day, sit, left, best, done, streak} solo lectura (sello de la portada; no cierra intentos abiertos en otra pestaña)
- *   _reset(), _now(k AAAAMMDD | 0), _sid (pruebas)
+ *   _reset(), _now(k AAAAMMDD | 0), _sid, _ms (reloj en ms), _touch (señal de vida) (pruebas)
  *
  * Guardado 'make-the-cut.semana' v2 (solo del aparato; nunca va a la cuenta):
  *   {v:2, day, me (3 caracteres para el nombre sin apodo), n (intentos gastados hoy), open:{sid, i}|null, best:{w,a,b,S,A}|null,
@@ -187,7 +187,7 @@
     }
     if (+o.day !== k) return out;   // día nuevo: todo a cero menos el nombre, la racha y la cadena antigua (solo lectura)
     out.n = num(o.n, 0, TRIES);
-    if (o.open && typeof o.open === 'object') out.open = { sid: String(o.open.sid || '').slice(0, 16), i: num(o.open.i, 1, TRIES) };
+    if (o.open && typeof o.open === 'object') out.open = { sid: String(o.open.sid || '').slice(0, 16), i: num(o.open.i, 1, TRIES), t: num(o.open.t, 0, 9e15) };
     out.best = resZ(o.best);
     if (Array.isArray(o.tries)) for (var j = Math.max(0, o.tries.length - TRIES); j < o.tries.length; j++) { var t = res(o.tries[j]); if (t) out.tries.push(t); }
     return out;
@@ -226,6 +226,17 @@
 
   // ---------------------------------------------------------------- intentos
   var SID = (Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36)).slice(-12);
+  // Señal de vida del intento abierto: la pestaña que lo juega renueva open.t cada BEAT ms; uno de otra pestaña sin señal en LIVE ms
+  // es de una pestaña muerta (cerrada o matada por el sistema a medias) y no quita la ventana al entrar
+  var BEAT = 20000, LIVE = 75000, nowMs = 0, beatIv = 0;
+  function ms() { return nowMs || Date.now(); }
+  function aliveOther(op) { return !!op && op.sid !== SID && op.t > 0 && ms() - op.t < LIVE; }
+  function touch() {
+    var o = load(); if (!o.open || o.open.sid !== SID) { stopBeat(); return false; }
+    o.open.t = ms(); save(o); return true;
+  }
+  function startBeat() { if (beatIv || !root.setInterval) return; try { beatIv = root.setInterval(touch, BEAT); if (beatIv && beatIv.unref) beatIv.unref(); } catch (e) { beatIv = 0; } }
+  function stopBeat() { if (beatIv) { try { root.clearInterval(beatIv); } catch (e) { } beatIv = 0; } }
   function better(x, y, sit) {
     if (!x) return false; if (!y) return true;
     if (!!x.w !== !!y.w) return !!x.w;
@@ -252,8 +263,8 @@
     var o = load(); if (closeStale(o)) save(o);
     if (o.open) abandonO(o, null);
     if (o.n >= TRIES) return null;
-    o.n++; o.open = { sid: SID, i: o.n };
-    save(o);
+    o.n++; o.open = { sid: SID, i: o.n, t: ms() };
+    save(o); startBeat();
     return sitOpts(situation(o.day), o.n);
   }
   function zonesNow() {
@@ -289,8 +300,9 @@
     var o = load();
     return { wk: o.day, day: o.day, sit: situation(o.day), left: Math.max(0, TRIES - o.n), best: o.best, done: doneOf(o), streak: streakOf(o) };
   }
-  /** ¿La ventana al entrar tiene algo que ofrecer? Solo si hoy aún no la has cumplido y te quedan intentos (y sin uno abierto en otra pestaña). */
-  function popWanted() { var o = load(); return !doneOf(o) && o.n < TRIES && !o.open; }
+  /** ¿La ventana al entrar tiene algo que ofrecer? Solo si hoy aún no la has cumplido y te quedan intentos (y sin uno abierto aquí o
+   *  en otra pestaña viva: uno sin señal de vida reciente es de una pestaña cerrada a medias y no cuenta; begin() lo cerrará). */
+  function popWanted() { var o = load(); return !doneOf(o) && o.n < TRIES && !(o.open && (o.open.sid === SID || aliveOther(o.open))); }
   function state() {
     var o = load(); if (closeStale(o)) save(o);
     var sit = situation(o.day);
@@ -384,6 +396,7 @@
     _reset: function () { try { root.localStorage.removeItem(KEY); } catch (e) { } cache = null; cacheK = 0; sitCache = {}; },
     _now: function (k) { nowK = +k || 0; cache = null; cacheK = 0; },
     _sid: function (s) { if (s) SID = String(s); return SID; },
+    _ms: function (t) { nowMs = +t || 0; }, _touch: touch, LIVE: LIVE,
     /** Escena de depuración (&debug=semana&semdemo=1): tu mejor, un intento de hoy, racha de 4 y una cadena de 7 amigos inventados, SOLO en memoria. */
     _demo: function () {
       var o = load(), sit = situation(o.day), a = sit.score[0], b = sit.score[1], T = sit.T;
