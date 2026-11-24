@@ -1116,7 +1116,12 @@
   // tokens del sistema (crece con el ancho; nada por debajo de 12 px, lectura ≥ 14). Sin .ph, nada de esto se aplica.
   var PQ = Q.replace(':root', ':root.ph'), PS = Q.replace(':root', ':root.ph.ph-s');
   var RL = PQ + ' .cr-in:has(>.cr-tabs.sp-vtabs:not([hidden]))';   // (movil-aire: la rejilla con el raíl fino de apartados)
-  var NT = ['.cr-dock>.sp-btn:not(.sp-patch)', '.st-chips .sp-btn', '.cr-tk .cr-est-b', '.cr-next .cr-go>.sp-btn:not(.sp-patch)', '.card.ph-dec>.acts>.sp-btn'];   // (manchas sin cola en el móvil)
+  // (paquete carrera-liga-vida: LV = el contenido de una vista concreta, #crBody[data-cv="…"]; PX = un id más, para ganar a las reglas
+  //  de career-story-msgs.js, que llevan 4 :not(#_))
+  var LV = function (cv) { return PQ + ' #crBody[data-cv' + (cv.slice(-1) === '-' ? '^="' : '="') + cv + '"]'; }, PX = PQ.replace(':root.ph', ':root.ph:not(#_)');
+  var NT = ['.cr-dock>.sp-btn:not(.sp-patch)', '.st-chips .sp-btn', '.cr-tk .cr-est-b', '.cr-next .cr-go>.sp-btn:not(.sp-patch)', '.card.ph-dec>.acts>.sp-btn',
+    // (paquete carrera-liga-vida: tonos de Redes, botones de fila de la Tienda / Fama, concursos de las Estrellas, «Ver tabla completa», Opciones)
+    '.st-wph .st-acts>.sp-btn', '#crBody[data-cv^="life-"] .lf-item>.sp-btn:not(.sp-patch)', '.as-event .as-row .as-acts>.sp-btn', '.ss-stph .sp-tbl-all', '.cr-opts .seg>.sp-btn'];   // (manchas sin cola en el móvil)
   var PH_CSS = [
     // ---- marco
     PQ + '{padding:var(--ph-gt) var(--ph-g) var(--ph-gb);--cr-rw:clamp(86px,11.5vw,108px)}',
@@ -1817,7 +1822,200 @@
     PQ + ' #crBody .cdv-phr .cdv-fit{display:flex;align-items:center;gap:8px}',
     PQ + ' #crBody .cdv-phr .cdv-fb{display:block;width:72px;height:6px;border-radius:3px;background:rgba(255,244,220,.2);overflow:hidden}',
     PQ + ' #crBody .cdv-phr .cdv-fb>i{display:block;height:100%;background:var(--sp-teal,#1fb5a8)}',
-    PQ + ' #crBody .cdv-now,' + PQ + ' #crBody .cdv-dif{margin:0;font-size:var(--ph-cap)}'
+    PQ + ' #crBody .cdv-now,' + PQ + ' #crBody .cdv-dif{margin:0;font-size:var(--ph-cap)}',
+    // ==== movil-aire, paquete carrera-liga-vida (24-nov-2026; notes/movil-aire.md §5.4). Solo html.ph (PQ / PX / LV); PC igual.
+    // insignias en la tira: Bandeja = lo que espera respuesta (rojo); Logros = «2/31»
+    PQ + ' #crSub .tab .tb-b{position:static;flex:none;margin:0 0 0 6px;min-width:20px;padding:2px 6px;border-radius:8px 10px 8px 9px;background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 1.5px rgba(255,244,220,.35);' +
+      'font:700 var(--ph-micro)/1.15 var(--sp-ui);letter-spacing:0;text-shadow:none;text-transform:none;font-style:normal;text-align:center}',
+    PQ + ' #crSub .tab[data-tab="box"] .tb-b{background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    // ---- Mensajes › Bandeja: sin la cabecera verde (el número va en la pestaña); filas de 56 separadas 4, avatar 38, avance en una línea
+    PX + ' .st-phone:has(>.st-clist),' + PX + ' .st-phone:has(>.st-empty){height:auto;max-height:none;overflow:visible;background:none;box-shadow:none;border-radius:0}',
+    PX + ' .st-chat:has(.st-clist){padding:2px 2px 6px}',
+    PX + ' .st-ctop{display:none}',
+    PX + ' .st-clist{display:flex;flex-direction:column;gap:4px;overflow:visible;padding:2px}',
+    PX + ' .st-conv{min-height:56px;padding:6px 12px;gap:10px;border-radius:12px 15px 12px 14px/14px 12px 15px 12px;background:#f3ecdf;box-shadow:0 0 0 2px #1d1530}',
+    PX + ' .st-conv:is(:hover,:focus-visible,.kf){background:#dff3ef}',
+    PX + ' .st-av{width:38px;height:38px}',
+    PX + ' .st-cmid b{font-size:var(--ph-row);line-height:1.15}',
+    PX + ' .st-cmid small{font-size:var(--ph-body);line-height:1.25}',
+    PX + ' .st-cend small{font-size:var(--ph-micro);opacity:.75}',
+    PX + ' .st-empty{background:#f3ecdf;border-radius:12px;color:#1d1530}',
+    // ---- Mensajes › Redes: sin sello; la frase como subtítulo de 13; los 3 tonos en una fila de 3 (64-72, sin cola, gap 10)
+    PQ + ' .st-wph>.st-wsub{margin:0 0 8px;font:600 13px/1.3 var(--sp-ui);color:rgba(255,244,220,.82)}',
+    PQ + ' .st-wph .acts.st-acts{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px!important;margin:0 0 6px}',
+    PQ + ' .st-wph .acts.st-acts>.sp-btn{flex:none;width:auto;max-width:none;min-width:0;min-height:64px!important;max-height:72px;height:auto;margin:0;padding:6px 8px;--sp-h:64px;overflow:hidden}',
+    PQ + ' .st-wph .acts.st-acts>.sp-btn .sp-l{align-items:center;text-align:center;gap:2px}',
+    PQ + ' .st-wph .acts.st-acts>.sp-btn .sp-t{font-size:var(--ph-row);line-height:1.1;white-space:nowrap}',
+    PQ + ' .st-wph .acts.st-acts>.sp-btn small{display:block;margin:0;font:700 12px/1.2 var(--sp-ui);letter-spacing:0;text-transform:none;white-space:normal}',
+    PQ + ' .st-wph .st-posts li{padding:6px 0!important}',
+    PQ + ' .st-wph .st-posts p{font-size:var(--ph-body)}',
+    // ---- Liga › Clasificación: filas de 44 (36 a 568x320, para ver 6) sin caja por fila (rayado), cabecera pegada y opaca, zonas como línea de color
+    LV('league-table') + '{scroll-padding-top:40px}',
+    LV('league-table') + '>.card{padding:10px 8px 10px}',
+    LV('league-table') + ' table{border-spacing:0;font-size:var(--ph-body)}',
+    LV('league-table') + ' td{height:44px;padding:0 6px;background:none;border-radius:0}',
+    LV('league-table') + ' tbody tr:nth-child(even) td{background:rgba(255,244,220,.07)}',
+    LV('league-table') + ' tbody tr.me td{background:var(--sp-kit);box-shadow:inset 0 2px 0 var(--sp-ink),inset 0 -2px 0 var(--sp-ink)}',
+    LV('league-table') + ' tr.up td:first-child{box-shadow:inset 4px 0 0 #8fe36e}',
+    LV('league-table') + ' tr.cup td:first-child{box-shadow:inset 4px 0 0 var(--sp-gold)}',
+    LV('league-table') + ' tr.down td:first-child{box-shadow:inset 4px 0 0 var(--sp-danger)}',
+    LV('league-table') + ' tbody tr.me td:first-child{box-shadow:inset 0 2px 0 var(--sp-ink),inset 0 -2px 0 var(--sp-ink),inset 4px 0 0 var(--sp-ink)}',
+    LV('league-table') + ' td.pts{font-size:var(--ph-row)}',
+    LV('league-table') + ' button.cw-tl-b{line-height:44px;min-height:44px}',
+    LV('league-table') + ' table thead th{top:-10px;height:30px;box-shadow:0 -10px 0 var(--sp-ink)}',
+    PS + ' #crBody[data-cv="league-table"] td{height:36px}',
+    PS + ' #crBody[data-cv="league-table"] button.cw-tl-b{line-height:36px;min-height:36px}',
+    // ---- Liga › Calendario: filas de 40 separadas 4 y centradas; sin «Pendiente»; desvanecido arriba al desplazar
+    LV('league-cal') + '>.card{padding-top:8px}',
+    LV('league-cal') + ' .cal{gap:4px}',
+    LV('league-cal') + ' .cal-r{min-height:40px;padding:0 10px;align-items:center}',
+    LV('league-cal') + ' .cal-r .st-cal-tag{font-size:var(--ph-micro);padding:2px 7px;line-height:1.2}',
+    LV('league-cal') + '.sp-less{-webkit-mask-image:linear-gradient(180deg,transparent,#000 16px);mask-image:linear-gradient(180deg,transparent,#000 16px)}',
+    LV('league-cal') + '.sp-less.sp-more{-webkit-mask-image:linear-gradient(180deg,transparent,#000 16px,#000 calc(100% - var(--ph-fade)),transparent);mask-image:linear-gradient(180deg,transparent,#000 16px,#000 calc(100% - var(--ph-fade)),transparent)}',
+    // ---- Liga › Copas (antes de jugarse): una fila de 48 por copa
+    PQ + ' .card.cr-cupsph{padding:8px 12px 6px}',
+    PQ + ' .cr-cupt{margin:0 0 2px;font:600 var(--ph-cap)/1.3 var(--sp-ui);opacity:.85}',
+    PQ + ' .cr-cup{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:48px;border-top:1px solid rgba(255,244,220,.1)}',
+    PQ + ' .cr-cupi{display:grid;place-items:center;color:var(--sp-gold)}' + PQ + ' .cr-cupi svg{width:24px;height:24px}',
+    PQ + ' .cr-cupm{min-width:0}',
+    PQ + ' .cr-cupm b{display:block;font:400 var(--ph-row)/1.15 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-cupm small{display:block;font:600 var(--ph-cap)/1.2 var(--sp-ui);opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-cups{font:700 var(--ph-cap)/1.1 var(--sp-ui);white-space:nowrap;opacity:.8}' + PQ + ' .cr-cups.ok{color:#8fe36e;opacity:1}',
+    // ---- Liga › Noticias: «T1 J4» en columna de 32, titular de 2 líneas, gap 10; las leídas en tinta, las nuevas en crema
+    LV('league-news') + ' .cw-list{gap:10px}',
+    LV('league-news') + ' :is(button,div).cw-nb{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;gap:0 10px;min-height:48px;padding:6px 12px 6px 8px;transform:none;text-align:left}',
+    LV('league-news') + ' :is(button,div).cw-nb.me,' + LV('league-news') + ' :is(button,div).cw-nb.rv{padding-left:14px}',
+    LV('league-news') + ' .cw-nb small{display:block;white-space:normal;font:800 var(--ph-micro)/1.15 var(--sp-ui);letter-spacing:0;text-align:center}',
+    LV('league-news') + ' .cw-nb small .cw-mk{display:none}',
+    LV('league-news') + ' .cw-nb.fresh small::after{display:block;margin:3px auto 0}',
+    LV('league-news') + ' .cw-nb b{font:600 var(--ph-body)/1.3 var(--sp-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+    LV('league-news') + ' :is(button,div).cw-nb:not(.fresh){background:var(--sp-ink2);color:var(--sp-cream)}',
+    LV('league-news') + ' .cw-nb:not(.fresh) b{color:var(--sp-cream)}' + LV('league-news') + ' .cw-nb:not(.fresh) small{color:rgba(255,244,220,.7)}',
+    // ---- Liga › Clubes: el número de clubes dentro del selector; filas de 48 en una línea (escudo 28 · nombre corto · «1r · 62» · ›)
+    PQ + ' .cr-lgp-v .cr-lgp-n{font:600 var(--ph-cap)/1 var(--sp-ui);opacity:.75;white-space:nowrap}',
+    LV('league-clubs') + ' .cw-list{gap:8px}',
+    LV('league-clubs') + ' .cr-lgp{margin-bottom:16px}',
+    PQ + ' button.cw-row.cw-rph{display:grid;grid-template-columns:28px minmax(0,1fr) auto 14px;align-items:center;gap:10px;min-height:48px;padding:0 12px}',
+    PQ + ' .cw-rph>:is(svg,.cw-crest,.cr-kit){width:28px!important;height:28px!important}',
+    PQ + ' .cw-rph .cw-rnm{min-width:0;font:400 var(--ph-row)/1.15 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}',
+    PQ + ' .cw-rph .cw-rs{font:700 var(--ph-label)/1 var(--sp-ui);font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.9}',
+    // ---- Vitrina (Palmarés, selección, Estrellas): el contador como ficha y «Temporadas ↓»; 5 huecos por fila (6-7 a .ph-w), iconos de 48
+    // (40 a .ph-s), nombre corto de 2 líneas; las categorías sin nada, en una línea con huecos pequeños; rótulos de categoría pegados arriba
+    PQ + ' .cr-anc{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}',
+    PQ + ' .cr-cnt{padding:5px 12px;border-radius:9px 12px 10px 13px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:600 var(--ph-label)/1.2 var(--sp-ui);white-space:nowrap}',
+    PQ + ' .cr-cnt b{font:400 var(--ph-row)/1 var(--sp-pop)}',
+    PQ + ' button.cr-anb{flex:none;min-height:44px;height:44px;margin:0 0 0 auto;padding:0 14px;border:0;border-radius:12px 16px 13px 17px/16px 12px 17px 13px;background:var(--sp-ink2);color:var(--sp-cream);' +
+      'box-shadow:0 0 0 2px rgba(255,244,220,.28);font:700 var(--ph-label)/1 var(--sp-ui);letter-spacing:0;text-transform:none;text-shadow:none;transform:none;white-space:nowrap}',
+    PQ + ' button.cr-anb:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold)}',
+    PQ + ' .cr-ansec>.card:first-child>h3:first-child{position:sticky;top:-10px;z-index:3}',
+    PQ + ' .card.tc.tc-ph{padding:6px 10px 10px}',
+    PQ + ' .tc-ph .tc-pg{margin:0 0 8px}',
+    PQ + ' .tc-ph .tc-pg>h4.tc-g{position:sticky;top:-10px;z-index:2;display:flex;align-items:center;gap:8px;height:24px;margin:0 -10px 4px;padding:0 10px;background:var(--sp-ink);font:400 var(--ph-micro)/24px var(--sp-pop);letter-spacing:.04em;color:var(--sp-gold)}',
+    PQ + ' .tc-ph .tc-g small{font:700 var(--ph-micro)/1 var(--sp-ui);letter-spacing:0;color:rgba(255,244,220,.72)}',
+    PQ + ' .tc-ph .tc-pr{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 6px}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .tc-ph .tc-pr{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}',
+    PQ + ' .tc-ph button.tc-slot{min-height:0;padding:2px 0 4px;gap:4px;transform:none}',
+    PQ + ' .tc-ph .tc-st{width:48px;height:48px}',
+    PS + ' .tc-ph .tc-st{width:40px;height:40px}',
+    PQ + ' .tc-ph .tc-n{-webkit-line-clamp:2;font:700 var(--ph-cap)/1.15 var(--sp-ui);text-align:center}',
+    PQ + ' .tc-ph .tc-slot.empty .tc-st{border:0;background:rgba(255,244,220,.1);opacity:.4}',
+    PQ + ' .tc-ph .tc-slot.empty .tc-n{opacity:.75}',
+    PQ + ' .tc-ph .tc-pg.empty{display:grid;grid-template-columns:minmax(92px,28%) minmax(0,1fr);align-items:center;gap:8px;margin:0 0 8px}',
+    PQ + ' .tc-ph .tc-pg.empty>h4.tc-g{position:static;height:auto;margin:0;padding:0;background:none;line-height:1.2;flex-wrap:wrap;gap:2px 6px}',
+    PQ + ' .tc-ph .tc-pg.empty .tc-pr{display:flex;flex-wrap:wrap;gap:8px}',
+    PQ + ' .tc-ph .tc-pg.empty button.tc-slot{width:44px;min-height:44px;padding:0;justify-content:center;transform:none}',
+    PQ + ' .tc-ph .tc-pg.empty .tc-st{width:36px;height:36px}',
+    PQ + ' .tc-ph .tc-pg.empty .tc-slot.empty .tc-st{opacity:.55}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .card.tc.tc-ph{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}',   // (a 844+: las vacías, de dos en dos)
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .tc-ph .tc-pg:not(.empty){grid-column:1/-1}',
+    PQ + ' .tc-ph .tc-pg.empty .tc-n{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+    // selección (Vitrina): una línea con «Ver selección» de 44 a la derecha
+    LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"]){display:flex;align-items:center;gap:12px;flex-wrap:nowrap}',
+    LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"])>p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--ph-cap)}',
+    LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"])>.acts{flex:none;margin:0}',
+    LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"])>.acts>.sp-btn{--sp-h:44px;min-height:44px;flex:0 0 auto}',
+    // ---- Vida › Cifras: primero la tira de 4 cifras de la carrera (64); «Ver tabla completa» de 44 junto al encabezado y PG tras «?»
+    PQ + ' .ss-car{margin:0 0 16px}',
+    PQ + ' #crBody .ss-car .ss-heros{margin:0;min-height:64px}',
+    PQ + ' #crBody .ss-car .ss-heros .sp-hn{font-size:var(--ph-num)}',
+    PQ + ' #crBody .ss-car .ss-heros .sp-hl{font-size:var(--ph-cap)}',
+    PQ + ' .card.ss-stph{position:relative}',
+    PQ + ' .ss-stph>.ss-hr{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 4px}',
+    PQ + ' .ss-stph>.ss-hr>b{flex:1 1 auto;font:400 var(--ph-row)/1.1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' .ss-stph>.ss-hr>.cr-q{position:relative;top:auto;right:auto;margin:0;transform:none}',
+    PQ + ' #crBody .ss-stph .ss-tbl>.sp-tbl-all{position:absolute;top:12px;right:66px;margin:0;--sp-h:44px;min-height:44px;height:44px}',
+    // ---- Vida › Ajustes: una tarjeta con filas de 52 (rótulo · segmentado de 44 con gap 8 · «?»), la frase del nivel en una línea
+    PQ + ' .card.cr-opts{padding:4px 12px}',
+    PQ + ' .cr-orow{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;grid-template-areas:"l s q" "h h h";align-items:center;column-gap:10px;min-height:52px;padding:6px 0;border-top:1px solid rgba(255,244,220,.12)}',
+    PQ + ' .cr-opts>.cr-orow:first-child{border-top:0}',
+    PQ + ' .cr-orow>.cr-ol{grid-area:l;font:400 var(--ph-row)/1.1 var(--sp-pop);white-space:nowrap}',
+    PQ + ' .cr-orow>.seg{grid-area:s;display:flex;gap:8px;margin:0;min-width:0}',
+    PQ + ' .cr-orow>.seg>button{flex:1 1 0;min-width:0;min-height:44px;padding:0 4px;white-space:nowrap;font-size:var(--ph-label)}',
+    PQ + ' .cr-orow>.cr-q{grid-area:q;position:relative;top:auto;right:auto;margin:0;transform:none}',
+    PQ + ' .cr-orow>.cr-oh{grid-area:h;margin:2px 0 0;font:600 var(--ph-cap)/1.3 var(--sp-ui);color:rgba(255,244,220,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-opts>.note:empty{display:none}',
+    // ---- Vida › Fama: «113 seguidores · Desconocido» + «Legado ↓» + «?» en una fila, la barra de 8 con lo que falta; ≤ 140 px
+    PQ + ' .card.lf-fph{padding:8px 12px 10px}',
+    PQ + ' .lf-fph>.lf-fr{display:flex;align-items:center;gap:10px;min-height:44px}',
+    PQ + ' .lf-fph .lf-fn{flex:none;font:400 var(--ph-num)/1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' .lf-fph .lf-ft{flex:1 1 auto;min-width:0;font:600 var(--ph-label)/1.2 var(--sp-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .lf-fph .lf-ft b{color:var(--sp-gold)}',
+    PQ + ' .lf-fph .lf-fr>.cr-q{position:relative;top:auto;right:auto;margin:0;transform:none}',
+    PQ + ' .lf-fph>.lf-fb{display:grid;grid-template-columns:minmax(60px,1fr) auto;align-items:center;gap:10px;margin:4px 0 0}',
+    PQ + ' .lf-fph>.lf-fb>.bar{height:8px;margin:0}',
+    PQ + ' .lf-fph>.lf-fb>small{font:600 var(--ph-cap)/1.2 var(--sp-ui);white-space:nowrap;opacity:.88}',
+    PQ + ' .lf-fph>.lf-fx{margin:4px 0 0;font:600 var(--ph-cap)/1.3 var(--sp-ui);opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    LV('life-') + ' .lf-item{min-height:54px;padding:5px 0;gap:10px;align-items:center}',
+    LV('life-') + ' .lf-item>div{min-width:0}',
+    LV('life-') + ' .lf-item>div>b{font-size:var(--ph-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    LV('life-') + ' .lf-item>div>small{display:block;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    LV('life-') + ' .lf-item>.sp-btn:not(.sp-patch){flex:none;min-width:0!important;min-height:44px;height:44px;--sp-h:44px;padding:0 12px}',
+    LV('life-') + ' .lf-item>.sp-btn[aria-disabled="true"]{opacity:.75}',
+    // ---- Vida › Tienda: un encabezado «Material · Ahorros 1.000 € · ?», filas de 52 con el precio en un botón de 44 y «Nv 0/3»
+    PQ + ' .lf-sph>.lf-shd{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 8px}',
+    PQ + ' .lf-sph>.lf-shd>h3{margin:0;padding:0;background:none;box-shadow:none;transform:none;font:400 var(--ph-row)/1.1 var(--sp-pop);color:var(--sp-gold);letter-spacing:0;text-transform:none}',
+    PQ + ' .lf-sph>.lf-shd>.lf-sav{flex:1 1 auto;min-width:0;font:600 var(--ph-label)/1.2 var(--sp-ui);white-space:nowrap}',
+    PQ + ' .lf-sph>.lf-shd>.lf-sav b{color:var(--sp-gold)}',
+    PQ + ' .lf-sph>.lf-shd>.cr-q{position:relative;top:auto;right:auto;margin:0;transform:none}',
+    PQ + ' .lf-sph .lf-item>div>b{display:flex;align-items:center;gap:8px}',
+    PQ + ' .lf-nv{flex:none;padding:1px 7px;border-radius:7px 9px 7px 8px;background:var(--sp-ink);color:var(--sp-gold);font:700 var(--ph-micro)/1.3 var(--sp-ui);font-style:normal;letter-spacing:0}',
+    PQ + ' .lf-short{color:#ff9aa8}',
+    // ---- Vida › Logros: tarjetas de 3 líneas en 2 columnas (3 a .ph-w), barra de 6 con «1/5 · premio»; los conseguidos plegados al final
+    PQ + ' .lf-gph .lf-ach{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .lf-gph .lf-ach{grid-template-columns:repeat(3,minmax(0,1fr))}',
+    PQ + ' .lf-gph .lf-a{min-width:0;padding:8px 10px}',
+    PQ + ' .lf-gph .lf-a>b{display:block;font-size:var(--ph-row);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .lf-gph .lf-a>small{display:block;margin:1px 0 0;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .lf-gph .lf-gp{display:grid;grid-template-columns:minmax(36px,1fr) auto;align-items:center;gap:8px;margin:5px 0 0}',
+    PQ + ' .lf-gph .lf-gp>.bar{height:6px;margin:0}',
+    PQ + ' .lf-gph .lf-gp>small{font:700 var(--ph-micro)/1.2 var(--sp-ui);white-space:nowrap;color:var(--sp-gold)}',
+    PQ + ' .lf-gph .lf-gd{margin:10px 0 0}',
+    PQ + ' .lf-gph .lf-gd>summary{display:flex;align-items:center;min-height:44px;padding:0 4px;font:700 var(--ph-label)/1.2 var(--sp-ui);cursor:pointer}',
+    PQ + ' .lf-gph .lf-gd>summary:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold);border-radius:10px}',
+    // ---- Vida › Camino: resumen en una línea + barra de 8; el camino como tira que se desliza, con tu nivel al centro
+    PQ + ' .ss-pph>.ss-sum{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;margin:0 0 6px;font:600 var(--ph-body)/1.3 var(--sp-ui)}',
+    PQ + ' .ss-pph>.ss-sum b{font:400 var(--ph-row)/1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' #crBody .ss-pph .sp-bar{height:8px;margin:0 3px 8px}',
+    PQ + ' #crBody .ss-pph .ss-track.ss-hz{display:flex;align-items:center;gap:8px;margin:0 -6px;padding:8px 10px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;' +
+      '-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent)}',
+    PQ + ' #crBody .ss-hz .ss-n{flex:none;width:60px;min-height:56px;transform:none}',
+    PQ + ' #crBody .ss-hz .ss-n:not(.pz):not(.cur){width:20px;height:20px;min-height:20px;padding:0;border-radius:50%}',
+    PQ + ' #crBody .ss-hz .ss-n:not(.pz):not(.cur) b{font:700 12px/1 var(--sp-ui)}',
+    PQ + ' #crBody .ss-hz .ss-n.nx{outline:2.5px solid var(--sp-gold);outline-offset:1px}',
+    // ---- Partido › Fin de semana de las Estrellas: cada concurso en una fila compacta (nombre + estado, marca a 13, podio en 3 fichas
+    // de 14) con sus botones de 44 a la derecha
+    PQ + ' .as-event .as-row.as-rph{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t a" "m a" "p p";align-items:center;gap:2px 10px;padding:6px 10px}',
+    PQ + ' .as-rph>.as-rt{grid-area:t;display:flex;align-items:center;gap:8px;min-width:0;margin:0}',
+    PQ + ' .as-rph>.as-rt>.as-rn{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .as-rph>.as-rt>.as-tag{flex:none;margin:0}',
+    PQ + ' .as-rph>.as-rm{grid-area:m;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .as-rph>.as-pod{grid-area:p;display:flex;gap:6px;min-width:0;margin:2px 0 0;overflow:hidden}',
+    PQ + ' .as-pod>span{flex:0 1 auto;min-width:0;padding:2px 8px;border-radius:8px 10px 8px 11px;background:rgba(21,16,42,.4);font:700 14px/1.25 var(--sp-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .as-pod>span.me{background:var(--sp-gold);color:var(--sp-ink)}',
+    PQ + ' .as-rph>.acts.as-acts{grid-area:a;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:8px;margin:0}',
+    PQ + ' .as-rph>.acts.as-acts>.sp-btn{flex:none;min-height:44px;height:44px;--sp-h:44px;max-width:none;min-width:0;padding:0 12px}',
+    PQ + ' .as-rph>.as-pod>span{flex:0 0 auto}',
+    PQ + ' .as-rph>ol.as-rank{grid-column:1/-1;grid-row:4}'
   ].join('\n');
 
   // =================================================================== construcción
@@ -2011,6 +2209,7 @@
   /** Móvil: tu fila de la tabla (o la próxima jornada del calendario), a la vista dentro del contenido al cambiar de pestaña. */
   function phReveal() {
     if (!body || !PH() || !(VB.Splat && VB.Splat.reveal)) return;
+    if (phWant) { var w0 = phWant; phWant = ''; if (phGo(w0)) return; }   // (Temporadas / Legado: su ancla)
     var me = body.querySelector('tr.me,.cal-r.next'); if (!me) return;
     var th = me.tagName === 'TR' && me.closest('table') && me.closest('table').querySelector('thead');
     if (!th) { try { VB.Splat.reveal(me, { block: 'center' }); } catch (e) { } return; }
@@ -2163,7 +2362,7 @@
         if (ph && dot) { if (subDot) dot = false; else subDot = true; }
         var xs = ph && !SUB_PH[s[0]] ? xSubOwner(tab, s[0], c) : null, lb = (ph && (SUB_PH[s[0]] || (xs && xs.labelPh))) || s[1];
         if (s[0] === subCur) { subLong = s[1]; subShort = lb; }
-        return [s[0], lb, dot];
+        return [s[0], lb, dot, '', ph ? subBadge(c, s[0]) : ''];
       }), subCur);
       if (ph) phStrip();
     } else { subEl.hidden = true; }
@@ -2178,10 +2377,10 @@
       : sub.league === 'clubs' && CW ? (function () { var lid = tblLid && C().league(tblLid) ? tblLid : k.lid; return WUI().clubsHTML(c, lid, HLP, lgSw6(c, lid)); })() : renderTable6(c))
       : sub.league === 'cal' ? renderCal(c) : sub.league === 'news' && CW ? WUI().newsHTML(c, HLP, newsSeen0)
       : sub.league === 'clubs' && CW ? WUI().clubsHTML(c, tblLvl >= 0 ? tblLvl : k.lvl, HLP, PH() ? lgPick(C().LEAGUES.map(function (x) { return { v: x.lvl, label: x.name, short: x.short }; }), tblLvl >= 0 ? tblLvl : k.lvl, 'lvl', 'Liga') : null) : renderTable(c);
-    else if (tab === 'life') h = sub.life === 'pass' && SUI() ? SUI().pass(c, HLP) : LUI() ? (ph && (sub.life === 'fame' || sub.life === 'legacy') ? LUI().render(c, 'fame', HLP) + LUI().render(c, 'legacy', HLP) : LUI().render(c, sub.life, HLP)) : '';
+    else if (tab === 'life') h = sub.life === 'pass' && SUI() ? SUI().pass(c, HLP) : LUI() ? (ph && (sub.life === 'fame' || sub.life === 'legacy') ? LUI().render(c, 'fame', HLP) + '<div id="crAnLegacy" class="cr-ansec">' + LUI().render(c, 'legacy', HLP) + '</div>' : LUI().render(c, sub.life, HLP)) : '';
     else if (sub.honors === 'stats' && SUI()) h = SUI().stats(c, HLP);
-    else if (ph && (sub.honors === 'titles' || sub.honors === 'seasons')) {   // móvil: Vitrina = palmarés y, debajo, las temporadas
-      var hs0 = sub.honors; sub.honors = 'titles'; h = renderHonors(c); sub.honors = 'seasons'; h += renderHonors(c); sub.honors = hs0;
+    else if (ph && (sub.honors === 'titles' || sub.honors === 'seasons')) {   // móvil: Vitrina = palmarés y, debajo, las temporadas (con su ancla «Temporadas ↓»)
+      var hs0 = sub.honors; sub.honors = 'titles'; h = phAncBar(c) + renderHonors(c); sub.honors = 'seasons'; h += '<div id="crAnSeasons" class="cr-ansec">' + renderHonors(c) + '</div>'; sub.honors = hs0;
     } else h = renderHonors(c);
     body.innerHTML = h;
     body.setAttribute('data-cv', tab + '-' + (subsOf(tab) ? sub[tab] : ''));   // (móvil: qué pantalla es, para el CSS)
@@ -2189,6 +2388,41 @@
       try { if (!VB.Splat.phDedupe(body, subLong) && subShort !== subLong) VB.Splat.phDedupe(body, subShort); } catch (e) { }
     }
     if (ph && VB.Splat && VB.Splat.more) { try { VB.Splat.more(body); } catch (e) { } }   // (desvanecido de abajo solo si queda más)
+    var cv1 = body.getAttribute('data-cv');
+    if (ph) phAfter(cv1, cv1 !== phCv);
+    phCv = cv1;
+  }
+  // ---- móvil (movil-aire §5.4, paquete carrera-liga-vida): insignias de la tira, anclas de las vistas fundidas y tiras centradas
+  var phCv = '', phWant = '';
+  /** Insignia de una sub-pestaña en el móvil: Bandeja = lo que espera respuesta; Logros = «2/31». '' si nada. */
+  function subBadge(c, id) {
+    try {
+      if (id === 'box' && SUI() && SUI().pending) { var n = SUI().pending(c) | 0; return n > 0 ? String(n > 99 ? '99+' : n) : ''; }
+      if (id === 'goals' && VB.CareerLife && VB.CareerLife.achList) { var a = VB.CareerLife.achList(c) || []; return a.length ? a.filter(function (x) { return x.done; }).length + '/' + a.length : ''; }
+    } catch (e) { }
+    return '';
+  }
+  /** Vitrina del móvil: el contador de títulos como ficha y el ancla «Temporadas ↓» en una línea. */
+  function phAncBar(c) {
+    var tc = null; try { tc = VB.CareerWorld && VB.CareerWorld.trophyCase ? VB.CareerWorld.trophyCase(c) : null; } catch (e) { tc = null; }
+    return '<div class="cr-anc">' + (tc ? '<span class="cr-cnt"><b>' + (tc.got | 0) + '</b> de ' + (tc.total | 0) + ' títulos</span>' : '') +
+      '<button type="button" class="cr-anb" data-act="anc" data-to="crAnSeasons">Temporadas ↓</button></div>';
+  }
+  /** Desplaza el contenido hasta el ancla id (la cabecera pegada queda arriba). */
+  function phGo(id, smooth) {
+    var t = body && body.querySelector('#' + id); if (!t) return false;
+    try { var y = body.scrollTop + t.getBoundingClientRect().top - body.getBoundingClientRect().top - 2; if (smooth && body.scrollTo) body.scrollTo({ top: y, behavior: 'smooth' }); else body.scrollTop = y; } catch (e) { return false; }
+    return true;
+  }
+  /** Tras pintar (móvil): Temporadas / Legado piden su ancla al entrar; las tiras [data-ph-center] dejan su elegida al centro. */
+  function phAfter(cv, fresh) {
+    phWant = fresh && (cv === 'honors-seasons' || cv === 'life-legacy') ? (cv === 'honors-seasons' ? 'crAnSeasons' : 'crAnLegacy') : '';
+    if (phWant) phGo(phWant);   // (y otra vez en phReveal: setTab / setSub vuelven arriba después de pintar)
+    var L = body.querySelectorAll('[data-ph-center]');
+    for (var i = 0; i < L.length; i++) {
+      var el = L[i], t = el.querySelector('.cur') || el.querySelector('.nx'); if (!t) continue;
+      try { var er = el.getBoundingClientRect(), tr = t.getBoundingClientRect(); el.scrollLeft += (tr.left + tr.width / 2) - (er.left + er.width / 2); } catch (e) { }
+    }
   }
   /** Móvil: tira de sub-pestañas: la elegida al centro y desvanecido + chevrón en el borde que esconde más (.cr-ml / .cr-mr). */
   function phStrip() {
@@ -2678,7 +2912,7 @@
       if (!m) return;
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = c.res[k.lvl][w] && c.res[k.lvl][w][i], res = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; res = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
-      else res = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lvl } : null, '<span class="muted">' + (c.phase === 'league' && w === c.week ? 'Próximo' : 'Pendiente') + '</span>');
+      else res = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lvl } : null, '<span class="muted">' + (c.phase === 'league' && w === c.week ? 'Próximo' : PH() ? '' : 'Pendiente') + '</span>');
       h += '<div class="cal-r' + (c.phase === 'league' && w === c.week ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(PH() ? shortClub(rv) : rv.name) + '</span>' + res + '</div>';
     });
     h += '</div>';
@@ -3036,6 +3270,16 @@
       }).join('') + '</tbody></table>' + (du && c.history.some(function (r) { return r.dm; }) ? '<p class="muted">* Dificultad mixta: cuenta la más fácil.</p>' : '') : '<p class="muted">Tu primera temporada está en marcha.</p>') + '</div>';
     }
     // dificultad (se cambia entre partidos; career.js setDifficulty)
+    if (PH() && CD() && C().setDifficulty) {   // móvil (movil-aire §5.4): una sola tarjeta con filas de 52 (Dificultad, Cuánta vida, Lesiones…)
+      var dk0 = dkey(c), D0 = CD()[dk0], rowsX = '', restX = '';
+      XUI().forEach(function (x) { var o = String(xTry(x, 'opts', [c, HLP], '') || ''); if (o.indexOf('<div class="cr-orow') === 0) rowsX += o; else restX += o; });
+      h += '<div class="card cr-opts"><div class="cr-orow"><span class="cr-ol">Dificultad</span><div class="seg" role="group" aria-label="Dificultad">' + DKEYS().map(function (k) {
+        return '<button data-act="cdiff-set" data-d="' + k + '" aria-pressed="' + (k === dk0) + '">' + esc(dName(k)) + '</button>';
+      }).join('') + '</div>' + qBtn('Dificultad', D0.name + ': ' + D0.hint + '. Se aplica desde el próximo partido. Si aún no has jugado esta temporada, también ajusta el objetivo del club y tu confianza; si ya has jugado, el objetivo cambia la temporada que viene. Cada título guarda la dificultad más fácil de su temporada (partidos, banquillos y objetivo).') +
+        '<p class="cr-oh"><b>' + esc(D0.name) + ':</b> ' + esc(D0.hint) + '</p></div>' + '<p class="note" role="status" aria-live="polite">' + esc(dnote) + '</p>' +
+        (SUI() ? SUI().optsHTML(c, HLP) : '') + rowsX + '</div>' + restX;
+      dnote = '';
+    } else {
     if (CD() && C().setDifficulty) {   // (las dos Carreras: la fachada lleva a la activa)
       var dk = dkey(c), DD = CD()[dk];
       h += '<div class="card"><h3>Dificultad</h3><div class="seg" role="group" aria-label="Dificultad">' + DKEYS().map(function (k) {
@@ -3047,6 +3291,7 @@
     }
     if (SUI()) h += SUI().optsHTML(c, HLP);   // career-story: «Cuánta vida» (Poca / Normal / Mucha)
     h += xSlot('opts', c);   // extensiones (tu puesto y el plan de desarrollo…)
+    }
     // abandonar (doble confirmación, sin confirm())
     h += optsModeHTML(c);
     h += '<div class="card"><h3>Opciones</h3>';
@@ -3307,7 +3552,7 @@
       if (!m) { h += '<div class="cal-r"><b>J' + (w + 1) + '</b><span class="muted">Descansas</span><span></span></div>'; return; }
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = res[w] && res[w][i], out = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; out = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
-      else out = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lid } : null, '<span class="muted">' + (nx ? 'Próximo' : w < c.week || c.phase !== 'league' ? '—' : 'Pendiente') + '</span>');
+      else out = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lid } : null, '<span class="muted">' + (nx ? 'Próximo' : w < c.week || c.phase !== 'league' ? '—' : PH() ? '' : 'Pendiente') + '</span>');
       h += '<div class="cal-r' + (nx ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(PH() ? shortClub(rv) : rv.name) + '</span>' + out + '</div>';
     });
     return h + '</div><p class="muted" style="margin-top:8px">Al acabar la liga: copas (Liga › Copas).</p></div>';
@@ -3315,6 +3560,18 @@
   /** Copas de la temporada: la nacional y las internacionales de tu región (eliminatorias a un partido). */
   function renderCups6(c) {
     var k = C().myClub(c), L = C().league(k.lid), comps = C().intlFor(c, k.cc), cn = c.cups && c.cups[k.cc];
+    if ((!c.kos || !c.kos.length) && PH()) {   // móvil (movil-aire §5.4): sin sello; una fila de 48 por copa (trofeo · nombre y quién entra · tu estado)
+      var pos = c.phase === 'league' && c.week === 0 ? 0 : C().posOf(c, k.id), two = !!C().league(k.cc + '2');
+      var cupIn = L.lvl === 1 ? pos > 0 && pos <= (two ? 6 : 8) : pos > 0 && pos <= 2;
+      var rowC = function (name, need, st, ok) {
+        return '<div class="cr-cup"><span class="cr-cupi" aria-hidden="true">' + TAB_IC.league + '</span><span class="cr-cupm"><b>' + esc(name) + '</b><small>' + esc(need) + '</small></span>' +
+          '<span class="cr-cups' + (ok ? ' ok' : '') + '">' + esc(st) + '</span></div>';
+      };
+      var stOf = function (ok) { return pos ? (ok ? '✓ Dentro · ' : 'Fuera · ') + ordn(pos) : 'Por jugar'; };
+      return '<div class="card cr-cupsph"><p class="cr-cupt">Al acabar la liga, a un partido:</p>' +
+        rowC(cn ? cn.name : 'Copa Nacional', two ? '6 primeros de la 1ª y 2 de la 2ª' : '8 primeros de la 1ª', stOf(cupIn), pos && cupIn) +
+        comps.map(function (cp) { var ok = L.lvl === 1 && pos >= cp.rank * 2 - 1 && pos <= cp.rank * 2; return rowC(cp.name, ordn(cp.rank * 2 - 1) + ' y ' + ordn(cp.rank * 2) + ' de cada 1ª (' + L.region + ')', L.lvl === 1 ? stOf(ok) : 'Solo 1ª', ok); }).join('') + '</div>';
+    }
     if (!c.kos || !c.kos.length) {
       return '<div class="card"><h3>Copas</h3><p>Se juegan al acabar la liga regular, a un partido:</p><p class="muted">' +
         sp(['<b>' + esc(cn ? cn.name : 'Copa Nacional') + '</b>: ' + (C().league(k.cc + '2') ? 'los 6 primeros de la 1ª y los 2 primeros de la 2ª' : 'los 8 primeros de la 1ª')].concat(comps.map(function (cp) {
@@ -3838,6 +4095,7 @@
       }
       case 'offno': { var ai = offArm; offArm = -1; snd('back'); render(); focusSel('[data-act="offer"][data-i="' + ai + '"]'); return; }
       case 'lgsheet': snd('click'); lgSheet(); return;
+      case 'anc': snd('click'); phGo(b.getAttribute('data-to') || '', true); return;   // (móvil: «Temporadas ↓» / «Legado ↓»)
       case 'est': snd('click'); studySheet(c); return;   // «Informe del rival» (móvil)
       case 'lvl': tblLvl = +b.getAttribute('data-l'); snd('select'); keepFocus(b, render); return;
       // ---- Carrera de pista (6v6) y cambio de Carrera

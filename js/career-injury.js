@@ -459,9 +459,10 @@
   function uiOpts(c, HLP) {
     if (!c || !c.player || c.phase === 'pick' || !isPh(HLP)) return '';
     var on = peek(c).on !== 0;
-    return '<div class="card inj inj-optc"><h3>Lesiones</h3><div class="inj-opt"><span class="inj-lbl">Lesiones</span><div class="seg" role="group" aria-label="Lesiones">' +
-      '<button data-act="inj-opt-1" aria-pressed="' + (on ? 'true' : 'false') + '">Sí</button><button data-act="inj-opt-0" aria-pressed="' + (on ? 'false' : 'true') + '">No</button></div></div>' +
-      '<p class="muted">' + (on ? 'Tras cada partido hay un riesgo pequeño de lesión.' : 'Sin lesiones nuevas.') + '</p></div>';
+    // (movil-aire §5.4: una fila de la tarjeta de Ajustes de career-ui —.cr-opts—, como Dificultad y Cuánta vida)
+    return '<div class="cr-orow inj-optc"><span class="cr-ol">Lesiones</span><div class="seg" role="group" aria-label="Lesiones">' +
+      '<button data-act="inj-opt-1" aria-pressed="' + (on ? 'true' : 'false') + '">Sí</button><button data-act="inj-opt-0" aria-pressed="' + (on ? 'false' : 'true') + '">No</button></div>' +
+      '<p class="cr-oh">' + (on ? 'Tras cada partido hay un riesgo pequeño de lesión.' : 'Sin lesiones nuevas.') + '</p></div>';
   }
   /** Línea en la tarjeta del último partido (c.last.inj / injBack). '' si no hay nada. */
   function uiLast(c) {

@@ -129,8 +129,8 @@ const SCREENS = [
     const sub = t[1] ? (t[1].split('|')[m === 'hall' ? 1 : 0] || t[1]) : '';
     return { id: 'carrera-' + (m === 'beach' ? 'playa' : 'pista') + '-' + t[0] + (sub ? '-' + sub : ''), area: 'carrera', q: M0 + '&ma=' + (m === 'beach' ? 'cb' : 'ch'),
       // league-clubs: la lista (no la última ficha abierta) · life-legacy / honors-seasons: en el móvil career-ui funde Fama+Legado y
-      // Vitrina+Temporadas (career-ui.js setSub, LIFE_PH): estas filas capturan la vista FUSIONADA desde arriba (el desplazamiento al
-      // ancla «Legado ↓» / «Temporadas ↓» lo pone el paquete carrera-liga-vida)
+      // Vitrina+Temporadas (career-ui.js setSub, LIFE_PH): al abrir Legado / Temporadas, career-ui baja solo a su ancla (phAfter / phReveal,
+      // #crAnLegacy / #crAnSeasons; movil-aire §5.4), así que estas filas capturan la vista FUSIONADA ya en su ancla
       open: `if (!M.seedCareer('${m}')) return false; ` + (sub === 'clubs' ? `if (VB.CareerWorldUI && VB.CareerWorldUI.reset) VB.CareerWorldUI.reset(); ` : '') +
         `return M.career('${t[0]}', '${t[2] || sub}');` };
   })),

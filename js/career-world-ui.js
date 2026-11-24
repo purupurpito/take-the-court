@@ -297,6 +297,8 @@
     H = h0; css(); var w = W(); if (!w || !c) return '';
     var l = w.news(c), s0 = seen0 != null ? seen0 | 0 : (c.world ? c.world.newsSeen | 0 : 0), me = C().myClub(c), ML = me && (w.lgOf ? w.lgOf(c, me) : C().league(me.lvl));
     if (!l.length) return '<div class="card"><h3>Noticias</h3><p class="muted">Aún no hay noticias. Llegan al cerrar cada jornada: resultados, rachas, líderes y tu rival.</p></div>';
+    // móvil (movil-aire §5.4): sin sello (lo dice la pestaña) y sin la nota del pie; la lista empieza arriba
+    if (H && H.ph && H.ph()) return '<div class="card cw-newsph"><div class="cw-list">' + l.map(function (x) { return newsItem(c, x, x.id > s0); }).join('') + '</div></div>';
     return '<div class="card"><h3>' + sp(['Noticias', ML ? esc(ML.name) : ''], 'd') + '</h3><div class="cw-list">' + l.map(function (x) { return newsItem(c, x, x.id > s0); }).join('') + '</div>' +
       '<p class="muted" style="margin-top:8px">Toca una noticia para ver la ficha del club. Se guardan las ' + (w.NEWS_MAX || 60) + ' últimas.</p></div>';
   }
@@ -311,6 +313,15 @@
     H = h0; css(); var w = W(); if (!w || !c) return '';
     if (sel != null) { var card = w.clubCard(c, sel); if (card) return cardHTML(c, card); sel = null; }
     var L = lgBy(c, lvl), rows = w.clubRows(c, lvl); if (!L) return '';
+    if (H.ph && H.ph() && sw != null) {   // móvil (movil-aire §5.4): «Liga · 8» dentro del selector y filas de 48 en una línea
+      var sw1 = String(sw).replace(/(<button class="cr-lgp-v"[^>]*>)([^<]*)(<\/button>)/, '$1$2 <small class="cr-lgp-n">· ' + rows.length + '</small>$3');
+      return '<div class="card">' + sw1 + '<div class="cw-list">' + rows.map(function (r) {
+        var k = C().club ? C().club(c, r.id) : null, nm = k && H.shortClub ? H.shortClub(k) : r.name;
+        var al = r.name + (r.mine ? ', tu club' : r.rival ? ', juega tu rival' : '') + (r.pj ? ', ' + ordn(r.pos) : '') + ', media ' + r.ovr + (r.vs ? ', tú ' + r.vs.g + '-' + r.vs.p : '');
+        return '<button class="cw-row cw-rph' + (r.mine ? ' me' : r.rival ? ' rv' : '') + '" data-act="cw-club" data-id="' + r.id + '" aria-label="' + esc(al) + '">' + (k && H.crest ? H.crest(k, 28, { c: c }) : kitMini(c, r)) +
+          '<b class="cw-rnm">' + esc(nm) + '</b><span class="cw-rs">' + (r.pj ? ordn(r.pos) + ' · ' : '') + r.ovr + '</span><span class="cw-go" aria-hidden="true">›</span></button>';
+      }).join('') + '</div></div>';
+    }
     return '<div class="card">' + (sw != null ? sw : lgSw(lvl)) + '<h3>' + sp([esc(L.name), plural(rows.length, 'club', 'clubes')], 'd') + '</h3><div class="cw-list">' + rows.map(function (r) {
       var vs = r.vs ? { h: 'Tú ' + r.vs.g + '-' + r.vs.p, c: 'dv' + (r.vs.g > r.vs.p ? ' g' : r.vs.g < r.vs.p ? ' r' : '') } : '';
       var mk = r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Tu rival juega aquí</span>' : '';
@@ -453,7 +464,9 @@
   }
   function seasonsTxt(won) { var a = won.map(function (x) { return x.season; }); return W() && W()._andList ? W()._andList(a.map(String)) : a.join(', '); }
   var tcSlots = [];   // (móvil: los huecos pintados, para la hoja de cw-tc)
-  function slotHTML(s, du) {
+  /** Móvil: nombre corto de un trofeo para la Vitrina (el entero, en la hoja al tocarlo). */
+  function tcShort(n) { return String(n || '').replace(/^Ascenso (a la|al|a) /i, '↑ '); }
+  function slotHTML(s, du, short) {
     var got = s.won.length > 0, n = s.won.length, ts = s.won.map(function (x) { return 'T' + x.season; }).join(', ');
     var line = got ? sp([n > 1 ? '×' + n : '', ts, du ? esc(du(s.won)) : ''], 'v') : '<small>' + esc(s.need) + '</small>';
     var ul = !got && s.unlock ? '<small class="tc-ul">Desbloquea: ' + esc(s.unlock.name) + '</small>' : '';
@@ -462,7 +475,7 @@
     var ph = typeof document !== 'undefined' && document.documentElement.classList.contains('ph'), tag = ph ? 'button' : 'div';
     if (ph) tcSlots.push({ s: s, du: du });
     return '<' + tag + ' class="tc-slot ' + (got ? 'got' : 'empty') + '"' + (ph ? ' type="button" data-act="cw-tc" data-id="' + (tcSlots.length - 1) + '"' : ' role="img"') + ' aria-label="' + esc(al) + '"><span class="tc-st">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' + (n > 1 ? '<i class="tc-x">×' + n + '</i>' : '') + '</span>' +
-      '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</' + tag + '>';
+      '<b class="tc-n">' + esc(short ? tcShort(s.name) : s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</' + tag + '>';
   }
   /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por bloque y Premios; pista: Liga, Copa,
    *  Internacional, Ascenso y Premios) y «Otros títulos» si algo no casa. Bloques .tc-grid de 3 huecos dentro de .tc-gs, que se reparten el
@@ -479,6 +492,13 @@
     // continuación caía en otra columna (1280: bajo «Continental») y se leía como de otro grupo
     groups.forEach(function (g) { parts.push({ g: g, s: by[g] }); });
     parts.forEach(function (p) { var b = blocks[blocks.length - 1]; if (p.s.length <= 3 && b && b.n + p.s.length <= 3) { b.p.push(p); b.n += p.s.length; } else blocks.push({ p: [p], n: p.s.length }); });
+    if (H.ph && H.ph()) {   // móvil (movil-aire §5.4): un bloque por categoría (rótulo pegado arriba con «1/3»); las que están vacías, en una línea
+      return '<div class="card tc tc-ph" aria-label="' + esc('Vitrina: ' + tc.got + ' de ' + tc.total) + '">' + parts.map(function (p) {
+        var got = p.s.filter(function (s) { return s.won.length > 0; }).length;
+        return '<div class="tc-pg' + (got ? '' : ' empty') + '"><h4 class="tc-g">' + (p.g ? esc(p.g) : 'Otros') + ' <small>' + got + '/' + p.s.length + '</small></h4><div class="tc-pr">' +
+          p.s.map(function (s) { return slotHTML(s, du, 1); }).join('') + '</div></div>';
+      }).join('') + '</div>';
+    }
     return '<div class="card tc"><h3>Vitrina <span class="muted">(' + tc.got + ' de ' + tc.total + ')</span></h3><div class="tc-gs">' + blocks.map(function (b) {
       var hs = b.p.map(function (p) {
         var cl = 'tc-g' + (p.s.length > 1 ? ' s' + Math.min(3, p.s.length) : '');

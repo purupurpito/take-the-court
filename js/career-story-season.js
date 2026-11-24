@@ -522,6 +522,17 @@
     css();
     var s = St(c), h = H0(HLP), e = h.esc, p = s.pass, cur = p.s === (c.season | 0) ? p : { st: 0, lv: 0, got: [], lg: [] };
     var nextAt = Math.min(ST_MAX, (cur.lv + 1) * PER_LV), left = nextAt - cur.st, out = '';
+    if (h.ph) {   // móvil (movil-aire §5.4): resumen en una línea + barra de 8 y el camino como tira que se desliza (tu nivel al centro)
+      out += '<div class="card ss-pass ss-pph"><p class="ss-sum" aria-label="' + e('Camino de la temporada ' + (c.season | 0) + ': nivel ' + cur.lv + ' de ' + LV_MAX + ', ' + cur.st + ' de ' + ST_MAX + ' estrellas') + '">' +
+        '<span><b>Nivel ' + cur.lv + '</b>/' + LV_MAX + '</span><span>★ ' + cur.st + '/' + ST_MAX + '</span>' +
+        (cur.lv < LV_MAX ? '<span>' + (left === 1 ? 'falta 1' : 'faltan ' + left) + (PRIZES[cur.lv + 1] ? ' → ' + e(prizeShort(cur.lv + 1).toLowerCase()) : '') + '</span>' : '<span>Completo</span>') + '</p>' +
+        bar(cur.lv < LV_MAX ? (cur.st - cur.lv * PER_LV) / PER_LV : 1) + '<ol class="ss-track ss-hz" data-ph-center aria-label="Niveles del Camino">';
+      for (var lp = 1; lp <= LV_MAX; lp++) {
+        var pp = PRIZES[lp], gp = cur.got.filter(function (g) { return g.lv === lp; })[0];
+        out += '<li class="ss-n' + (lp <= cur.lv ? ' on' : '') + (pp ? ' pz' : '') + (lp === cur.lv ? ' cur' : '') + (lp === cur.lv + 1 ? ' nx' : '') + '"><b>' + lp + '</b>' + (pp ? '<small>' + e(gp ? gp.name : prizeShort(lp)) + '</small>' : '') + '</li>';
+      }
+      out += '</ol></div>';
+    } else {
     out += '<div class="card ss-pass"><h3>Camino de temporada ' + (c.season | 0) + '</h3>' +
       heros([[cur.lv, 'nivel de ' + LV_MAX], [cur.st, 'estrellas de ' + ST_MAX], cur.lv < LV_MAX ? [left, left === 1 ? 'falta para el ' + (cur.lv + 1) : 'faltan para el ' + (cur.lv + 1)] : ['★', 'completo']],
         'sp-paper', 'Nivel ' + cur.lv + ' de ' + LV_MAX + ', ' + cur.st + ' de ' + ST_MAX + ' estrellas') +
@@ -536,6 +547,7 @@
     out += '</ol>';
     if (cur.lg.length) out += '<p class="muted" style="margin:6px 0 0">Últimas estrellas: ' + cur.lg.slice(-3).reverse().map(function (x) { return '+' + x.d + ' ' + e(x.t.replace(/^Jornada: /, '')); }).join('; ') + '.</p>';
     out += '</div>';
+    }
     // títulos y fondos
     out += '<div class="card ss-prz"><h3>Tu título</h3>';
     if (!s.titles.length) out += '<p class="muted">Aún no tienes títulos de perfil. El primero llega en el nivel 2 del Camino.</p>';
@@ -594,18 +606,26 @@
     var rows = hist.map(function (x) { return { s: x.season, club: x.clubName, lg: lgName(c, x), pos: x.pos, pl: x.played | 0, w: x.won | 0, nota: x.nota, pts: x.ppts | 0 }; });
     var inHist = hist.some(function (x) { return x.season === c.season; });
     if (!inHist && c.stats && (c.stats.played | 0) > 0) { var k = myClub(c), an = null; if (Array.isArray(c.notes) && c.notes.length) { var sm = 0, nn = 0; c.notes.forEach(function (x) { if (num(x.nota)) { sm += x.nota; nn++; } }); an = nn ? sm / nn : null; } rows.push({ s: c.season | 0, club: k ? k.name : '', lg: '', pos: 0, pl: c.stats.played | 0, w: c.stats.won | 0, nota: an, pts: c.stats.pts | 0, now: 1 }); }
-    out += '<div class="card"><h3>Por temporada</h3>';
+    var T = c.career || {};
+    // móvil (movil-aire §5.4): primero la tira de 4 cifras de toda la carrera; «Por temporada» con «Ver tabla completa» junto al encabezado
+    // y «PG» tras «?»; el club con su nombre corto
+    if (h.ph && (T.played | 0) > 0) out += '<div class="ss-car">' + heros([[T.played | 0, (T.played | 0) === 1 ? 'partido' : 'partidos'], [T.won | 0, (T.won | 0) === 1 ? 'victoria' : 'victorias'], [T.pts | 0, (T.pts | 0) === 1 ? 'punto' : 'puntos'], [T.digs | 0, (T.digs | 0) === 1 ? 'defensa' : 'defensas']], 'ss-tint',
+      'En toda tu carrera: ' + nP(T.played, 'partido', 'partidos') + ', ' + nP(T.won, 'victoria', 'victorias') + ', ' + nP(T.pts, 'punto', 'puntos') + ' y ' + nP(T.digs, 'defensa', 'defensas')) + '</div>';
+    var shortN = function (n) {
+      if (!h.ph || !HLP || typeof HLP.shortClub !== 'function') return n;
+      var kk = (c.clubs || []).filter(function (x) { return x && x.name === n; })[0]; try { return kk ? HLP.shortClub(kk) : n; } catch (er) { return n; }
+    };
+    out += h.ph ? '<div class="card ss-stph"><div class="ss-hr"><b>Por temporada</b>' + (h.q ? h.q('Por temporada', 'PJ: partidos jugados. PG: partidos ganados. Puntos: los tuyos. Nota: tu media de la temporada.' + ((T.played | 0) > 0 ? ' De tus puntos en toda la carrera: ' + nP(T.kills, 'remate', 'remates') + ', ' + nP(T.aces, 'ace', 'aces') + ' y ' + nP(T.blocks, 'bloqueo', 'bloqueos') + '.' : '')) : '') + '</div>' : '<div class="card"><h3>Por temporada</h3>';
     if (!rows.length) out += '<p class="muted">Juega tu primera jornada y aquí saldrán tus números.</p>';
     else {
       // (móvil: Temporada, Puesto, PG y Nota; lo demás en «Ver tabla completa»)
       out += '<div class="sp-tbl ss-tbl" data-ph-cols="0,1,3,5" data-ph-title="Por temporada"><table><thead><tr><th>Temporada</th><th>Puesto</th><th><abbr title="Partidos jugados">PJ</abbr></th><th><abbr title="Partidos ganados">PG</abbr></th><th>Puntos</th><th>Nota</th></tr></thead><tbody>' +
         rows.slice().reverse().map(function (x) {
-          return '<tr' + (x.now ? ' class="sp-me"' : '') + '><td class="ss-c"><b>T' + x.s + '</b>' + e(x.club || '') + (x.lg ? '<small class="muted ss-lg">' + e(x.lg) + '</small>' : '') + '</td><td>' + (x.now ? 'en juego' : x.pos ? ordn(x.pos) : '—') + '</td><td class="num">' + x.pl + '</td><td class="num">' + x.w + '</td><td class="num">' + x.pts + '</td><td class="num ss-nt">' + nt(x.nota) + '</td></tr>';
-        }).join('') + '</tbody></table></div><p class="muted ss-key">' + (h.ph ? 'PG: partidos ganados.' : 'PJ: partidos jugados. PG: partidos ganados.') + '</p>';
+          return '<tr' + (x.now ? ' class="sp-me"' : '') + '><td class="ss-c"><b>T' + x.s + '</b>' + e(shortN(x.club || '')) + (x.lg ? '<small class="muted ss-lg">' + e(x.lg) + '</small>' : '') + '</td><td>' + (x.now ? 'en juego' : x.pos ? ordn(x.pos) : '—') + '</td><td class="num">' + x.pl + '</td><td class="num">' + x.w + '</td><td class="num">' + x.pts + '</td><td class="num ss-nt">' + nt(x.nota) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' + (h.ph ? '' : '<p class="muted ss-key">PJ: partidos jugados. PG: partidos ganados.</p>');
       tblLater();
     }
-    var T = c.career || {};
-    if ((T.played | 0) > 0) {
+    if (!h.ph && (T.played | 0) > 0) {
       out += '<p class="ss-lbl">En toda tu carrera</p>' + heros([[T.played | 0, (T.played | 0) === 1 ? 'partido' : 'partidos'], [T.won | 0, (T.won | 0) === 1 ? 'victoria' : 'victorias'], [T.pts | 0, (T.pts | 0) === 1 ? 'punto' : 'puntos'], [T.digs | 0, (T.digs | 0) === 1 ? 'defensa' : 'defensas']], 'ss-tint',
         'En toda tu carrera: ' + nP(T.played, 'partido', 'partidos') + ', ' + nP(T.won, 'victoria', 'victorias') + ', ' + nP(T.pts, 'punto', 'puntos') + ' y ' + nP(T.digs, 'defensa', 'defensas')) +
         '<p class="muted" style="margin:0">De tus puntos: ' + nP(T.kills, 'remate', 'remates') + ', ' + nP(T.aces, 'ace', 'aces') + ' y ' + nP(T.blocks, 'bloqueo', 'bloqueos') + '.</p>';

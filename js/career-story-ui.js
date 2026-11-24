@@ -296,6 +296,13 @@
     var X = S(); if (!c || !X) return '';
     css();
     var s = story(c), f = s && (s.freq === 0 || s.freq === 2) ? s.freq : 1;
+    // móvil (movil-aire §5.4): una fila de la tarjeta de Ajustes (career-ui .cr-opts): rótulo · segmentado · «?» y la frase en una línea
+    if (H && typeof H.ph === 'function' && H.ph() && typeof H.q === 'function') {
+      return '<div class="cr-orow st-freq"><span class="cr-ol">Cuánta vida</span><div class="seg" role="group" aria-label="Cuánta vida">' + FREQ.map(function (x, i) {
+        return '<button data-act="st-freq-' + i + '" aria-pressed="' + (i === f) + '">' + x[0] + '</button>';
+      }).join('') + '</div>' + H.q('Cuánta vida', FREQ[f][0] + ': ' + FREQ[f][1] + ' (mensajes, prensa y decisiones). El muro y la carta de la semana no cuentan. Solo cambia lo que te piden, nunca la carrera si no eliges nada.') +
+        '<p class="cr-oh"><b>' + FREQ[f][0] + ':</b> ' + FREQ[f][1].charAt(0).toLowerCase() + FREQ[f][1].slice(1) + '</p></div>' + paint('opts', [c, ext(H)]);
+    }
     return '<div class="card st-freq"><h3>Cuánta vida</h3><div class="seg" role="group" aria-label="Cuánta vida">' + FREQ.map(function (x, i) {
       return '<button data-act="st-freq-' + i + '" aria-pressed="' + (i === f) + '">' + x[0] + '</button>';
     }).join('') + '</div><p class="muted"><b>' + FREQ[f][0] + ':</b> ' + FREQ[f][1] + ' (mensajes, prensa y decisiones). El muro y la carta de la semana no cuentan. Solo cambia lo que te piden, nunca la carrera si no eliges nada.</p>' +

@@ -782,6 +782,15 @@
         if (p.can.sim) b += btn('as-sim-' + p.k, p.mine && !v.out ? 'Simular' : 'Ver resultado', 'sp-cream');
       }
       var rk = '';
+      if (H && H.ph && H.ph() && !(p.k !== 'm' && more[p.k])) {   // móvil (movil-aire §5.4): fila compacta (nombre + estado, marca, podio en 3 fichas)
+        if (p.res && p.k !== 'm') b += btn('as-more-' + p.k, 'Ver los 6', 'sp-cream');
+        var pod = p.res && p.k !== 'm' ? '<p class="as-pod" aria-label="' + esc('Podio: ' + p.res.list.slice(0, 3).map(function (x, i) { return ordn(i + 1) + ' ' + (x.me ? 'tú' : x.nm) + ' ' + x.s; }).join(', ')) + '">' +
+          p.res.list.slice(0, 3).map(function (x, i) { return '<span' + (x.me ? ' class="me"' : '') + '>' + esc(ordn(i + 1)) + ' ' + (x.me ? 'Tú' : esc(first(x.nm))) + ' ' + x.s + '</span>'; }).join('') + '</p>'
+          : p.res ? '<p class="as-pod"><span>' + esc('MVP: ' + p.res.mvp + (p.res.nota != null ? ' · nota ' + dec(p.res.nota) : '')) + '</span></p>' : '';
+        h += '<div class="as-row as-rph"><p class="as-rt"><b class="as-rn">' + esc(p.name) + '</b><span class="tag y as-tag">' + esc(tagOf(p)) + '</span></p><span class="as-rm">' + esc(p.meta) + '</span>' + pod +
+          (b ? '<div class="acts as-acts">' + b + '</div>' : '') + '</div>';
+        return;
+      }
       if (p.res && p.k !== 'm') {
         rk = '<p class="as-rk">' + (more[p.k] ? '' : compact(p.res.list, H)) + '</p>' + (more[p.k] ? rankHTML(p.res.list) : '');
         b += btn('as-more-' + p.k, more[p.k] ? 'Menos' : 'Ver los 6', 'sp-cream');

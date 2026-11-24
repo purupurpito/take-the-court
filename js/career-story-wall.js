@@ -713,14 +713,16 @@
   }
   function wallHTML(c, HLP) {
     if (!c) return '';
-    var s = St(c), E2 = HLP && HLP.esc ? HLP.esc : esc, h = '<div class="card st-wall" data-nav><h3>Redes</h3>';
+    // (móvil, movil-aire §5.4: .st-wph = sin sello, la frase como subtítulo y los 3 tonos en una fila; efectos con nombre corto)
+    var ph = !!(HLP && HLP.ph && HLP.ph());
+    var s = St(c), E2 = HLP && HLP.esc ? HLP.esc : esc, h = '<div class="card st-wall' + (ph ? ' st-wph' : '') + '" data-nav><h3>Redes</h3>';
     var f = fixture(c), tg = tagFor(c, f);
     if (tg) h += '<p>' + stamp(c, f) + ' ' + E2(line(c, f)) + '</p>';
     if (canPost(c)) {
-      h += '<p class="muted">Publica algo (una vez por jornada):</p><div class="acts st-acts" style="display:flex;flex-direction:column;gap:8px">' +
+      h += '<p class="muted st-wsub">Publica algo (una vez por jornada)' + (ph ? '' : ':') + '</p><div class="acts st-acts" style="display:flex;flex-direction:column;gap:8px">' +
         TONES.map(function (T, i) {
           // el efecto en la línea pequeña, como las cartas de «Tu semana» y las respuestas (▲/▼; el color lo pone el botón)
-          var hn = S.hint(c, T.e).map(function (x) { return '<span class="' + (x[1] ? 'st-up' : 'st-dn') + '">' + E2(x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' ');
+          var hn = S.hint(c, T.e).map(function (x) { return '<span class="' + (x[1] ? 'st-up' : 'st-dn') + '">' + E2(ph ? String(x[0]).replace(/^Pique con tu rival$/, 'Pique') : x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' ');
           return '<button data-act="st-wall-pub-' + i + '" style="min-height:44px">' + E2(T.t) + (hn ? '<small>' + hn + '</small>' : '') + '</button>';
         }).join('') + '</div>';
     } else if (s.wall && s.post === s.mN) h += '<p class="muted">Ya has publicado esta jornada.</p>';

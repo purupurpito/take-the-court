@@ -180,6 +180,16 @@
   }
   function fame(c) {
     var f = Lf().fameInfo(c), l = c.life, h = '';
+    if (qph()) {   // móvil (movil-aire §5.4): «113 seguidores · Desconocido» + «Legado ↓» + «?» en una fila y la barra con lo que falta (≤ 140 px)
+      var fx0 = 'Ganas seguidores con buenas notas, victorias, retos, títulos y premios. La fama trae patrocinadores y hace que los clubes te miren más (+' + String(Lf().offerBonus(c)).replace('.', ',') + ' de interés).';
+      var ex = [l.streak >= 2 ? 'Racha de ' + l.streak + ' victorias' : '', 'Mejor racha: ' + (l.best | 0), l.bestNota ? 'Mejor nota: ' + String(l.bestNota).replace('.', ',') : '',
+        l.cards && (l.cards.n | 0) > 0 ? 'Tarjetas: ' + (l.cards.y | 0) + ' amarillas, ' + (l.cards.r | 0) + ' rojas' : ''].filter(Boolean);
+      h += '<div class="card lf-fm lf-fph"><div class="lf-fr"><b class="lf-fn">' + num(f.fans) + '</b><span class="lf-ft">seguidores · <b>' + esc(f.name) + '</b></span>' +
+        '<button type="button" class="cr-anb" data-act="anc" data-to="crAnLegacy">Legado ↓</button>' +
+        H.q('Seguidores', fx0 + (l.cards && (l.cards.n | 0) > 0 ? ' En tu carrera: ' + ((l.cards.tot && l.cards.tot.y) | 0) + ' amarillas y ' + ((l.cards.tot && l.cards.tot.r) | 0) + ' rojas' + ((l.cards.fair | 0) ? '; premios a la deportividad: ' + (l.cards.fair | 0) : '') + '.' : '')) + '</div>' +
+        (f.next ? '<div class="lf-fb">' + bar(f.p) + '<small>→ ' + esc(f.next) + ', faltan ' + num(f.to - f.fans) + '</small></div>' : '<p class="lf-fx">Lo máximo: tu nombre ya es historia del vóley.</p>') +
+        '<p class="lf-fx">' + esc(ex.join(' · ')) + '</p></div>';
+    } else
     h += '<div class="card lf-fm"><h3>Seguidores</h3><p class="lf-big">' + num(f.fans) + '</p><p class="lf-tier">' + esc(f.name) + '</p>' +
       (f.next ? bar(f.p) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(f.next), 'faltan ' + num(f.to - f.fans)], 'v') + '</p>' : '<p class="muted">Lo máximo. Tu nombre ya es historia del vóley.</p>') +
       '<p class="muted">' + sp([l.streak >= 2 ? 'Racha de ' + l.streak + ' victorias (más seguidores por partido)' : '', 'Mejor racha: ' + (l.best | 0), l.bestNota ? 'Mejor nota: ' + String(l.bestNota).replace('.', ',') : ''], 'v') + '</p>' +
@@ -245,13 +255,22 @@
         (on ? '<span class="tag g">Elegida</span>' : lock ? '<span class="tag lf-lock">Fama: ' + esc(lock) + '</span>' : '<button data-act="lf-celeb" data-id="' + esc(id) + '">Elegir</button>') + '</div>';
     }
     return '<div class="card" data-nav><h3>' + sp(['Celebración', open + ' de ' + L.length], 'd') + '</h3>' +
-      '<p class="muted">Tu gesto en los puntos grandes: remates de los que levantan la grada y el punto que cierra un set.</p>' +
+      (qph() ? H.q('Celebración', 'Tu gesto en los puntos grandes: remates de los que levantan la grada y el punto que cierra un set. Se desbloquean con la fama.')   // (móvil: la explicación tras «?»)
+        : '<p class="muted">Tu gesto en los puntos grandes: remates de los que levantan la grada y el punto que cierra un set.</p>') +
       row('', 'Ninguna', 'La reacción de siempre', !cur, '') +
       L.map(function (x) { return row(x.id, x.name, x.open ? 'Desbloqueada con «' + x.tierName + '»' : 'Se desbloquea con la fama', x.on, x.open ? '' : x.tierName); }).join('') + '</div>';
   }
   function shop(c) {
     var l = c.life, money = +c.money || 0, h = '';
     var sx = 'Cobras el sueldo, el patrocinio y los premios de los retos cada jornada. El material suma en tus partidos (como la química) y los servicios se pagan por jornada.';
+    if (qph()) {   // móvil (movil-aire §5.4): un encabezado «Material · Ahorros · ?» y filas de 52 con el precio en el botón (y lo que falta)
+      h += '<div class="card lf-sph"><div class="lf-shd"><h3>Material</h3><span class="lf-sav">Ahorros <b>' + eur(money) + '</b></span>' + H.q('Ahorros', sx) + '</div>' + Lf().GEAR_KEYS.map(function (id) {
+        var G = Lf().GEAR[id], lv = l.gear[id] | 0, pr = Lf().gearPrice(c, id), nm = Lf().gearName(c, id), mx = lv >= Lf().GEAR_MAX, poor = money < pr;
+        return '<div class="lf-item"><div><b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">' + esc(nm) + '</span><i class="lf-nv" aria-label="Nivel ' + lv + ' de ' + Lf().GEAR_MAX + '">Nv ' + lv + '/' + Lf().GEAR_MAX + '</i></b>' +
+          '<small>' + esc(G.hint) + (lv ? ': +' + lv : '') + (!mx && poor ? ' · <span class="lf-short">faltan ' + eur(pr - money) + '</span>' : '') + '</small></div>' +
+          (mx ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (poor ? ' aria-disabled="true"' : '') + ' aria-label="' + esc((lv ? 'Mejorar ' : 'Comprar ') + nm + ' por ' + eur(pr)) + '">' + eur(pr) + '</button>') + '</div>';
+      }).join('') + '</div>';
+    } else {
     // (móvil: la explicación, detrás de «?» en la pegatina del título; el desplazamiento empieza con el material)
     h += '<div class="card"><h3>' + sp(['Ahorros', eur(money)], 'd') + '</h3>' + (qph() ? H.q('Ahorros', sx) : '<p class="muted">' + esc(sx) + '</p>') + '</div>';
     h += '<div class="card"><h3>Material</h3>' + Lf().GEAR_KEYS.map(function (id) {
@@ -260,6 +279,7 @@
       return '<div class="lf-item"><div><b>' + esc(Lf().gearName(c, id)) + '<span class="lf-pips" aria-label="Nivel ' + lv + ' de 3">' + pips + '</span></b><small>' + esc(G.hint) + (lv ? ': +' + lv + ' en el partido' : '') + '</small></div>' +
         (lv >= Lf().GEAR_MAX ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (money < pr ? ' aria-disabled="true"' : '') + '>' + (lv ? 'Mejorar' : 'Comprar') + ' <small>' + eur(pr) + '</small></button>') + '</div>';
     }).join('') + '</div>';
+    }
     h += '<div class="card"><h3>Servicios</h3>' + Lf().SVC_KEYS.map(function (id) {
       var S = Lf().SVC[id], on = !!l.svc[id], cost = Lf().svcCost(c, id);
       return '<div class="lf-item"><div><b>' + esc(S.name) + (on ? ' <span class="tag g">Contratado</span>' : '') + '</b><small>' + sp([esc(S.hint), eur(cost) + ' por jornada'], 'v') + '</small></div>' +
@@ -294,6 +314,17 @@
   function goals(c) {
     var a = Lf().achList(c), done = a.filter(function (x) { return x.done; }).length;
     a.sort(function (x, y) { return (x.done ? 1 : 0) - (y.done ? 1 : 0) || (y.v / y.n) - (x.v / x.n); });
+    if (qph()) {   // móvil (movil-aire §5.4): tarjetas de 3 líneas en 2 columnas, cercanos primero; el contador va en la pestaña y los conseguidos, plegados
+      var card = function (x) {
+        var v = x.dec ? String(x.v).replace('.', ',') : num(x.v), n = x.dec ? String(x.n).replace('.', ',') : num(x.n);
+        return '<div class="lf-a' + (x.done ? ' done' : '') + '">' + (x.done ? '<i class="lf-st" role="img" aria-label="Conseguido">✓</i>' : '') + '<b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' +
+          (x.done ? '<small>' + esc(x.reward) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small>' + (x.pt ? esc(x.pt) : v + '/' + n) + ' · ' + esc(x.reward) + '</small></div>') + '</div>';
+      };
+      var todo = a.filter(function (x) { return !x.done; }), got = a.filter(function (x) { return x.done; });
+      return '<div class="card lf-gph">' + H.q('Logros', 'Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero. Llevas ' + done + ' de ' + a.length + '.') +
+        '<div class="lf-ach">' + todo.map(card).join('') + '</div>' +
+        (got.length ? '<details class="lf-gd"><summary>Conseguidos (' + got.length + ')</summary><div class="lf-ach">' + got.map(card).join('') + '</div></details>' : '') + '</div>';
+    }
     return '<div class="card"><h3>' + sp(['Logros', done + ' de ' + a.length], 'd') + '</h3><p class="muted">Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero.</p><div class="lf-ach">' +
       a.map(function (x) {
         var v = x.dec ? String(x.v).replace('.', ',') : num(x.v);
@@ -302,7 +333,7 @@
   }
   function legacy(c) {
     var l = c.life, sc = Lf().legacyScore(c), t = Lf().legacyTier(sc, c), age = c.player.age | 0, h = '';
-    h += '<div class="card lf-fm"><h3>Legado</h3><p class="lf-big">' + sc + '</p><p class="lf-tier">' + esc(t.name) + '</p>' +
+    h += '<div class="card lf-fm' + (qph() ? ' lf-leg' : '') + '"><h3>Legado</h3><p class="lf-big">' + sc + '</p><p class="lf-tier">' + esc(t.name) + '</p>' +
       (t.next ? bar((sc) / t.next[0]) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(t.next[1]), 'a ' + t.next[0] + ' puntos'], 'v') + '</p>' : '') +
       '<p class="muted">Suman los títulos (más cuanto más alta la categoría), los premios individuales, la fama, las victorias y los logros.</p></div>';
     h += '<div class="card"><h3>Premios individuales</h3>' + (l.awards.length ? '<div class="lf-aws">' + l.awards.slice().reverse().map(function (a) { return '<div class="lf-aw"><i class="lf-st" aria-hidden="true">★</i><span><b>' + esc(a.name) + '</b><small>' + sp(['T' + a.season, esc(a.club)], 'v') + '</small></span></div>'; }).join('') + '</div>'

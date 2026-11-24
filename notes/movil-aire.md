@@ -592,3 +592,49 @@ PC sin cambios: métricas de los 40 ids a 1280x720 (y 1024x768 / 1920x1080) idé
 - **Pendiente**: a .ph-w la lista de pedir puesto va a una columna (cabría en 2); la tabla del grupo de la selección asoma bajo el partido a
   568x320 (hay que bajar para verla entera); cesiones: con nombres muy largos el dato de pareja/puesto cae tras la elipsis de la línea de meta;
   el Faro/ayudas del Estado (career-story «ánimo y forma») no se tocaron; Insignias sigue con la descripción entera en la tarjeta (sin hoja).
+
+### 7.7 Paquete `carrera-liga-vida` (24-nov-2026)
+
+Todo bajo `html.ph` (PQ / `PX` = un id más para ganar a career-story-msgs / `LV(cv)` = `#crBody[data-cv="…"]` en `js/career-ui.js`, bloque
+«paquete carrera-liga-vida» al final de `PH_CSS`; en las extensiones, tras `H.ph()` / `qph()`). PC sin cambios: métricas de los 40 ids a
+1280x720 (y 1024x768 / 1920x1080) idénticas a una pasada de la base (`VB_ROOT=<worktree de HEAD>`, mismo comando): caracteres 81.379 → 81.379.
+- **Mensajes**: fuera la cabecera verde (`.st-ctop`); lo que espera respuesta como insignia de «Bandeja» (`subBadge`, `#crSub .tb-b`, roja);
+  conversaciones como filas crema de 56 separadas 4 (avatar 38, nombre `--ph-row`, avance de 1 línea `--ph-body`, «T1 J4» `--ph-micro`) y
+  sin desplazamiento propio: 4 a la vista a 568x320. **Redes** (`.st-wph`): sin sello, «Publica algo…» a 13, los 3 tonos en una fila de
+  3 de 64-72 sin cola (efectos ▲▼; «Pique con tu rival» → «Pique» solo en el móvil), el muro asoma debajo.
+- **Clasificación**: filas de 44 (36 en .ph-s → 6 filas a 568x320) sin caja por fila (rayado), tu fila con tu color y raya de tinta, zonas
+  como línea de 4, cabecera pegada a `top:-10px` opaca, `scroll-padding-top` 40; a 568 # Club PJ G P Pts (ya lo hacía `hide-s`).
+  **Jornadas**: filas de 40 gap 4 centradas, fuera «Pendiente», desvanecido arriba (`.sp-less`). **Copas** (antes de jugarse): una fila
+  de 48 por copa (trofeo 24 · nombre + quién entra · «✓ Dentro · 3r» / «Fuera · 8º» / «Solo 1ª»). **Noticias** (`career-world-ui`): sin sello
+  ni nota; «T1 J4» en columna de 32, titular de 2 líneas, gap 10, leídas en tinta y nuevas en crema con su punto. **Clubes**: «Liga · 12»
+  dentro del selector, filas de 48 en una línea (escudo 28 · `shortClub` · «1r · 62» · ›; tu club / tu rival con su raya; estrellas, en la ficha).
+- **Premios** (`career-race.js`): fuera la tarjeta-sello; el segmentado es una fila pegada arriba (44, fondo de tinta) con el «?» al final
+  (que lleva también la jornada); fuera el sello «MVP» (va en la línea de unidad); filas de 48 opacas en una línea (puesto 32 · flecha de
+  color ▲▼= · nombre 16 · club 13 con elipsis · nota); tu fila «Tú, fuera del top 2» pegada abajo (`sticky; bottom:0`) si queda fuera.
+  Sin «·» en sus textos (racetest lo prohíbe).
+- **Vitrina** (Palmarés, selección, Estrellas): `phAncBar` = «0 de 20 títulos» como ficha + «Temporadas ↓» (`data-act="anc"`); en
+  `trophyCaseHTML` (.ph) un bloque por categoría con rótulo pegado arriba «Liga 0/2»; las categorías sin nada, en una línea (rótulo + huecos
+  de 44 sin nombre, al 55 %; a .ph-w de dos en dos); las que tienen algo, rejilla de 5 (≥ 96 px a .ph-w ≈ 7), icono 48 (40 en .ph-s), nombre
+  corto de 2 líneas (`tcShort`: «Ascenso al …» → «↑ …»; el entero en la hoja), vacíos al 40 % sin círculo discontinuo. Selección: una línea
+  con «Ver selección» de 44.
+- **Anclas**: la fusión de móvil se queda; Temporadas va en `#crAnSeasons` y Legado en `#crAnLegacy` (con su sello pegado arriba). Al abrir
+  `honors/seasons` o `life/legacy` career-ui baja sola al ancla (`phAfter` + `phReveal`, que corre tras el `scrollTop = 0` de setTab), así que
+  las filas de mobaudit ya capturan el ancla (comentario actualizado). «Legado ↓» está en la fila de Fama.
+- **Cifras** (`career-story-season`): primero la tira de 4 cifras de la carrera (solo si hay partidos de carrera), luego «Por temporada» con
+  «Ver tabla completa» de 44 sin cola junto al encabezado y PG/PJ tras «?»; el club con `shortClub`. **Ajustes**: una tarjeta `.cr-opts` con
+  filas de 52 (`.cr-orow`: rótulo · `.seg` de 44 gap 8 · «?» · la frase en una línea) para Dificultad, Cuánta vida (`career-story-ui`) y
+  Lesiones (`career-injury`, que ya solo salía en el móvil); el resto (Puesto, Carrera, Opciones) debajo como antes.
+- **Vida**: Fama (`lf-fph`) = «113 seguidores · Desconocido» + «Legado ↓» + «?» en una fila, barra de 8 con «→ Promesa local, faltan 387» y
+  una línea de rachas (~120 px; Celebración a la vista, su explicación tras «?»). Tienda (`lf-sph`): «Material · Ahorros 1.000 € · ?», filas
+  de 54 con «Nv 0/3» y el precio en un botón de 44 sin cola (al 75 % si no llega, y «faltan 500 €» en la línea). Logros (`lf-gph`): tarjetas
+  de 3 líneas en 2 columnas (3 a .ph-w), barra de 6 + «1/5 · +1 punto de mejora», «?» con la intro, «2/31» como insignia de la pestaña, los
+  conseguidos en «Conseguidos (N)» plegado. Camino (`ss-pph`): «Nivel 0/20 · ★ 2/60 · falta 1» + barra de 8 y la tira horizontal de niveles
+  (premios 60 px, sin premio puntos de 20, el siguiente con aro dorado; `[data-ph-center]` centra el actual).
+- **Estrellas, fin de semana** (`career-allstar`): cada concurso en una fila (nombre + estado · marca a 13 · podio en 3 fichas de 14) con
+  «2º intento» / «Ver los 6» / «Ver resultado» de 44 sin cola a la derecha: 2 concursos a la vista a 568x320.
+- **Métricas** (40 ids × 3 tamaños, contra la base de este paquete): < 12 px 0 → 0; solapes 8 → 0; toques juntos 306 → 283; toques < 44
+  0 → 13 (los nombres de club de la tabla a 568x320, filas de 36 que pide la tabla de consulta); tapados 4 → 5 (filas bajo la cabecera pegada
+  de la tabla); recortes 6 → 21 (líneas de una línea con «…»: club del ranking, avance de mensajes, marca de concursos, descripciones de la Tienda).
+- **Pendiente**: el Legado sigue como tarjetas de PC (solo lleva su sello pegado); la tira de 4 cifras de Cifras no sale hasta que hay partidos
+  en `c.career` (la muestra de mobaudit no los tiene en pista); la Vitrina con títulos ganados se probó con un guion aparte (3 trofeos de
+  playa: rejilla de 5, «×2», nombre corto), no hay fila de mobaudit para eso; las copas ya en juego (`c.kos`) siguen como tarjetas; la tabla a 568 deja el nombre del club como toque de 36.
