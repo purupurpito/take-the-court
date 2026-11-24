@@ -515,12 +515,36 @@ Cada bote a menos de 5 cm de la línea se convierte en un momento propio del jue
 - Preguntas: ¿se construye? ¿Entero o por partes (la presentación primero; «Dejarla pasar» y «Mándalo al grupo» después)? Con el
   cambio de nombre a Take the Court, ¿se sigue llamando «El Corte»?
 
+## La moneda: salpis (decisión de Ferran del 24-nov: «La moneda que sea única, invéntatela»; rama decisiones, sin versión)
+Lo que había: una sola cosa que se gasta, el dinero de la Carrera (`c.money`, en euros ficticios): se cobra con el sueldo, el
+patrocinio, los premios de los retos y de las Estrellas, y se gasta en el material, los servicios, el fisio, el fisio intensivo de
+las lesiones y la tienda del Vestuario (`shop` en js/look.js). Lo demás es progreso y no se ha tocado: XP y nivel (del atleta y del
+perfil), fama y seguidores, puntos de mejora (`c.player.pts`), entreno (`c.tp`, se gasta solo al llenarse), química y logros.
+Decisiones mías:
+- **Nombre: «salpis»** (un salpi, de salpicadura). Corto, con gracia y de la familia de la tinta del estilo SPLAT. Si no te gusta,
+  se cambia en un rato: está en las funciones `eur()` / `fmtEur()` de career-life, career-ui, career-injury, career-loan,
+  career-allstar y look, en 4 mensajes de career.js y en `coinMsg` (career.js).
+- **Icono**: una gota de tinta turquesa (el color del balón) con dos costuras de balón, contorno de tinta y una gotita al lado
+  (`.sp-salpi` en index.html, SVG dibujado, sin marcas). Va delante de la cifra en Tienda (ahorros y botones de comprar), en los
+  premios del último partido, en «Ahorros» del contrato y en el aviso de patrocinio del inicio de la Carrera. La palabra «salpis»
+  se escribe siempre (el icono solo adorna y es aria-hidden).
+- **Conversión 1 € = 1 salpi**: como solo había una moneda, no hay nada que unificar ni que perder. Los ahorros guardados no
+  cambian de número. Los mensajes viejos de la bandeja con cifras en € se reescriben a salpis al cargar (`coinMsg`, idempotente;
+  playa y pista). No hace falta tocar js/migrate.js (es el traspaso entre direcciones, no las versiones del guardado).
+- **Sueldos también en salpis** (antes «Sueldo (ficticio)… en euros al mes»): una sola moneda en todo el juego. Fuera el
+  «(ficticio)», que solo hacía falta por ser euros.
+- **Cada Carrera guarda sus salpis** (playa y pista por separado, como hasta ahora). No hay monedero común ni salpis en Partido
+  rápido: juntar las dos Carreras rompería el equilibrio de la que empieza, y ganar salpis fuera de la Carrera sería inventar
+  una economía. Lo que compras en el Vestuario sí sigue siendo para siempre y para todo el juego.
+- Nada de pagos reales ni de comprar con dinero; nada que haga que un punto valga más (el material sigue igual que antes).
+- Pregunta: ¿te gusta «salpis» o prefieres otro nombre (gotas, manchas, tintas…)?
+
 ## Preguntas abiertas de TRASPASO.md (siguen sin respuesta)
 (Contestadas el 24-nov y quitadas de aquí: Circuito Mundial = se queda como reto, sin suavizar `DIFF_AT`; «Cerrar sesión» no borra
 el progreso del aparato, comprobado en js/account.js `signOut` —solo olvida la sesión y avisa «Tu progreso sigue en este dispositivo»—;
 tope de dibujos del 6v6 lo decido yo, abajo en «Menús».)
 4. **Repo de redirección**: la dirección vieja /voley-3d/ da 404. ¿Se hace la redirección en purupurpito.github.io?
-5. Música en ogg dentro de index.html o procedural; ¿moneda única o ninguna? (el 6v6 en JUGAR, contestado el 24-nov: ver «Menús»)
+5. Música en ogg dentro de index.html o procedural (la moneda, contestada el 24-nov: ver «La moneda: salpis»; el 6v6 en JUGAR, ver «Menús»)
 6. Premios por nivel: ¿se quedan en 8 (había 17 propuestos)?
 8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
 9. Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).

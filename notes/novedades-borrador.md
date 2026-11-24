@@ -25,3 +25,7 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - En PC, pulsa V para verla. Con mando, LT. En el móvil, toca el botón «Repetición».
 - Si no la pides, el partido sigue sin esperar.
 - Ahora también hay repeticiones en el 6 contra 6, y sus mejores jugadas al final del partido.
+
+## La moneda (decisión de Ferran del 24-nov)
+- El dinero del juego ahora son los salpis, con su gota de tinta.
+- Sueldos, premios y la tienda de la Carrera van en salpis.
