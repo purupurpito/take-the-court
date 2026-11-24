@@ -3476,6 +3476,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .sp-sc b{font:800 max(8px,calc(var(--sp-stamp) * .1))/1 var(--sp-ui);letter-spacing:.08em;text-transform:uppercase}
 .sp-sc .sp-ball,.sp-sc svg{width:50%;height:50%;display:block}
 .mj-sem .sp-sc b{letter-spacing:.02em;white-space:nowrap}.mj-semd{display:flex;gap:3px}.mj-semd i{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--sp-gold)}.mj-semd i.on{background:var(--sp-gold)}:root:not(#_):not(#_):not(#_) .mj-sem .sp-sc b.mj-semsc{font-size:max(12px,calc(var(--sp-stamp) * .15));color:var(--sp-cream);letter-spacing:0}   /* sello de la portada: el marcador de la situación de la semana */
+:is(.mj-sem,.sem-stamp) .sp-st .st0{fill:var(--sp-teal)}   /* la jugada del día, sello verde azulado: no se confunde con el dorado del reto del día / Retos */
 .sp-sc .sc-med{display:block;width:44%;height:44%;border-radius:50%;box-shadow:0 0 0 2px var(--sp-ink),inset 0 -3px 0 rgba(0,0,0,.2);background:#d98a4a}.sp-sc .sc-med.t2{background:#d6e2ee}.sp-sc .sc-med.t3{background:#ffd23f}
 .sp-ball .b0{fill:var(--sp-cream)}.sp-ball .b1{fill:var(--sp-teal)}.sp-ball .b2{fill:var(--sp-teal-d)}.sp-ball .bs{fill:none;stroke:var(--sp-ink);stroke-width:1.1}.sp-ball .b3{fill:none;stroke:var(--sp-ink);stroke-width:1.4}
 /* la moneda del juego (24-nov-2026): el «salpi», una gota de tinta turquesa (el color del balón) con costuras de balón y su gotita. Va delante de la cifra
@@ -4058,6 +4059,13 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.ph:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut){--sp-h:clamp(62px,15vh,84px)}
 :root.ph:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut) .sp-t{font-size:calc(var(--ph-head) * 1.25)}
 #menu:not(.mj).first-run .mlist>#btnStartTut{height:72px;font-size:26px}
+/* primera vez: Ajustes sigue a mano (sonido, teclas, tamaño de los botones táctiles) como un engranaje pequeño, sin texto, abajo a la
+   derecha encima de la versión; Cómo se juega y Controles no (el billete Tutorial ya lo enseña). Siguen siendo solo dos opciones grandes */
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mlist>.mj-strip:not(#btnNow):not(#btnStartTut){display:block;position:fixed;right:calc(20px + var(--sr,0px));bottom:calc(64px + var(--sbm,0px));margin:0;z-index:3}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip>:not(#btnSettings){display:none}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip #btnSettings{width:48px;height:48px;min-width:48px;padding:0;justify-content:center;flex:none}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip #btnSettings>:not(.sp-ic):not(svg){display:none}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip #btnSettings .sp-ic{--sp-is:22px}
 /* ==== fin SPLAT · PORTADA ==== */
 
 /* =====================================================================
@@ -5538,7 +5546,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{grid-row:1/-1;grid-column:1;--lkt:76px;--lkg:10px}
 /* con la rejilla abierta, su «‹» hace de Volver: la cabecera se va y caben dos filas de fichas a 568×320 */
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook.lk-gon .mp-head{display:none}
-/* Vestuario: tus dos jugadores por su papel (24-nov-2026, sin dorsales); en el móvil solo la inicial (B, U): el nombre entero no cabe junto a la sede */
+/* Vestuario: tus dos jugadores por su papel (24-nov-2026, sin dorsales); en el móvil abreviado (Bloq., Univ.): el nombre entero no cabe junto a la sede */
 #mpLook .lk-ra{display:none}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-rl{display:none}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-ra{display:inline}
@@ -5554,6 +5562,10 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-sx{display:none}
   :root.ph:not(#_):not(#_):not(#_) #menu #mpLook :is(.lk-pick,.lk-ven) .sp-tab{padding:0 8px;min-width:36px}
   :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{grid-column:1/-1}
+}
+/* 568×320: con los papeles abreviados («Bloq.», «Univ.») y la sede no cabe también el chip de la pestaña (la elegida ya va marcada en la tira) */
+@media (max-height:380px) and (max-width:600px){
+  :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-tchip{display:none}
 }
 /* tira de pestañas: los 7 iconos a la vista (40 de ancho y 44 de alto); el nombre de la elegida va en el chip de la cabecera */
 :root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tb-row{gap:3px;padding:2px 2px 4px;justify-content:flex-start;overflow:visible}
@@ -6536,7 +6548,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <div class="sp-pair" data-sp-row>
           <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s" id="quickSub">2 contra 2: tú y tu pareja contra la CPU</small></span></button>
           <!-- D1: Retos (reto del día y maestría) en sello; ui.js renderRetoStrip pinta la medalla de hoy en #retoMeds y el texto en #retoSub (para el lector) -->
-          <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETO DEL DÍA ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
+          <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETOS ★ RETOS ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
         </div>
         <button class="mode m-career sp-ticket" id="btnCareer"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span></span><span class="sp-tk-main"><small class="sp-k">Tu jugador, tu club</small><b class="sp-t">Carrera</b><small class="sp-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></span></button>
         <div class="sp-row" data-sp-row>

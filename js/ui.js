@@ -4243,7 +4243,7 @@
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
-        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
+        case 'sit': blk('rc-sit', H.sit || 'Jugada del día', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
       }
     });
     return h;
@@ -4958,8 +4958,8 @@
     if (!el.mpLook || !lk.fit) return;
     var U = {}, uu = lkUnseen(); uu.forEach(function (id) { U[id] = 1; });
     // selector de jugador (radio; solo el elegido entra en el recorrido ↑/↓, ←/→ cambia)
-    var car = lkCareer(), rl = function (i) { var r = sqRole(lkSquadNum(i)); return '<span class="lk-rl">' + escT(r) + '</span><span class="lk-ra" aria-hidden="true">' + escT(r.charAt(0)) + '</span>'; },
-      picks = [[0, rl(0)], [1, rl(1)]];   // (sin dorsales, 24-nov-2026: el papel de cada uno; en el móvil solo la inicial —«B», «U»—, como el disco de Jugadores: no cabe más)
+    var car = lkCareer(), rl = function (i) { var r = sqRole(lkSquadNum(i)); return '<span class="lk-rl">' + escT(r) + '</span><span class="lk-ra" aria-hidden="true">' + escT(roleAbbr(r)) + '</span>'; },
+      picks = [[0, rl(0)], [1, rl(1)]];   // (sin dorsales, 24-nov-2026: el papel de cada uno; en el móvil abreviado —«Bloq.», «Univ.»—: una letra suelta no se entendía)
     if (car || lk.who === 'career') picks.push(['career', 'Carrera']);
     var ph = '';
     picks.forEach(function (p) {
@@ -6545,6 +6545,8 @@
   /** DORSALES (24-nov-2026, Ferran: «Los dorsales en 2v2 no se escogen, y tampoco hace falta mostrarlos como Opción»): en los menús del 2v2
    *  (Jugadores, Vestuario, Controlar, hoja final) tus dos jugadores se nombran por su papel («Bloqueador», «Universal»; VB.Prog), no por el
    *  dorsal. El dorsal sigue en la camiseta y en lo que pasa en la pista. sqRole(num) = papel del atleta con ese dorsal (o «N.º n»). */
+  /** Papel abreviado que aún se lee (Vestuario en el móvil): «Bloq.», «Univ.», «Def.»; los cortos, enteros. */
+  function roleAbbr(r) { r = String(r || ''); var M = { Bloqueador: 'Bloq.', Universal: 'Univ.', Defensor: 'Def.' }; return M[r] || (r.length > 6 && !/^N\.º/.test(r) ? r.slice(0, 4) + '.' : r); }
   function sqRole(num) {
     try { var a = VB.Prog && VB.Prog.get().a; for (var i = 0; a && i < a.length; i++) if ((a[i].num | 0) === (num | 0) && a[i].role) return a[i].role; } catch (e) { }
     return 'N.º ' + num;
@@ -7309,7 +7311,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Jugada' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Jugada' }] : []).concat([{ id: 'hoy', label: 'Reto' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
@@ -7426,7 +7428,7 @@
       clearInterval(iv);
       var r = null; try { r = M.mergeLink(q); } catch (e) { console.error('[VB][ERROR] Semana.mergeLink: ' + e); }
       try { var u = new URL(location.href); u.searchParams.delete('sem'); history.replaceState(history.state, '', u.pathname + (u.search || '') + u.hash); } catch (e) { }
-      if (!r) { semToast('Ese enlace de la situación está roto o incompleto'); return; }
+      if (!r) { semToast('Ese enlace de la jugada está roto o incompleto'); return; }
       VB.UI.openRetos('semana');
       if (r.gone) semToast('Ese enlace es de la antigua situación de la semana: ya está cerrada');
       else if (r.old) semToast('Es la cadena del ' + M.dayLbl(r.wk) + ': ya está cerrada');
@@ -8352,7 +8354,7 @@
     return '<div class="sp-panel sn-sheet sn-perf"><div class="sn-txt"><p class="sp-k">6 contra 6</p><h2 class="sp-h" id="snH">Calidad de imagen</h2>' +
       '<p class="sn-t" id="snT">Con 12 jugadores en la pista, el 6 contra 6 pide más al aparato. Con menos calidad, va más fluido.</p>' +
       '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Imagen.</small></div>' +
-      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">Recomendada · empieza en ' + (nm[st] || 'media') + '</small></span></button>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">Recomendada · se ajusta sola (ahora: ' + (nm[st] || 'media') + ')</small></span></button>' +
       '<div class="sn-row">' + ['high', 'medium', 'low'].map(function (v, i) { return '<button type="button" class="sp-btn sp-sm ' + (i === 2 ? 'sp-cream' : 'sp-teal') + '" data-shape="' + (i + 2) + '" data-sn="q-' + v + '"><span class="sp-l"><span class="sp-t">' + lb(v) + '</span>' + now(v) + '</span></button>'; }).join('') + '</div></div></div>';
   }
   function perfNote(o, cb) {

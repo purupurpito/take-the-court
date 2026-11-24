@@ -69,6 +69,7 @@
     if (!p[0]) return;
     cls(p[0], 'sp-btn sp-sm sp-ink'); p[0].setAttribute('data-shape', String(i)); label(p[0]);
     p[0].insertAdjacentHTML('afterbegin', '<span class="sp-ic">' + p[1] + '</span>'); strip.appendChild(p[0]);
+    if (p[0] === bSet && !bSet.hasAttribute('aria-label')) bSet.setAttribute('aria-label', 'Ajustes');   // (primera vez: solo el engranaje, sin texto)
   });
   // «Jugar ya» (1.22.0, informe 4.3; solo sin partidos jugados, ui.js syncHero lo enseña): billete dorado con el balón en el talón, en el
   // sitio de «Continuar carrera» (nunca salen los dos). Los hijos de la portada de antes (.pl-tx, .go) se quedan, ocultos por CSS
@@ -84,7 +85,7 @@
   var bST = $('btnStartTut');
   if (bST) {
     bST.classList.remove('mi', 'primary'); cls(bST, 'sp-ticket');
-    bST.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.ICONS.tut + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
+    bST.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.ICONS.tut + '</span></span><span class="sp-tk-main"><small class="sp-k">Aprende a jugar</small>' +
       '<b class="sp-t">Tutorial</b><small class="sp-s">Cómo se juega, paso a paso</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
     nav.appendChild(bST);
   }

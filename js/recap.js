@@ -605,7 +605,7 @@
     if (M.profile) B.push('profile');
     if (M.part) B.push('part');
     M.blocks = B;
-    M.heads = { mvp: 'MVP', xp: 'Progreso', unlocks: 'Vestuario', table: 'Clasificación', cup: 'Copa', life: 'Vida', chem: 'Química', boss: 'Jefe', train: 'Entreno', retos: 'Retos', profile: 'Perfil', part: 'Minutos', inj: 'Lesión', sit: 'Situación' };
+    M.heads = { mvp: 'MVP', xp: 'Progreso', unlocks: 'Vestuario', table: 'Clasificación', cup: 'Copa', life: 'Vida', chem: 'Química', boss: 'Jefe', train: 'Entreno', retos: 'Retos', profile: 'Perfil', part: 'Minutos', inj: 'Lesión', sit: 'Jugada del día' };
     return M;
   }
 
