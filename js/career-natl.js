@@ -894,7 +894,10 @@
     if (w && w.id > n.seen) { n.seen = w.id; try { K(c).save(c); } catch (e) { } }
     var cyc = cycOf(c, c.season), stt = status(c), h = '';
     // 1. parche: país, equipación y estado
-    h += '<div class="card"><h3>' + Hh.kitSw(nat.kit, true) + ' ' + esc(nat.name) + ' ' + tagOf(n.st) + '</h3>' +
+    if (ph) {   // móvil (movil-aire §5.3): franja de 44 (bandera · país · estado · confianza) y lo demás tras «?»
+      h += '<div class="card nt-strip"><p class="nt-sr">' + Hh.kitSw(nat.kit) + '<b>' + esc(nat.name) + '</b>' + tagOf(n.st) + '<span class="nt-tr">Confianza ' + Math.round(n.trust) + '</span>' +
+        Hh.q(nat.name, 'Seleccionador: ' + coachName(c, n.cc, cyc) + '. Confianza ' + Math.round(n.trust) + '. ' + chemTxt(n) + '.') + '</p></div>';
+    } else h += '<div class="card"><h3>' + Hh.kitSw(nat.kit, true) + ' ' + esc(nat.name) + ' ' + tagOf(n.st) + '</h3>' +
       '<p class="muted">' + Hh.sp(['Seleccionador: ' + esc(coachName(c, n.cc, cyc)), 'Confianza ' + Math.round(n.trust), esc(chemTxt(n))], 'v') + '</p></div>';
     // 2. el torneo en curso va arriba (es lo que se puede jugar); cerrado, más abajo
     var live = !!(w && w.stage !== 'done');
@@ -942,12 +945,13 @@
     // (con partido tuyo pendiente, .x-go: en el móvil «Jugar» / «Simular partido» salen a la barra de abajo (#crDock) y siguen a mano
     //  aunque el hub baje hasta tu fila de la tabla del grupo; «Simular el resto» y «Pedir descanso» van debajo de la tabla)
     var hl = hall(c), nat = natOf(w.my), pf = pendingMine(w);
-    var h = '<div class="card' + (pf ? ' x-go' : '') + '"><h3>' + esc(w.kind === 'q' ? 'Clasificación' : w.name) + '</h3>';
-    var meta = w.kind === 'q' ? ['Para ' + esc(evInfo(c, w.ev, w.my).art + ' ' + w.name), 'Antes de la jornada ' + w.exp] : [w.host ? 'En ' + esc(natOf(w.host).name) : '', 'Tras la T' + w.s, esc(stageName(w)), esc(roleOf(w))];
-    h += '<p class="muted">' + Hh.sp(meta, 'v') + '</p>';
+    var h = '<div class="card' + (pf ? ' x-go' : '') + '"><h3>' + esc(w.kind === 'q' ? (ph ? 'Clasif.' : 'Clasificación') : w.name) + '</h3>';
+    var meta = w.kind === 'q' ? ['Para ' + esc(evInfo(c, w.ev, w.my).art + ' ' + w.name), 'Antes de la jornada ' + w.exp] : [w.host ? 'En ' + esc(natOf(w.host).name) : '', 'Tras la T' + w.s, esc(stageName(w)), ph ? '' : esc(roleOf(w))];
+    if (!ph) h += '<p class="muted">' + Hh.sp(meta, 'v') + '</p>';
     if (w.nq) h += '<p>' + esc(nat.name + ' no se ha clasificado.') + '</p>';
     // tu próximo partido y los botones, arriba (en el móvil se ven sin desplazar)
-    if (pf) h += '<p>' + Hh.sp([esc(roundLabel(w, pf)), '<b>' + esc((ph ? nat.ab : nat.name) + ' contra ' + (ph ? natOf(pf.a === w.my ? pf.b : pf.a).ab : natOf(pf.a === w.my ? pf.b : pf.a).name)) + '</b>', plays(c, w, pf) ? '' : 'No juegas'], 'v') + '</p>';
+    if (pf && ph) h += '<p class="nt-big"><small>' + esc(roundLabel(w, pf)) + (plays(c, w, pf) ? '' : ' · No juegas') + '</small><b>' + esc(nat.ab + ' contra ' + natOf(pf.a === w.my ? pf.b : pf.a).ab) + '</b></p>';
+    else if (pf) h += '<p>' + Hh.sp([esc(roundLabel(w, pf)), '<b>' + esc((ph ? nat.ab : nat.name) + ' contra ' + (ph ? natOf(pf.a === w.my ? pf.b : pf.a).ab : natOf(pf.a === w.my ? pf.b : pf.a).name)) + '</b>', plays(c, w, pf) ? '' : 'No juegas'], 'v') + '</p>';
     h += actsHTML(c, w, 'main');
     if (w.kind === 'sum' && !w.nq) {
       // (tu país: .nt-me y no .me; con .me el hub del móvil bajaría hasta tu fila y el torneo y sus botones quedarían bajo la cabecera)
@@ -959,11 +963,16 @@
       var ko = w.fx.filter(function (f) { return !/^g/.test(f.r); });
       if (ko.length) h += '<p>' + ko.map(function (f) { return esc(RND_TXT[f.r]) + ': ' + fxLine(w, f, ph); }).join('<br>') + '</p>';
     }
-    if (w.kind === 'q') h += '<p>' + w.fx.map(function (f) { return esc(RND_TXT[f.r] || '') + ': ' + fxLine(w, f, ph); }).join('<br>') + '</p>';
+    if (w.kind === 'q' && ph) h += '<table class="nt-q"><thead><tr><th class="l">Partido</th><th>Resultado</th></tr></thead><tbody>' + w.fx.map(function (f) {
+      var a = natOf(f.a), b = natOf(f.b);
+      return '<tr' + (isMine(w, f) ? ' class="nt-me"' : '') + '><td class="club">' + esc(shortRound(f) || RND_TXT[f.r] || '') + ': ' + esc(a.ab + ' – ' + b.ab) + '</td><td>' + (f.res ? f.res.s[0] + '-' + f.res.s[1] : '—') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+    else if (w.kind === 'q') h += '<p>' + w.fx.map(function (f) { return esc(RND_TXT[f.r] || '') + ': ' + fxLine(w, f, ph); }).join('<br>') + '</p>';
     h += actsHTML(c, w, 'rest');
     var mine = w.fx.filter(function (f) { return isMine(w, f); });
     if (w.on && mine.length) h += '<p class="muted">' + mine.map(function (f) { return esc(roundLabel(w, f) + ': ' + scoreTxt(w, f)); }).join('<br>') + '</p>';
     if (w.stage === 'done' && w.kind === 'sum' && w.pos) h += '<p><b>' + esc(nat.name + ' termina ' + ordF(w.pos) + '.') + '</b> ' + esc('Oro para ' + natOf(w.champ).name + '.') + '</p>';
+    if (ph) h += '<p class="muted nt-foot">' + Hh.sp(meta, 'v') + '</p>';   // (móvil: los datos del torneo, como pie)
     return h + '</div>';
   }
   /** Botones del torneo. part 'main': tu partido pendiente (Jugar / Simular partido; la 1ª .acts de la tarjeta, la que pasa a la barra

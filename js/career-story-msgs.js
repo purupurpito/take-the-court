@@ -976,9 +976,15 @@
   function feel(v, a) { return v < 25 ? a[0] : v < 45 ? a[1] : v < 70 ? a[2] : v < 85 ? a[3] : a[4]; }
   /** Club › Gente: fichas con barra, frase y último cambio (con su porqué). Solo lectura (también de c.sq6 en pista). */
   function people(c, H) {
-    var esc = escF(H), sp = spF(H), s = St(c), cs = S.cast(c), l = c.life || {}, K = S.K(c), rows = [];
+    var esc = escF(H), sp = spF(H), s = St(c), cs = S.cast(c), l = c.life || {}, K = S.K(c), rows = [], ph = !!(H && typeof H.ph === 'function' && H.ph());
     function card(name, role, v, line, w, tag) {
       var last = w && w.d ? sp(['Último cambio ' + sgn(Math.round(w.d)), esc(w.t || ''), ago(s, w)], 'v') : '';
+      if (ph) {   // móvil (movil-aire §5.3): fila de nombre + papel con la cifra grande y la barra; la frase y el último cambio, al tocar
+        var dd = w && w.d ? Math.round(w.d) : 0;
+        return '<details class="lf-item st-person st-pp"><summary><span class="st-pm"><b>' + esc(name) + (tag ? ' <span class="tag r">' + esc(tag) + '</span>' : '') + '</b><small>' + esc(role) + '</small>' + (v != null ? bar(v) : '') + '</span>' +
+          (v != null ? '<span class="st-pv"><b>' + Math.round(v) + '</b>' + (dd ? '<small class="' + (dd > 0 ? 'up' : 'dn') + '">' + sgn(dd) + (dd > 0 ? ' ▲' : ' ▼') + '</small>' : '') + '</span>' : '') + '</summary>' +
+          (line ? '<p>' + esc(line) + '</p>' : '') + (last ? '<p class="muted">' + last + '</p>' : '') + '</details>';
+      }
       return '<div class="lf-item st-person"><div><b>' + esc(name) + (tag ? ' <span class="tag r">' + esc(tag) + '</span>' : '') + '</b><small>' + sp([esc(role), v != null ? String(Math.round(v)) : ''], 'v') + '</small>' +
         (v != null ? bar(v) : '') + (line ? '<small>' + esc(line) + '</small>' : '') + (last ? '<small class="muted">' + last + '</small>' : '') + '</div></div>';
     }
@@ -993,7 +999,7 @@
     var sr = seatRival(c);
     if (sr) rows.push(card(sr.name, sr.stat === 'start' ? 'Te aprieta desde el banquillo' : 'Te disputa el puesto', null,
       'Tu media ' + sr.me + ' frente a ' + sr.ovr + ' de ' + sr.name + (sr.form ? ' (su forma ' + sgn(sr.form) + ')' : '') + '.' + (s.rel.seat ? ' Pique por el puesto: ' + s.rel.seat + '.' : ''), s.rel.why.seat));
-    return '<div class="card st-people"><h3>Gente</h3>' + rows.join('') + '</div>';
+    return '<div class="card st-people' + (ph ? ' st-peop' : '') + '"><h3>Gente</h3>' + (ph ? '<div class="st-pl">' + rows.join('') + '</div>' : rows.join('')) + '</div>';
   }
   function css() {
     return '.st-bar{display:block;height:6px;margin:4px 0 2px;border-radius:3px;background:rgba(127,127,127,.25);overflow:hidden}.st-bar>i{display:block;height:100%;border-radius:3px;background:currentColor}' +

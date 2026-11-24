@@ -161,7 +161,7 @@
   var HLP = { esc: function (s) { return esc(s); }, sp: function (a, k) { return sp(a, k); }, kitSw: function (k, big) { return kitSw(k, big); },
     // B2: escudo paródico (career-world-ui.js); sin él, la muestra de equipación de siempre
     crest: function (k, px, o) { var W = WUI(); return W && W.crestSVG ? W.crestSVG(k, px, o) : k && k.kit ? kitSw(k.kit, px >= 48) : ''; },
-    ph: function () { return PH(); }, q: function (t, x) { return qBtn(t, x); } };
+    ph: function () { return PH(); }, q: function (t, x) { return qBtn(t, x); }, shortClub: function (k) { return shortClub(k); } };
   /** Móvil: explicación detrás de «?» (.sp-q → hoja VB.Splat; el «?» va en la esquina de la pegatina del título de la tarjeta). */
   function qBtn(title, text) { return '<button type="button" class="sp-q cr-q" aria-label="' + esc('Qué es: ' + title) + '" data-q-title="' + esc(title) + '" data-q-html="' + esc('<p>' + esc(text) + '</p>') + '">?</button>'; }
   /** Química de la Carrera (career-life.js S3 C5: chemInfo/chemName/chemLevel/bossFor); sin ella, null y la cifra de siempre. */
@@ -1637,7 +1637,187 @@
     PQ + ' .card.tp .tp-goals li,' + PS + ' .card.tp .tp-goals li{flex:0 1 auto;min-height:40px;max-width:100%;box-sizing:border-box;padding:4px 12px;font:700 14px/1.15 var(--sp-ui);letter-spacing:0;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;hyphens:manual}',
     PQ + ' .card.tp .tp-goals li i,' + PS + ' .card.tp .tp-goals li i{display:none}',   // (el orden no importa: tres fichas de una línea)
     PQ + ' .card.tp .tp-fmt{order:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin:0;font-size:var(--ph-label)}',
-    PQ + ' .card.tp .tp-fmt>.cr-q{position:relative;top:auto;right:auto;width:44px;height:44px;min-width:44px;min-height:44px;margin:-4px 0 -4px auto;transform:none;font:700 17px/1 var(--sp-ui)}'
+    PQ + ' .card.tp .tp-fmt>.cr-q{position:relative;top:auto;right:auto;width:44px;height:44px;min-width:44px;min-height:44px;margin:-4px 0 -4px auto;transform:none;font:700 17px/1 var(--sp-ui)}',
+    // ==== movil-aire, paquete carrera-jugador-club (24-nov-2026; notes/movil-aire.md §5.3). Solo html.ph (PQ); PC igual.
+    // «?» en línea (dentro de una fila: cabecera del club, compañero, rol, puesto, vestuario, entreno, selección)
+    PQ + ' :is(.cr-chd,.cr-mth,.cr-ctl,.cr-tpos,.cr-lkr,.cr-ptr,.nt-sr)>.cr-q{position:relative;top:auto;right:auto;flex:none;width:44px;height:44px;min-width:44px;min-height:44px;margin:0 0 0 auto;padding:0;border:0;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);font:400 var(--ph-row)/1 var(--sp-pop);letter-spacing:0;text-transform:none;text-shadow:none;transform:none}',
+    PQ + ' :is(.cr-chd,.cr-mth,.cr-ctl,.cr-tpos,.cr-lkr,.cr-ptr,.nt-sr)>.cr-q:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    // ---- Jugador › Físico / Defensa / Ataque: «Nv 2 · 92/152 XP · [4 puntos]» en una línea, barra de 5 y atributos en 2 columnas (también a 568)
+    // (se quedan las 3 sub-pestañas: con 3-4 atributos por grupo caben en 2 filas sin desplazar; fundidas serían 5 filas y habría que bajar)
+    PQ + ' .cr-pcard{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px;row-gap:8px;padding-top:10px}',
+    PQ + ' .cr-pcard .cr-pid{flex-wrap:nowrap;gap:10px}',
+    PQ + ' .cr-pcard .cr-pid>.muted{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 var(--ph-label)/1.2 var(--sp-ui)}',
+    PQ + ' .cr-pcard .cr-plv{font:400 var(--ph-row)/1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' .cr-pcard>.xp{height:5px;margin:0 0 6px}',
+    PQ + ' .cr-pcard .attr{grid-template-columns:minmax(0,1fr) auto 44px;grid-template-areas:"n v u" "b b u";column-gap:10px;row-gap:5px;align-items:center;min-height:52px;margin:0}',
+    PQ + ' .cr-pcard .attr>span:first-child{grid-area:n;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-pcard .attr>.bar{grid-area:b;height:6px;align-self:start}',
+    PQ + ' .cr-pcard .attr>b{grid-area:v;line-height:1}',
+    PQ + ' .cr-pcard .attr>button{grid-area:u;width:44px;height:44px;min-width:44px;border-radius:50%}',
+    PQ + ' .cr-pcard>p.cr-ptr{display:flex;align-items:center;gap:10px;margin:4px 0 0;font:600 var(--ph-label)/1.2 var(--sp-ui)}',
+    // ---- Jugador › Firma: saques en rejilla de tarjetas de 64 (nombre 16 + 1 dato), sin cola; el detalle y «Elegir», en la hoja
+    PQ + ' .cr-sigp .cr-sigg{margin:4px 0 12px}',
+    PQ + ' .cr-sigp .cr-sgc{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;min-width:0;min-height:64px;margin:0;padding:8px 12px;border:0;' +
+      'border-radius:12px 16px 13px 17px/16px 12px 17px 13px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);text-align:left;text-transform:none;letter-spacing:0;text-shadow:none;transform:none;filter:none}',
+    PQ + ' .cr-sigp .cr-sgc>b{max-width:100%;font:400 16px/1.1 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-sigp .cr-sgc>small{max-width:100%;font:700 var(--ph-cap)/1.2 var(--sp-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-sigp .cr-sgc>small>i{font-style:normal}',
+    PQ + ' .cr-sigp .cr-sgc.on{background:var(--sp-gold)}',
+    PQ + ' .cr-sigp .cr-sgc.lock{background:var(--sp-ink2);color:var(--sp-cream);opacity:.7}',
+    PQ + ' .cr-sigp .cr-sgc:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold),2px 3px 0 5.5px var(--sp-ink)}',
+    PQ + ' .cr-sigp .cr-sgc:active{transform:translate(1px,2px)}',
+    PQ + ' .cr-sigp .cr-sgg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}',
+    PQ + ' .cr-sigp .cr-sgg>label{margin:0;font:700 var(--ph-label)/1.2 var(--sp-ui)}',
+    PQ + ' .cr-sigp .cr-sgg>.seg{flex:1 1 auto;gap:8px;margin:0}',
+    PQ + ' .cr-sigp .cr-sgg>.seg>button{flex:1 1 0;min-height:44px;padding:0 8px;white-space:nowrap}',
+    // insignias: tarjetas de 64 en rejilla de 2 (3 a 844+), la descripción en una línea
+    PQ + ' .bdg{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ph-card-gap)}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .bdg{grid-template-columns:repeat(3,minmax(0,1fr))}',
+    PQ + ' .bd{min-height:64px;padding:8px 10px;gap:8px}',
+    PQ + ' .bd.lock{opacity:.7}',
+    PQ + ' .card>.cr-q+.bdg{margin-top:28px}',   // (el «?» del sello no pisa la primera fila)
+    // ---- Jugador › Estado: «Plan ›» pequeño en la fila del enfoque (nada en la barra de abajo); lesión con el muñeco en el sello
+    PQ + ' .cr-trp .cr-trl{display:flex;align-items:center;gap:12px}',
+    PQ + ' .cr-trp .cr-trl>p{flex:1 1 auto;min-width:0;margin:0}',
+    PQ + ' .cr-trp .cr-trl>.cr-plgo{flex:none;min-height:44px;margin:0}',
+    PQ + ' #crBody .inj-ph>h3 .inj-doll{float:none;width:28px;height:40px;margin:-8px 0 -8px -4px;transform:rotate(4deg)}',
+    PQ + ' #crBody .inj-ph .inj-pb{grid-template-columns:auto minmax(48px,1fr) auto;gap:10px;margin:6px 0 4px}',
+    PQ + ' #crBody .inj-ph .inj-pb>span:first-child{white-space:nowrap}',
+    PQ + ' #crBody .inj .acts{margin:8px 0 10px}',
+    PQ + ' #crBody .inj .acts>*{min-height:48px}',
+    PQ + ' #crBody .inj-optc .inj-opt{margin:2px 0 6px}',
+    // ---- Club › Ficha (tu club): cabecera de escudo 56 y nombre corto, datos en .ph-kv, el entrenador en una línea con su barra
+    PQ + ' .cr-chd{align-items:center;gap:12px;flex-wrap:nowrap;margin:0 0 8px}',
+    PQ + ' .cr-chd>:is(svg,.cr-kit,.sp-crest){flex:none;width:56px!important;height:56px!important}',
+    PQ + ' .cr-chn{margin:0;font-size:20px!important;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-chs{margin:2px 0 0;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .ph-kv>.w{grid-column:1/-1}',
+    PQ + ' .ph-kv .cr-dots{display:inline-flex;gap:6px}',
+    PQ + ' .ph-kv .cr-dot{width:18px;height:18px}',
+    PQ + ' .cr-coach{margin:4px 0 0}',
+    PQ + ' .cr-coach>.cr-coach-t{margin:0 0 6px;font:600 var(--ph-label)/1.2 var(--sp-ui)}',
+    PQ + ' .cr-coach>.muted{margin:6px 0 0;font-size:var(--ph-cap)}',
+    // Club › Equipo (pista): filas de 44 de una línea, el puesto como cabecera pegada arriba, tu fila resaltada
+    PQ + ' .cr-team6{padding-top:8px}',
+    PQ + ' .cr-team6 .cr-tpos{display:flex;align-items:center;gap:10px;margin:0 0 6px}',
+    PQ + ' .cr-team6 .cr-tpos>span{padding:5px 12px;border-radius:9px 12px 10px 13px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:700 var(--ph-label)/1.2 var(--sp-ui)}',
+    PQ + ' .cr-team6 .cr-t6h{position:sticky;top:-10px;z-index:2;height:28px;margin:6px 0 2px;padding:0 10px;border-radius:8px 11px 9px 12px;background:var(--sp-ink);color:var(--sp-gold);font:800 var(--ph-micro)/28px var(--sp-ui);letter-spacing:.06em;text-transform:uppercase}',
+    PQ + ' .cr-team6 .cr-t6r{display:grid;grid-template-columns:minmax(0,1fr) auto 2.2em 12px 30px;align-items:center;column-gap:10px;min-height:44px;padding:0 10px;border-bottom:1px solid rgba(255,244,220,.1)}',
+    PQ + ' .cr-team6 .cr-t6r.me{border-radius:10px;background:var(--sp-kit);color:var(--sp-kit-ink);box-shadow:0 0 0 2px var(--sp-ink)}',
+    PQ + ' .cr-team6 .cr-t6n{min-width:0;font:400 var(--ph-row)/1.15 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-team6 .cr-t6n>i{font:600 var(--ph-cap) var(--sp-ui)}',
+    PQ + ' .cr-team6 .cr-t6d{font:600 var(--ph-cap)/1 var(--sp-ui);opacity:.8;white-space:nowrap}',
+    PQ + ' .cr-team6 .cr-t6o{font:700 var(--ph-row)/1 var(--sp-ui);font-variant-numeric:tabular-nums;text-align:right}',
+    PQ + ' .cr-team6 .cr-t6f{width:12px;height:12px;border-radius:50%;background:rgba(255,244,220,.4);box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    PQ + ' .cr-team6 .cr-t6f.g{background:#2fbf71}' + PQ + ' .cr-team6 .cr-t6f.g1{background:#9be08a}' + PQ + ' .cr-team6 .cr-t6f.r{background:#e0435a}' + PQ + ' .cr-team6 .cr-t6f.r1{background:#f0a05a}',
+    PQ + ' .cr-team6 .cr-t6r>.tag{justify-self:center;min-width:26px;margin:0;padding:3px 0;text-align:center}',
+    // Club › Compañero: sin sello; retrato 48, fichas en una fila y la química (barra de 8) a la vista
+    PQ + ' .cr-matep .cr-mth{align-items:center;gap:12px;flex-wrap:nowrap}',
+    PQ + ' .pt.cr-pt48{flex:none;width:48px;height:48px;border-radius:11px}',
+    PQ + ' .cr-matep .cr-chn{font-size:18px!important}',
+    PQ + ' .cr-matep .cr-mtc{margin:4px 0 0!important;white-space:nowrap;overflow-x:auto;scrollbar-width:none}',
+    PQ + ' .cr-matep .cr-chem{margin:8px 0 6px}' + PQ + ' .cr-matep .cr-chem>p{font:600 var(--ph-label)/1.2 var(--sp-ui)}',
+    PQ + ' .cr-matep .meter{height:8px}',
+    // Club › Contrato: la caja de cifras y el rol en una línea con su «?»
+    PQ + ' .cr-ctl{display:flex;align-items:center;gap:10px;margin:6px 0 0}',
+    PQ + ' .cr-ctl>p{flex:1 1 auto;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-cap)}',
+    // Club › Ofertas / cesiones: ofertas de una fila con «Ir cedido» de 48 a la derecha, el bloqueo arriba en rojo, condiciones en una tira
+    PQ + ' .ln-ph .ln-why{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 6px;font-size:var(--ph-cap)}',
+    PQ + ' .ln-ph .ln-cond{margin:0 0 4px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}',
+    PQ + ' .ln-ph .offer-x.ln-o{padding:10px 0!important;border-top:1px solid rgba(255,244,220,.12)}',
+    PQ + ' .ln-o>.row{align-items:center;gap:10px;flex-wrap:nowrap}',
+    PQ + ' .ln-o>.row>:is(svg,.cr-kit,.sp-crest){flex:none;width:40px!important;height:40px!important}',
+    PQ + ' :is(.ln-o,.ln-on6) .ln-on{margin:0;font-size:var(--ph-row)!important;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' :is(.ln-o,.ln-on6) .ln-om{margin:3px 0 0!important;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .ln-o>.row>.acts{flex:none;margin:0}',
+    PQ + ' .ln-o>.row>.acts>.sp-btn{min-height:48px;--sp-h:48px}',
+    PQ + ' .ln-ph>.acts.ln-pass{justify-content:flex-start;margin:10px 0 0}',
+    PQ + ' .ln-ph>.acts.ln-pass>.sp-btn{flex:0 0 auto;width:auto}',
+    // Club › Contrato: la respuesta del club arriba (renovación con lo que cambia en verde / rojo; el «no»); cedido con su tira
+    PQ + ' .ln-ask .ln-ak{margin:0 0 6px;font-size:var(--ph-body)}',
+    PQ + ' .ln-ask .ln-ac{margin:4px 0 0;font-size:var(--ph-cap)}',
+    PQ + ' .ln-st .ln-up .sp-hn{color:#8be38f}' + PQ + ' .ln-st .ln-dn .sp-hn{color:#ff8a9a}',
+    PQ + ' .ln-st .sp-hn{font-size:var(--ph-row)!important;white-space:normal;text-align:center;line-height:1.05}',
+    PQ + ' .ln-on6>.row{align-items:center;gap:10px;flex-wrap:nowrap}',
+    PQ + ' .cr-dock>.sp-btn:not(.sp-patch)[data-act="ln-ans"]{--sp-c:var(--sp-cream);--sp-tc:var(--sp-ink)}',   // (Prefiero salir / Insistir: neutros)
+    // Club › Gente: filas de 56-72 (nombre + papel, cifra grande con «+2 ▲» y barra de 6); la frase y el último cambio al tocar
+    PQ + ' .st-peop .st-pl{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .st-peop .st-pl{grid-template-columns:repeat(2,minmax(0,1fr))}',
+    PQ + ' .st-peop .st-pp.lf-item{margin:0;padding:0;border:0;background:none;box-shadow:none}',
+    PQ + ' .st-pp>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:56px;padding:6px 10px;border-radius:10px 13px 11px 14px;background:rgba(255,244,220,.07);list-style:none;cursor:pointer}',
+    PQ + ' .st-pp>summary::-webkit-details-marker{display:none}',
+    PQ + ' .st-pp>summary:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold)}',
+    PQ + ' .st-pp[open]>summary{background:rgba(255,244,220,.13)}',
+    PQ + ' .st-pm{min-width:0}',
+    PQ + ' #crBody .st-peop .st-pm>b{display:block;font:400 var(--ph-row)/1.15 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .st-pm>small{display:block;font:600 var(--ph-cap)/1.2 var(--sp-ui);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .st-pm>.st-bar{height:6px;margin:5px 0 0;color:var(--sp-gold)}',
+    PQ + ' .st-pv{text-align:right}',
+    PQ + ' #crBody .st-peop .st-pv>b{display:block;font:400 26px/1 var(--sp-pop);color:var(--sp-gold);font-variant-numeric:tabular-nums}',
+    PQ + ' #crBody .st-peop .st-pv>small{display:block;margin-top:2px;font:700 var(--ph-cap)/1 var(--sp-ui);white-space:nowrap}',
+    PQ + ' .st-pv>small.up{color:#8be38f}' + PQ + ' .st-pv>small.dn{color:#ff8a9a}',
+    PQ + ' .st-pp>p{margin:6px 10px 4px;font-size:var(--ph-cap)}',
+    // Jugador › Ropa: una fila (colores · «67/155 · 2 nuevos» · «Vestuario ›»)
+    PQ + ' .cr-lookp .cr-lkr{display:flex;align-items:center;gap:12px}',
+    PQ + ' .cr-lookp .cr-lkn{flex:1 1 auto;min-width:0;margin:0;font-size:var(--ph-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-lookp .cr-lkn>b{font:400 var(--ph-num)/1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' .cr-lookp .cr-lkn>small{display:block;font-size:var(--ph-cap);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-lookp .cr-lknu{color:var(--sp-gold);font-weight:700}',
+    PQ + ' .cr-lookp .cr-lkr>.acts{flex:none;margin:0}',
+    PQ + ' .cr-lookp .cr-lkr>.acts>.sp-patch{--sp-ph:48px;--sp-pt:18px}',
+    PQ + ' .cr-lookp .cr-lkr>.acts>.sp-patch .sp-t{white-space:nowrap}',
+    // Liga › Clubes › ficha: «‹» de 44, nombre corto, «liga · año · apodo» y «Esta temporada» en la cabecera; rencor en una franja
+    PQ + ' .cw-cph .cw-chr{align-items:center;gap:10px;flex-wrap:nowrap;margin:0}',
+    PQ + ' .cw-cph .cw-bk{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none;filter:none}',
+    PQ + ' .cw-cph .cw-bk>:is(.sp-blob,.sp-drops){display:none}',
+    PQ + ' .cw-cph .cw-bk .sp-t{font:400 26px/1 var(--sp-pop);color:var(--sp-cream);text-shadow:none}',
+    PQ + ' .cw-cph .cw-bk:is(.kf,:focus-visible){outline:none;background:var(--sp-gold)}' + PQ + ' .cw-cph .cw-bk:is(.kf,:focus-visible) .sp-t{color:var(--sp-ink)}',
+    PQ + ' .cw-cph .cw-chr>:is(svg,.cw-crest,.cr-kit){flex:none;width:56px!important;height:56px!important;margin:0!important}',
+    PQ + ' .cw-cph .cw-cn{margin:0;font-size:var(--ph-head)!important;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cw-cph .cw-ck{margin:2px 0 0;font:700 var(--ph-cap)/1.2 var(--sp-ui);color:var(--sp-gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cw-cph .cw-cs{flex:none;margin:0 2px 0 0;text-align:center}',
+    PQ + ' .cw-cph .cw-cs>b{display:block;font:400 26px/1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' .cw-cph .cw-cs>small{font:700 var(--ph-cap)/1 var(--sp-ui)}',
+    PQ + ' .cw-cph .cw-bond{margin:8px 0 4px;padding:7px 10px;border-radius:9px 12px 10px 13px;font:600 13px/1.25 var(--sp-ui);color:var(--sp-cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cw-cph .cw-bond.r{background:rgba(224,67,90,.25);box-shadow:inset 4px 0 0 var(--sp-danger,#e0435a)}',
+    PQ + ' .cw-cph .cw-bond.g{background:rgba(47,191,113,.22);box-shadow:inset 4px 0 0 #2fbf71}',
+    PQ + ' .cw-cph .cw-chips{margin:6px 0 0!important;white-space:nowrap;overflow-x:auto;scrollbar-width:none}',
+    PQ + ' .cw-cph .cw-nick{margin:4px 0 0;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    // Club › Selección: franja de 44 (bandera · país · estado · confianza), el partido en grande primero, tabla de filas de 36, el torneo como pie
+    PQ + ' .card.nt-strip{padding:2px 10px}',
+    PQ + ' .nt-strip .nt-sr{display:flex;align-items:center;gap:10px;min-height:44px;margin:0;white-space:nowrap}',
+    PQ + ' .nt-strip .nt-sr>:is(.cr-kit,svg){flex:none;width:28px!important;height:28px!important}',
+    PQ + ' .nt-strip .nt-sr>b{font:400 var(--ph-row)/1 var(--sp-pop);text-transform:uppercase;letter-spacing:.02em}',
+    PQ + ' .nt-strip .nt-sr>.tag{margin:0}',
+    PQ + ' .nt-strip .nt-sr>.nt-tr{margin-left:auto;font:700 var(--ph-cap)/1 var(--sp-ui)}',
+    PQ + ' .nt-strip .nt-sr>.cr-q{margin-left:0}',
+    PQ + ' .card:has(>.nt-foot) .nt-big{margin:0 0 8px}',
+    PQ + ' .card:has(>.nt-foot) .nt-big>small{display:block;font:700 var(--ph-cap)/1.2 var(--sp-ui);opacity:.85}',
+    PQ + ' .card:has(>.nt-foot) .nt-big>b{display:block;font:400 24px/1.1 var(--sp-pop);color:var(--sp-gold)}',
+    PQ + ' #crBody .card:has(>.nt-foot) td{height:36px;padding-top:4px;padding-bottom:4px}',
+    PQ + ' #crBody .card:has(>.nt-foot) table{border-spacing:0 3px}',
+    PQ + ' .card:has(>.nt-foot) .nt-foot{margin:8px 0 0;font-size:var(--ph-cap)}',
+    // Plan y pedir puesto: la lista de filas de 52 (gap 10), la elegida con marco dorado y ✓; la × de 44 cierra la lista
+    PQ + ' #crBody .card .cdv-x{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);' +
+      'box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);font:400 26px/1 var(--sp-pop);text-shadow:none;transform:none}',
+    PQ + ' #crBody .card .cdv-x:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    PQ + ' #crBody .card .cdv-x>:is(.sp-blob,.sp-drops){display:none}' + PQ + ' #crBody .card .cdv-x .sp-t{font:400 26px/1 var(--sp-pop);color:inherit;text-shadow:none}',
+    PQ + ' .ph-kv>.w>.v{white-space:normal;text-align:right;line-height:1.2;padding:4px 0}',
+    PQ + ' #crBody .cdv-list{gap:10px}',
+    PQ + ' #crBody .cdv-row.cdv-phr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:52px;margin:0;padding:6px 14px;border:0;' +
+      'border-radius:12px 16px 13px 17px/16px 12px 17px 13px;background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 2px rgba(255,244,220,.16);text-align:left;text-transform:none;letter-spacing:0;text-shadow:none;transform:none}',
+    PQ + ' #crBody .cdv-phr .sp-t{font:400 var(--ph-row)/1.1 var(--sp-pop)}',
+    PQ + ' #crBody .cdv-phr .sp-s{font:600 var(--ph-cap)/1.2 var(--sp-ui);white-space:nowrap;overflow:visible;text-overflow:clip;opacity:.9}',
+    PQ + ' #crBody .cdv-phr.cdv-on{box-shadow:0 0 0 2px rgba(255,210,63,.55)}',
+    PQ + ' #crBody .cdv-phr.cdv-pick{background:#2c2350;box-shadow:0 0 0 3px var(--sp-gold),2px 3px 0 3px var(--sp-ink)}',
+    PQ + ' #crBody .cdv-phr:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 3px var(--sp-cream)}',
+    PQ + ' #crBody .cdv-phr .cdv-ck{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sp-gold);color:var(--sp-ink);font:800 16px/1 var(--sp-ui);font-style:normal}',
+    PQ + ' #crBody .cdv-phr .cdv-star{margin-right:6px;color:var(--sp-gold);font-style:normal}',
+    PQ + ' #crBody .cdv-phr .cdv-fit{display:flex;align-items:center;gap:8px}',
+    PQ + ' #crBody .cdv-phr .cdv-fb{display:block;width:72px;height:6px;border-radius:3px;background:rgba(255,244,220,.2);overflow:hidden}',
+    PQ + ' #crBody .cdv-phr .cdv-fb>i{display:block;height:100%;background:var(--sp-teal,#1fb5a8)}',
+    PQ + ' #crBody .cdv-now,' + PQ + ' #crBody .cdv-dif{margin:0;font-size:var(--ph-cap)}'
   ].join('\n');
 
   // =================================================================== construcción
@@ -2519,7 +2699,8 @@
       '<div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="' + need + '" aria-valuenow="' + a.xp + '" aria-label="Experiencia"><i style="width:' + Math.round(100 * a.xp / need) + '%"></i></div>' +
       '<p class="muted">' + sp([a.xp + ' / ' + need + ' XP para el nivel ' + (a.lvl + 1), 'Puntos de mejora: <b style="color:var(--gold)">' + a.pts + '</b>'], 'v') + '</p>';
     if (PH()) {   // móvil: la ficha en una línea (nombre · dorsal · nivel · XP y los puntos en su pastilla dorada) y la barra; los atributos, a la vista
-      h = '<div class="card cr-pcard"><div class="cr-pid"><b>' + esc(a.name) + '</b><span class="muted">' + sp(['n.º ' + a.num, 'Nv ' + a.lvl, a.xp + ' / ' + need + ' XP'], 'v') + '</span>' +
+      // (movil-aire §5.3: sin el nombre —lo dice el retrato de la cabecera—, «Nv 2 · 92/152 XP · [4 puntos]» en una línea y barra fina)
+      h = '<div class="card cr-pcard"><div class="cr-pid"><span class="muted"><b class="cr-plv">Nv ' + a.lvl + '</b> · ' + a.xp + '/' + need + ' XP</span>' +
         '<span class="cr-pts' + (a.pts ? '' : ' off') + '"><b>' + a.pts + '</b> ' + (a.pts === 1 ? 'punto' : 'puntos') + '</span></div>' +
         '<div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="' + need + '" aria-valuenow="' + a.xp + '" aria-label="Experiencia"><i style="width:' + Math.round(100 * a.xp / need) + '%"></i></div>';
     }
@@ -2534,7 +2715,9 @@
       });
     });
     var tg = { atk: 'atk', def: 'def', phys: 'phys' }[s];
-    h += '<p class="muted" style="margin-top:8px">Entreno: ' + esc(C().TRAIN[c.train].name) + SV + 'progreso de ' + esc(GROUP_OF[s]).toLowerCase() + ' ' + (c.tp && c.tp[tg] | 0) + ' / ' + C().TRAIN_NEED +
+    if (PH()) h += '<p class="muted cr-ptr">' + esc(C().TRAIN[c.train].name) + ' · ' + (c.tp && c.tp[tg] | 0) + '/' + C().TRAIN_NEED +
+      qBtn('Entreno de ' + GROUP_OF[s].toLowerCase(), 'Entreno: ' + C().TRAIN[c.train].name + '. Progreso de ' + GROUP_OF[s].toLowerCase() + ': ' + (c.tp && c.tp[tg] | 0) + ' de ' + C().TRAIN_NEED + '. Al llegar, +1 gratis en el atributo más bajo del grupo.') + '</p></div>';
+    else h += '<p class="muted" style="margin-top:8px">Entreno: ' + esc(C().TRAIN[c.train].name) + SV + 'progreso de ' + esc(GROUP_OF[s]).toLowerCase() + ' ' + (c.tp && c.tp[tg] | 0) + ' / ' + C().TRAIN_NEED +
       ' (al llegar, +1 gratis en el más bajo del grupo)</p></div>';
     return h;
   }
@@ -2564,6 +2747,20 @@
     var hall = isHall(c), s = c.sig || {}, cur = T.byId[s.serve] ? s.serve : 'clasico', gest = s.gest || 'normal', sv = (c.player.st && c.player.st.serve) | 0;
     var ids = T.ids.filter(function (id) { var d = T.byId[id]; return d && (!d.venue || d.venue === (hall ? 'hall' : 'beach')); });
     if (!ids.length) return '';
+    if (PH()) {   // móvil (movil-aire §5.3): tarjetas de nombre + 1 dato en rejilla; el detalle y «Elegir», en una hoja (sigSheet)
+      return '<div class="card cr-sig cr-sigp"><h3>' + sp(['Saque de firma', esc((T.byId[cur] && T.byId[cur].name) || 'Clásico')], 'd') + '</h3>' +
+        qBtn('Saque de firma', 'Tu saque de siempre en los partidos de la Carrera. Algunos piden más nivel de saque. Toca uno para ver qué hace y elegirlo.') +
+        '<div class="ph-grid2 cr-sigg" role="group" aria-label="Saque de firma">' + ids.map(function (id) {
+          var d = T.byId[id], lock = sv < (d.need | 0), on = id === cur;
+          var kt = d.key === 'jump' ? 'Va en SALTAR' : d.key === 'both' ? 'GOLPEAR y SALTAR' : 'Va en GOLPEAR';
+          return '<button type="button" class="cr-sgc' + (on ? ' on' : '') + (lock ? ' lock' : '') + '" data-act="sigsh-' + esc(id) + '" aria-pressed="' + on + '" aria-haspopup="dialog"' +
+            ' aria-label="' + esc((d.name || id) + (on ? ', elegido' : '') + '. ' + (lock ? 'Bloqueado: pide saque ' + (d.need | 0) : kt) + '. Ver detalle') + '">' +
+            '<b>' + esc(d.name || id) + '</b><small>' + (lock ? '<i aria-hidden="true">🔒</i> Pide saque ' + (d.need | 0) : on ? '✓ ' + kt : kt) + '</small></button>';
+        }).join('') + '</div>' +
+        '<div class="cr-sgg"><label>Gesto antes de sacar</label><div class="seg" role="group" aria-label="Gesto antes de sacar">' + SIG_GEST_UI.map(function (g) {
+          return '<button data-act="sgest-' + g[0] + '" aria-pressed="' + (g[0] === gest) + '">' + esc(g[1]) + '</button>';
+        }).join('') + '</div></div></div>';
+    }
     return '<div class="card cr-sig"><h3>' + sp(['Saque de firma', esc((T.byId[cur] && T.byId[cur].name) || 'Clásico')], 'd') + '</h3>' +
       '<p class="muted">Tu saque de siempre en los partidos de la Carrera. Algunos piden más nivel de saque.</p>' +
       '<div class="acts cr-sig-l" role="group" aria-label="Saque de firma">' + ids.map(function (id) {
@@ -2576,6 +2773,19 @@
       '<label>Gesto antes de sacar</label><div class="seg" role="group" aria-label="Gesto antes de sacar">' + SIG_GEST_UI.map(function (g) {
         return '<button data-act="sgest-' + g[0] + '" aria-pressed="' + (g[0] === gest) + '">' + esc(g[1]) + '</button>';
       }).join('') + '</div></div>';
+  }
+  /** Móvil: hoja de un saque de firma (descripción, pro y contra, la tecla, lo que pide) con «Elegir» de 48 abajo a la derecha. */
+  function sigSheet(c, id) {
+    var T = VB.SERVE_SIG, SP = VB.Splat, d = T && T.byId && T.byId[id]; if (!d || !SP || !SP.sheet || !c) return;
+    var sv = (c.player.st && c.player.st.serve) | 0, lock = sv < (d.need | 0), cur = c.sig && T.byId[c.sig.serve] ? c.sig.serve : 'clasico';
+    var kt = d.key === 'jump' ? 'Va en SALTAR' : d.key === 'both' ? 'GOLPEAR y SALTAR' : 'Va en GOLPEAR';
+    var html = (d.desc ? '<p>' + esc(d.desc) + '</p>' : '') + '<dl class="sp-kv cr-sgkv">' + (d.pro ? '<dt>A favor</dt><dd>' + esc(d.pro) + '</dd>' : '') + (d.con ? '<dt>En contra</dt><dd>' + esc(d.con) + '</dd>' : '') +
+      '<dt>Botón</dt><dd>' + esc(kt) + '</dd>' + ((d.need | 0) ? '<dt>Pide</dt><dd>' + (lock ? '🔒 ' : '') + 'Saque ' + (d.need | 0) + ' (tienes ' + sv + ')</dd>' : '') + '</dl>';
+    var acts = lock || id === cur ? [] : [{ label: 'Elegir', primary: true, cls: 'sp-kit', fn: function () {
+      var c2 = C() && C().get(); if (!c2) return;
+      C().setSig(c2, id, (c2.sig && c2.sig.gest) || 'normal'); snd('select'); render(); focusSel('[data-act="sigsh-' + id + '"]');
+    } }];
+    SP.sheet({ title: (d.name || id) + (id === cur ? ' · elegido' : ''), html: html, cls: 'cr-sgsh', actions: acts });
   }
   /** Nombre de un objeto o peinado del vestuario ('' si no hay). */
   function lookName(X, id) { if (!id || typeof id !== 'string') return ''; var n = ''; try { n = X.name ? X.name(id) : ''; } catch (e) { n = ''; } return String(n || id); }
@@ -2597,6 +2807,13 @@
     var all = (X.CATALOG || []).filter(function (x) { return x && typeof x.id === 'string'; }), have = 0, nu = 0;
     all.forEach(function (x) { try { if (X.owned(x.id)) have++; } catch (e) { } });
     try { nu = X.unseen ? (X.unseen() || []).length : 0; } catch (e) { nu = 0; }
+    if (PH()) {   // móvil (movil-aire §5.3): una fila (colores · «67/155 · 2 nuevos» · «Vestuario ›») y las frases tras «?»
+      return '<div class="card cr-lookp"><div class="cr-lkr">' + (k ? kitSw(k.kit) : '') + '<p class="cr-lkn"><b>' + have + '/' + all.length + '</b>' + (nu ? ' · <span class="cr-lknu">' + plural(nu, 'nuevo', 'nuevos') + '</span>' : '') +
+        (fit ? '<small>' + esc(hallC ? 'En pista' : 'En playa') + ' · ' + esc(lookName(X, fit.style) || '—') + '</small>' : '') + '</p>' +
+        qBtn('Vestuario', 'Con los colores de tu club. Solo estética: no cambia cómo juegas. ' + (mine ? '' : (hallC ? 'Tu jugador lleva su aspecto de siempre hasta que guardes uno en el vestuario. ' : 'Llevas el aspecto de tu n.º 1 de Partido rápido hasta que guardes uno propio en el vestuario. ')) +
+          'Más objetos con la fama, los logros y los premios de la Carrera, o en Fama › Tienda. Lo que ganas vale también en Partido rápido.') +
+        '<div class="acts"><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Vestuario ›</button></div></div></div>';
+    }
     h += '<p class="muted" style="margin:8px 0 0">' + sp(['Tienes ' + have + ' de ' + all.length + ' objetos', nu ? plural(nu, 'novedad sin ver', 'novedades sin ver') : ''], 'v') + '</p>' +
       '<div class="acts"><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Abrir el vestuario</button></div>' +
       '<p class="muted">Más objetos con la fama, los logros y los premios de la Carrera, o en Fama › Tienda. Lo que ganas vale también en Partido rápido.</p></div>';
@@ -2639,7 +2856,11 @@
   function renderTrain(c) {
     var T = C().TRAIN, f = c.fatigue | 0, fm = C().fatigueMalus(c), fc = f > 60 ? '#d8364a' : f > C().FAT_FREE ? '#e07b2b' : '#2fbf71', tk = T[c.train] || T.bal;
     var gs = Object.keys(tk.prog), pr = gs.length > 1 ? '+' + tk.prog[gs[0]] + ' a cada grupo' : gs.length ? '+' + tk.prog[gs[0]] + ' por semana' : '';
-    var h = '<div class="card"><h3>Plan del entrenador</h3><p>' + sp(['Enfoque: <b>' + esc(tk.name) + '</b>', pr, tk.fat ? 'fatiga ' + (tk.fat > 0 ? '+' : '') + tk.fat : ''], 'v') + '</p>' +
+    var stx = C().STYLE_TRAIN && C().STYLE_TRAIN[C().clubInfo(c, C().myClub(c)).style] ? ' Los entrenos de tu club suman +' + C().STYLE_PROG + ' por semana en ' + GROUP_OF[C().STYLE_TRAIN[C().clubInfo(c, C().myClub(c)).style]].toLowerCase() + '.' : '';
+    var h = PH()   // móvil (movil-aire §5.3): el enfoque en una línea, la explicación tras «?» y «Plan ›» pequeño en la fila (nada en la barra de abajo)
+      ? '<div class="card cr-trp"><h3>Plan del entrenador</h3>' + qBtn('Plan del entrenador', 'El enfoque, las 3 sesiones de cada jornada y el entreno automático están en Partido. Cada ' + C().TRAIN_NEED + ' de progreso, +1 al atributo más bajo del grupo.' + stx) +
+        '<div class="cr-trl"><p>' + sp(['<b>' + esc(tk.name) + '</b>', pr, tk.fat ? 'fatiga ' + (tk.fat > 0 ? '+' : '') + tk.fat : ''], 'v') + '</p><button class="lnk cr-plgo" data-act="plan-go">Plan ›</button></div></div>'
+      : '<div class="card"><h3>Plan del entrenador</h3><p>' + sp(['Enfoque: <b>' + esc(tk.name) + '</b>', pr, tk.fat ? 'fatiga ' + (tk.fat > 0 ? '+' : '') + tk.fat : ''], 'v') + '</p>' +
       '<p class="muted">El enfoque, las 3 sesiones de cada jornada y el entreno automático están en Partido. Cada ' + C().TRAIN_NEED + ' de progreso, +1 al atributo más bajo del grupo.' +
       (C().STYLE_TRAIN && C().STYLE_TRAIN[C().clubInfo(c, C().myClub(c)).style] ? ' Los entrenos de tu club suman +' + C().STYLE_PROG + ' por semana en ' + esc(GROUP_OF[C().STYLE_TRAIN[C().clubInfo(c, C().myClub(c)).style]]).toLowerCase() + '.' : '') + '</p>' +
       '<div class="acts"><button class="pri" data-act="plan-go">' + (PH() ? 'Plan del entrenador' : 'Ir al plan del entrenador') + '</button></div></div>';
@@ -2655,6 +2876,25 @@
     note = '';
     return h;
   }
+  // ---- móvil (movil-aire §5.3, paquete carrera-jugador-club): fichas clave/valor (.ph-kv) y cabecera de club corta
+  /** Celda de .ph-kv (val ya es HTML); w = a todo el ancho de la caja. */
+  function kv(label, val, w) { return '<div' + (w ? ' class="w"' : '') + '><span class="k">' + esc(label) + '</span><b class="v">' + val + '</b></div>'; }
+  /** «Sorra Brisamar Dunes» → { name: «Brisamar Dunes», spon: «Sorra» } (el patrocinador, lo que shortClub quita delante). */
+  function clubParts(k) {
+    var n = String((k && k.name) || ''), s = shortClub(k), i = n.length - s.length;
+    return { name: s, spon: s !== n && i > 0 && n.slice(i) === s ? n.slice(0, i).trim() : '' };
+  }
+  /** Cabecera del club: escudo 56, nombre corto a 20 px y debajo patrocinador · más (a --ph-cap). */
+  function phClubHead(c, k, more, q) {
+    var p = clubParts(k);
+    return '<div class="row cr-chd">' + crest(k, 56, c) + '<div class="grow" style="min-width:0"><p class="bigname cr-chn">' + esc(p.name) + '</p>' +
+      '<p class="muted cr-chs">' + sp([p.spon ? esc(p.spon) : ''].concat(more || []), 'v') + '</p></div>' + (q || '') + '</div>';
+  }
+  function coachKv(c) {
+    var coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71';
+    return '<div class="cr-coach"><p class="cr-coach-t"><b>Entrenador</b> · ' + esc(C().coachText(coach)) + ' · ' + coach + '</p>' + meter(coach, 'Confianza del entrenador', cc) +
+      '<p class="muted">' + sp(['Nota media ' + dec(C().avgNota(c)), 'Forma ' + dec(C().form(c))], 'v') + '</p></div>';
+  }
   function renderClub(c) {
     var s = sub.club;
     if (isHall(c) && s === 'team') return renderTeam6(c);
@@ -2665,10 +2905,21 @@
     if (s === 'offers') {
       return xSlot('offers', c) + '<div class="card"><h3>' + (c.window === 'mid' ? 'Ventana de fichajes' : 'Ofertas') + '</h3>' +   // (extensiones: cesiones…, antes)
         (c.window === 'mid' || c.phase === 'off' ? offersHTML(c) + (c.window === 'mid' && c.offers.length ? '<div class="acts"><button data-act="stay">Rechazar las ofertas</button></div>' : '')
-          : '<p class="muted">Las ofertas llegan a mitad de temporada (tras la jornada ' + C().MID_WEEK + ', solo con una nota media de ' + (C().midNota ? num1(C().midNota(c)) : c.listed ? '6,5' : '7') + ' o más) y al acabarla. Cuentan tu media, tu nota media, la confianza del entrenador, tus insignias y si te has declarado transferible.</p>') + '</div>';
+          : (function () {
+            var ox = 'Las ofertas llegan a mitad de temporada (tras la jornada ' + C().MID_WEEK + ', solo con una nota media de ' + (C().midNota ? num1(C().midNota(c)) : c.listed ? '6,5' : '7') + ' o más) y al acabarla. Cuentan tu media, tu nota media, la confianza del entrenador, tus insignias y si te has declarado transferible.';
+            return PH() ? '<div class="cr-ctl"><p class="muted cr-of0">Llegan tras la J' + C().MID_WEEK + ' (con buena nota) y al acabar.</p>' + qBtn('Ofertas', ox) + '</div>' : '<p class="muted">' + ox + '</p>';   // (móvil: una línea y lo demás tras «?»)
+          })()) + '</div>';
     }
     var k = C().myClub(c), L = C().league(k.lvl), f = C().clubInfo(c, k), coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71';
     var ref = C().REF[L.ref];
+    if (PH()) {   // móvil: cabecera corta, Objetivo y Posición primero en una caja clave/valor; lo largo tras «?»
+      var mo0 = C().mateOvr(c), dd0 = mo0 - C().clubOvr(k), st0 = C().STYLE_TRAIN && C().STYLE_TRAIN[f.style];
+      var dts = '<span class="cr-dots">' + ['shirt', 'accent', 'shorts'].map(function (x) { return '<i class="cr-dot" style="background:' + hex(k.kit[x]) + '"></i>'; }).join('') + '</span>';
+      return '<div class="card cr-cinfo">' + phClubHead(c, k, [stars(f.stars), esc(L.short || L.name)],
+        qBtn('Tu club', k.name + '. ' + L.name + ', ' + k.city + '. Estilo ' + f.style + (st0 ? ': entrenos +' + C().STYLE_PROG + ' por semana en ' + GROUP_OF[st0].toLowerCase() : '') + '. Compañero: ' + c.mate.name + ' (' + c.mate.role + ', media ' + mo0 + ', ' + vsClub(dd0) + '). Arbitraje: ' + ref.name + '.')) +
+        '<div class="ph-kv">' + kv('Objetivo', esc(c.objective.text), 1) + kv('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + kv('Media', C().clubOvr(k)) +
+        kv('Estilo', esc(f.style)) + kv('Pareja', esc(c.mate.name.split(' ')[0]) + ' · ' + mo0) + kv('Sede', esc(f.beach || k.city)) + kv('Colores', dts) + '</div>' + coachKv(c) + '</div>';
+    }
     var h = '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(L.name), esc(k.city)], 'v') + '</p></div></div>' +
       '<div class="fact">' + fact('Media del club', C().clubOvr(k)) + fact('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + fact('Sede', esc(f.beach || k.city)) +
@@ -2687,13 +2938,25 @@
   function renderMate(c) {
     var m = c.mate, ch = m.chem | 0, cb = C().chemBonus(c), k = C().myClub(c), co = C().clubOvr(k), mo = C().mateOvr(c), mf = m.form | 0;
     var ci = null; try { ci = LIFE() ? LIFE().chemInfo(c) : null; } catch (e) { ci = null; }
-    var h = '<div class="card"><h3>Tu compañero</h3><div class="row" style="align-items:flex-start;flex-wrap:nowrap">' + ptHTML(c, 'mate', 72, 'cr-pt72', 'Retrato de ' + m.name) +
+    var h;
+    if (PH()) {   // móvil (movil-aire §5.3): sin sello; retrato 48, nombre, fichas en una fila y la química a la vista; los párrafos tras «?»
+      var pr0 = C().mateProfile(m), d0 = pr0.ovr - co, tg0 = d0 >= 3 ? 'g' : d0 <= -3 ? 'r' : '';
+      var why0 = (mo - co <= -3 ? 'Con un compañero flojo tendrás más trabajo y más protagonismo: la IA se la jugará menos y tú llevarás el peso.' : mo - co >= 3 ? 'Con un compañero bueno tienes más ayuda: recibe, defiende y remata por encima del nivel del club.' : 'Un compañero al nivel del club: ni carga ni muleta.') +
+        (pr0.strong.length ? ' Fuerte en ' + pr0.strong.map(lab).join(', ') + '.' : '') + (pr0.weak.length ? ' Flojo en ' + pr0.weak.map(lab).join(', ') + '.' : '') +
+        (mf ? ' Su forma (' + C().formText(mf).toLowerCase() + ') ' + (mf > 0 ? 'suma +' : 'resta −') + Math.abs(mf) + ' a todos sus atributos en el próximo partido.' : '') +
+        ' Química: sube cada partido juntos (+5 jugado, +3 simulado). ' + (cb ? 'Ahora suma +' + cb + ' a los dos en reacción, colocación y recepción.' : 'A partir de 30 suma +1 a los dos en reacción, colocación y recepción (hasta +3).') + (ci && ci.next ? ' Faltan ' + ci.need + ' para «' + ci.next + '».' : '');
+      h = '<div class="card cr-matep"><div class="row cr-mth">' + ptHTML(c, 'mate', 72, 'cr-pt48', 'Retrato de ' + m.name) +
+        '<div class="grow" style="min-width:0"><p class="bigname cr-chn">' + sp([esc(m.name), 'n.º ' + m.num], 's') + '</p>' +
+        '<p class="muted cr-mtc">' + sp([esc(m.role), 'Media ' + pr0.ovr, { h: esc(vsClub(d0)), c: tg0 ? 'dv ' + tg0 : 'dv' }, 'Forma: ' + esc(C().formText(mf))], 'c') + '</p></div></div>' +
+        '<div class="cr-ctl cr-chem"><p><b>Química</b> · ' + (ci ? esc(ci.name) + ' · ' : '') + ch + '/100</p>' + qBtn(m.name, why0) + '</div>' + meter(ch, 'Química con el compañero', '#4be0a0', ci ? CHEM_MK : null) + '</div>';
+    } else h = '<div class="card"><h3>Tu compañero</h3><div class="row" style="align-items:flex-start;flex-wrap:nowrap">' + ptHTML(c, 'mate', 72, 'cr-pt72', 'Retrato de ' + m.name) +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(m.name), 'n.º ' + m.num], 's') + '</p>' + mateLine(m, co, true) + '</div></div>' +
       '<p class="muted">' + (mo - co <= -3 ? 'Con un compañero flojo tendrás más trabajo y más protagonismo: la IA se la jugará menos y tú llevarás el peso.' : mo - co >= 3 ? 'Con un compañero bueno tienes más ayuda: recibe, defiende y remata por encima del nivel del club.' : 'Un compañero al nivel del club: ni carga ni muleta.') +
       (mf ? ' Su forma (' + esc(C().formText(mf)).toLowerCase() + ') ' + (mf > 0 ? 'suma +' : 'resta −') + Math.abs(mf) + ' a todos sus atributos en el próximo partido; cambia tras cada partido.' : ' Su forma cambia tras cada partido y suma o resta hasta ' + C().FORM_MAX + ' a sus atributos.') + '</p>' +
       '<h3 style="margin-top:10px">' + sp(['Química', ci ? esc(ci.name) : ch + ' de 100'], 'd') + '</h3>' + meter(ch, 'Química con el compañero', '#4be0a0', ci ? CHEM_MK : null) + chemNext(ci) +
       '<p class="muted">Sube cada partido juntos (+5 jugado, +3 simulado). ' + (cb ? 'Ahora suma +' + cb + ' a los dos en reacción, colocación y recepción.' : 'A partir de 30 suma +1 a los dos en reacción, colocación y recepción (hasta +3).') + '</p></div>';
-    h += '<div class="card"><h3>Plantilla</h3><p class="muted">Puedes pedir jugar con otro compañero del club' + (c.coach < C().MATE_COACH ? ', pero el entrenador aún no te deja (necesitas su confianza: «Tiene dudas» o mejor).' : '. La química se guarda con cada uno; las medias y los puntos fuertes son de verdad en el partido.') + '</p>' +
+    var plx = 'Puedes pedir jugar con otro compañero del club' + (c.coach < C().MATE_COACH ? ', pero el entrenador aún no te deja (necesitas su confianza: «Tiene dudas» o mejor).' : '. La química se guarda con cada uno; las medias y los puntos fuertes son de verdad en el partido.');
+    h += '<div class="card"><h3>Plantilla</h3>' + (PH() ? qBtn('Plantilla', plx) + (c.coach < C().MATE_COACH ? '<p class="muted">El entrenador aún no te deja cambiar.</p>' : '') : '<p class="muted">' + plx + '</p>') +
       (c.squad || []).map(function (s, i) {
         var so = C().ovrOf(s.st), d = so - mo;
         return '<div class="mate"><div style="min-width:0"><b class="cr-mn">' + esc(s.name) + '</b>' + mateLine(s, co, true) +
@@ -2706,7 +2969,18 @@
   function renderContract(c) {
     var ct = c.contract || {};
     var rl = C().roleIdx ? C().roleIdx(c) : 1, brk = c.broken === c.season, lo = ct.loan === 1;   // (lo: cedido —career-loan.js—; vuelves a tu club al acabar)
-    var h = '<div class="card"><h3>Contrato</h3><div class="fact">' + fact('Rol', esc(ct.role || '—')) + fact((ct.left | 0) === 1 ? 'Queda' : 'Quedan', plural(ct.left | 0, 'temporada', 'temporadas') + ((ct.left | 0) === 1 ? ' (esta)' : ', con esta')) +
+    var h;
+    if (PH()) {   // móvil (movil-aire §5.3): sin sello, cifras en una caja clave/valor, el rol en una línea y lo demás tras «?»
+      var yl = ct.left | 0, st6 = isHall(c) ? ((c.stats.starts | 0) + (c.stats.subIn | 0) + (c.stats.bench | 0) ? ' Esta temporada: ' + (c.stats.starts | 0) + ' de inicio, ' + (c.stats.subIn | 0) + ' desde el banquillo, ' + (c.stats.bench | 0) + ' sin jugar.' : '')
+        : ((c.stats.bench | 0) ? ' Esta temporada, ' + plural(c.stats.bench | 0, 'jornada', 'jornadas') + ' en el banquillo.' : '');
+      var hint = C().ROLE_HINT ? C().ROLE_HINT[rl] : '';
+      h = '<div class="card cr-ctp"><div class="ph-kv">' + kv('Rol', esc(ct.role || '—')) + kv(yl === 1 ? 'Queda' : 'Quedan', yl === 1 ? 'Esta' : yl + ' temp.') + kv('Sueldo', ct.salary ? eur(ct.salary) + '/mes' : '—') +
+        kv('Ahorros', eur(c.money || 0)) + (lo ? kv('Cesión', 'Hasta el final') : kv('Firmado', 'T' + (ct.since || 1) + ' · ' + (ct.years | 0) + ' temp.')) + '</div>' +
+        '<div class="cr-ctl"><p class="muted cr-ctr">' + (hint ? '<b>' + esc(ct.role || '') + ':</b> ' + esc(hint) : 'Sueldo, ahorros y renovación') + '</p>' +
+        qBtn('Contrato', (ct.role || '') + ': ' + hint + st6 + ' Cobras el sueldo cada jornada (la mitad del mensual) y lo ahorras: sirve para el fisio (Jugador › Estado).' +
+          (lo ? '' : ' Al acabar la última temporada del contrato, el club te propone renovar (el rol depende de la confianza del entrenador) y eliges la duración.')) + '</div>' +
+        (brk ? '<p class="bench" style="margin:6px 0"><b>Promesa incumplida.</b> Te fichó como titular y te ha sentado: hasta final de temporada puedes irte sin pegas y los clubes se interesan más por ti.</p>' : '') + '</div>';
+    } else h = '<div class="card"><h3>Contrato</h3><div class="fact">' + fact('Rol', esc(ct.role || '—')) + fact((ct.left | 0) === 1 ? 'Queda' : 'Quedan', plural(ct.left | 0, 'temporada', 'temporadas') + ((ct.left | 0) === 1 ? ' (esta)' : ', con esta')) +
       fact('Sueldo (ficticio)', ct.salary ? money(ct.salary) : '—') + fact('Ahorros', eur(c.money || 0)) + (lo ? fact('Cesión', 'Hasta final de temporada') : fact('Firmado', 'T' + (ct.since || 1) + ' por ' + plural(ct.years | 0, 'temporada', 'temporadas'))) + '</div>' +
       (C().ROLE_HINT ? '<p><b>' + esc(ct.role || '') + ':</b> ' + esc(C().ROLE_HINT[rl]) + (isHall(c)
         // pista (titularidad): de inicio, desde el banquillo y sin jugar
@@ -2716,6 +2990,8 @@
       '<p class="muted">Cobras el sueldo cada jornada (la mitad del mensual) y lo ahorras: sirve para el fisio (Jugador › Entreno).' + (lo ? '' : ' Al acabar la última temporada del contrato, el club te propone renovar (el rol depende de la confianza del entrenador) y eliges la duración.') + '</p></div>';
     var xtr = xReplace('transfer', c);   // (una extensión —cesiones— puede llevar la tarjeta del traspaso)
     if (xtr && /class="card x-top/.test(xtr)) return xtr + h;   // (con «x-top», antes del Contrato: «Cedido» a la vista en el móvil)
+    var xa = PH() && xtr ? xtr.indexOf('<div class="card new x-go') : -1;   // (móvil: la respuesta del club —renovar, no— arriba del todo)
+    if (xa >= 0) return xtr.slice(xa) + h + xtr.slice(0, xa);
     h += xtr || '<div class="card"><h3>' + sp(['Traspaso', c.listed ? 'Transferible' : 'No transferible'], 'd') + '</h3>' +
       (c.listed ? '<p>Estás en la lista de transferibles: llegan más ofertas (a mitad de temporada basta con una nota media de ' + (C().midNota ? num1(C().midNota(c)) : '6,5') + ').</p><div class="acts"><button data-act="transfer" data-on="0">Retirar la petición</button></div>'
         : '<p class="muted">Si te declaras transferible, los clubes se interesan más por ti, pero el entrenador pierde confianza (−8).</p><div class="acts"><button class="warn" data-act="transfer" data-on="1">Pedir el traspaso</button></div>') + '</div>';
@@ -3056,6 +3332,13 @@
   }
   function renderClubInfo6(c) {
     var k = C().myClub(c), f = C().clubInfo(c, k), coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71', ref = C().REF[C().ref(f.strength)];
+    if (PH()) {   // móvil: como en la playa (Objetivo y Tu puesto primero)
+      var st0 = C().STYLE_TRAIN && C().STYLE_TRAIN[f.style];
+      return '<div class="card cr-cinfo">' + phClubHead(c, k, [stars(f.stars), esc(f.league)],
+        qBtn('Tu club', k.name + '. ' + f.league + ' (nivel ' + f.strength + '), ' + f.country + '. Estilo ' + f.style + (st0 ? ': entrenos +' + C().STYLE_PROG + ' por semana en ' + GROUP_OF[st0].toLowerCase() : '') + '. Colores: camiseta, 2º color y líbero. Arbitraje: ' + ref.name + '.')) +
+        '<div class="ph-kv">' + kv('Objetivo', esc(c.objective.text), 1) + kv('Tu puesto', esc(posName(c.player.roleKey))) + kv('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) +
+        kv('Media', k.ovr) + kv('Estilo', esc(f.style)) + kv('Ciudad', esc(k.city || '—')) + kv('Colores', kitDots(k.kit)) + '</div>' + coachKv(c) + '</div>';
+    }
     return '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(f.league), esc(f.country)], 'v') + '</p></div></div>' +
       '<div class="fact">' + fact('Media del club', k.ovr) + fact('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + fact('Ciudad', esc(k.city || '—')) +
@@ -3073,13 +3356,25 @@
     var head = dn && dn.k ? '<p>' + 'Tu puesto: <b>' + ordn(dn.k) + ' de ' + dn.n + '</b> ' + esc(PL[myPos] || '') + '.' +
       (dn.stat !== 'start' && dn.ahead.length ? ' Para salir de inicio tienes que superar a ' + esc(dn.ahead[dn.ahead.length - 1]) + '.' : '') + '</p>' : '';
     var h = '<div class="card"><h3>' + sp(['Equipo', esc(k.short)], 'd') + '</h3>' + head, last = '';
-    ro.forEach(function (p) {
+    if (PH()) {   // móvil (movil-aire §5.3): filas de 44 en una línea, puestos como cabecera pegada arriba, tu fila resaltada; la leyenda tras «?»
+      var FD = function (f) { f = f | 0; return f >= 2 ? 'g' : f <= -2 ? 'r' : f ? (f > 0 ? 'g1' : 'r1') : ''; };
+      var lx = 'El entrenador elige el seis de cada jornada por media, forma, confianza, fatiga y la impresión de tus entrenos (esta temporada tu media vale ' + (H6.meEdge ? H6.meEdge(c) : H6.ME_EDGE || 12) + ' más en su elección; la ventaja baja ' + (H6.ME_EDGE_STEP || 2) + ' cada temporada hasta ' + (H6.ME_EDGE_MIN || 4) + '). T = titular, S = suplente, F = fuera. El punto es la forma.' +
+        (dn && dn.k && dn.stat !== 'start' && dn.ahead.length ? ' Para salir de inicio tienes que superar a ' + dn.ahead[dn.ahead.length - 1] + '.' : '');
+      h = '<div class="card cr-team6"><p class="cr-tpos">' + (dn && dn.k ? '<span>Tu puesto: <b>' + ordn(dn.k) + ' de ' + dn.n + '</b> ' + esc(PL[myPos] || '') + '</span>' : '<span>' + esc(k.short) + '</span>') + qBtn('Equipo', lx) + '</p><div class="cr-t6l">';
+      ro.forEach(function (p) {
+        if (p.pos !== last) { last = p.pos; h += '<p class="cr-t6h">' + esc(posName(p.pos)) + '</p>'; }
+        var tg = STL[p.stat] || STL.sub;
+        h += '<div class="cr-t6r' + (p.me ? ' me' : '') + '"><b class="cr-t6n">' + esc(p.name) + (p.me ? ' <i>(tú)</i>' : '') + '</b><span class="cr-t6d">n.º ' + p.num + '</span><span class="cr-t6o">' + p.ovr + '</span>' +
+          '<i class="cr-t6f ' + FD(p.form) + '" role="img" aria-label="Forma: ' + esc(formTxt6(p.form)) + '"></i><span class="tag ' + tg[1] + '" aria-label="' + tg[0] + '">' + tg[0].charAt(0) + '</span></div>';
+      });
+      h += '</div>';
+    } else ro.forEach(function (p) {
       if (p.pos !== last) { last = p.pos; h += '<p class="muted" style="margin:10px 0 2px;font-weight:700">' + esc(posName(p.pos)) + '</p>'; }
       var tg = STL[p.stat] || STL.sub;
       h += '<div class="mate"' + (p.me ? ' style="background:rgba(255,128,64,.18);border-radius:10px;padding-left:8px"' : '') + '><div style="min-width:0"><b class="cr-mn">' + sp([esc(p.name), 'n.º ' + p.num], 's') + '</b>' +
         '<p class="muted" style="margin:2px 0 0">' + sp(['Media ' + p.ovr, 'Forma: ' + esc(formTxt6(p.form)), p.me ? 'Tú' : ''], 'c') + ' <span class="tag ' + tg[1] + '">' + tg[0] + '</span></p></div></div>';
     });
-    h += '<p class="muted" style="margin-top:8px">El entrenador elige el seis de cada jornada por media, forma, confianza, fatiga y la impresión de tus entrenos (lo que haces en pista cuenta: esta temporada tu media vale ' + (H6.meEdge ? H6.meEdge(c) : H6.ME_EDGE || 12) + ' más en su elección; la ventaja baja ' + (H6.ME_EDGE_STEP || 2) + ' cada temporada hasta ' + (H6.ME_EDGE_MIN || 4) + ').</p>';
+    if (!PH()) h += '<p class="muted" style="margin-top:8px">El entrenador elige el seis de cada jornada por media, forma, confianza, fatiga y la impresión de tus entrenos (lo que haces en pista cuenta: esta temporada tu media vale ' + (H6.meEdge ? H6.meEdge(c) : H6.ME_EDGE || 12) + ' más en su elección; la ventaja baja ' + (H6.ME_EDGE_STEP || 2) + ' cada temporada hasta ' + (H6.ME_EDGE_MIN || 4) + ').</p>';
     var ci = null; try { ci = LIFE() ? LIFE().chemInfo(c) : null; } catch (e) { ci = null; }
     return h + '</div><div class="card"><h3>' + sp(['Química', ci ? esc(ci.name) : ch + ' de 100'], 'd') + '</h3>' + meter(ch, 'Química del equipo', '#4be0a0', ci ? CHEM_MK : null) + chemNext(ci) +
       '<p class="muted">Sube cada partido (+5 jugado, +3 simulado, +2 en el banquillo) y en verano se pierde una parte. ' + (cb ? 'Ahora suma +' + cb + ' a todo el equipo en reacción, colocación y recepción.' : 'A partir de 30 suma +1 a todo el equipo en reacción, colocación y recepción (hasta +3).') + ' Al fichar por otro club empieza de cero.</p></div>';
@@ -3370,6 +3665,7 @@
       }
       return;
     }
+    if (act && act.indexOf('sigsh-') === 0) { snd('click'); sigSheet(c, act.slice(6)); return; }   // (móvil: la hoja del saque de firma)
     if (act && (act.indexOf('sig-') === 0 || act.indexOf('sgest-') === 0) && C().setSig) {   // saque de firma (Jugador › Insignias)
       var sg0 = (c && c.sig) || {}, isG = act.indexOf('sgest-') === 0, sv0 = act.slice(isG ? 6 : 4);
       C().setSig(c, isG ? sg0.serve || 'clasico' : sv0, isG ? sv0 : sg0.gest || 'normal');

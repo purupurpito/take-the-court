@@ -329,6 +329,17 @@
   function cardHTML(c, k) {
     var lo = k.lore || {}, h = '', hall = isH(c), KT = hall ? KIND_T6 : KIND_T;
     // 1) cabecera
+    if (H.ph && H.ph() && H.shortClub) {   // móvil (movil-aire §5.3): «‹» de 44, escudo 56, nombre corto, «liga · año · apodo» en una línea,
+      // «Esta temporada» en la cabecera y el rencor o el cariño como franja de una línea bajo el nombre; las fichas en una fila
+      var b0 = k.bond && k.bond.t ? k.bond : null;
+      h += '<div class="card cw-card cw-cph"><div class="row cw-chr"><button class="cw-back cw-bk" data-act="cw-list" aria-label="Volver a Clubes">‹</button>' + (H.crest ? H.crest(k, 56, { c: c }) : '') +
+        '<div class="grow" style="min-width:0"><p class="bigname cw-cn">' + esc(H.shortClub(k)) + '</p><p class="cw-ck">' + sp([esc(k.league), lo.founded ? String(lo.founded) : '', esc(lo.nick)], 'v') + '</p></div>' +
+        (k.pj ? '<p class="cw-cs" aria-label="' + esc('Esta temporada: ' + ordn(k.pos) + ', ' + plural(k.pts, 'punto', 'puntos')) + '"><b>' + ordn(k.pos) + '</b><small>' + plural(k.pts, 'pt', 'pts') + '</small></p>' : '') + '</div>' +
+        (b0 ? '<p class="cw-bond ' + (b0.t > 0 ? 'g' : 'r') + '"><b>' + (b0.t > 0 ? 'Te tienen cariño' : 'Te guardan rencor') + '</b>' + (b0.txt ? ' · ' + esc(b0.txt.charAt(0).toLowerCase() + b0.txt.slice(1)) + (b0.s ? ' (T' + b0.s + ')' : '') : '') + '</p>' : '') +
+        '<p class="muted cw-chips">' + sp([k.mine ? { h: 'Tu club', c: 'dv g' } : k.rival ? { h: 'Tu rival juega aquí', c: 'dv r' } : '', { h: stars(k.stars) }, 'Media ' + k.ovr, esc(k.style), esc(k.beach || k.city)], 'c') + '</p>' +
+        '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i>' + (k.name !== H.shortClub(k) ? ' · ' + esc(k.name) : '') + '</p></div>';
+      if (k.form.length) h += '<div class="card"><h3>Esta temporada</h3><p class="cw-form" aria-label="Últimos ' + k.form.length + ': ' + k.form.map(function (f) { return f ? 'victoria' : 'derrota'; }).join(', ') + '">' + k.form.map(function (f) { return '<i class="' + (f ? 'w' : 'l') + '"></i>'; }).join('') + '<small>Últimos ' + k.form.length + '</small></p></div>';
+    } else {
     h += '<div class="card cw-card"><button class="cw-back" data-act="cw-list">‹ Clubes</button><div class="row" style="margin-top:8px">' + (H.crest ? H.crest(k, 72, { c: c }) : H.kitSw ? H.kitSw(k.kit, true) : '') +
       '<div class="grow" style="min-width:0"><small class="cw-kick">' + sp([esc(k.league), 'Fundado en ' + lo.founded], 'd') + '</small><p class="bigname" style="font-size:21px">' + esc(k.name) + '</p>' +
       '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i></p></div></div>' +
@@ -337,6 +348,7 @@
     // 2) esta temporada
     h += '<div class="card"><h3>Esta temporada</h3>' + (k.pj ? '<p class="cw-big">' + sp([ordn(k.pos), plural(k.pts, 'punto', 'puntos')], 'd') + '</p>' : '<p class="muted">Aún sin jugar en ' + esc(k.league) + '.</p>') +
       (k.form.length ? '<p class="cw-form" aria-label="Últimos ' + k.form.length + ': ' + k.form.map(function (f) { return f ? 'victoria' : 'derrota'; }).join(', ') + '">' + k.form.map(function (f) { return '<i class="' + (f ? 'w' : 'l') + '"></i>'; }).join('') + '<small>Últimos ' + k.form.length + '</small></p>' : '') + '</div>';
+    }
     // 3) palmarés: el de tu carrera (anales y tus trofeos «contigo») y lo de antes, inventado
     var old = [lo.oldLg ? plural(lo.oldLg, 'título', 'títulos') : '', lo.oldCup ? (hall ? plural(lo.oldCup, 'copa', 'copas') : plural(lo.oldCup, 'open', 'opens')) : ''].filter(function (x) { return x; });
     h += '<div class="card"><h3>Palmarés</h3>' + (k.titles.length ? '<ul class="cw-tl">' + k.titles.map(function (t) {

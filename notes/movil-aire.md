@@ -541,3 +541,54 @@ arreglo de la muestra de abajo).
 - **Pendiente**: a 844 la ficha de Rol/Puesto de crear queda bajo el pliegue (se desplaza; el contador de la barra avisa); la hoja final
   a .ph-w no reparte columnas (solo .ph-s); la ✕ de la hoja del informe cuenta como solape con el sello de la media del hub (que queda debajo,
   tapado por la hoja opaca); TUS PARTIDOS asoma solo con el encabezado a 568x320; «Atrás» del juvenil (intro 2/3) sigue como mancha sp-md.
+
+### 7.6 Paquete `carrera-jugador-club` (24-nov-2026)
+
+Todo bajo `html.ph` (PQ de `js/career-ui.js`, bloque «paquete carrera-jugador-club» al final de `PH_CSS`; en las extensiones, tras `HLP.ph()`).
+PC sin cambios: métricas de los 40 ids a 1280x720 (y 1024x768 / 1920x1080) idénticas a una pasada de la base con el mismo comando
+(caracteres 81.720 → 81.720, toques, recortes y letra igual).
+- **Atributos** (phys/def/atk): «Nv 2 · 92/152 XP · [4 puntos]» en una línea (sin nombre), barra de 5; `.attr` en rejilla «nombre · cifra / barra ·
+  +1» de 52 de alto y 2 columnas también a 568; pie «Equilibrado · 60/100» + «?». **Decisión: no se funden** Físico/Defensa/Ataque: con 3-4 atributos
+  por grupo caben en 2 filas sin desplazar a 568x320; fundidos serían 5 filas (10 atributos) y habría que bajar.
+- **Firma** (saque de firma): `sigCard` en .ph = rejilla `.ph-grid2` (3 a .ph-w) de tarjetas de 64 sin cola (nombre a 16 + 1 dato: «Va en GOLPEAR»,
+  «✓ …» la elegida, «🔒 Pide saque 62» a opacidad .7); tocar abre `sigSheet` (SP.sheet: descripción, a favor / en contra, botón, lo que pide)
+  con «Elegir» de 48 abajo a la derecha (no sale si está bloqueado o ya es el tuyo; acción `sigsh-<id>`). Intro tras «?». Gesto en línea con
+  `.seg` de 44 y gap 8: a 844 se ve sin desplazar. El fallo del texto fuera del brochazo (`.cr-sig-l>.sp-btn.sp-wrap`) desaparece en el móvil
+  porque ya no se pinta esa lista; **existe también en PC** (1280x720: «GLOBO» y «Va en…» rozan / salen del brochazo): anotado, sin tocar.
+  Insignias: rejilla de 2 (3 a .ph-w) de 64, bloqueadas a .7; el «?» del sello deja 28 px a la primera fila.
+- **Estado**: «Plan del entrenador» = tarjeta con el enfoque en una línea, «Plan ›» sp-sm en la fila y la explicación tras «?»: ya no va nada
+  a la barra de abajo (en Estado con baja, la barra se oculta y «Volver antes» / «Fisio intensivo» se ven en la tarjeta, 48 de alto).
+  Lesión (`career-injury.js`): el muñeco de 40 dentro del sello, «Vuelves en 3 partidos» + barra + «1/4» en una fila, rehabilitación tras «?».
+  «Lesiones Sí/No» sale en Vida › Ajustes (`U.opts`, solo .ph) y no en Estado; en PC sigue en Estado.
+- **Ropa**: una fila (colores del club · «67/155 · 2 nuevos» + peinado · «?» · parche «Vestuario ›» de 48).
+- **Club › Ficha** (playa y pista): `phClubHead` (escudo 56, `shortClub` a 20, patrocinador · estrellas · liga a --ph-cap, «?» en la fila con lo
+  largo) y `.ph-kv` (2 col a 568, 3 a .ph-w) con Objetivo (a todo el ancho, 2 líneas si hace falta) y Posición / Tu puesto primero, colores como 3
+  puntos; entrenador en una línea con su barra. Helpers `kv()`, `clubParts()`, `coachKv()`; `HLP.shortClub`.
+- **Equipo** (pista): filas de 44 de una línea (nombre · n.º · media · punto de forma · T/S/F), puestos como cabecera pegada arriba (28),
+  «Tu puesto: 2º de 4 receptores» en pastilla dorada con el «?» de la leyenda; tu fila con el color del club.
+- **Compañero**: sin sello; retrato 48, fichas en una fila (se deslizan), «Química · Conocidos · 9/100» + barra de 8 a la vista y los párrafos
+  tras «?». Plantilla: la explicación tras «?».
+- **Contrato**: sin sello; `.ph-kv` (Rol · Quedan · Sueldo / Ahorros · Firmado) y el rol en una línea con «?». La respuesta del club (renovar / no,
+  `career-loan.js uiAsk`) sube arriba del todo: renovación en `.ph-strip` (Rol ▲ en verde, años, sueldo +250 €), «Prefiero salir» / «Insistir»
+  neutros (crema) en la barra; el «no» en una franja con la consecuencia en pequeño. Cedido: sello «Cedido», nombre + «Hasta el final · vuelves a…»
+  en una línea, 4 cifras en `.ph-strip`, lo demás tras «?».
+- **Ofertas / cesiones**: vacío en una línea + «?»; cesiones con el bloqueo arriba («Estás de baja» en rojo), condiciones en una tira de fichas,
+  ofertas de una fila (escudo 40 · nombre · «liga · media · sueldo» · «Ir cedido» de 48 a la derecha) y «No, gracias» de ancho automático.
+- **Gente**: `details` de 56-72 (nombre + papel, cifra grande a 26 con «+4 ▲», barra de 6); la frase y el último cambio al tocar; 2 col a .ph-w.
+- **Liga › Clubes › ficha / rencor** (`career-world-ui.js`): «‹» de 44, escudo 56, nombre corto, «liga · año · apodo» en una línea, «1r · 9 pts»
+  a la derecha de la cabecera (fuera la tarjeta «Esta temporada» salvo la forma), rencor / cariño como franja de una línea bajo el nombre (a la
+  vista a 568x320), fichas en una fila.
+- **Selección** (`career-natl.js`): franja de 44 (bandera 28 · ESPAÑA · Titular · Confianza 56 · «?» con seleccionador y química), el partido en
+  grande primero («Grupo B, 2ª jornada» / «ESP contra ROU» a 24), tabla con filas de 36 y el torneo como pie de 13; clasificación con su tabla
+  «Partido / Resultado» en vez de las líneas sueltas; sello «Clasif.».
+- **Plan y pedir puesto** (`career-dev.js`): cabecera de una fila (sello corto «Plan · Sin plan», «?», × de 44 sin mancha); filas de 52 con gap 10,
+  atributos abreviados sin elipsis («Rec 42 · Def 39»), «Recomendado» como ★; **tocar elige** (marco dorado + ✓, `pick`) y la barra lleva
+  «Confirmar plan» / «Pedir Opuesto» solo con algo elegido (`dv-plan-go` / `dv-ask-go`; en PC el toque sigue aplicando al momento). Pedir puesto:
+  «Ahora: Receptor · encaje 86 %» y una barrita de encaje por fila; la dificultad, solo si cambia entre filas (si no, una línea debajo).
+- **Métricas** (40 ids × 3 tamaños, contra la base del mismo comando): < 12 px 0 → 0; toques < 44 0 → 0; toques juntos 343 → 293; caracteres
+  39.129 → 30.024; recortes 2 → 17 (todos en líneas de una línea con su «?»: rol del contrato, meta de las cesiones, «vuelves a…» del cedido,
+  patrocinador largo); solapes 0 → 0 (los del «?» de Insignias, corregidos). Prueba de interacción (hoja del saque + Elegir, plan elegir →
+  confirmar, Lesiones en Ajustes, «Plan ›» fuera de la barra): `scratchpad/cjc/inter.js`, todo OK a 844x390.
+- **Pendiente**: a .ph-w la lista de pedir puesto va a una columna (cabría en 2); la tabla del grupo de la selección asoma bajo el partido a
+  568x320 (hay que bajar para verla entera); cesiones: con nombres muy largos el dato de pareja/puesto cae tras la elipsis de la línea de meta;
+  el Faro/ayudas del Estado (career-story «ánimo y forma») no se tocaron; Insignias sigue con la descripción entera en la tarjeta (sin hoja).
