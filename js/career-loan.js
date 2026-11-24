@@ -660,7 +660,7 @@
     var l = ensure(c), r = c.review || {}, x = r.loan, h = '';
     if (x) {
       var tg = x.grade === 'A' ? 'g' : x.grade === 'D' ? 'r' : x.grade === 'B' ? 'y' : '';
-      h += '<div class="card new"><h3>' + H.sp(['Fin de la cesión', 'Nota ' + x.grade], 'd') + '</h3><p>' + H.esc('Vuelves a ' + x.homeName + '. ' + GRADE_TXT[x.grade]) + '</p><div class="fact">' +
+      h += '<div class="card new ln-end"><h3>' + H.sp(['Fin de la cesión', 'Nota ' + x.grade], 'd') + '</h3><p>' + H.esc('Vuelves a ' + x.homeName + '. ' + GRADE_TXT[x.grade]) + '</p><div class="fact">' +
         fact(H, 'Partidos', x.n | 0) + fact(H, 'Nota media', dec(x.nota)) + fact(H, 'Confianza', (x.coach > 0 ? '+' : x.coach < 0 ? '−' : '±') + Math.abs(x.coach | 0)) + '</div>' +
         '<p><span class="tag ' + tg + '">' + H.esc('Cesión en ' + x.name + ': ' + x.grade) + '</span>' + (x.promo ? '<span class="tag g">Vuelves como titular</span>' : '') +
         (x.move > 0 ? '<span class="tag g">' + H.esc(x.name + ' asciende') + '</span>' : x.move < 0 ? '<span class="tag r">' + H.esc(x.name + ' desciende') + '</span>' : '') + '</p></div>';

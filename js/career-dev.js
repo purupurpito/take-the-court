@@ -686,7 +686,9 @@
       PQ + ' .card:is(.cdv-plan,.cdv-pos)>h3:first-child{flex:0 1 auto;order:0;margin-right:0}',
       PQ + ' .card:is(.cdv-plan,.cdv-pos)>.acts.cdv-ha{flex:0 0 auto;order:2;margin:0 0 0 auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--ph-hit-gap,10px)}',
       PQ + ' .card:is(.cdv-plan,.cdv-pos)>.acts.cdv-ha>.sp-btn{flex:0 0 auto;min-height:44px;margin:0}',
-      PQ + ' .card.card:is(.cdv-plan,.cdv-pos)>.cr-q{flex:0 0 44px;order:1;position:relative;top:auto;right:auto}'
+      PQ + ' .card.card:is(.cdv-plan,.cdv-pos)>.cr-q{flex:0 0 44px;order:1;position:relative;top:auto;right:auto}',
+      // (ronda 2: el «?» junto a su botón —✕ / Elegir plan— a la derecha, no suelto en medio)
+      PQ + ' .card.card:is(.cdv-plan,.cdv-pos)>.cr-q{margin-left:auto}' + PQ + ' .card.card:is(.cdv-plan,.cdv-pos):has(>.cr-q)>.acts.cdv-ha{margin-left:0}'
     ].join('\n');
   }
   function curC() { var X = C(); try { return X && X.get ? X.get() : null; } catch (e) { return null; } }

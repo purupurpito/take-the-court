@@ -1202,3 +1202,55 @@ puesto queda bajo la Selección); las vistas previas de la Bandeja con `cutWords
 como `.pv-sheet` (el aviso ya la recibe vía `SP.modal`, pero su CSS de `#setNote` manda en ancho/fondo); «< 12» de las hojas finales y Perfil en
 vertical; 3 «salida NO» de carrera-banquillo en vertical (la pausa queda bajo el velo: lo esperado, partido-v); el subtítulo de JUGAR en vertical
 (`subOn` con phone: menus-v decide el texto corto).
+
+#### 8.6.2 Paquete recortes (24-nov-2026)
+
+Horizontal (html.ph): todos los recortes y la información que quitó la ronda 1. Lo que cambia QUÉ SE DICE va con `mob()` (vale también en
+vertical); la maqueta vertical es de los paquetes de zona. CSS nuevo en el bloque «RONDA 2 · paquete recortes» al final del `<style>` de
+`index.html` (prefijo `:root.ph` + 5 `:not(#_)`; `:root:is(.ph,.pv)` si es contenido) y en los `PQ`/`PP` de cada módulo. PC sin cambios.
+
+**Hecho**
+- *Ayudas enteras*: Ajustes (`.opt>small` sin clamp ni «…», 2-3 líneas, control en su columna); Controles › Mando/Teclado en 2 líneas;
+  Táctil y pausa con la ayuda ENTERA (`renderCtl` ya no corta en el primer «;»: Colocar vuelve a decir «en el 3r toque, golpe colocado; en el
+  suelo, tu colocación va con Golpear»), las largas (> 40 car., `.ctl-w`) a todo el ancho, rejilla `dense`. La «i» de `.sp-info`, dibujada en SVG.
+- *Selección* (`career-natl.js card`, móvil): rótulo en su línea y debajo «Grupo B | J2 | ESP–ROU | Fuerza 62-53» (separadores `sp`, la fuerza
+  en `.nw`; «Clasificación» no se repite); `.ph-dec` en dos filas (rótulo a todo el ancho, datos que parten + botón).
+- *Faro* (`career-world-ui.js lineHTML`): en el móvil, la primera oración entera + «Ver más»; al tocar (`.ph-open`) la frase completa. Sin clamp.
+- *Bandeja*: vista previa con `SP.cutWords(…, 64)` y `data-trunc="preview"`, 2 líneas.
+- *Contrato*: `ROLE_SHORT` / `ROLE_SHORT6` (career.js, cifras de `BENCH`/`PROMOTE_AT`/`TIT_BROKEN`/`ROLE_FLOOR`) en el móvil; la larga, tras el «?».
+- *Cesiones*: nombre corto + el largo debajo (`.ln-ol`), datos en 2 líneas, condiciones con wrap, «Ir cedido» debajo a la derecha a 568;
+  cedido: «Vuelves a Voley Sanroqueño». *Club › Ficha*: patrocinador / «★★ · Hiperliga 2» en 2 líneas.
+- *Crear*: «Una temporada con tu instituto» (móvil) y los subtítulos de Rol hasta 2 líneas. *Noticias*: titular entero. *Vitrina*: nombres de
+  trofeo enteros (también los huecos vacíos); a 568 la categoría encima de su fila. *Estrellas*: «Marca a batir…» entera.
+- *MVP* de las hojas: nombre entero arriba y TODAS las cifras en fichas con wrap (la Carrera ya no esconde ataque/bloqueo/aces); en la Carrera,
+  rejilla [dorsal | nombre | nota] / [fichas] y el MVP justo tras el progreso (primera pantalla). Situación de la semana y reto (844+): vuelve el
+  MVP al resumen. Primer partido a 568: «Y ahora» al final. Cifras: cabeceras «Ata.» «Bloq.» «Saq.» en el móvil (no se pisan).
+- *Vuelve lo quitado*: Jugadores (tira «50 MEDIA · NIVEL 1 · 0/120 XP · PUNTOS 0» de 36, «Nv 1 · Media 50», descripción del atributo en 2.ª
+  línea); Maestría («Aces en un partido» / «récord 0 · bronce 2», `rtWhatPh`); Crear cuenta a 568 (aviso del usuario sin @ + «Ahora no» como
+  enlace); «Compartir» / «El grupo»; pestaña «Cifras» en las dos orientaciones; «Rival» / «Tu club» en Clubes; «Ver baja» (no «✚ Baja»);
+  online: salas llenas legibles con «Llena» / «Otra versión», «Igualado» de vuelta, fichas con fondo que parten (sin «·» huérfano), el nombre
+  y la sede enteros en «Así sale en la lista» (fuera VS y el hueco); aviso del colocador sin la sombra que tachaba «remate».
+- *Otros*: Perfil a 568 en 3 columnas (nombres hasta 3 líneas); parches con título y subtítulo 8 px más altos (Ver cómo se juega, Peloteo
+  libre, Abrir sala); estadística con desvanecido en sets e índice; fin de cesión antes de la Gala; el «?» del plan junto a su ✕.
+- *Arnés*: `mobaudit --probe 'JS'` (evalúa tras abrir cada pantalla); el recorte `o` ya no cuenta lo que se sale de lado en una fila que se
+  desplaza CON desvanecido o máscara (se alcanza desplazando).
+
+**Métricas** (`…/movil2/r2-recortes/`: `hfull` = pasada H completa 241 pantallas, `v` = vertical de los 75 ids, `pc` = PC de los 75 ids)
+
+| pasada | recortes no permitidos (o) | permitidos | tapado-pie | pisados | < 12 | < 44 |
+|---|---|---|---|---|---|---|
+| h1 → **hfull** (241, H) | 106 (11) → **0 (0)** | 0 → 0 | 0 → 0 | 11 → **0** | 0 → 0 | 0 → 2* |
+| v1 → **v** (75 ids, V) | 220 (10) → 177 (10) | 0 → 43 | 0 → 0 | 50 → 50 | 674 → 668 | 45 → 45 |
+| pc1 → **pc** (75 ids) | sin cambios de maqueta: 6 filas con ±1-2 en «< 14» / «juntos» = el 3D de fondo (mirado a ojo: Ajustes, Jugadores, Cifras iguales) |
+
+\* quick-6v6 568/915: la flecha «Más difícil» (44×44) sale como < 44 según el valor elegido en la fila anterior; no lo toca este paquete.
+
+**Pruebas** (primer plano): csscheck, settest (86), touchtest (34), touchedittest (52), padtest (54), retotest (87), semanatest (66),
+statstest (1172), recaptest (312), careertest, storymsgtest, storyuitest, natltest (180), loantest, worldtest, lifetest, roomtest (95),
+synctest (55), proftest (96), consignatest (99), ambientetest (124), a11ymarktest (28), girotest (21): todas OK.
+
+**Pendiente**
+- V (de los paquetes de zona): carrera-crear-juvenil 360 (dificultades a < 8 del ‹), carrera-playa-club-contract 360 («Pedir el traspaso»
+  bajo la barra), pisado transitorio del aviso del Perfil sobre el pie a 360. Los 177 recortes verticales restantes son de maqueta vertical.
+- carrera-pista-honors-stats a 568: el contador «2/31» de la tira sigue a la izquierda (la sub-pestaña activa ya se ve entera).
+- Ajustes › Ambiente con el selector debajo cuando el panel < 600: a 568 cabe en su columna con la ayuda en 2 líneas; no hizo falta.

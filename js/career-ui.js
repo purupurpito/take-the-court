@@ -1538,7 +1538,8 @@
     // Estrellas (votación) justo tras el partido; gala de premios arriba del fin de temporada
     PQ + ' #crBody[data-cv^="match"]>.card.as-card{order:-1}',
     PQ + ' #crBody[data-cv^="match"]>.card.cpr-gala{order:-3}',
-    PQ + ' #crBody[data-cv^="match"]>.card.ph-dec-top{order:-4}',   // (ronda final: la selección del verano, encima de la gala)
+    PQ + ' #crBody[data-cv^="match"]>.card.ph-dec-top{order:-4}',
+    PQ + ' #crBody[data-cv^="match"]>.card.ln-end{order:-5}',   // (ronda 2: el fin de la cesión, la noticia, antes de la gala de premios)   // (ronda final: la selección del verano, encima de la gala)
     // hoja de ligas (fuera de #career: #spSheets)
     '#spSheets .cr-lgs .cr-lgs-g{margin:10px 0 6px;font:400 var(--ph-label,14px)/1.1 var(--sp-pop);letter-spacing:.03em;color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink)}',
     '#spSheets .cr-lgs .cr-lgs-g:first-child{margin-top:0}',
@@ -1963,6 +1964,7 @@
     PQ + ' .tc-ph .tc-pg.empty .tc-n{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
     // (ronda final: el nombre del título vuelve bajo cada hueco —12, 2 líneas— y el rótulo del grupo arriba, entero: «Internacional»)
     PQ + ' .tc-ph .tc-pg.empty{align-items:start}',
+    PS + ' .tc-ph .tc-pg.empty{grid-template-columns:minmax(0,1fr);gap:4px}',   // (ronda 2: a 568, la categoría como título encima de su fila de trofeos)
     PQ + ' .tc-ph .tc-pg.empty>h4.tc-g{white-space:normal;overflow:visible;text-overflow:clip;padding-top:6px}',
     PQ + ' .tc-ph .tc-pg.empty button.tc-slot{width:76px;min-height:44px;flex-direction:column;justify-content:flex-start;gap:3px}',
     PQ + ' .tc-ph .tc-pg.empty .tc-n{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal;display:block;-webkit-line-clamp:unset;overflow-wrap:normal;hyphens:manual;font:600 var(--ph-micro)/1.12 var(--sp-ui);text-align:center;opacity:.8}',

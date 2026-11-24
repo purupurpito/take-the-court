@@ -7653,6 +7653,14 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s .rt-what{display:block;font-weight:700;opacity:.92}
 :root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s{font-size:var(--pv-micro)}
+/* HOJA FINAL de la situación de la semana (y del reto a 844+): vuelve el MVP al resumen, al final (la ronda 1 lo dejaba solo en Cifras) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc:has(.rc-sit) .rc-mvp{display:grid}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc:has(.rc-day) .rc-mvp{display:grid}
+/* HOJA FINAL del primer partido a 568: el resumen y el MVP primero, «Y ahora» al final (antes «Y ahora» tapaba lo demás) */
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #end #endSum>.rc-first{order:9}
+/* HOJAS DE LA CARRERA: el MVP en la primera pantalla, justo tras el progreso (antes quedaba al pie, bajo el desvanecido, tras «Tu partido») */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-mvp{order:-4}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-rt{order:-3}
 /* ==== fin RONDA 2 · recortes ==== */
 </style>
 

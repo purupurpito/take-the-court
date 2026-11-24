@@ -868,10 +868,14 @@
     PP + '#mpOnline .ol-fx .fx-chips i:nth-child(3){display:inline}',
     // (las fichas parten de línea si no caben —la sala crece—: ni la sede ni «Con sus atributos» se cortan)
     PP + '#mpOnline .ol-rooms .ol-fx:not(.fx-prev){--sp-h:auto;min-height:56px}',
-    PP + '#mpOnline .ol-fx .fx-chips{flex-wrap:wrap;row-gap:2px;white-space:normal;overflow:visible}',
-    PP + '#mpOnline .ol-fx .fx-chips i{white-space:nowrap}',
+    // (en fichas con fondo y sin «·»: al partir de línea no queda un separador huérfano delante; el nombre, con aire arriba)
+    PP + '#mpOnline .ol-fx .fx-chips{flex-wrap:wrap;gap:3px 6px;white-space:normal;overflow:visible}',
+    PP + '#mpOnline .ol-fx .fx-chips i{white-space:nowrap;padding:1px 7px;border-radius:6px;background:rgba(21,16,42,.12)}',
+    ':root.ph:not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-fx .fx-chips i+i::before{content:none}',
+    PP + '#mpOnline .ol-fx.fx-off .fx-chips i{background:rgba(255,244,220,.1)}',
+    PP + '#mpOnline .ol-rooms .ol-fx:not(.fx-prev) .sp-tk-main{padding-top:8px;padding-bottom:8px}',
     PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:none;overflow:visible;text-overflow:clip}',
-    ':root.ph:not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-prev .fx-chips i+i::before{content:"·";margin:0 6px}',
+
     PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act .sp-t{white-space:nowrap}',
     ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-new{--sp-fs:var(--ph-label);--sp-px:8px}',
     PP + '#mpOnline .mk-prev .fx-chips i+i::before{content:none}' + PW + '#mpOnline .mk-go .sp-patch .sp-t{font-size:22px;white-space:nowrap}',
