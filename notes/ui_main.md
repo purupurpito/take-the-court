@@ -1939,7 +1939,49 @@ Con `html.ph` (móvil apaisado; notes/splat.md «Móvil») cada bloque de la por
 - **Pruebas**: `node tools/ambientetest.js [n=12]` (banco de frases, determinismo, sim idéntica sin las puertas y con «Apagado», nada tras el
   silbato ni en el avance rápido, sin frase repetida en 12, «Tranquilo», frecuencias, castigo real, enganche de Carrera y recap).
 
-## La situación de la semana (20-nov-2026, rama aparte; idea «semana»)
+## La jugada del día (24-nov-2026; antes «La situación de la semana» / «El mismo 22-24», 20-nov)
+**Ferran, 24-nov:** «El 22-24 no tendría por qué ser siempre 22-24, puede ser algo diferente cada día. Quiero que lleve un registro de cuántos
+días seguidos lo cumples, y que cuando entres al juego lo primero que te salga sea un pop-up para completarlo». Antes (20-nov): va JUNTO al
+reto del día (no lo sustituye) y SIN XP ni medallas (tampoco récord ni perfil). Decisiones provisionales en notes/pendientes-ferran.md «La
+jugada del día» (nombre, 3 intentos, racha solo en el aparato, cuándo no sale la ventana, igualdad).
+El módulo se sigue llamando `VB.Semana` (js/semana.js) y el campo del periodo sigue siendo `wk` (g.sit.wk, sit.wk, state().wk) para no
+tocar main.js, recap.js ni el enlace: desde el 24-nov guarda el **día** AAAAMMDD (`day` = el mismo valor). La pestaña de Retos sigue con id
+`semana` (y `make-the-cut.retostab`), rotulada «Jugada».
+- **js/semana.js** (puro, sin DOM): `situation(k)` sembrada con `mulberry32(hashStr('mtc-dia-' + AAAAMMDD))` (nunca g.rng; 9 extracciones en
+  orden fijo: formato 50/30/20, sede de la lista congelada `MAPS0`, set único 60 % / 3r set 40 %, tipo, marcador del tipo, saque, sacador,
+  rotación 6v6, nivel Normal 40 % / Difícil 60 %). Tipos (`TYPES`, pesos 30/20/20/15/15; marcadores relativos al objetivo T): Salvar el set,
+  La remontada, El empujón, Mano a mano y Cerrarlo; cada uno con `title` y `goal` (una línea: «Levanta el 22-24 y gana el set»). Nunca un
+  set ya ganado. NO tocar el orden de las listas ni los pesos: cambia la jugada de todos (tabla congelada de semanatest).
+  Intentos: 3 al día (`begin` gasta al empezar; `finish`, `abandon`, intento abierto de otra pestaña = perdido). Mejor de hoy con la misma
+  regla de orden. **Racha** `streak:{cur, best, last}`: la primera victoria de un día la cumple (`bump`: +1 si `last` era ayer, si no 1);
+  `streakOf` da 0 si `last` no es hoy ni ayer. `popWanted()` = no cumplida hoy, con intentos y sin intento abierto. `finish` devuelve
+  `done`, `streak` y `up` (esta victoria cumple la de hoy). Guardado `make-the-cut.semana` **v2** {v, day, me, n, open, best, tries (de
+  hoy), streak, group}; al cambiar de día se vacía todo menos `me`, la racha y la cadena antigua (solo lectura); el v1 semanal se migra con
+  `me` y nada más. Enlace `?sem=AAAAMMDD.nombre~w26-24~S165~A43.….cccc`; los semanales viejos (AAAAWW) se leen con `gone: true` y no se
+  guardan.
+- **js/semana-ui.js**: `tabHTML` (brochazo con el sello del día, el marcador, «Tipo | Set | Saque» —el tipo, `.sem-ty`, se esconde con
+  ≤ 380 de alto—, pegatinas, fila de intentos con la gota de la racha `.sem-rk` al final, «¡A jugar!», «Compartir» y el mapa del grupo),
+  `popHTML()` (cuerpo de la ventana: brochazo con tipo, marcador y set; objetivo, sede/nivel/formato, racha e intentos; `desc` para el
+  lector), `streakLine`, `foot` («Hoy, 24 nov | Cambia cada día | Sin XP ni medallas»), `share`.
+- **Ventana al entrar** (js/ui.js `semPopAuto` / `semPop`): al arrancar, si `semPopWanted()` (VB.Semana.popWanted, ya ha jugado algún
+  partido —`everPlayed`—, sin ?jugar / ?sem / autopilot / nonews / depuración salvo `&sempop=1`, sin foto de «Seguir el partido», no vista en
+  esta sesión —sessionStorage `make-the-cut.sempop`—), espera a la portada libre (0,6 s seguidos y ≥ 1,2 s; sin primera vez, sin billete
+  de Seguir, sin hojas, Carrera, Cuenta ni aviso de instalar) y abre `VB.Splat.sheet` «La jugada del día» con «Ahora no» / «¡A por ella!»
+  (`goSemana`). `aria-describedby="sempDesc"`; Esc / B / ✕ / el tinte la cierran. `newsAuto` espera mientras está pendiente o abierta;
+  si va a salir, `retoAuto` no abre el reto del día ese arranque. Pruebas: `VB.UI.semPop(true)` la abre sin condiciones; `VB.UI.semPopOpen()`.
+- **Sello de la portada** (js/menu-jugador.js `semStamp`): marcador y los intentos de hoy en puntos; cumplida hoy, una marca dorada (SVG
+  `.mj-semok`) en su lugar; con racha, la chapa crema `.mj-semr` con el número en la esquina. aria-label con todo.
+- **Hoja final** (recap.js `sitModel`): «¡Salvada! 26-24» / «¡Cerrada! 25-23» / «Se escapó: 23-25»; 3ª línea «¡Nuevo mejor de hoy: …!» o,
+  con la victoria que cumple la de hoy, «¡Cumplida! Racha: 3 días seguidos» en dorado. Antetítulo «La jugada del día ◆ 24 nov | Set único
+  a 25». Previa y pausa: «La jugada del día».
+- Escenas: `&debug=semana` (`&semdemo=1`: cadena, mejor y racha de 4 inventados en memoria), `semana_end` y `semana_play` (`&semday=AAAAMMDD`).
+- Pruebas: `node tools/semanatest.js` (tabla congelada de 8 días, 400 días, intentos, racha, migración, enlace, zonesOf, guardado roto,
+  hoja final), `node tools/semanacdp.js` (a-g, la g es la ventana), retotest «5)», abouttest (b) y las filas `retos-semana*`, `semana-*`,
+  `jugada-ventana`, `jugada-ventana-racha` y `home-jugada-hecha` de tools/mobaudit.js. (mobaudit cuenta 1-2 «solapes» en la ventana: son
+  los botones de la portada que quedan debajo de la hoja, como en cualquier hoja sobre el menú.)
+
+### Antes (20-nov): la situación de la semana
+(Historia: lo de abajo describe la versión semanal; lo que cambió está arriba.)
 Cada lunes, el mismo final apurado para todo el mundo («Set único a 25: 22-24, saca el rival» o «3r set a 15: 13-14, sacas tú»), tres
 intentos al día, el mejor de la semana y un enlace para compartir con el «mapa del grupo». Sin servidor.
 **Decisiones de Ferran:** va JUNTO al reto del día (no lo sustituye: el reto del día sigue con el Vestuario, la XP de perfil y el álbum)

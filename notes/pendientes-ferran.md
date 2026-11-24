@@ -4,7 +4,7 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 **decisión provisional**: cambiarlo es tocar el sitio que se indica. Lo que Ferran sí decidió está en la memoria
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
-Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · Backlog del 21-nov · Señas · Xaranga · Semana · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
+Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
 publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
@@ -238,6 +238,7 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
   empieza en lo que diga el aparato y se corrige con los fps; si prefieres que recomiende un nivel fijo, es `perfHTML` en js/ui.js.
 - **Tope de dibujos del 6v6 en calidad baja: se queda en 45** (tools/perf.js `CALLS_LOW`). Bajarlo a 33-35 como el 2v2 obligaría a juntar
   mallas de los 12 jugadores (trabajo de render, no de menús) y lo medido (37-39) ya va holgado; el tope es una alarma, no un objetivo.
+- **La jugada del día** (antes «El mismo 22-24»: diaria, con racha y ventana al entrar): sus decisiones van en su sección, más abajo.
 - **Confirmado sin tocar**: «Cerrar sesión» no borra el progreso del aparato; el Circuito Mundial sigue como reto; los partidos cortos
   siguen sin dar XP ni nada.
 
@@ -252,10 +253,10 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
 - **Repeticiones en 6v6**: preparadas y APAGADAS (`REPLAY6 = false`, js/replay.js). La resimulación de partidos 6v6 enteros cuadra
   (desync 0), pero falta lo visual (los 12 jugadores en la repetición, la cámara 6v6, la pestaña «Jugadas» de la hoja 6v6) y medirlo en
   el móvil. **Decisión provisional: también automáticas en los puntos de set y de partido, como en el 2v2.**
-- **Torneo de la semana**: **decisión provisional: cubierto por «El mismo 22-24»**; no se construye y `w`/`weeks` quedan solo como
+- **Torneo de la semana**: **decisión provisional: cubierto por «La jugada del día»** (antes «El mismo 22-24»); no se construye y `w`/`weeks` quedan solo como
   compatibilidad del guardado.
 - **S4_SYNC = true** (account.js): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos ya viajan con la cuenta. La semana
-  sigue solo en el aparato. Antes de publicar: probarlo a mano con dos aparatos (conflicto «¿Qué Carrera de pista te quedas?»).
+  sigue solo en el aparato (la jugada del día y su racha también). Antes de publicar: probarlo a mano con dos aparatos (conflicto «¿Qué Carrera de pista te quedas?»).
 - Preguntas:
   1. Sedes: ¿Cúpula también en partidos de liga de élite? ¿Can Rebot en toda la 2ª, o el 25 % te vale?
   2. Jefes de pista: ¿te valen los puestos (Pulpo de receptor)?
@@ -283,38 +284,51 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
 - **Decisión provisional: online** según la dificultad del partido que manda el anfitrión (Difícil/Experto suena; Normal no).
 - **Decisión provisional: ensayos del menú apagados** (`XAR_WHEN.menu = false`): están hechos, pero no es un partido.
 - **Decisión provisional: «partidos buenos» = Difícil y Experto** (`XAR_WHEN.diffs`).
-- **Decisión provisional: el 22-24 semanal** suena según su nivel: las semanas que sale en Difícil (60 %) sí; en Normal, no.
+- **Decisión provisional: la jugada del día** (antes el 22-24 semanal) suena según su nivel: los días que sale en Difícil (60 %) sí; en Normal, no.
 - Falta escucharla con auriculares y en el altavoz del móvil antes de publicar.
 - Preguntas:
   1. ¿Suena en el online? (ahora depende del nivel del anfitrión).
-  2. En el 22-24 semanal, ¿siempre, nunca o según el nivel como ahora?
+  2. En la jugada del día, ¿siempre, nunca o según el nivel como ahora?
   3. ¿Quieres los ensayos de la charanga en los menús?
   4. ¿«Xaranga» o «Charanga»?
 
-## La situación de la semana, «El mismo 22-24» (js/semana.js, js/semana-ui.js, notes/ui_main.md)
-Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. Lo demás es provisional:
-- **Decisión provisional: igualdad** — nivel de la semana, atributos e insignias neutros, sin ayuda de novato, sin zona ni saque de
-  firma (js/main.js `startMatch`, `sitO`). Los controles (Colocación dirigida, cambios del 6v6) siguen los Ajustes de cada uno.
-- **Decisión provisional: intentos y mejor resultado solo en este aparato** (`make-the-cut.semana` no va a la cuenta).
-- **Hecho según la propuesta que Ferran aceptó («JUNTO»)**: la situación ocupa el sello de la portada (junto a JUGAR, `js/menu-jugador.js
-  semStamp`: el marcador, p. ej. «22-24», y los intentos de hoy en puntos; abre `VB.UI.openRetos('semana')`) y la 1ª pestaña de Retos; el reto
-  del día sigue en la franja de Jugar (que abre Retos en la pestaña que recuerde, «Hoy» la primera vez) y en la pestaña Hoy. El sello
-  lee con `VB.Semana.peek()`, que no cierra intentos abiertos en otra pestaña. Al montar el rediseño de menús hay que conservarlo.
-- **Decisión provisional: el «3r set» empieza 1-1 sin parciales inventados**: el marcador enseña los pilotos 1-1 sin «S1 25-22 | S2
-  22-25», y la hoja final solo el set jugado, rotulado «3r set».
-- Al fusionar el cambio de nombre a Take the Court hay que cambiar dos cadenas: la base por defecto del enlace en `js/semana.js link()`
-  ('https://purupurpito.github.io/make-the-cut/') y el `title` de `navigator.share` en `js/semana-ui.js share()`.
-- El «torneo de la semana» del backlog (D1) se puede dar por cubierto con esto; `w`/`weeks` de retos.js y `{semana}` de VB.Look quedan
-  sin usar (no se borran: compatibilidad del guardado).
-- **Decisión provisional (revisión): en el sello de la portada los intentos de hoy salen como 3 puntos** (dorado = te queda, hueco =
-  gastado), porque «Quedan 3» no cabía a 568x320. El texto entero va para los lectores de pantalla. Sin punto rojo de «nuevo».
-- **Decisión provisional (revisión): las señas sí se apuntan en el Cuaderno al jugar la situación de la semana a mano.** No se apuntan
-  en el online, el autopilot, el espectador ni las escenas de depuración.
+## La jugada del día (antes «El mismo 22-24» / situación de la semana; js/semana.js, js/semana-ui.js, notes/ui_main.md)
+Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. **24-nov:** «El 22-24 no tendría por qué ser siempre 22-24, puede ser algo
+diferente cada día. Quiero que lleve un registro de cuántos días seguidos lo cumples, y que cuando entres al juego lo primero que te salga
+sea un pop-up para completarlo.» Hecho así (rama decisiones, sin versión):
+- **Diaria.** Cada día (fecha local, la misma para todos) sale una jugada de un catálogo de cinco tipos: «Salvar el set» (22-24, 23-24,
+  21-24, 24-25), «La remontada» (18-23, 17-22, 19-23, 16-21), «El empujón» (22-23, 21-23, 20-22, 21-22), «Mano a mano» (24-24, 23-23,
+  22-22, 25-25) y «Cerrarlo» (24-23, 24-22, 25-24, 23-22), escalados al set: a 25 en pista, a 21 en playa o el 3r set a 15. Más
+  formato (2v2 pista 50 %, playa 30 %, 6v6 20 %), sede, saque y nivel. El objetivo siempre es **ganar el set** desde ese marcador, en una
+  línea («Levanta el 22-24 y gana el set»). Todos los puntos valen lo mismo.
+- **Racha:** días seguidos que la cumples (= la ganas en alguno de los 3 intentos de hoy), la actual y la mejor. Un día sin cumplirla y
+  vuelve a 0. Sale en la ventana, en la pestaña (gota dorada con el número) y en el sello de la portada (chapa crema con el número; con
+  la de hoy cumplida, una marca dorada en lugar de los puntos de intentos).
+- **Ventana al entrar:** lo primero tras la carga, una hoja SPLAT con la jugada, la racha y «¡A por ella!» / «Ahora no».
+- **Decisión provisional: nombre «La jugada del día»** (el «Reto del día» ya existe y sigue igual en la pestaña Hoy). La pestaña de Retos
+  pasa de «Semana» a «Jugada». Cambiarlo: textos en js/semana-ui.js, ui.js (previa, pausa, hoja, pestaña, ventana) y menu-jugador.js.
+- **Decisión provisional: 3 intentos al día, como antes.** Si pierdes los tres, ese día no la cumples y mañana la racha empieza de cero
+  («Me gusta que sea un reto»). Cambiarlo: `TRIES` en js/semana.js.
+- **Decisión provisional: la racha solo en el aparato**, como los intentos (no va por S4_SYNC de account.js: habría que inventar cómo
+  mezclar dos rachas de dos aparatos, y lo demás de la jugada tampoco viaja).
+- **Decisión provisional: cuándo NO sale la ventana:** ya cumplida hoy o sin intentos; a quien no ha jugado nunca (ve «¡Jugar ya!» /
+  «Tutorial»); con ?jugar o ?sem; con un partido a medias («Seguir el partido» manda, también el de la Carrera); con la Carrera, la Cuenta
+  o el aviso de instalar abiertos; más de una vez por sesión (al recargar la pestaña no vuelve; al abrir el juego otro día o en otra
+  pestaña, sí). Las Novedades de una versión nueva esperan a que la cierres; ese día el reto del día ya no se abre solo (si no sale la
+  ventana, el reto del día se abre como siempre).
+- **Decisión provisional: la jugada de cada día no se repite casi nunca** (dos días seguidos iguales: menos del 5 %), pero sí puede salir
+  el mismo marcador otro día.
+- El guardado `make-the-cut.semana` pasa a v2; el semanal se migra quedándose solo con tu nombre de jugador (su mejor era de otra
+  situación). Los enlaces semanales viejos (?sem=AAAAWW…) avisan «Ese enlace es de la antigua situación de la semana».
+- Sigue de antes: **igualdad** (nivel del día, atributos e insignias neutros, sin ayuda de novato, sin zona ni saque de firma; los
+  controles siguen tus Ajustes); el «3r set» empieza 1-1 sin parciales inventados; las señas se apuntan en el Cuaderno al jugarla a mano;
+  el enlace de compartir (?sem=…, desde takethecourt.com) con el «mapa del grupo», ahora por día.
+- El «torneo de la semana» del backlog (D1) se da por cubierto con esto; `w`/`weeks` de retos.js y `{semana}` de VB.Look quedan sin usar.
 - Preguntas:
-  1. ¿Te vale la igualdad (nivel fijo, atributos neutros, sin ayuda de novato), o los novatos en Normal?
-  2. ¿Intentos solo en el aparato, sin pasar por la cuenta?
-  3. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
-  4. ¿Damos el «torneo de la semana» por cubierto y se tacha del backlog?
+  1. ¿Te vale el nombre «La jugada del día» (y «Jugada» en la pestaña)?
+  2. ¿3 intentos al día, o sin límite mientras no la cumplas?
+  3. ¿Te vale la igualdad (nivel fijo, atributos neutros, sin ayuda de novato), o los novatos en Normal?
+  4. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
 
 ## Rencor y cariño de los clubes (js/career-life.js, notes/carrera.md «Rencor y cariño»)
 Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en peores condiciones; solo rencor o cariño, nada más.
@@ -472,4 +486,4 @@ tope de dibujos del 6v6 lo decido yo, abajo en «Menús».)
 5. Música en ogg dentro de index.html o procedural; ¿moneda única o ninguna? (el 6v6 en JUGAR, contestado el 24-nov: ver «Menús»)
 6. Premios por nivel: ¿se quedan en 8 (había 17 propuestos)?
 8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
-9. Torneo de la semana: ¿lo damos por cubierto con «El mismo 22-24»? (también arriba, en Backlog del 21-nov y en la Semana).
+9. Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).
