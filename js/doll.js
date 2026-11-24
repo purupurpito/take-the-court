@@ -128,7 +128,9 @@
   // calcetines, tobillera y zapatillas); el resto se dibuja tal cual llega (la maqueta ?debug=doll lleva gorra y gafas en pista).
   var ARMS = { manguito: 'P', manguitoRayas: 'P', manguitoCuadros: 'P', manguitoLlamas: 'P', manguitoRayos: 'P', manguitoOro: 'P', kinesio: 'A', manguitoMazo: 'P',
     // (1.18, WP7: medio —solo el brazo—, de antebrazo, bicolor, degradado, de estrellas y con tu número)
-    manguitoMedio: 'P', manguitoBajo: 'P', manguitoBicolor: 'P', manguitoFundido: 'P', manguitoEstrella: 'P', manguitoNumero: 'P' };   // manguitos solo en pista (1.1.1)
+    manguitoMedio: 'P', manguitoBajo: 'P', manguitoBicolor: 'P', manguitoFundido: 'P', manguitoEstrella: 'P', manguitoNumero: 'P',
+    // (premios de nivel alto, 24-nov: olas, salpicado, red y holográfico)
+    manguitoOlas: 'P', manguitoTinta: 'P', manguitoRed: 'P', manguitoHolo: 'P' };   // manguitos solo en pista (1.1.1)
   var ITEMS = {
     // (1.18, WP2: los 10 de siempre rehechos con el casco nuevo y 22 nuevos; los dibuja HAIR_STYLES)
     style: { tupe: 'A', coleta: 'A', afro: 'A', flequillo: 'A', rapado: 'A', mono: 'A', trenzas: 'A', dosmonos: 'A', coletas: 'A', cresta: 'A',
@@ -140,7 +142,7 @@
       diadema: 'A', pinzas: 'A', gorroPompon: 'P', pescadorCuadros: 'Y', viseraGafas: 'Y' },
     ears: { pendientes: 'A' },   // (WP7 ronda 1: ranura propia; antes iban en head y no cabían con ningún gorro)
     eyes: { frente: 'Y', pasta: 'A', oscuras: 'Y', deporte: 'A', espejo: 'Y', gafasRedondas: 'A', aviador: 'Y', gafasVentisca: 'Y' },
-    paint: { zinc: 'Y', rayas: 'A', rayasEq: 'A', estrella: 'A', pinturaEquipo: 'A', rayoOjo: 'A' },
+    paint: { zinc: 'Y', rayas: 'A', rayasEq: 'A', estrella: 'A', pinturaEquipo: 'A', rayoOjo: 'A', balonCara: 'A', manchaTinta: 'A' },
     marks: { pecas: 'A', tirita: 'A', tiraNasal: 'A', tiritaNariz: 'A' },
     beard: { bigote: 'A', perilla: 'A', tresDias: 'A', barba: 'A', bigote70: 'A' },   // (barba: 1.18, WP3)
     neck: { medalla: 'A', conchas: 'Y', bandanaCuello: 'A', silbato: 'A', cadenaPlata: 'A' },
@@ -152,10 +154,10 @@
     hands: { dedos: 'A', mitones: 'Y', dedosMuro: 'A', dedosColor: 'A' },
     legs: { malla: 'A', mallaLarga: 'A', mallaUnLado: 'A', malla34: 'A' },
     knees: { cortas: 'P', altas: 'P', bajadas: 'P', rodiPulpo: 'P', rodillerasColor: 'P', rodilleraUna: 'P' },
-    socks: { tobilleros: 'P', media: 'P', altos: 'P', altosRayas: 'P', desparejados: 'P', compresion: 'P', lunares: 'P', caido: 'P' },
+    socks: { tobilleros: 'P', media: 'P', altos: 'P', altosRayas: 'P', desparejados: 'P', compresion: 'P', lunares: 'P', caido: 'P', sandia: 'P', calcBalones: 'P', calcLlamas: 'P' },
     ankle: { blanca: 'P', tela: 'Y', pulseraTob: 'Y', escarpines: 'Y', tobiPulpo: 'Y', escarpinesNeo: 'Y', vendajeTob: 'Y', cuentasTob: 'Y' },
     shoes: { clasicas: 'P', negras: 'P', neon: 'P', doradas: 'P', botinAlto: 'P', suelaGorda: 'P', bicolor: 'P', retro: 'P' },
-    hairFx: { raiz: 'A', puntas: 'A', mechas: 'A', flequilloFx: 'A', mitad: 'A' }   // efectos de pelo (fit.hairFx con fit.hair2, 1.18): por color de vértice
+    hairFx: { raiz: 'A', puntas: 'A', mechas: 'A', flequilloFx: 'A', mitad: 'A', arcoiris: 'A' }   // efectos de pelo (fit.hairFx con fit.hair2, 1.18): por color de vértice
   };
   var LOOK_SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
     'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes', 'ears'];
@@ -178,6 +180,7 @@
   // y pulpo (rodilleras altas moradas / tobillera de cA, con ventosas)
   var STEEL = 0x9aa6b4, STEEL_DK = 0x4f5866, MAZO_DK = 0x2b2833, PULPO = 0x9a4fc4, PULPO_HI = 0xf0c8ff;
   var NEO = 0x23262d;   // neopreno de los escarpinesNeo (WP7)
+  var HOLO = 0xd9d3f0, HOLO_DK = 0x9a90c4;   // nácar del manguito holográfico (premio del Nv 90, 24-nov): no lleva colores de ficha
   var KNEE_HI = { altas: 1, rodiPulpo: 1 }, TAPED = { dedos: TAPE, dedosMuro: STEEL, dedosColor: -1 };   // (dedosColor: cA, WP7)
   function slotVal(v, slot, bch) {
     var d = (bch ? SLOT_DEF.beach : SLOT_DEF.hall)[slot] || '', ven;
@@ -220,7 +223,7 @@
   function colSock(X, tc) { return X.cSock >= 0 ? X.cSock : tc.accent; }
   var TC_GEO = ['base', 'accent', 'dark', 'shorts', 'pad', 'sole'], TC_ATLAS = ['base', 'accent', 'dark', 'trim', 'shorts', 'pad', 'numFill', 'pattern', 'libero', 'bib'];
   var TIES = { coleta: 1, mono: 1, trenzas: 1, dosmonos: 1, coletas: 1, coletaBaja: 1, trenza: 1, monoBajo: 1, semirrecogido: 1 };   // peinados con gomas de cA
-  function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas' && a !== 'manguitoMazo'; }   // manguito con la bola del codo de cA
+  function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas' && a !== 'manguitoMazo' && a !== 'manguitoHolo'; }   // manguito con la bola del codo de cA
   // (1.18, WP7) qué tapa cada manguito: el medio solo el brazo (del ribete al codo), el de antebrazo solo del codo a la muñeca; bicolor y
   // degradado llevan cB en la bola del codo (la mitad de abajo es cB)
   var SLV_UP_ONLY = { manguitoMedio: 1 }, SLV_FORE_ONLY = { manguitoBajo: 1 }, SLV_AB = { manguitoBicolor: 1, manguitoFundido: 1 };
@@ -664,6 +667,90 @@
         });
         return;
       }
+      // ---- premios de nivel alto (24-nov): olas, salpicado, red y holográfico. Medidas en metros del tubo (rpm = filas por metro; ax = u
+      //      por fila, para que nada salga aplastado) y cada dibujo repetido a ±1 vuelta: la costura de la columna no corta nada
+      if (id === 'manguitoOlas') {     // olas de cómic del segundo color, con la cresta de espuma y tres por vuelta, una fila cada 6 cm
+        band(c, f0, f1, cA);
+        var wv = cB2, fo = lumHex(wv) > 0.72 ? mixHex(wv, INK, 0.4) : 0xf8f8f4;
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          var rpm = (c.r[1] - c.r[0] + 1) / len, dy = 0.06 * rpm, a = 0.013 * rpm, j = 0, yb;
+          function crest(yy, ph) { g.beginPath(); for (var i = 0; i <= 36; i++) { var x = c.x0 + w * i / 36, y = yy - a * Math.sin(i / 36 * PI * 6 + ph) - a * 0.25 * Math.sin(i / 36 * PI * 12 + ph * 2); if (i) g.lineTo(x, y); else g.moveTo(x, y); } }
+          for (yb = y0 + dy * 0.55; yb < y1 + dy; yb += dy, j++) {
+            crest(yb, j * 1.3); g.lineTo(c.x1, yb + dy * 0.48); g.lineTo(c.x0, yb + dy * 0.48); g.closePath(); g.fillStyle = hexCss(wv); g.fill();
+            crest(yb, j * 1.3); g.strokeStyle = hexCss(fo); g.lineWidth = Math.max(1.2, 0.007 * rpm); g.lineJoin = 'round'; g.stroke();
+            crest(yb + dy * 0.48, j * 1.3 + 0.6); g.strokeStyle = hexCss(mixHex(wv, INK, 0.45)); g.lineWidth = Math.max(0.8, 0.003 * rpm); g.stroke();
+          }
+        });
+        return;
+      }
+      if (id === 'manguitoTinta') {    // manchas de pintura blanca (o del segundo color sobre uno claro) (un borrón con lóbulos y dos gotitas sueltas) con filo de tinta
+        band(c, f0, f1, cA);
+        var tk = lumHex(cA) < 0.6 ? 0xf8f8f4 : cB2, tki = hexDist(tk, INK) < 120 ? 0xf4f4f4 : INK;   // (pintura blanca sobre un manguito oscuro o vivo; si es claro, el segundo color)
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          var rpm = (c.r[1] - c.r[0] + 1) / len, H = y1 - y0, j, i, sh = [];
+          // [u en vueltas, alto en fracción del tramo, radio en metros]
+          var B = [[0.08, 0.22, 0.03], [0.58, 0.45, 0.036], [0.3, 0.8, 0.028], [0.85, 0.9, 0.022]];
+          B.forEach(function (b, n) {
+            var r = b[2] * rpm * ax, y = y0 + H * b[1];
+            [-1, 0, 1].forEach(function (o) {
+              var x = c.x0 + (b[0] + o) * w;
+              sh.push([x, y, r]);
+              for (j = 0; j < 6; j++) { var an = j * 1.05 + n * 0.7, d = r * (0.86 + 0.12 * ((j * 7 + n) % 3)); sh.push([x + Math.cos(an) * d, y + Math.sin(an) * d / ax, r * (0.3 + 0.08 * ((j + n) % 3))]); }
+              sh.push([x + r * 1.75, y - r * 0.9 / ax, r * 0.2]); sh.push([x - r * 1.5, y + r * 1.4 / ax, r * 0.15]);
+            });
+          });
+          function circ(q) { g.beginPath(); g.ellipse(q[0], q[1], q[2], q[2] / ax, 0, 0, PI * 2); }
+          g.fillStyle = hexCss(tki); for (i = 0; i < sh.length; i++) { circ([sh[i][0], sh[i][1], sh[i][2] + Math.max(0.8, 0.0022 * rpm * ax)]); g.fill(); }   // filo (unión)
+          g.fillStyle = hexCss(tk); for (i = 0; i < sh.length; i++) { circ(sh[i]); g.fill(); }
+          g.fillStyle = hexCss(mixHex(tk, 0xffffff, 0.45));
+          B.forEach(function (b) { var r = b[2] * rpm * ax; [-1, 0, 1].forEach(function (o) { circ([c.x0 + (b[0] + o) * w - r * 0.35, y0 + H * b[1] - r * 0.35 / ax, r * 0.22]); g.fill(); }); });   // brillo
+        });
+        return;
+      }
+      if (id === 'manguitoRed') {      // malla de rombos como la red (oscura sobre un manguito claro, clara sobre uno oscuro); el brazo, con la cinta
+        band(c, f0, f1, cA);
+        var nl = lumHex(cA) > 0.45 ? 0x1d1c24 : 0xeef0f2;
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          var rpm = (c.r[1] - c.r[0] + 1) / len, H = y1 - y0, sp = w / 6, run = H * ax, i;
+          g.strokeStyle = hexCss(nl); g.lineWidth = Math.max(1, 0.0045 * rpm * ax); g.lineCap = 'butt';
+          g.beginPath();
+          for (i = -Math.ceil(run / sp) - 6; i <= 12; i++) {
+            var x = c.x0 + i * sp; g.moveTo(x, y0); g.lineTo(x + run, y1); g.moveTo(x + run, y0); g.lineTo(x, y1);
+          }
+          g.stroke();
+          g.fillStyle = hexCss(nl); g.globalAlpha = 0.6;   // nudos
+          for (i = -2; i <= 8; i++) for (var yy = y0, jj = 0; yy < y1 + sp / ax; yy += sp / ax / 2, jj++) { g.beginPath(); g.ellipse(c.x0 + (i + (jj % 2 ? 0.5 : 0)) * sp, yy, sp * 0.1, sp * 0.1 / ax, 0, 0, PI * 2); g.fill(); }
+          g.globalAlpha = 1;
+          if (part === 'up') {   // la cinta blanca de arriba de la red, con filo de tinta
+            var th = Math.min(H * 0.22, 0.03 * rpm);
+            g.fillStyle = '#f6f6f2'; g.fillRect(c.x0, y0, w, th);
+            g.fillStyle = hexCss(INK); g.fillRect(c.x0, y0 + th - Math.max(0.8, th * 0.12), w, Math.max(0.8, th * 0.12));
+          }
+        });
+        return;
+      }
+      if (id === 'manguitoHolo') {     // holográfico: nácar (sin fichas: la bola del codo y el puño, del mismo nácar), franjas diagonales de colores translúcidas y destellos
+        band(c, f0, f1, HOLO);
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          var H = y1 - y0, run = H * ax * 0.7, HUES = [0xff5fa2, 0xffd23a, 0x5fe08a, 0x4fc3ff, 0xa77bff], sw = w / HUES.length, i;
+          g.globalAlpha = 0.62;
+          for (i = -10; i <= 10; i++) {
+            var x = c.x0 + i * sw; g.fillStyle = hexCss(HUES[(i % 5 + 5) % 5]);
+            g.beginPath(); g.moveTo(x, y0); g.lineTo(x + sw, y0); g.lineTo(x + sw + run, y1); g.lineTo(x + run, y1); g.closePath(); g.fill();
+          }
+          g.globalAlpha = 1;
+          var SP = [[0.12, 0.25], [0.47, 0.62], [0.78, 0.3], [0.3, 0.88], [0.92, 0.8]], r = w * 0.055;
+          g.fillStyle = '#ffffff';
+          SP.forEach(function (q) {
+            [-1, 0, 1].forEach(function (o) {
+              g.save(); g.translate(c.x0 + (q[0] + o) * w, y0 + H * q[1]); g.scale(1, 1 / ax);
+              g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(r * 0.12, -r * 0.12, r, 0); g.quadraticCurveTo(r * 0.12, r * 0.12, 0, r);
+              g.quadraticCurveTo(-r * 0.12, r * 0.12, -r, 0); g.quadraticCurveTo(-r * 0.12, -r * 0.12, 0, -r); g.fill(); g.restore();
+            });
+          });
+        });
+        return;
+      }
       if (id === 'manguitoRayas') { band(c, f0, f1, cA); for (var f = f0 + 0.05; f < f1 - 0.02; f += 0.1) band(c, f, Math.min(f1, f + 0.05), cB); return; }
       if (id === 'manguitoCuadros') {  // damero de 4 casillas alrededor y casillas cuadradas a lo largo (u propia del tubo)
         draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
@@ -777,8 +864,64 @@
         wave(top + 0.0012, 0.004, 0); g.strokeStyle = hexCss(INK); g.lineWidth = 0.0016 * rpm; g.stroke();
       });
     }
+    // ---- calcetines de los premios de nivel alto (24-nov): sandía, balones y llamas
+    /** sandía: hasta debajo de la rodilla; puño verde de corteza con rayas oscuras, franja blanca y el resto rojo con pepitas negras */
+    function melonSock(c, top) {
+      var hs = Math.min(SHIN - kneeR(X), top), RIND = 0x3f9a3a, RIND_DK = 0x22622a, PITH = 0xeaf6cf, FLESH = 0xe8344a, SEED = 0x1a1418;
+      band(c, legF(hs), 1, FLESH);
+      draw(c, legF(hs - 0.034), 1, TUBE_LEG * 0.96, SHIN, function (xc, y0, y1, ax, w) {   // pepitas: gotas negras al tresbolillo, punta arriba
+        var rpm = (c.r[1] - c.r[0] + 1) / SHIN, r = 0.0055 * rpm * ax, dy = 0.03 * rpm, j = 0, y;
+        g.fillStyle = hexCss(SEED);
+        for (y = y0 + 0.012 * rpm; y < y1 + r / ax; y += dy, j++) for (var i = -1; i <= 6; i++) {
+          var x = c.x0 + (i + (j % 2 ? 0.5 : 0) + 0.1 * Math.sin(i * 3 + j)) * w / 6;
+          g.save(); g.translate(x, y); g.scale(1, 1 / ax); g.beginPath(); g.moveTo(0, -r * 1.7); g.quadraticCurveTo(r * 1.1, -r * 0.2, 0, r); g.quadraticCurveTo(-r * 1.1, -r * 0.2, 0, -r * 1.7); g.fill(); g.restore();
+        }
+      });
+      band(c, legF(hs - 0.024), legF(hs - 0.034), PITH);                                                     // lo blanco
+      band(c, legF(hs), legF(hs - 0.024), RIND);                                                             // corteza
+      draw(c, legF(hs), legF(hs - 0.024), TUBE_LEG * 0.96, SHIN, function (xc, y0, y1, ax, w) {             // rayas de la corteza
+        g.fillStyle = hexCss(RIND_DK); for (var i = 0; i < 9; i++) g.fillRect(c.x0 + (i + 0.3) * w / 9, y0, w * 0.035, y1 - y0);
+      });
+      band(c, legF(hs - 0.034), legF(hs - 0.037), mixHex(FLESH, INK, 0.35));
+    }
+    /** de balones: a media espinilla, del color del calcetín con balones blancos (tres costuras curvas) al tresbolillo y el puño de contraste */
+    function ballSock(c, top, sc) {
+      var bc = hexDist(sc, 0xf8f8f4) < 140 ? mixHex(sc, INK, 0.75) : 0xf8f8f4, se = mixHex(sc, INK, 0.35), ink = mixHex(sc, INK, 0.7);
+      band(c, legF(top), legF(top - 0.012), onCol(tc.base, sc, tc)); band(c, legF(top - 0.012), legF(top - 0.016), ink);   // puño
+      draw(c, legF(top - 0.016), 1, TUBE_LEG * 0.96, SHIN, function (xc, y0, y1, ax, w) {
+        var rpm = (c.r[1] - c.r[0] + 1) / SHIN, r = 0.0125 * rpm * ax, dy = 0.036 * rpm, j = 0, y;
+        for (y = y0 + 0.016 * rpm; y < y1 + r / ax; y += dy, j++) for (var i = -1; i <= 5; i++) {
+          g.save(); g.translate(c.x0 + (i + (j % 2 ? 0.5 : 0)) * w / 5, y); g.scale(1, 1 / ax); g.rotate(i * 0.9 + j * 0.5);
+          g.beginPath(); g.arc(0, 0, r, 0, PI * 2); g.fillStyle = hexCss(bc); g.fill();
+          g.save(); g.clip(); g.strokeStyle = hexCss(se); g.lineWidth = r * 0.18;
+          for (var k = 0; k < 3; k++) { var a = k * PI * 2 / 3; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(Math.cos(a + 0.6) * r * 0.7, Math.sin(a + 0.6) * r * 0.7, Math.cos(a) * r * 1.1, Math.sin(a) * r * 1.1); g.stroke(); }
+          g.restore();
+          g.beginPath(); g.arc(0, 0, r, 0, PI * 2); g.strokeStyle = hexCss(ink); g.lineWidth = r * 0.16; g.stroke();
+          g.restore();
+        }
+      });
+    }
+    /** de llamas: hasta debajo de la rodilla, oscuro con llamas del color del calcetín (y el corazón más claro) que suben del tobillo */
+    function flameSock(c, top, sc) {
+      var hs = Math.min(SHIN - kneeR(X), top), dk = lumHex(sc) < 0.25 ? 0x2b2833 : mixHex(sc, INK, 0.72), w0c = shoeTopH(X);
+      band(c, legF(hs), 1, dk);
+      draw(c, legF(hs - 0.012), 1, TUBE_LEG * 0.96, SHIN, function (xc, y0, y1, ax, w) {
+        var H = y1 - y0, n = 6, tw = w / n, hs2 = [0.62, 0.9, 0.55, 0.98, 0.7, 0.84];
+        function tongues(kk, hex) {
+          g.fillStyle = hexCss(hex);
+          for (var i = -1; i <= n; i++) {
+            var x = c.x0 + (i + 0.5) * tw, h = H * hs2[(i + n) % n] * kk;
+            g.beginPath(); g.moveTo(x - tw * 0.62, y1); g.quadraticCurveTo(x - tw * 0.2, y1 - h * 0.55, x + tw * 0.12, y1 - h);
+            g.quadraticCurveTo(x + tw * 0.05, y1 - h * 0.45, x + tw * 0.62, y1); g.closePath(); g.fill();
+          }
+        }
+        tongues(1, sc); tongues(0.5, mixHex(sc, 0xffe27a, 0.6));
+      });
+      band(c, legF(hs), legF(hs - 0.012), sc); band(c, legF(hs - 0.012), legF(hs - 0.015), mixHex(sc, INK, 0.5));   // puño
+      band(c, legF(w0c + 0.03), legF(w0c + 0.02), mixHex(sc, 0xffe27a, 0.6));
+    }
     // ---- manguitos: puño de la muñeca a partir de la fracción f (con la térmica debajo, el manguito acaba antes y asoma la térmica)
-    function cuff(c, id, f) { band(c, f, f + 0.09, id === 'manguitoOro' ? GOLD_DK : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : SLV_AB[id] ? cuffHex(cB2) : cB); }
+    function cuff(c, id, f) { band(c, f, f + 0.09, id === 'manguitoOro' ? GOLD_DK : id === 'manguitoHolo' ? HOLO_DK : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : SLV_AB[id] ? cuffHex(cB2) : cB); }
     /** kinesio de verdad (ronda 1 de WP5): cinta estrecha que sigue el músculo, como trazo con las puntas redondas por los puntos pts
      *  ([fracción a lo largo, du]: du = 0 fuera, + delante, − detrás, en vueltas del brazo) y de ancho wm metros: borde oscuro, cinta y
      *  un brillo por el centro. Se dibuja en metros reales (u por fila) para que la cinta no salga aplastada y se repite a ±1 vuelta
@@ -804,7 +947,7 @@
     }
     // color de lo que hay debajo del brazalete (fracción 0,49-0,83 del brazo): el manguito, la camiseta interior o la piel
     function armBg(arm, lsl) {
-      if (ARMS[arm] && arm !== 'kinesio' && !SLV_FORE_ONLY[arm]) return arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : cA;
+      if (ARMS[arm] && arm !== 'kinesio' && !SLV_FORE_ONLY[arm]) return arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : arm === 'manguitoHolo' ? HOLO : cA;
       return lsl ? cU : sk;
     }
     // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
@@ -941,6 +1084,9 @@
         else if (sock === 'compresion') compSock(c, top, sc, st);
         else if (sock === 'lunares') dotSock(c, top, sc);
         else if (sock === 'caido') slouchSock(c, top, sc, kneeTights(X, k) ? tLg : sk);
+        else if (sock === 'sandia') melonSock(c, top);
+        else if (sock === 'calcBalones') ballSock(c, top, sc);
+        else if (sock === 'calcLlamas') flameSock(c, top, sc);
       }
       if (KNEE_HI[X.knees]) {
         var fb = legF(SHIN - kr - padDnH(X));
@@ -1090,6 +1236,48 @@
       g.fillStyle = hexCss(colA(L, tc)); g.fill();
       g.strokeStyle = hexCss(faceInk(tc)); g.lineWidth = 0.004; g.lineJoin = 'miter'; g.stroke();
       g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.004; g.beginPath(); g.moveTo(-0.112, 0.325); g.lineTo(-0.142, 0.212); g.stroke();
+    } else if (p === 'balonCara') {   // premio de nivel alto (24-nov): balón blanco en la mejilla, con tres costuras curvas del acento y filo de tinta
+      var bx = 0.114, by = 0.104, br = 0.036, sa = colA(L, tc), seam = hexDist(sa, 0xf8f8f4) < 120 ? mixHex(sa, INK, 0.5) : sa;
+      g.beginPath(); g.arc(bx, by, br, 0, PI * 2);
+      if (halo) { g.strokeStyle = halo; g.lineWidth = 0.008; g.stroke(); }
+      g.fillStyle = '#f8f8f4'; g.fill();
+      g.save(); g.beginPath(); g.arc(bx, by, br, 0, PI * 2); g.clip();
+      g.strokeStyle = hexCss(seam); g.lineWidth = 0.0055; g.lineCap = 'round';
+      for (k = 0; k < 3; k++) {
+        var a = 0.4 + k * PI * 2 / 3;
+        g.beginPath(); g.moveTo(bx, by); g.quadraticCurveTo(bx + Math.cos(a + 0.7) * br * 0.75, by + Math.sin(a + 0.7) * br * 0.75, bx + Math.cos(a) * br * 1.1, by + Math.sin(a) * br * 1.1); g.stroke();
+      }
+      g.restore();
+      g.beginPath(); g.arc(bx, by, br, 0, PI * 2); g.strokeStyle = hexCss(faceInk(tc)); g.lineWidth = 0.0035; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,0.8)'; ell(g, bx - 0.012, by + 0.014, 0.007, 0.0045, -0.5); g.fill();
+    } else if (p === 'manchaTinta') {   // premio de nivel alto (24-nov): salpicón de tinta de cómic alrededor del ojo izquierdo del muñeco
+      // (borrón redondo con siete puntas acabadas en gota y dos gotitas sueltas, del acento; el ojo va encima. Sin goterones que bajen
+      //  por la mejilla y nunca rojo: con el acento rojo se leía como un ojo herido → turquesa de la tinta del juego)
+      var mc = colA(L, tc), mr = mc >> 16 & 255, mg = mc >> 8 & 255, mb = mc & 255;
+      if (mr > 140 && mr > mg * 1.6 && mr > mb * 1.4) mc = 0x2ec4c4;
+      var cx0 = EYE_X + 0.004, cy0 = EYE_Y - 0.002, R = 0.056;
+      var SPK = [[0.3, 1.5, 0.011], [1.15, 1.35, 0.009], [1.9, 1.55, 0.012], [2.75, 1.3, 0.008], [3.5, 1.5, 0.011], [4.35, 1.4, 0.009], [5.4, 1.45, 0.01]];
+      var blot = function (grow, fill) {   // cada trozo se rellena aparte (sin agujeros donde se solapan)
+        g.fillStyle = fill; g.beginPath();
+        for (var i = 0; i <= 40; i++) {
+          var t = i / 40 * PI * 2, rr = R * (1 + 0.08 * Math.sin(t * 7 + 0.3)) + grow;
+          var x = cx0 + Math.cos(t) * rr, y = cy0 + Math.sin(t) * rr * 0.94;
+          if (i) g.lineTo(x, y); else g.moveTo(x, y);
+        }
+        g.closePath(); g.fill();
+        SPK.forEach(function (q) {   // punta: cuña que sale del borde y gota redonda al final
+          var ca = Math.cos(q[0]), sa = Math.sin(q[0]), d = R * q[1], ex = cx0 + ca * d, ey = cy0 + sa * d * 0.94, wd = q[2] * 0.7 + grow;
+          g.beginPath(); g.moveTo(cx0 + ca * R * 0.8 - sa * (q[2] * 1.6 + grow), cy0 + sa * R * 0.75 + ca * (q[2] * 1.6 + grow));
+          g.lineTo(ex - sa * wd, ey + ca * wd); g.lineTo(ex + sa * wd, ey - ca * wd);
+          g.lineTo(cx0 + ca * R * 0.8 + sa * (q[2] * 1.6 + grow), cy0 + sa * R * 0.75 - ca * (q[2] * 1.6 + grow)); g.closePath(); g.fill();
+          g.beginPath(); g.arc(ex, ey, q[2] + grow, 0, PI * 2); g.fill();
+        });
+        [[0.8, 1.95, 0.0065], [3.1, 1.85, 0.0055]].forEach(function (q) { g.beginPath(); g.arc(cx0 + Math.cos(q[0]) * R * q[1], cy0 + Math.sin(q[0]) * R * q[1] * 0.94, q[2] + grow, 0, PI * 2); g.fill(); });
+      };
+      if (halo) blot(0.004, halo);
+      blot(0.0028, hexCss(faceInk(tc)));   // filo de tinta (la unión de todo, sin rayas por dentro)
+      blot(0, hexCss(mc));
+      g.fillStyle = 'rgba(255,255,255,0.45)'; ell(g, cx0 - R * 0.55, cy0 + R * 0.55, 0.009, 0.005, -0.6); g.fill();
     }
     g.restore();
   }
@@ -1538,7 +1726,7 @@
   function underElbowHex(X, tc, k) {
     var arm = k ? X.armR : X.armL, c = X.skin;
     if (longSleeve(X)) c = colB(X, tc);
-    if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK :
+    if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : arm === 'manguitoHolo' ? HOLO :
       arm === 'manguitoBicolor' ? slvB(X, tc) : arm === 'manguitoFundido' ? mixHex(colA(X, tc), slvB(X, tc), 0.5) : colA(X, tc);   // (WP7: bicolor y degradado)
     return c;
   }
@@ -1570,7 +1758,7 @@
   function wristBg(X, tc, k) {
     var arm = k ? X.armR : X.armL, lsl = longSleeve(X);
     // (WP7: el manguito medio no llega a la muñeca; el de antebrazo acaba en un puño cB2, y bicolor y degradado en uno más oscuro)
-    if (ARMS[arm] && arm !== 'kinesio' && !lsl && !SLV_UP_ONLY[arm]) return arm === 'manguitoOro' ? GOLD_DK : arm === 'manguitoLlamas' || arm === 'manguitoMazo' ? colA(X, tc) :
+    if (ARMS[arm] && arm !== 'kinesio' && !lsl && !SLV_UP_ONLY[arm]) return arm === 'manguitoOro' ? GOLD_DK : arm === 'manguitoHolo' ? HOLO_DK : arm === 'manguitoLlamas' || arm === 'manguitoMazo' ? colA(X, tc) :
       SLV_FORE_ONLY[arm] ? slvB(X, tc) : SLV_AB[arm] ? cuffHex(slvB(X, tc)) : colB(X, tc);
     return lsl ? cuffHex(colB(X, tc)) : X.skin;
   }
@@ -1748,6 +1936,8 @@
     if (sock === 'compresion') return w1 + 0.02;                                 // (WP7) hasta debajo de la rodilla
     if (sock === 'lunares') return w1 + 0.02;                                    // (ronda 1 de WP7: hasta la rodilla; a media espinilla era «media»)
     if (sock === 'caido') return w0 + 0.92 * (w1 - w0);                          // arrugado, casi hasta la rodilla (ronda 1 de WP7)
+    if (sock === 'sandia' || sock === 'calcLlamas') return w1 + 0.02;            // (premios de nivel alto, 24-nov) hasta debajo de la rodilla
+    if (sock === 'calcBalones') return w0 + 0.84 * (w1 - w0);                    // a media espinilla, como «media»
     return 0;
   }
   // un detalle de color c sobre el color bg: el pedido si se distingue; si no, el base del equipo y, si tampoco, oscuro o blanco
@@ -2279,6 +2469,9 @@
     }
     else if (fx === 'flequilloFx') { if (Math.abs(pf) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
     else if (fx === 'mitad') { if (pf > 0) c = H.h2; }
+    // premio del nivel 99 (24-nov): seis franjas de cómic de la raíz a las puntas (en el casco, por θ / línea de pelo: ex.ur; en las piezas,
+    // a lo largo); no usa hair2. Lo de debajo (degradado del peinado, sombra de la nuca, brillo) se aplica encima como a cualquier color
+    else if (fx === 'arcoiris') { var ua = kind === 'shell' ? (ex && ex.ur != null ? ex.ur : u) : u; c = RAINBOW[Math.min(5, Math.max(0, Math.floor(ua * 6)))]; }
     if (st.fade && kind === 'shell') { var f = st.fade(ph, th, u); if (f > 0) c = mixHex(c, H.stub, f); }
     // pelo claro a la distancia del partido (pulido; LOD0/LOD1): la nuca y el borde de abajo algo más oscuros, como la sombra del pelo de
     // verdad. Rubio sobre el parqué, de espaldas a 68 px, tenía el mismo tono que el suelo y solo lo separaba la tinta
@@ -2295,6 +2488,7 @@
     return c;
   }
   /** Efecto de pelo que se pinta con este peinado ('' si el peinado no lo admite: HAIR_STYLES[id].noFx, true o {efecto: 1}). */
+  var RAINBOW = [0xe8423f, 0xff8c2a, 0xffd23a, 0x4cc25a, 0x3a8cf0, 0x8a4fd8];
   function hairFxOf(H) { var fx = H.fx, nf = H.st.noFx; return fx && nf && (nf === true || nf[fx]) ? '' : fx; }
   /** CASCO de pelo. o: {line (perfil HL o función φ → θ), off, vol, volFn(φ, θ, u), lift, flat (altura sobre la coronilla a la que
    *  se corta plano), bump(φ, θ) (desfase extra: rizos, ondas), tuck (false = borde grueso, p. ej. el tazón), th0(φ) (empieza en ese θ:

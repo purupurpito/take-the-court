@@ -7570,7 +7570,10 @@
         var h = (P.HITOS || []).filter(function (x) { return x.id === id; })[0];
         if (h) out.push('Hito: ' + h.name + ' (+' + h.xp + ' XP)');
       });
-      (r.grants || []).forEach(function (id) { var nm = VB.Look && VB.Look.name ? safe(function () { return VB.Look.name(id); }) : ''; if (nm) out.push('Nuevo en tu vestuario: ' + nm); });
+      // (premios de nivel alto, 24-nov: quien ya tenía nivel alto recibe varios de golpe al entrar; más de 3, un solo aviso con la cuenta)
+      var gn = (r.grants || []).map(function (id) { return VB.Look && VB.Look.name ? safe(function () { return VB.Look.name(id); }) : ''; }).filter(Boolean);
+      if (gn.length > 3) out.push('Nuevo en tu vestuario: ' + gn.length + ' objetos');
+      else gn.forEach(function (nm) { out.push('Nuevo en tu vestuario: ' + nm); });
       if ((r.lvlUp && r.lvlUp.length) || (r.hitos && r.hitos.length) || (r.grants && r.grants.length)) { pfDirty = true; last.pf = null; }
     }
     pfNote(out);
