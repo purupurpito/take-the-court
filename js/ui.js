@@ -4665,6 +4665,8 @@
     wristL: 'Muñequera (izq.)', wristR: 'Muñequera (dcha.)', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
     'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura', 'c:pad': 'Rodilleras'
   };
+  // (móvil, movil-aire §5.6: la fila es «Etiqueta · Valor» en una línea; los rótulos largos, en corto para que el valor no se corte)
+  var LK_LABEL_PH = { hair: 'Color', hair2: '2º color', hairFx: 'Efecto', armL: 'Manguito izq.', armR: 'Manguito dcho.', wristL: 'Muñequera izq.', wristR: 'Muñequera dcha.', 'c:acc': 'Complem.' };
   // valor '' de cada ranura (siempre disponible); las zapatillas '' solo existen en la playa (descalzo). Manda sobre VB.Look.name:
   // «Nada» a secas no decía qué faltaba (U9)
   var LK_NONE = {
@@ -4935,6 +4937,8 @@
     var locked = lkLocked(o), lt = locked ? lkLockText(o) : '', label = LK_LABEL[slot], n = ops.length;
     var isNew = false; for (var k = 0; k < ops.length && !isNew; k++) if (ops[k].cat && U[ops[k].v]) isNew = true;
     var col = lkIsCol(slot), hp = lkHelpOf(slot, o, locked, lt);
+    // (móvil, movil-aire §5.6: «Pinta: Calcetines» en la fila Calcetines repite el título: fuera)
+    if (hp.k === 'use' && VB.Splat && VB.Splat.phone && VB.Splat.phone() && hp.t.toLowerCase() === ('Pinta: ' + label).toLowerCase()) hp = { t: '', k: '' };
     var sw = o.hex >= 0 ? '<i class="lk-sw" style="background:' + hx(o.hex) + '"></i>' : col ? '<i class="lk-sw auto"></i>' : '';
     var help = hp.t ? (hp.k === 'lock' ? LK_LOCK : hp.k === 'warn' ? LK_EYE : '') + escT(hp.t) : '';
     // la estrella solo desde rareza 1 (lo común no lleva: antes todo llevaba «★», U9)
@@ -4946,7 +4950,7 @@
     return '<button type="button" class="mi lk-r sp-btn sp-ink sp-calm' + (locked ? ' lock' : '') + (isNew ? ' new sp-dot' : '') + (col ? ' col' : '') + (hp.k === 'dim' ? ' dim' : '') +
       (hp.t ? ' has-h h-' + hp.k : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
       // (rótulo con «▦ n»: cuántas opciones hay y que al tocar la fila se abre la rejilla de miniaturas; antes no se veía que la hubiera)
-      '<span class="mi-l"><span class="lk-k">' + escT(label) + '<span class="lk-cnt" aria-hidden="true">' + LK_GRID_IC + n + '</span></span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
+      '<span class="mi-l"><span class="lk-k">' + escT(LK_LABEL_PH[slot] && VB.Splat && VB.Splat.phone && VB.Splat.phone() ? LK_LABEL_PH[slot] : label) + '<span class="lk-cnt" aria-hidden="true">' + LK_GRID_IC + n + '</span></span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
       (help ? '<small class="mi-h">' + help + '</small>' : '') + '</span>' +
       '<span class="mi-v sp-select"><span class="arr" data-d="-1" aria-hidden="true">' + LK_ARR_L + '</span><span class="arr" data-d="1" aria-hidden="true">' + LK_ARR_R + '</span></span></button>';
   }
@@ -6173,7 +6177,7 @@
       var R = ctlRows(ctlView);
       if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button>' +
         // 1.22.0 (imprescindible 4.2): editor de disposición (VB.Input.editLayout): mover, tamaño y opacidad por botón, zurdos y restablecer
-        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>Disposición de botones<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
+        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>' + (VB.Splat && VB.Splat.phone && VB.Splat.phone() ? 'Editar disposición' : 'Disposición de botones') + '<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
       if (ctlView === 'touch' && VB.Splat && VB.Splat.phone && VB.Splat.phone()) {
         // V-TOUCHCTL (móvil): Táctil con las mismas filas que Teclado / Mando: rótulo dorado + UNA línea de ayuda a la izquierda
         // (primera frase del paréntesis; «i» con helpFit si no cabe) y los botones a la derecha. En PC sigue la <dl>.
@@ -6183,6 +6187,9 @@
           if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').split(';')[0].trim();
           var jh = '<small>' + joyHalf() + '</small>';
           if (keys.indexOf(jh) >= 0) { keys = keys.replace(jh, ''); help = 'Joystick: ' + joyHalf() + (help ? '; ' + help : ''); }
+          // (movil-aire §5.6: un título que es una frase entera, «Al colocar: sin dirección…», se queda en «Al colocar» y el resto va a la ayuda)
+          var tc = tt.replace(/<[^>]*>/g, '').trim(), ci = tc.indexOf(':');
+          if (tc.length > 24 && ci > 0 && ci < 20 && tt.indexOf('<') < 0) { help = tc.slice(ci + 1).trim() + (help ? '; ' + help : ''); tt = tc.slice(0, ci); }
           if (help) help = help.charAt(0).toUpperCase() + help.slice(1);
           h += '<div><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
         }
@@ -6305,7 +6312,7 @@
   function phPanel() {
     var S = VB.Splat; if (!S || !S.fitSeg || !S.phone || !S.phone() || el.panel.hidden) return;   // (fitSeg y helpFit se deshacen solos con vb:ph)
     if (panel === 'set') {
-      S.fitSeg(el.optList); if (S.helpFit) S.helpFit(el.optList, '.opt');
+      S.fitSeg(el.optList); phNow(); if (S.helpFit) S.helpFit(el.optList, '.opt');
       // V-KIT: tira de muestras desplazable de lado (desvanecido si queda algo a la derecha) y la elegida a la vista
       var ks = el.optList.querySelectorAll('.opt-kit .seg.kit');
       for (var k = 0; k < ks.length; k++) {
@@ -6320,6 +6327,21 @@
     }
     if (panel === 'squad' && S.helpFit) S.helpFit(el.sqBody, '.sq-r');
     if (panel === 'ctl' && S.helpFit && el.ctlGrid.querySelector('.ctl-t')) S.helpFit(el.ctlGrid, '.ctl-t>div');   // V-TOUCHCTL
+  }
+  /** (móvil, movil-aire §5.6) Calidad y Resolución en Auto: el «(ahora …)» de la ayuda pasa debajo del valor del selector (data-now de
+   *  .mv-val, lo pinta el CSS) y la ayuda se queda en una línea. Sin html.ph, la ayuda entera de siempre (renderOpts). */
+  function phNow() {
+    var ph = !!(VB.Splat && VB.Splat.phone && VB.Splat.phone());
+    [['quality', el.qualNote], ['resScale', el.resNote]].forEach(function (p) {
+      var row = el.optList && el.optList.querySelector('[data-opt="' + p[0] + '"]'), sm = p[1]; if (!row || !sm) return;
+      var mv = row.querySelector('.ph-proxy .mv-val'), m = /^(.*?)\s*\(ahora:? ([^)]*)\)\s*$/.exec(sm.textContent);
+      if (m) {   // (renderOpts acaba de poner el texto entero)
+        if (ph) { sm.textContent = sm._phs = m[1].replace(/^Auto:? */, '').replace(/^./, function (c) { return c.toUpperCase(); }); sm.setAttribute('data-ph-now', m[2]); }
+        else sm.removeAttribute('data-ph-now');
+      } else if (!ph || sm.textContent !== sm._phs) sm.removeAttribute('data-ph-now');
+      var now = ph ? sm.getAttribute('data-ph-now') : null;
+      if (mv) { if (now) mv.setAttribute('data-now', now); else mv.removeAttribute('data-now'); }
+    });
   }
   /** Crea las barras de pestañas de los paneles (una vez, en init). */
   function buildTabs() {
@@ -6771,6 +6793,7 @@
     if (snd) { snd.classList.toggle('muted', !!ctx.settings.muted); var mb = snd.querySelector('[data-mute]'); if (mb) mb.setAttribute('aria-checked', ctx.settings.muted ? 'true' : 'false'); }
     var q = ctx.quality && ctx.quality.level, qn = { high: 'alta', medium: 'media', low: 'baja' }[q] || '';
     el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto la ajusta sola' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
+    if (VB.Splat && VB.Splat.phone && VB.Splat.phone()) phNow();   // (móvil: el «ahora» bajo el valor)
     // menú: dificultad
     var di = optIndex('difficulty');
     if (el.diffVal.textContent !== OPT.difficulty.labels[di]) {
@@ -7343,21 +7366,21 @@
     var R = VB.Retos, h, foot = '';
     if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
     else if (rtTab === 'semana') {   // la situación de la semana (js/semana-ui.js pinta; aquí solo se monta)
-      try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
+      try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap, semVw) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
       if (!h) h = '<p class="rt-none">La situación de la semana no está disponible.</p>';
     } else if (rtTab === 'maestria') {
       var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
       h = '';
       // SPLAT: grupo = pegatina pequeña de tinta; reto = pegatina del color de su grupo (dorada con el oro) con la medalla en pegatina
       // redonda, el progreso en texto y la barra de pintura hasta la siguiente medalla
-      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'];
+      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'], rtPh = !!(VB.Splat && VB.Splat.phone && VB.Splat.phone());
       (R.GROUPS || []).forEach(function (G, gi) {
         h += '<p class="rt-grp"><i class="sp-chip sp-ink">' + escT(G.name) + '</i></p>';
         R.LIST.forEach(function (b) {
           if (b.grp !== G.id) return;
           var pg = R.progress(b.id) || { lvl: 0, txt: '', frac: 0 }, lvl = pg.lvl | 0;
           h += '<button class="mi rt-r sp-btn sp-wide sp-calm ' + (lvl >= 3 ? 'sp-gold' : GC[gi % GC.length]) + (U[b.id] ? ' new sp-dot' : '') + '" data-shape="' + (k++) + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
-            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + escT(pg.txt) + '</small>' +
+            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + escT(rtPh ? rtTxtPh(pg.txt) : pg.txt) + '</small>' +
             (lvl < 3 && (lvl || pg.frac > 0) ? spBar(pg.frac) : '') + (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
         });
       });
@@ -7381,7 +7404,7 @@
         });
         var med = (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ', ' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') : '');
         h = '<div class="rt-day sp-ticket sp-noshine" data-shape="1"><span class="sp-stamp rt-stamp" aria-hidden="true" data-ring="RETO DEL DÍA ★ RETO DEL DÍA ★"><span class="sp-sc">' +
-          (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + '<b>Hoy</b></span></span>' +
+          (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + (dl ? '<b class="ph-no">Hoy</b><b class="ph-only rt-sd">' + escT(dl) + '</b>' : '<b>Hoy</b>') + '</span></span>' +
           '<div class="rt-dm"><p class="rt-k">' + sepHTML(['Reto del día', dl], 'd') + '</p><p class="rt-map">' + escT(dd.mapName || '') + '</p><p class="rt-bits">' + bits + '</p></div></div>' +
           '<div class="rt-tiers">' + th + '</div>' +
           '<button class="mi primary rt-go sp-patch" data-reto="day"><span class="sp-l"><span class="sp-t">' + (m >= 3 ? 'Jugar otra vez' : '¡A jugar!') + '</span><small class="sp-s rt-med">' + escT(med) + '</small></span></button>';
@@ -7393,6 +7416,11 @@
     if (el.rtFoot) el.rtFoot.innerHTML = foot;
     // Maestría a la vista: lo nuevo queda visto (el punto sale esta vez y la siguiente ya no; la franja se rehace)
     if (R && rtTab === 'maestria' && R.markSeen) { try { if (R.unseen().length) { R.markSeen(R.unseen()); rtStrip = ''; } } catch (e) { } }
+  }
+  /** (móvil, movil-aire §5.6) «Aces en un partido: récord 0, bronce con 2» → «récord 0 · bronce 2» (lo de antes de «:» ya lo dice el nombre). */
+  function rtTxtPh(t) {
+    t = String(t || ''); var i = t.indexOf(': '); if (i > 0 && i < 60) t = t.slice(i + 2);
+    return t.replace(/, (bronce|plata|oro) con /g, ' · $1 ').replace(/, /g, ' · ');
   }
   /** Al reto del día (el de HOY: si ha cambiado el día, el nuevo), bajo la cortinilla. mini = previa mini («Otra vez»). */
   function goReto(mini) {
@@ -7418,7 +7446,7 @@
   // (ni récord); decisión provisional: nivel y atributos iguales para todos, notes/pendientes-ferran.md). goSemana gasta el intento AL EMPEZAR (VB.Semana.begin) y arranca el
   // partido en el marcador de la semana; la pausa avisa de que reiniciar o salir lo gasta; la hoja final ofrece «Otro intento»,
   // «Compartir» (enlace con el mapa del grupo) y «Ver el grupo» (Retos › Semana). ?sem=… (enlace de un amigo) lo lee semAuto.
-  var semMap = 'S', semEnd = null;
+  var semMap = 'S', semEnd = null, semVw = 'map';   // (semVw: móvil, columna derecha de Semana con el mapa o la lista del grupo)
   function semToast(t) { try { if (VB.Splat && VB.Splat.toast) VB.Splat.toast(escT(t), { key: 'sem' }); } catch (e) { } }
   function goSemana(mini) {
     var M = VB.Semana; if (!M) return;
@@ -7605,7 +7633,16 @@
     else if (pf.tabs) { pf.tabs.items = pfTabItems(alb); if (pf.tabs.get() !== pf.tab) pf.tabs.cur = pf.tab; pf.tabs.refresh(); }
     // rejilla
     var tb = alb.tabs.filter(function (t) { return t.id === pf.tab; })[0], gh = '';
-    tb.items.forEach(function (it) {
+    // (móvil, movil-aire §5.6: Insignias y Entreno, UNA baldosa por prueba con sus tres puntos bronce / plata / oro; se elige el nivel más
+    //  alto conseguido o, si no hay ninguno, el bronce. En PC, una baldosa por nivel como siempre)
+    var grp = /^(insignias|entreno)$/.test(pf.tab) && !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone)) ? pfGroup(tb.items) : null;
+    if (grp) grp.forEach(function (g) {
+      var it = g.best, pin = g.L.some(function (x) { return pf.pins.indexOf(x.aid) >= 0; }), nw = g.L.some(function (x) { return x.isNew; }), hv = g.L.filter(function (x) { return x.have; });
+      var dots = '<span class="pf-td" aria-hidden="true">' + g.L.map(function (x) { return '<i class="t' + (x.tier | 0) + (x.have ? ' on' : '') + '"></i>'; }).join('') + '</span>';
+      gh += '<button type="button" class="pf-s pf-g ' + (hv.length ? 'on' : 'off') + ' t' + (hv.length ? pfTier(it) : 0) + (nw ? ' new' : '') + (pin ? ' pin' : '') + '" data-aid="' + escT(it.aid) + '" aria-label="' +
+        escT(g.name + (hv.length ? ': ' + hv.map(function (x) { return PF_TIER_N[x.tier | 0] || ''; }).join(', ') + (pin ? '. En la vitrina' : '') : '. Por conseguir') + (nw ? '. Nuevo' : '')) + '"><span class="pf-si">' + (hv.length ? pfIcon(it) : PF_LOCK) + '</span><span class="pf-sn">' + escT(g.name) + '</span>' + dots + '</button>';
+    });
+    else tb.items.forEach(function (it) {
       var pin = pf.pins.indexOf(it.aid) >= 0;
       gh += '<button type="button" class="pf-s ' + (it.have ? 'on' : 'off') + ' t' + pfTier(it) + (it.isNew ? ' new' : '') + (pin ? ' pin' : '') + '" data-aid="' + escT(it.aid) + '" aria-label="' +
         escT(it.name + (it.have ? (pin ? '. En la vitrina' : '') : '. Por conseguir') + (it.isNew ? '. Nuevo' : '')) + '"><span class="pf-si">' + (it.have ? pfIcon(it) : PF_LOCK) + '</span><span class="pf-sn">' + escT(it.name) + '</span></button>';
@@ -7615,12 +7652,28 @@
     if (keep && fb) focusEl(fb, kb);
     pfFootSync();
   }
+  var PF_TIER_N = ['', 'bronce', 'plata', 'oro'];
+  /** (móvil) Agrupa los niveles de una misma prueba («bd:canon:1..3», «gym:x:1..3») en {name, best, L}. */
+  function pfGroup(items) {
+    var out = [], by = {};
+    items.forEach(function (it) {
+      var k = String(it.aid).replace(/:\d+$/, ''), g = by[k];
+      if (!g) { g = by[k] = { name: String(it.name).replace(/\s*\((bronce|plata|oro)\)\s*$/i, ''), L: [], best: null }; out.push(g); }
+      g.L.push(it);
+    });
+    out.forEach(function (g) { var hv = g.L.filter(function (x) { return x.have; }); g.best = hv.length ? hv[hv.length - 1] : g.L[0]; });
+    return out;
+  }
   /** Pie: de dónde salió el hueco enfocado (o cómo se gana) y el botón de la vitrina. */
   function pfFootSync() {
     if (!el.pfFoot) return;
     var P = VB.Profile, it = pf.sel && pf.map ? pf.map[pf.sel] : null, t = it && P && P.footText ? safe(function () { return P.footText(it); }) || '' : '';
     if (!it) t = pf.alb ? 'Elige un hueco para ver de dónde sale' : '';
     if (el.pfFoot.textContent !== t) el.pfFoot.textContent = t;
+    if (el.pfFoot.classList.contains('pf-empty') !== !it) el.pfFoot.classList.toggle('pf-empty', !it);   // (móvil: «Elige un hueco…» = texto vacío, sin caja)
+    var cu = el.pfGrid ? el.pfGrid.querySelectorAll('.pf-s.pf-cur') : [];   // (móvil: la baldosa descrita, marcada)
+    for (var ci = 0; ci < cu.length; ci++) if (!it || cu[ci].getAttribute('data-aid') !== it.aid) cu[ci].classList.remove('pf-cur');
+    var cb = it && el.pfGrid ? el.pfGrid.querySelector('[data-aid="' + it.aid + '"]') : null; if (cb) cb.classList.add('pf-cur');
     var rule = !!(it && it.rule && it.have);   // Cuaderno del árbitro: fecha + línea de reglamento, en dos líneas
     if (el.pfFoot.classList.contains('pf-rule') !== rule) el.pfFoot.classList.toggle('pf-rule', rule);
     var ro = P ? !!safe(P.readOnly) : true, can = !!(it && it.have) && !ro;
@@ -8647,6 +8700,7 @@
         else if (b.getAttribute('data-sem') === 'go') { if (b.getAttribute('aria-disabled') === 'true') { uiSound('back'); semToast('Hoy ya no quedan intentos. Mañana, 3 más'); } else { uiSound('start'); goSemana(false); } }
         else if (b.getAttribute('data-sem') === 'share') { click(); semShare(); }
         else if (b.hasAttribute('data-semmap')) { var mm = b.getAttribute('data-semmap') === 'A' ? 'A' : 'S'; if (mm !== semMap) { semMap = mm; click(); renderRetos(); var nb = el.rtBody.querySelector('[data-semmap="' + mm + '"]'); if (nb) focusEl(nb, kbNow()); } }
+        else if (b.hasAttribute('data-semvw')) { var vv = b.getAttribute('data-semvw') === 'list' ? 'list' : 'map'; if (vv !== semVw) { semVw = vv; click(); renderRetos(); var nv = el.rtBody.querySelector('[data-semvw="' + vv + '"]'); if (nv) focusEl(nv, kbNow()); } }
         else if (b.hasAttribute('data-rt')) click();
       });
       // tocar/clic durante la tarjeta de presentación la salta (UI-14; main.js la quita en el frame siguiente)

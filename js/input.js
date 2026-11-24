@@ -543,7 +543,9 @@
     '.vte-sl{display:flex;gap:10px}.vte-sl label{flex:1;display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}.vte-sl label.off{visibility:hidden}' +
     '.vte-sl input{flex:1;min-width:60px;height:44px;margin:0;accent-color:#ffcb3d;touch-action:none}.vte-sl output{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}' +
     '.vte-act{display:flex;gap:11px;justify-content:space-between}.vte-act .sp-btn{flex:1 1 0;min-width:0;min-height:44px;--sp-px:6px;--sp-fs:clamp(12px,3.6vh,15px)}.vte-act .vte-rst{flex-grow:1.35}.vte-act .vte-ok{flex-grow:.85}' +
-    '@media (max-height:340px){.vte-in{padding:6px 8px;gap:10px}}';
+    '@media (max-height:340px){.vte-in{padding:6px 8px;gap:10px}}' +
+    // (móvil, movil-aire §5.6: con html.ph la barra es UNA fila de 52 con iconos; el CSS está en index.html, bloque «PANELES»)
+    '.vte-ic{display:none}';
 
   var ICON_HIT = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><g><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></svg>';
   var ICON_JUMP = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13l6-6 6 6M6 19l6-6 6 6"/></svg>';
@@ -1175,9 +1177,9 @@
         '<div class="vte-hd"><b class="vte-nm">Golpear</b><small class="vte-tip"></small></div>' +
         '<div class="vte-sl"><label class="vte-ls">Tamaño <input type="range" class="vte-s" min="70" max="150" step="5" aria-label="Tamaño del botón"><output class="vte-sv"></output></label>' +
         '<label>Opacidad <input type="range" class="vte-o" min="30" max="100" step="5" aria-label="Opacidad"><output class="vte-ov"></output></label></div>' +
-        '<div class="vte-act" data-sp-row><button type="button" class="sp-btn sp-sm sp-cream vte-mir" data-shape="1" aria-pressed="false"><span class="sp-t">Zurdos</span></button>' +
-        '<button type="button" class="sp-btn sp-sm sp-teal vte-rst" data-shape="2"><span class="sp-t">Restablecer</span></button>' +
-        '<button type="button" class="sp-btn sp-sm sp-kit vte-ok" data-shape="3"><span class="sp-t">Listo</span></button></div>' +
+        '<div class="vte-act" data-sp-row><button type="button" class="sp-btn sp-sm sp-cream vte-mir" data-shape="1" aria-pressed="false" aria-label="Zurdos"><span class="vte-ic" aria-hidden="true">' + ICON_SW + '</span><span class="sp-t">Zurdos</span></button>' +
+        '<button type="button" class="sp-btn sp-sm sp-teal vte-rst" data-shape="2" aria-label="Restablecer"><span class="vte-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 3.5v4.2h4.2"/></svg></span><span class="sp-t">Restablecer</span></button>' +
+        '<button type="button" class="sp-btn sp-sm sp-kit vte-ok" data-shape="3"><span class="vte-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="sp-t">Listo</span></button></div>' +
       '</div></div>';
     document.body.appendChild(root);
     var q = function (s) { return root.querySelector(s); };
@@ -1186,7 +1188,7 @@
               mir: q('.vte-mir'), rst: q('.vte-rst'), ok: q('.vte-ok') };
     if (ctx.game && ctx.game.ctrlMode === 'one' && ctx.game.size !== 6) E.sw.style.display = 'none';
     try { if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(root); } catch (_) { }
-    var sa = { t: 0, r: 0, b: 0, l: 0 }, P = null, sel = 'hit', drag = null;
+    var sa = { t: 0, r: 0, b: 0, l: 0 }, P = null, sel = 'hit', drag = null, moved = false;   // (moved: tras el primer arrastre ya no sale «Arrastra…»)
     function readSa() { try { var cs = getComputedStyle(E.safe); sa.t = parseFloat(cs.paddingTop) || 0; sa.r = parseFloat(cs.paddingRight) || 0; sa.b = parseFloat(cs.paddingBottom) || 0; sa.l = parseFloat(cs.paddingLeft) || 0; } catch (_) { } }
     function place() {
       readSa();
@@ -1205,13 +1207,16 @@
       for (var i = 0; i < LAY_KEYS.length; i++) E[LAY_KEYS[i]].classList.toggle('sel', LAY_KEYS[i] === sel);
       var e = lay[sel] || {}, s = sel === 'joy' ? 1 : (fin(e.s) ? e.s : 1), op = fin(e.o) ? e.o : 1;
       E.nm.textContent = ED_NAMES[sel];
-      E.tip.textContent = sel === 'joy' ? 'Sale donde pones el dedo, en la mitad ' + (mir ? 'derecha' : 'izquierda') : 'Arrastra los botones para moverlos';
+      E.tip.textContent = sel === 'joy' ? 'Sale donde pones el dedo, en la mitad ' + (mir ? 'derecha' : 'izquierda') : moved && document.documentElement.classList.contains('ph') ? '' : 'Arrastra los botones para moverlos';
+      E.tip.hidden = !E.tip.textContent;
       E.ls.classList.toggle('off', sel === 'joy');
       E.s.value = String(Math.round(s * 100)); E.sv.textContent = Math.round(s * 100) + '%';
       E.o.value = String(Math.round(op * 100)); E.ov.textContent = Math.round(op * 100) + '%';
       E.mir.setAttribute('aria-pressed', mir ? 'true' : 'false'); E.mir.classList.toggle('sp-gold', mir); E.mir.classList.toggle('sp-cream', !mir);   // (en la hoja de tinta, pegatinas claras)
       // la barra va arriba o abajo, donde tape menos botones (el elegido cuenta el doble); empate: arriba
       var bw = E.bar.offsetWidth || 300, bh = E.bar.offsetHeight || 120, bl = E.bar.offsetLeft || 10, H = root.clientHeight, cTop = 0, cLow = 0;
+      var bi = E.bar.firstChild;   // (móvil: la barra es una fila centrada dentro de .vte-bar; cuenta lo que ocupa de verdad)
+      if (bi && bi.offsetWidth && document.documentElement.classList.contains('ph')) { var br = bi.getBoundingClientRect(), rr = root.getBoundingClientRect(); bl = br.left - rr.left; bw = br.width; bh = br.height; }
       for (var k in P) {
         var c = P[k], wgt = k === sel ? 2 : 1;
         if (k === 'joy' || E[k].style.display === 'none') continue;   // (el joystick no se arrastra: puede quedar debajo)
@@ -1260,7 +1265,7 @@
     }
     function onUp(ev) {
       if (!drag || ev.pointerId !== drag.id) return;
-      var k = drag.k; drag = null; E.bar.classList.remove('drag');
+      var k = drag.k; drag = null; E.bar.classList.remove('drag'); moved = true;
       if (P[k]) toFrac(k, P[k].cx, P[k].cy);      // (lo guardado = donde ha quedado de verdad, tras apartarse y el clamp)
       place(); save();
     }

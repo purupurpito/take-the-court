@@ -93,7 +93,7 @@ const near = (a, b, t) => Math.abs(a - b) <= (t == null ? 1.5 : t);
     console.log('B) editor de disposición');
     await store({}); await page.navigate('panel=ctl&tab=touch&nonews=1'); await wait(2500);
     const row = await E(`(function(){ var b=document.querySelector('[data-tedit]'); if(!b||b.closest('[hidden]'))return null; var r=b.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,h:r.height,t:b.textContent}; })()`);
-    check('Controles › Táctil: fila «Disposición de botones»', !!row && /Disposici/.test(row.t) && row.h >= 44, row);
+    check('Controles › Táctil: fila «Disposición de botones»', !!row && /disposici/i.test(row.t) && row.h >= 44, row);
     if (row) { await touch('touchStart', [[row.x, row.y, 10]]); await touch('touchEnd', []); await wait(300); }
     check('tocar la fila abre el editor', await E('VB.Input.editing()'));
     let e = await ed();

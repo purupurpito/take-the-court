@@ -638,3 +638,52 @@ Todo bajo `html.ph` (PQ / `PX` = un id más para ganar a career-story-msgs / `LV
 - **Pendiente**: el Legado sigue como tarjetas de PC (solo lleva su sello pegado); la tira de 4 cifras de Cifras no sale hasta que hay partidos
   en `c.career` (la muestra de mobaudit no los tiene en pista); la Vitrina con títulos ganados se probó con un guion aparte (3 trofeos de
   playa: rejilla de 5, «×2», nombre corto), no hay fila de mobaudit para eso; las copas ya en juego (`c.kos`) siguen como tarjetas; la tabla a 568 deja el nombre del club como toque de 36.
+
+### 7.8 Paquete `paneles` (24-nov-2026)
+
+Todo bajo `html.ph`: CSS en el bloque «— «con aire» · PANELES» al final del `<style>` de `index.html` (antes de `</style>`); JS en `ui.js`
+(`PH_BAR` con set y ctl, `phNow`, `pfGroup`, `rtTxtPh`, `LK_LABEL_PH`, `semVw`), `input.js` (editor), `semana-ui.js` (`tabHTML(mode, vw)`) y
+`account.js` (reglas PP del final de su CSS y `phHTML`). `.ph-bar` estático en las cabeceras de `#mpRetos`, `#mpLook` y `#mpProf`.
+PC sin cambios: métricas de los 36 ids a 1280x720 / 1920x1080 / 1024x768 iguales a una pasada de la base con el mismo comando
+(`VB_ROOT=<worktree de la base>`), salvo selectores con clase nueva (`b.ph-no` del sello de Hoy, `.sem-vwh`) y 5 caracteres de más en
+controles-keyboard que vienen de la escena 3D de fondo (el panel se ve igual a ojo).
+- **Ajustes** (y la pausa, mismo panel): franja ‹ sin título; el raíl de 7 pestañas empieza arriba a la izquierda del ‹ (44 de alto, 8 de
+  hueco). **A .ph-s el raíl no cabe en columna** (7×44+6×8 > 304): las pestañas van como iconos de 44 en la propia franja, junto al ‹ (la
+  elegida con su rótulo) y el panel gana todo el ancho. Filas de 52 con 8 de hueco, título que nunca parte (`contain:inline-size` en la
+  ayuda), ayuda en UNA línea con «i» (`helpFit`); títulos cortos con `data-ph-short` (Cámara 6v6, Ambiente, Diana en el salto, Daltonismo,
+  Marca contrastada; Zoom «De 1 (cerca) a 5 (lejos)»); Calidad/Resolución «AUTO·media» / «AUTO·100 %» en el selector (`phNow`, `data-now`);
+  selector compacto (flechas 44, valor 64-170); sin chevrón sobre la última fila. Equipación: muestras que parten de línea; a .ph-w rótulo
+  y muestras en la misma fila (contenido intacto). Info: filas que abren algo arriba, Versión/Progreso en líneas de 32 al final.
+  La vista previa de Accesibilidad sigue «si cabe» aunque la ayuda lleve «i» (previa en la 2.ª columna, «i» en la 3.ª).
+- **Controles**: franja ‹ + pestañas (sin CONTROLES); Teclado y Mando en 2 columnas también a 568 (filas de 48, teclas de 40 con toque de
+  44); Táctil con filas de 52, 2 columnas de acciones a ≥ 740 y «Editar disposición» como fila naranja de 48 (texto solo en el móvil;
+  touchedittest acepta «disposición» en minúscula). Títulos-frase de Táctil («Al colocar: …») parten en título + ayuda.
+- **Editor táctil**: una barra de 52 arriba centrada en el hueco entre el borde y la lupa/pausa: [nombre] [Tamaño] [Opacidad] [⇄ 44]
+  [↺ 44] [✓ Listo] (iconos con aria-label; reglas de 44 de toque); con zurdos se arrima a la derecha; «Arrastra los botones…» en una
+  pastilla debajo solo hasta el primer arrastre (en el móvil); a < 640 de ancho el nombre va en esa pastilla. La subida/bajada de la barra
+  (`.low`) cuenta ahora lo que ocupa la fila de verdad (no la caja ancha).
+- **Vestuario**: cabecera de una fila en todos los tamaños (‹ · pieza · 1 2 · PISTA PLAYA; la pieza fuera a < 640), jugador/sede de 44
+  con 8, 7 pestañas de 44 con 6, filas de una línea «Etiqueta · Valor» (13/15) sin «▦ N», flechas de 44, valor con «…», rótulos cortos en
+  el móvil (Color, 2º color, Efecto, Manguito izq.…); columna minmax(320px, 46vw); «Pinta: Calcetines» fuera cuando repite. A 568x320:
+  filas de 48 con 4 de hueco (3,5 filas a la vista con la tira de pestañas encima). Muñeco y botones laterales intactos.
+- **Perfil**: raíl desde arriba con pestañas de una línea y el contador como chip (44, hueco 8; se desplaza a 568/844), franja de 44 con
+  ‹ · nivel y XP · los 3 huecos de la vitrina; rejilla de 4 (6 a .ph-w) de baldosas de 72-80 (nombre en 2 líneas); Insignias y Entreno:
+  una baldosa por prueba con 3 puntos bronce/plata/oro (`pfGroup`, solo móvil); punto de novedad dentro; «Elige un hueco…» como texto
+  vacío (`.pf-empty`); la baldosa descrita marcada (`.pf-cur`); avisos arriba en el centro; Cuaderno con una regla elegida: el detalle en
+  una columna derecha del 40 % (rejilla de 3/4).
+- **Retos**: franja ‹ + 3 pestañas; Hoy con sede en una línea, pastillas en tira, la fecha dentro del sello (ph-only) y ¡A JUGAR! en la
+  columna derecha bajo las medallas a .ph-s / bajo la tarjeta a ≥ 740 (sin sticky); columna de 820 como máximo. Maestría: filas de 52,
+  «récord 0 · bronce 2» (`rtTxtPh`), 2 columnas a ≥ 740. Semana: mapa entero (min(100%, 46vh)); con grupo, segmento «Mapa | Grupo (N)»
+  de 44 que enseña una cosa a toda la altura (`data-semvw`).
+- **Cuenta**: al escribir se van pestañas/Google/«o con tu correo»; campos de 44 con texto de ejemplo; correo y contraseña lado a lado en
+  todos los móviles; #btnVer oculto con la cuenta abierta; con sesión, «Sincronizar» = círculo de 44 dentro de tu tarjeta junto al estado y
+  «Cerrar sesión» debajo; «Borrar la cuenta» abajo de la columna derecha; el aviso de borrar a todo el ancho.
+- **Métricas** (36 ids × 568/844/915, frente a la base del paquete): < 12 px 0 → 0; toques < 44 63 → **0**; solapes 81 → 48; tapados 51 → 40;
+  con scroll 138 → 88; toques juntos 375 → 499 (pestañas y fichas a 8 justos que mobaudit mide con el adorno; editor junto a la lupa);
+  recortes 10 → 56 (todas líneas de una línea con «…» y su «i»: ayudas de Ajustes, valores largos del Vestuario, rótulos de Perfil).
+  Pruebas: csscheck, settest, touchtest, touchedittest, keytest, padtest, a11ymarktest, looktest, proftest, retotest, semanatest,
+  synctest, googletest, kittest, abouttest, badgetest, gymtest, consignatest, ambientetest: todas OK.
+- **Pendiente**: el raíl de Perfil se desplaza (8×44 no cabe a 320-412 con 8 de hueco); en Vestuario a 568 los valores largos con muestra
+  («Sin segundo…») se cortan; nombres de una palabra larga en Perfil («Rompemano») se cortan sin «…»; a 844 el ‹ de Ajustes queda solo en
+  su franja (sin título por especificación); el editor no se probó con el 6v6 (botón Pedir) ni en vertical; «Mapa del grupo» sin segmento
+  cuando no hay lista; la tira de pestañas del Vestuario (7×44+6×6) sobresale 28 px de la columna a 568 (no toca el muñeco).

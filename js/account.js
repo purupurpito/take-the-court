@@ -642,6 +642,30 @@
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acUser]{grid-column:1;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acUser{grid-column:1;grid-row:2}',
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acPass]{grid-column:2;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acPass{grid-column:2;grid-row:2}',
     ':root.ph.ph-s' + P.slice(5) + '#account .ac-or{margin-bottom:6px}',
+    // — móvil «con aire» (movil-aire §5.6, paquete paneles): al escribir se van pestañas, Google y «o con tu correo»; campos de 44 con
+    // texto de ejemplo; correo y contraseña lado a lado en todos los móviles (no solo a ≤ 345); «Novedades» (#btnVer) no asoma con la
+    // cuenta abierta; con sesión, «Sincronizar ahora» y «Cerrar sesión» de 44 juntos bajo tu tarjeta; el aviso de borrar a todo el ancho
+    PP + '#account .ac-sheet:has(#acForm input:focus) [data-kb-hide]{display:none}',
+    PP + '#account input{height:44px;margin:0 0 10px;font-size:17px}',
+    PP + '#account input::placeholder{color:rgba(21,16,42,.45);font-size:15px}',
+    PP + '#account #acForm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}',
+    PP + '#account #acForm>*{grid-column:1/-1}',
+    PP + '#account #acForm>label[for=acUser]{grid-column:1;grid-row:1}' + PP + '#account #acForm>#acUser{grid-column:1;grid-row:2}',
+    PP + '#account #acForm>label[for=acPass]{grid-column:2;grid-row:1}' + PP + '#account #acForm>#acPass{grid-column:2;grid-row:2}',
+    ':root.ph:has(#account:not([hidden])) #btnVer{visibility:hidden}',
+    PP + '#account .ac-c1 .ac-row2{display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%}',
+    PP + '#account .ac-c1 .ac-row2 .sp-btn{--sp-h:44px;min-height:44px;--sp-fs:var(--ph-label);--sp-px:16px}',
+    PP + '#account .ac-c1 .ac-row2 .sp-btn>.sp-blob .sp-f circle{display:none}',
+    PP + '#account .ac-two .ac-c2 .ac-quiet{margin-top:auto;align-self:flex-start}',
+    PP + '#account .ac-user{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:10px}',
+    PP + '#account .ac-user>span:nth-child(2){min-width:0}',
+    PP + '#account .ac-user .ac-syncb{margin-left:0}',
+    PP + '#account .ac-syncb{flex:none;margin-left:auto;width:44px;height:44px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:var(--sp-kit,#ff5a2c);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer}',
+    PP + '#account .ac-syncb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    PP + '#account .ac-syncb:disabled{opacity:.5}',
+    'body #account .ac-syncb:focus-visible{outline:2.5px solid var(--sp-gold);outline-offset:3px}',
+    PP + '#account .ac-two .ac-sheet:has(.ac-del) .ac-c2{grid-column:1/-1;padding-right:0;min-height:0}',
+    PP + '#account .ac-two .ac-sheet:has(.ac-del) .ac-c1{padding-bottom:10px;max-width:min(100%,420px)}',
     '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}'
   ].join('');
   var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null;
@@ -698,13 +722,14 @@
       var cls = status === 'busy' ? ' busy' : status === 'error' ? ' err' : '';
       var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Nube · ' + ago(lastSync);   // (móvil: corto y en una línea)
       h ='<div class="ac-wrap ac-two"><div class="ac-sheet sp-panel"><div class="ac-c1"><h2 class="ac-sr" id="acTitle">Tu cuenta</h2>' +
-        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span></div>' +
-        (view === 'del' ? '' : spb('out', 'Cerrar sesión', 'sp-cream', 1) + '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div><div class="ac-c2">' +
+        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span>' +
+        (view === 'del' ? '' : '<button type="button" class="ac-syncb" data-ac="sync" aria-label="Sincronizar ahora" title="Sincronizar ahora"' + (status === 'busy' ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3"/><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3"/><path d="M17.8 3v4.2h-4.2"/><path d="M6.2 21v-4.2h4.2"/></svg></button>') + '</div>' +
+        (view === 'del' ? '' : '<div class="ac-row2">' + spb('out', 'Cerrar sesión', 'sp-cream', 1) + '</div>') + '</div><div class="ac-c2">' +
         (view === 'del'
           ? '<div class="ac-del" role="alert"><h3>¿Borrar la cuenta?</h3><p>Se borran la cuenta y todo lo guardado en ella (jugadores, Carreras, perfil, Vestuario, récord y ajustes). No se puede deshacer. Lo de este dispositivo se queda.</p></div>' +
 ''
           : '<p>Tu progreso se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
-            '<div class="ac-acts">' + spb('sync', 'Sincronizar ahora', 'sp-kit pri', 0) + '</div>') + '</div>' +
+            '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div>' +
         (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('cancel', 'No, volver', 'sp-cream ac-l', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger pri', 3) + '</div>' : '') + '</div>';
     } else {
       var create = tab === 'new';
@@ -712,9 +737,9 @@
         '<div class="ac-tabs" role="tablist" data-kb-hide><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
         '<button type="button" class="ac-g" data-ac="google" data-kb-hide' + (busy ? ' disabled' : '') + '>' + GSVG + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
         '<div class="ac-or" data-kb-hide><span>o con tu correo</span></div>' +
-        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
+        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" placeholder="tu@correo.com o usuario" required>' +
         (create ? '<p class="ac-hint" id="acHint" hidden>Sin @ es un usuario: si olvidas la contraseña, no se puede recuperar. Apúntala bien.</p>' : '') +
-        '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
+        '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" placeholder="' + (create ? 'Mínimo 6 caracteres' : 'Tu contraseña') + '" required>' +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
         '<div class="ac-acts">' + (create ? '' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
         spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
