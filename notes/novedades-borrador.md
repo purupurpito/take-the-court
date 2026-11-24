@@ -15,16 +15,16 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - Al entrar en el juego te la propone lo primero, para que no se te pase.
 
 ## La IA (decisiones de Ferran del 24-nov)
-- Si rematas varias veces seguidas por el mismo lado, el rival te lee: corre el bloqueo y la defensa hacia ahí.
+- Si rematas varias veces por el mismo lado, el rival te lee y corre el bloqueo hacia ahí.
 - Pasa en todos los niveles menos en Fácil, también en la Carrera.
 - En la Carrera también te estudian si haces un partido de más de 9.
-- Te estudian desde la Hiperliga. En la Hiperliga 2, solo al final de la liga y en las finales.
+- Te estudian desde la Hiperliga. En la Hiperliga 2, solo al final de la liga y en finales.
 
 ## Repeticiones (decisión de Ferran del 24-nov)
 - Las repeticiones ya no salen solas: tras un gran punto tienes unos segundos para pedirla.
 - En PC, pulsa V para verla. Con mando, LT. En el móvil, toca el botón «Repetición».
 - Si no la pides, el partido sigue sin esperar.
-- Ahora también hay repeticiones en el 6 contra 6, y sus mejores jugadas al final del partido.
+- Ahora hay repeticiones en el 6 contra 6, y sus mejores jugadas al final del partido.
 
 ## La moneda (decisión de Ferran del 24-nov)
 - El dinero del juego ahora son los salpis, con su gota de tinta.
@@ -46,8 +46,10 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - Si ya tenías el nivel, te los llevas al entrar.
 
 ## Árbitros (decisiones de Ferran del 24-nov)
-- En la Carrera, cada árbitro tiene su cara: pelo o calva, gafas, bigote, barba, complexión… y siempre la misma.
-- Su aspecto va con su carácter: el de mano dura tiene cara seria, el nervioso lleva gafas redondas.
+- En la Carrera, cada árbitro tiene su propia cara, y siempre la misma.
+- Puede tener pelo o calva, gafas, bigote, barba, y ser alto y flaco o fornido.
+- Su aspecto va con su carácter: el de mano dura tiene cara seria.
 - En la playa, algunos árbitros pitan con gorra.
-- Antes del partido, tu entrenador (o tu pareja, en la playa) te avisa de qué fama tiene el árbitro.
-- En las ligas de otros países, los árbitros tienen nombres de allí. En los partidos internacionales pita un árbitro de un país neutral.
+- Antes del partido, tu entrenador (o tu pareja) te avisa de la fama del árbitro.
+- En las ligas de otros países, los árbitros tienen nombres de allí.
+- En los partidos internacionales pita un árbitro de un país neutral.

@@ -563,7 +563,8 @@ Decisiones mías:
 (Contestadas el 24-nov y quitadas de aquí: Circuito Mundial = se queda como reto, sin suavizar `DIFF_AT`; «Cerrar sesión» no borra
 el progreso del aparato, comprobado en js/account.js `signOut` —solo olvida la sesión y avisa «Tu progreso sigue en este dispositivo»—;
 tope de dibujos del 6v6 lo decido yo, abajo en «Menús»; redirección de /voley-3d/: no se hace, «la de voley-3d no la conoce nadie
-casi»; la moneda: ver «La moneda: salpis»; el 6v6 en JUGAR: ver «Menús».)
+casi»; la moneda: ver «La moneda: salpis»; el 6v6 en JUGAR: ver «Menús»; recargar o «Reiniciar partido» en la Carrera:
+contestado el 22-nov, cerrar a mitad da el punto al rival y no hay «Reiniciar», ver 4.9.1 arriba.)
 - **Decisión (24-nov, «La música como la veas mejor»): la música sigue procedural**, hecha por js/audio.js como ahora (y como la
   Xaranga). No pesa nada en index.html, funciona sin conexión y no hay que buscar ni licenciar ficheros ogg. No se toca nada.
 - **Premios por nivel (Ferran, 24-nov: «más premios por nivel»).** Los 14 de antes (Nv 2-36) no cambian. **Decisión provisional
@@ -582,5 +583,4 @@ casi»; la moneda: ver «La moneda: salpis»; el 6v6 en JUGAR: ver «Menús».)
   - Pocos para playa: 7 de los 12 son de pista (calcetines y manguitos solo existen en pista); en playa valen los dos tintes, las
     dos pinturas de cara y el pelo arcoíris. Pregunta: ¿quieres alguno más de playa (p. ej. una tobillera o una gorra), aunque sea
     en un nivel ya ocupado? Cambiar nombres, niveles o precios: el `CATALOG` de js/look.js (busca «premios de nivel alto»).
-8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
-9. Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).
+- Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).
