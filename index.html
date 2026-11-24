@@ -4059,7 +4059,12 @@ html.sp-kb [data-kb-hide]{display:none!important}
 #menu.sp-full #btnCareer{--sp-h:clamp(50px,11vh,96px);--sp-cs:clamp(32px,6.6vh,58px);margin-right:calc(var(--sp-pad) * .5)}
 #menu.sp-full #btnCareer .sp-crest svg{fill:var(--sp-gold);stroke:var(--sp-ink);stroke-width:3.4;stroke-linejoin:round;paint-order:stroke fill;overflow:visible;padding:2px;box-sizing:border-box}
 :root:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-s .chip{display:inline-flex;margin:0 6px 0 0;padding:1px 6px;border-radius:5px;background:var(--sp-ink);color:var(--sp-cream);font:800 .92em/1.3 var(--sp-ui);box-shadow:none}
-/* fila de manchas: 6 contra 6 (equipación), Entrenamiento (contraste) y Online (tinta): pegatina con su dibujo arriba y el rótulo debajo */
+/* formato del Partido rápido en la cabecera de Jugar (24-nov-2026): dos pestañas de pincel «2v2 | 6v6» a la derecha del título, encima del parche */
+#menu .pl-fmt{display:flex;align-items:center;gap:6px;margin-left:auto;padding-right:calc(var(--sp-stamp,64px) * .2)}
+:root:not(#_):not(#_):not(#_) #menu .pl-fmt .sp-tab{--sp-tbh:44px;min-width:64px;padding:0 12px;font:400 clamp(17px,3vh,24px)/1 var(--sp-pop);letter-spacing:-.01em}
+#menu .pl-fmt .sp-tab i{font-style:normal;font-size:.72em;margin:0 .05em}
+:root.ph:not(#_):not(#_):not(#_) #menu .pl-fmt .sp-tab{min-width:58px;padding:0 10px;font-size:calc(var(--ph-head) * .95)}
+/* fila de manchas: Entrenamiento (contraste) y Online (tinta): pegatina con su dibujo arriba y el rótulo debajo */
 #menu.sp-full .sp-row{display:flex;align-items:stretch;gap:clamp(12px,2.2vh,20px)}
 :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(3px,.8vh,8px);
   --sp-h:clamp(62px,15vh,124px);padding:4px 6px 6px}
@@ -6436,22 +6441,26 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     </div>
     <!-- JUGAR (sistema SPLAT, 17-nov-2026; notes/splat.md): cada modo con su material. Partido rápido = parche cosido (.sp-patch) con el sello
          de Retos en la esquina (.sp-stamp); Carrera = brochazo turquesa (.sp-ticket) con la copa en pegatina; 6 contra 6, Entrenamiento y Online =
-         manchas (.sp-btn) de la equipación, del contraste y de tinta. Mismos ids y manejadores (ui.js, career-ui.js syncMenu, netlobby). ←/→ dentro
-         de cada fila (data-sp-row) y ↑/↓ de fila en fila (ui.js navMove). 6 contra 6 abre la preparación con la fila Formato en 6 contra 6 -->
+         manchas (.sp-btn) del contraste y de tinta. Mismos ids y manejadores (ui.js, career-ui.js syncMenu, netlobby). ←/→ dentro
+         de cada fila (data-sp-row) y ↑/↓ de fila en fila (ui.js navMove). El formato (2v2 o 6v6) va en la cabecera, encima del Partido rápido -->
     <div class="mpage sp-page" id="mpPlay" data-page="play" data-sp-full hidden>
       <div class="mp-head sp-head">
         <button class="mp-back sp-back" id="btnPlayBack" aria-label="Volver al menú principal" data-shape="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
         <div class="mp-tt"><h2 class="mp-t sp-h">Jugar</h2></div>
+        <!-- FORMATO (24-nov-2026, Ferran: «6v6 como opción (2v2 o 6v6) en JUGAR»): el del Partido rápido, justo encima de él; es el ajuste
+             «Formato» de siempre (ui.js plFmtSync; la fila Formato de la preparación sigue). Antes el 6v6 era una mancha más de la fila de abajo -->
+        <div class="pl-fmt" id="plFmt" data-sp-row role="radiogroup" aria-label="Formato del Partido rápido">
+          <button type="button" class="sp-tab" role="radio" data-fmt="2v2" aria-checked="true" aria-label="2 contra 2">2<i>v</i>2</button><button type="button" class="sp-tab" role="radio" data-fmt="6v6" aria-checked="false" aria-label="6 contra 6">6<i>v</i>6</button>
+        </div>
       </div>
       <nav class="modes sp-modes" data-nav aria-label="Modos de juego">
         <div class="sp-pair" data-sp-row>
-          <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s">Un partido contra la CPU, a tu medida</small></span></button>
+          <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s" id="quickSub">2 contra 2: tú y tu pareja contra la CPU</small></span></button>
           <!-- D1: Retos (reto del día y maestría) en sello; ui.js renderRetoStrip pinta la medalla de hoy en #retoMeds y el texto en #retoSub (para el lector) -->
           <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETO DEL DÍA ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
         </div>
         <button class="mode m-career sp-ticket" id="btnCareer"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span></span><span class="sp-tk-main"><small class="sp-k">Tu jugador, tu club</small><b class="sp-t">Carrera</b><small class="sp-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></span></button>
         <div class="sp-row" data-sp-row>
-          <button class="mode m-6v6 sp-btn sp-kit" id="btn6v6" data-shape="0"><span class="sp-crest sp-num" aria-hidden="true">6<i>v</i>6</span><span class="sp-l"><span class="sp-t">6 contra 6</span><small class="sp-s">Equipos completos: elige tu puesto</small></span></button>
           <button class="mode m-gym sp-btn sp-alt" id="btnGym" data-shape="1"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/></svg></span><span class="sp-l"><span class="sp-t" data-ph-short="Entreno">Entrenamiento</span><small class="sp-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
           <!-- ONLINE (especialista net, js/netlobby.js): 1 contra 1 con otra persona; oculta hasta que VB.NetLobby.menuOn() (o ?online=1) -->
           <button class="mode m-onl sp-btn sp-ink" id="btnOnline" data-shape="2" hidden><span class="sp-crest sp-num" aria-hidden="true">1<i>v</i>1</span><span class="sp-l"><span class="sp-t">Online</span><small class="sp-s">Contra otra persona, con tu jugador</small></span><i class="sp-chip" aria-hidden="true">Beta</i></button>

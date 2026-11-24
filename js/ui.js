@@ -450,7 +450,7 @@
       'btnPlay', 'optDiff', 'optVenue', 'venueVal', 'optPts', 'ptsVal', 'optCtrl', 'ctrlVal', 'btnTut', 'btnControls', 'btnSettings', 'btnSquad', 'squadSub', 'sqBody', 'btnResume', 'btnRestart', 'btnQuit', 'btnPControls', 'btnPSettings',
       'btnAgain', 'btnMenu', 'btnPanelBack', 'btnTutPrev', 'btnTutNext', 'btnHudPause', 'btnHudMute', 'icoSound',
       'pnKick', 'pnTitle', 'tutBody', 'tutFig', 'tutStep', 'tutTitle', 'tutText', 'tutDots', 'ctlGrid', 'ctlSub', 'navHint', 'menuRecord', 'menuLast',
-      'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optLen', 'lenVal', 'lenHelp', 'optCam6', 'cam6Val', 'cam6Help', 'btn6v6', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
+      'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optLen', 'lenVal', 'lenHelp', 'optCam6', 'cam6Val', 'cam6Help', 'plFmt', 'quickSub', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
       'diffVal', 'diffLvl', 'playSub', 'qualNote', 'tb1t', 'btnStartTut', 'btnFirstTut', 'btnFirstPlay', 'firstDiff', 'guide', 'guideK', 'guideT', 'skip', 'btnAgainAlt', 'endMvp', 'btnPeek', 'btnEndBack', 'btnEndOpts',
       'btnVer', 'abTabs', 'abBody', 'btnAbOk', 'optVer', 'optSave', 'resNote', 'ctlMsg',
       // E6: Entrenamiento (tarjeta, página, pastilla del HUD, tarjeta de presentación y hoja final)
@@ -4553,6 +4553,13 @@
   function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : p === 'online' ? el.mpOnline : el.menuCol; }
   function netLobbyFocus() { var f = VB.NetLobby && VB.NetLobby.focus ? safe(VB.NetLobby.focus) : null; return f || el.btnOnlineBack; }
   function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : segOn && el.btnSeguir && !el.btnSeguir.hidden ? el.btnSeguir : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : nowOn && el.btnNow && !el.btnNow.hidden ? el.btnNow : el.btnPlay; }
+  /** Formato del Partido rápido en la cabecera de Jugar (#plFmt) y la línea del parche (#quickSub): lee el ajuste «Formato». */
+  function plFmtSync() {
+    if (!el.plFmt) return;
+    var six = ctx.settings.format === '6v6', bs = el.plFmt.querySelectorAll('[data-fmt]');
+    for (var i = 0; i < bs.length; i++) { var on = (bs[i].getAttribute('data-fmt') === '6v6') === six; if (bs[i].getAttribute('aria-checked') !== String(on)) bs[i].setAttribute('aria-checked', String(on)); bs[i].classList.toggle('on', on); }
+    setText(el.quickSub, 'qs', six ? '6 contra 6: equipos completos, eliges tu puesto' : '2 contra 2: tú y tu pareja contra la CPU');
+  }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
@@ -4572,6 +4579,7 @@
     if (anim && n) { n.classList.remove('pg-in', 'pg-back'); void n.offsetWidth; n.classList.add(anim === 'back' ? 'pg-back' : 'pg-in'); }
     if (p === 'quick') renderOpts();
     if (ctx && ctx.state === 'menu') renderMenu();   // pistas de teclado/mando de esta página
+    if (p === 'play') plFmtSync();
     if (p === 'play' && VB.CareerUI && VB.CareerUI.syncMenu) try { VB.CareerUI.syncMenu(); } catch (e) { }
     // R8: los retratos de la previa de Partido rápido (tus n.º 1 y n.º 2, 72 px) se precargan aquí: main.js solo pinta la cola en el
     // menú, nunca durante el partido (si no llegan a tiempo, la previa enseña la silueta)
@@ -8466,8 +8474,13 @@
         if (a) { stepOpt('cam6', +a.getAttribute('data-d'), el.cam6Val); restartAnim(a, 'hit'); }
         else changeOpt('cam6', 1);
       });
-      // tarjeta 6 contra 6 de Jugar: la preparación del Partido rápido con el formato ya en 6 contra 6
-      if (el.btn6v6) el.btn6v6.addEventListener('click', function () { ctx.actions.setSetting('format', '6v6'); menuGo('quick'); });
+      // formato del Partido rápido en la cabecera de Jugar (24-nov-2026): elegir 2v2 o 6v6 sin salir de Jugar
+      if (el.plFmt) el.plFmt.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-fmt]') : null; if (!b) return;
+        var f = b.getAttribute('data-fmt');
+        if (ctx.settings.format !== f) { ctx.actions.setSetting('format', f); uiSound('click'); restartAnim(b, 'hit'); } else click();
+        plFmtSync();
+      });
       el.optCtrl.addEventListener('click', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;
         if (a) { stepOpt('ctrlMode', +a.getAttribute('data-d'), el.ctrlVal); restartAnim(a, 'hit'); }

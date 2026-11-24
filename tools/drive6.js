@@ -139,10 +139,17 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
     // JUGAR → tarjetas; → → hasta «6 contra 6»; Intro → preparación con Formato en 6 contra 6
     await press('Enter'); await sleep(450);
     check(await evalJs("VB.UI.menuPage()==='play'&&document.activeElement.id==='btnQuick'"), 'JUGAR abre los modos');
-    await goTo('btn6v6', ['ArrowDown'], 4); await goTo('btn6v6', ['ArrowLeft'], 3);   // (SPLAT: 6 contra 6 está en la fila de abajo, la 1.ª)
-    check(await evalJs("document.activeElement.id==='btn6v6'&&!document.getElementById('btn6v6').disabled"), 'la tarjeta 6 contra 6 está activa y se llega con las flechas');
+    // (24-nov-2026) el formato va en la cabecera de Jugar, encima del Partido rápido: ↑ llega a «2v2», → a «6v6», Intro lo elige
+    await press('ArrowUp'); await sleep(250);
+    check(await evalJs("document.activeElement.getAttribute('data-fmt')==='2v2'"), '↑ desde Partido rápido llega al formato (2v2)');
+    await press('ArrowRight'); await sleep(250);
+    check(await evalJs("document.activeElement.getAttribute('data-fmt')==='6v6'"), '→ pasa a 6v6');
+    await press('Enter'); await sleep(300);
+    check(await evalJs("VB.ctx.settings.format==='6v6'&&document.querySelector('#plFmt [data-fmt=\"6v6\"]').getAttribute('aria-checked')==='true'&&/6 contra 6/.test(document.getElementById('quickSub').textContent)"), 'Intro elige 6 contra 6 (y el parche lo dice)');
+    await press('ArrowDown'); await sleep(250);
+    check(await evalJs("document.activeElement.id==='btnQuick'"), '↓ vuelve a Partido rápido');
     await press('Enter'); await sleep(500);
-    check(await evalJs("VB.UI.menuPage()==='quick'&&VB.ctx.settings.format==='6v6'&&document.getElementById('fmtVal').textContent==='6 contra 6'"), 'la tarjeta abre la preparación con Formato «6 contra 6»');
+    check(await evalJs("VB.UI.menuPage()==='quick'&&VB.ctx.settings.format==='6v6'&&document.getElementById('fmtVal').textContent==='6 contra 6'"), 'Partido rápido abre la preparación con Formato «6 contra 6»');
     check(await evalJs("document.getElementById('optVenue').classList.contains('lock')&&document.getElementById('venueVal').textContent==='Pabellón'&&document.getElementById('ctrlVal').textContent==='Receptor'"), '6v6: Escenario fijo en Pabellón y Controlar en Receptor (por defecto)');
     // ←/→ en la fila Formato (↑ desde ¡A JUGAR! hasta la primera fila)
     await goTo('optFmt', ['ArrowUp'], 6); await goTo('optFmt', ['ArrowLeft', 'ArrowUp'], 4);
