@@ -20,7 +20,7 @@
  *    (MERGE: perfil y retos con su mergeRaw, Salón de la Fama por unión; Carrera de pista y modo, gana lo más reciente) pero NO se
  *    se sincronizan desde el 21-nov-2026 (S4_SYNC = true; reglas desplegadas el 16-nov-2026). Con false volverían a TRACK (solo la hora).
  *    Lo nuevo del sprint «único» viaja DENTRO de esos guardados: c.life.bond (rencor/cariño), c.world.arb (árbitros) y c.study (scouting)
- *    en la Carrera; profile.sen (Cuaderno del árbitro) en el perfil. 'make-the-cut.semana' (El mismo 22-24) es del aparato: nunca a DOCS.
+ *    en la Carrera; profile.sen (Cuaderno del árbitro) en el perfil. 'make-the-cut.semana' (La jugada del día y su racha, antes El mismo 22-24) es del aparato: nunca a DOCS.
  *  - Conflictos en cola (Carrera y Carrera de pista, la primera vez, y solo si son Carreras DISTINTAS: la misma Carrera —misma semilla
  *    y creación— nunca se pregunta, gana la más avanzada; careerPick); antes de pisar una Carrera local, copia en '<clave>.prev'.
  *  - Las bajadas solo se aplican en el menú (fuera, quedan pendientes hasta VB.Account.menuReady()); tras la primera recarga de la

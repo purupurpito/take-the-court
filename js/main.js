@@ -3078,15 +3078,15 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
         break;
       }
-      // La situación de la semana. semana = el menú en Retos › Semana (&semdemo=1: cadena de prueba en memoria, nada se guarda);
-      // semana_end = la situación de esta semana (o de &semwk=AAAAWW) con autopilot hasta la hoja final (Semana.finish en seco);
+      // La jugada del día (antes situación de la semana). semana = el menú en Retos › Jugada (&semdemo=1: cadena de prueba en memoria, nada se guarda);
+      // semana_end = la jugada de hoy (o de &semday=AAAAMMDD) con autopilot hasta la hoja final (Semana.finish en seco);
       // semana_play = la situación en marcha (&live=1) para el HUD; &intro=1 la previa y &pause=1 la pausa (sin gastar intentos)
       case 'semana': {
         if (Q.semdemo === '1' && VB.Semana && VB.Semana._demo) VB.Semana._demo();
         ctx.actions.toMenu(); call('UI', 'openRetos', 'semana'); return;
       }
       case 'semana_end': case 'semana_play': {
-        var SMs = VB.Semana && VB.Semana.situation(+Q.semwk || undefined);
+        var SMs = VB.Semana && VB.Semana.situation(+Q.semday || undefined);
         if (!SMs) { g = mk(true); break; }
         if (SMs.six) forceVenue('hall'); else if (isMapId(SMs.map)) forceVenue(SMs.map);
         g = Sim.createGame({ demo: false, autopilot: name === 'semana_end', seed: sd, difficulty: SMs.difficulty, format: SMs.six ? '6v6' : undefined, venue: SMs.six ? undefined : SMs.kind,

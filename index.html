@@ -5684,7 +5684,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(.ph):has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:calc(max(8px,var(--st)) + 66px)}
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================
-   SPLAT · RETOS · SEMANA (la situación de la semana, 20-nov-2026; js/semana-ui.js la pinta y ui.js renderRetos la monta en #rtBody).
+   SPLAT · RETOS · SEMANA (la jugada del día, antes situación de la semana, 20/24-nov-2026; js/semana-ui.js la pinta y ui.js renderRetos la monta en #rtBody).
    Dos columnas: .sem-l (brochazo turquesa con el sello y el marcador grande, pegatinas, intentos de hoy, parche «¡A jugar!» y
    «Compartir») y .sem-r («Mapa del grupo»: Saque | Ataque, campo rival en SVG con un punto por amigo y la lista). En vertical
    (≤ 480 de ancho), una sola columna. Con ≤ 380 de alto las pegatinas se quedan en sede y nivel (.sem-cx fuera; están en aria-label).
@@ -5777,6 +5777,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{--sp-ph:56px;--sp-pt:clamp(16px,5vh,24px);padding-right:6px}
 @media (max-height:380px){
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-ch .sem-cx{display:none}
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-sub .sem-ty{display:none}
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-tk.sp-ticket{padding:4px 14px 6px 8px}
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-tk .sp-stamp{display:none}   /* (decorativo: así sede y nivel caben en una fila) */
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-ch{flex-wrap:nowrap}
@@ -5784,7 +5785,39 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   #rtBody .sem-l{gap:6px}
   :root:not(#_):not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{--sp-ph:50px}
 }
-/* hoja final: el bloque «Situación» con el mejor de la semana en dorado */
+/* la jugada del día (24-nov-2026): la racha. .sem-fl = gota de pintura con el número (dorada con racha, hueca sin ella) */
+.sem-fl{flex:none;position:relative;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50% 0 50% 50%;transform:rotate(-45deg);background:transparent;
+  box-shadow:inset 0 0 0 2.5px var(--sp-cream),0 0 0 2px var(--sp-ink)}
+.sem-fl>b{transform:rotate(45deg);font:400 12px/1 var(--sp-pop);color:var(--sp-cream)}
+.on>.sem-fl{background:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 var(--sp-ink)}
+.on>.sem-fl>b{color:var(--sp-ink)}
+.sem-rk{flex:none;display:flex;align-items:center;margin-left:auto;padding:0 4px}
+/* sello de la portada: «Hecha» (cumplida hoy) y la chapa crema de la racha en la esquina */
+.mj-sem .mj-semok{display:block;width:34%;height:auto;aspect-ratio:1;fill:none;stroke:var(--sp-gold);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) .mj-sem .mj-semr{position:absolute;right:2%;top:2%;z-index:3;display:grid;place-items:center;min-width:22px;height:22px;padding:0 4px;box-sizing:border-box;
+  border-radius:11px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 var(--sp-ink);font:400 12px/1 var(--sp-pop);font-style:normal;pointer-events:none;transform:rotate(8deg)}
+/* ventana al entrar (ui.js semPop → VB.Splat.sheet .semp-sh): brochazo con el marcador a la izquierda y lo demás a la derecha */
+#spSheets .semp{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 16px;padding:4px 2px 2px}
+@media (max-width:420px){#spSheets .semp{grid-template-columns:minmax(0,1fr)}}
+:root:not(#_):not(#_):not(#_) #spSheets .semp-tk.sp-ticket{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;width:auto;min-width:0;height:auto;min-height:0;
+  padding:8px 22px 10px 14px;white-space:nowrap;cursor:default;pointer-events:none;animation:none;transform:rotate(-1.2deg);color:var(--sp-ink)}
+#spSheets .semp-t{font:800 12.5px/1.1 var(--sp-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-ink)}
+#spSheets .semp-sc{font:400 clamp(34px,9vh,54px)/.95 var(--sp-pop);color:var(--sp-cream);font-variant-numeric:tabular-nums;
+  text-shadow:3px 3px 0 var(--sp-ink),-1.5px -1.5px 0 var(--sp-ink),1.5px -1.5px 0 var(--sp-ink),-1.5px 1.5px 0 var(--sp-ink);transform:rotate(-2deg);transform-origin:0 60%}
+#spSheets .semp-sc i{font-style:normal;margin:0 .06em;color:var(--sp-gold)}
+#spSheets .semp-sub{font:800 12.5px/1.2 var(--sp-ui);color:var(--sp-ink)}
+#spSheets .semp-i{display:flex;flex-direction:column;gap:6px;min-width:0}
+#spSheets .semp-i p{margin:0}
+#spSheets .semp-goal{font:400 clamp(15px,2.6vh,19px)/1.2 var(--sp-pop);color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink)}
+#spSheets .semp-meta,#spSheets .semp-lf{font:600 max(12px,var(--ph-cap,13px))/1.3 var(--sp-ui);color:var(--sp-cream)}
+#spSheets .semp-rk{display:flex;align-items:center;gap:10px;font:700 max(12.5px,var(--ph-label,14px))/1.25 var(--sp-ui);color:var(--sp-cream)}
+#spSheets .semp-rk .sem-fl{margin:0 2px 0 3px}
+@media (max-height:360px){
+  :root:not(#_):not(#_):not(#_) #spSheets .semp-tk.sp-ticket{padding:6px 18px 8px 12px}
+  #spSheets .semp-sc{font-size:34px}
+  #spSheets .semp-i{gap:4px}
+}
+/* hoja final: el bloque «Situación» con el mejor de hoy (o la racha que sube) en dorado */
 #end .rc-sit .rc-l.up{color:var(--sp-gold);font-weight:800}
 /* ==== fin SPLAT · RETOS · SEMANA ==== */
 /* =====================================================================
@@ -6518,7 +6551,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <div class="qlist gy-list" id="gymList" data-nav aria-label="Ejercicios"></div>
       <p class="gy-foot" id="gymFoot"></p>
     </div>
-    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Semana | Hoy | Maestría (Semana = la situación de la semana, js/semana-ui.js) en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
+    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Jugada | Hoy | Maestría (Jugada = la jugada del día, js/semana-ui.js; id semana) en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
          turquesa con el sello dorado de la medalla de hoy, las tres medallas en pegatina y «¡A jugar!» en parche; Maestría = pegatinas del color del grupo
          (doradas con el oro) con la medalla en pegatina redonda y la barra de pintura hasta la siguiente -->
     <div class="mpage sp-page" id="mpRetos" data-page="retos" data-sp-full hidden>

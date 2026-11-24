@@ -3,10 +3,11 @@
  *
  * El partido de demo se queda de fondo, a la vista y sin velos. Reutiliza los MISMOS botones (ids y manejadores de ui.js): solo los pone en
  * filas dentro de .menu-col y les da las clases del sistema (index.html, bloque «SPLAT · PORTADA»; dibujo en js/splat.js):
- *   - JUGAR: .sp-patch (parche crema cosido con el gajo de TU equipación) y, en su esquina, el sello .sp-stamp (.sp-pair): la situación de
- *     la semana («El mismo 22-24», js/semana.js) con su marcador y los intentos de hoy, que abre Retos › Semana. Propuesta de la ficha
- *     «semana» que Ferran aceptó («JUNTO»): la situación en el sello de la portada y en la 1ª pestaña de Retos; el reto del día sigue
- *     en la franja de Jugar y en la pestaña Hoy. Sin VB.Semana / VB.SemanaUI, el sello vuelve a ser el del Reto del día.
+ *   - JUGAR: .sp-patch (parche crema cosido con el gajo de TU equipación) y, en su esquina, el sello .sp-stamp (.sp-pair): la jugada
+ *     del día (antes «El mismo 22-24» semanal; js/semana.js) con su marcador, los intentos de hoy (o una marca dorada si ya la has cumplido) y la
+ *     racha en una chapa crema (.mj-semr, solo con racha), que abre Retos › Jugada. Propuesta de la ficha «semana» que Ferran aceptó
+ *     («JUNTO»): la jugada en el sello de la portada y en la 1ª pestaña de Retos; el reto del día sigue en la franja de Jugar y en la
+ *     pestaña Hoy. Sin VB.Semana / VB.SemanaUI, el sello vuelve a ser el del Reto del día.
  *   - Jugadores y Vestuario: .sp-btn.sp-wide de la equipación y del contraste; Jugadores lleva tu camiseta con el dorsal y Vestuario tu cabeza
  *     (retrato recortado de VB.Doll.portrait con req.matte, pintado una vez por main.js).
  *   - Cómo se juega, Controles y Ajustes: tres .sp-btn.sp-sm de tinta con icono dorado.
@@ -48,8 +49,8 @@
   var SEM = !!(VB.Semana && VB.Semana.peek && VB.SemanaUI && VB.UI && VB.UI.openRetos);
   var stamp = mk('button', 'sp-stamp');
   stamp.type = 'button'; stamp.id = 'btnMjReto';
-  stamp.setAttribute('aria-label', SEM ? 'La situación de la semana' : 'Reto del día');
-  stamp.setAttribute('data-ring', SEM ? 'LA SITUACIÓN ★ DE LA SEMANA ★' : 'RETO DEL DÍA ★ RETO DEL DÍA ★');
+  stamp.setAttribute('aria-label', SEM ? 'La jugada del día' : 'Reto del día');
+  stamp.setAttribute('data-ring', SEM ? 'LA JUGADA ★ DEL DÍA ★' : 'RETO DEL DÍA ★ RETO DEL DÍA ★');
   if (SEM) stamp.classList.add('mj-sem');
   stamp.innerHTML = '<span class="sp-sc" id="mjStampC"></span>';
   if (bPlay) {
@@ -156,14 +157,19 @@
     var st = null; try { st = VB.Semana.peek(); } catch (e) { st = null; }
     stamp.hidden = !st || !$('btnRetos');
     if (!st || !C) return;
-    var a = st.sit.score[0] | 0, b = st.sit.score[1] | 0, lf = st.left | 0;
+    var a = st.sit.score[0] | 0, b = st.sit.score[1] | 0, lf = st.left | 0, sk = st.streak ? st.streak.cur | 0 : 0;
     var T = VB.Semana.TRIES | 0 || 3, dots = '';   // los intentos de hoy en puntos: dorado = queda, hueco = gastado (el texto va en aria-label)
     for (var i = 0; i < T; i++) dots += '<i' + (i < lf ? ' class="on"' : '') + '></i>';
-    var h = '<b class="mj-semsc">' + a + '-' + b + '</b><span class="mj-semd">' + dots + '</span>';
+    // cumplida hoy: una marca dorada en lugar de los puntos («Hecha» a 9 px no se leía a 568x320); con racha, su número en la chapa crema de la esquina
+    var h = '<b class="mj-semsc">' + a + '-' + b + '</b>' + (st.done ? '<svg class="mj-semok" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>' : '<span class="mj-semd">' + dots + '</span>');
     if (C._h !== h) { C._h = h; C.innerHTML = h; }
+    var rb = stamp.querySelector('.mj-semr');
+    if (sk > 0) { if (!rb) { rb = mk('i', 'mj-semr'); rb.setAttribute('aria-hidden', 'true'); stamp.appendChild(rb); } if (rb.textContent !== String(sk)) rb.textContent = String(sk); }
+    else if (rb) rb.parentNode.removeChild(rb);
     stamp.classList.remove('sp-dot');
-    stamp.setAttribute('aria-label', 'La situación de la semana: ' + a + '-' + b + ', ' + (lf ? (lf === 1 ? 'queda 1 intento hoy' : 'quedan ' + lf + ' intentos hoy') : 'mañana, 3 intentos nuevos') +
-      (st.best ? '. Tu mejor: ' + VB.Semana.resLbl(st.best).toLowerCase() : ''));
+    stamp.classList.toggle('mj-semdone', !!st.done);
+    stamp.setAttribute('aria-label', 'La jugada del día: ' + a + '-' + b + ', ' + (st.done ? 'cumplida hoy' : lf ? (lf === 1 ? 'queda 1 intento hoy' : 'quedan ' + lf + ' intentos hoy') : 'mañana, otra jugada') +
+      (sk ? '. Racha: ' + VB.Semana.streakTxt(sk) : '') + (st.best && !st.done ? '. Tu mejor de hoy: ' + VB.Semana.resLbl(st.best).toLowerCase() : ''));
   }
   function stampSync() {
     var R = VB.Retos, C = $('mjStampC');

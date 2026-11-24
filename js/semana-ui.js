@@ -1,13 +1,15 @@
 /* TAKE THE COURT — js/semana-ui.js (owner: ui_main)
- * Pintado de «La situación de la semana» (datos de js/semana.js, VB.Semana). Va aparte de ui.js porque hay un rediseño de menús en
- * marcha: ui.js solo llama a estas piezas (pestaña «Semana» de Retos, compartir) y las pinta con el estilo SPLAT (notes/splat.md).
- * CSS propio: index.html «SPLAT · RETOS · SEMANA» (clases .sem-*).
+ * Pintado de «La jugada del día» (antes «La situación de la semana»; datos de js/semana.js, VB.Semana). Va aparte de ui.js: ui.js solo
+ * llama a estas piezas (pestaña «Jugada» de Retos, la ventana al entrar, compartir) y las pinta con el estilo SPLAT (notes/splat.md).
+ * CSS propio: index.html «SPLAT · RETOS · SEMANA» (clases .sem-* y .semp-* de la ventana).
  *
  * API (VB.SemanaUI):
- *   tabHTML(mode 'S'|'A') → HTML de la pestaña: columna izquierda (brochazo con el marcador, pegatinas, intentos de hoy, «¡A jugar!» y
- *                           «Compartir») y derecha («Mapa del grupo»: campo rival con un punto por amigo en cada zona y la lista).
+ *   tabHTML(mode 'S'|'A') → HTML de la pestaña: columna izquierda (brochazo con el marcador, pegatinas, intentos de hoy, racha, «¡A jugar!»
+ *                           y «Compartir») y derecha («Mapa del grupo»: campo rival con un punto por amigo en cada zona y la lista).
  *                           Botones: [data-sem="go"], [data-sem="share"], [data-semmap="S"|"A"].
- *   foot() → HTML del pie («Semana 47 | Cambia el lunes»)
+ *   popHTML() → {html, desc} cuerpo de la ventana al entrar (ui.js la abre con VB.Splat.sheet; desc = el texto entero para el lector)
+ *   streakLine(st) → «Racha: 3 días seguidos» / «Sin racha: empieza hoy»
+ *   foot() → HTML del pie («Hoy, 24 nov | Cambia cada día | Sin XP ni medallas»)
  *   mapSVG(list, mode, me) → SVG del campo rival (zonas [1,6,5 / 2,3,4], la red abajo, de tu lado)
  *   share(cb?)             navigator.share con el enlace; si no hay, al portapapeles con el aviso «Enlace copiado»
  *   PAL                    8 colores de los puntos del grupo (tokens --sp-* y tres más con contraste ≥ 3:1 sobre la pista)
@@ -66,29 +68,41 @@
     var parts = []; for (var z = 1; z <= 6; z++) if (n[z]) parts.push('zona ' + z + ': ' + n[z]);
     return 'Mapa del grupo, ' + (mode === 'A' ? 'ataque' : 'saque') + (parts.length ? '. ' + parts.join(', ') : ', sin datos');
   }
+  /** «Racha: 3 días seguidos» (y tu mejor entre paréntesis si es mayor) / «Sin racha: empieza hoy». */
+  function streakLine(st) {
+    var M = S(), sk = st && st.streak ? st.streak : { cur: 0, best: 0 }, cur = sk.cur | 0, best = sk.best | 0;
+    var t = cur ? 'Racha: ' + (M ? M.streakTxt(cur) : cur + ' días seguidos') : 'Sin racha: empieza hoy';
+    if (best > cur) t += ' (tu mejor, ' + best + ')';
+    return t;
+  }
+  function flame(n) { return '<span class="sem-fl" aria-hidden="true"><b>' + (n | 0) + '</b></span>'; }
   function tabHTML(mode) {
-    var M = S(); if (!M) return '<p class="rt-none">La situación de la semana no está disponible.</p>';
+    var M = S(); if (!M) return '<p class="rt-none">La jugada del día no está disponible.</p>';
     mode = mode === 'A' ? 'A' : 'S';
-    var st = M.state(), sit = st.sit, wn = M.wkNum(st.wk), a = sit.score[0], b = sit.score[1];
+    var st = M.state(), sit = st.sit, a = sit.score[0], b = sit.score[1];
     var ball = VB.Splat && VB.Splat.BALL ? VB.Splat.BALL : '';
     // columna izquierda: brochazo turquesa con el sello, el marcador grande y las pegatinas
-    var chips = '', KEEP = {}; KEEP[sit.mapName] = 1; KEEP[sit.diffName] = 1;
-    // bajo el marcador, en una línea: «3r set a 15 | Saca el rival» (+ «6 contra 6 | Rotación 4»); en pegatina, sede, nivel y «Atributos parejos»
+    var chips = '';
+    // bajo el marcador, en una línea: «Salvar el set | 3r set a 15 | Saca el rival» (+ «6 contra 6 | Rotación 4»); en pegatina, sede, nivel y «Atributos parejos»
+    // (el tipo de jugada va en .sem-ty con su separador: con ≤ 380 de alto se esconde, como «Atributos parejos»; está en aria-label)
     var sub = [sit.famLbl, sit.srvLbl].concat(sit.six ? ['6 contra 6', sit.rotLbl] : []);
     [sit.mapName, sit.diffName, 'Atributos parejos'].forEach(function (c) { chips += '<i class="sp-chip ' + (c === 'Atributos parejos' ? 'sp-cream sem-cx' : 'sp-ink') + '">' + esc(c) + '</i>'; });
-    var aria = 'La situación de la semana ' + wn + ': ' + sit.label + '. ' + sit.chips.slice(2).join(', ');
+    var aria = 'La jugada del día, ' + sit.dayLbl + ': ' + sit.title + '. ' + sit.goal + '. ' + sit.label + '. ' + sit.chips.slice(2).join(', ');
     var h = '<div class="sem-l"><div class="sem-tk sp-ticket sp-noshine" data-shape="3" role="group" aria-label="' + esc(aria) + '">' +
-      '<span class="sp-stamp sem-stamp" aria-hidden="true" data-ring="LA SITUACIÓN ★ SEMANA ' + wn + ' ★"><span class="sp-sc">' + ball + '<b>S' + wn + '</b></span></span>' +
-      '<div class="sem-tm" aria-hidden="true"><p class="sem-k">La situación de la semana</p><p class="sem-sc">' + a + '<i>-</i>' + b + '</p><p class="sem-sub">' + sep(sub) + '</p><p class="sem-ch">' + chips + '</p></div></div>';
+      '<span class="sp-stamp sem-stamp" aria-hidden="true" data-ring="LA JUGADA ★ ' + esc(sit.dayLbl.toUpperCase()) + ' ★"><span class="sp-sc">' + ball + '<b>' + (st.day % 100) + '</b></span></span>' +
+      '<div class="sem-tm" aria-hidden="true"><p class="sem-k">La jugada del día</p><p class="sem-sc">' + a + '<i>-</i>' + b + '</p><p class="sem-sub"><span class="sem-ty">' + esc(sit.title) + '<span class="sep sep-v"><span class="sr">, </span></span></span>' + sep(sub) + '</p><p class="sem-ch">' + chips + '</p></div></div>';
     // intentos de hoy: llena = gastado, dorada = ganado; el que está abierto (a medias) cuenta como gastado
     var dots = '';
     for (var i = 0; i < M.TRIES; i++) { var t = st.today[i], used = i < st.n; dots += '<i class="sem-dot' + (used ? ' used' : '') + (t && t.w ? ' won' : '') + '"></i>'; }
-    var bestT = st.best ? 'Mejor: ' + M.resLbl(st.best).toLowerCase() : 'Aún sin jugar esta semana';
+    var bestT = st.done ? '¡Cumplida! ' + st.best.a + '-' + st.best.b : st.best ? 'Mejor de hoy: ' + M.resLbl(st.best).toLowerCase() : 'Aún sin jugar hoy';
     var triesA = 'Hoy: ' + st.n + (st.n === 1 ? ' intento de 3' : ' intentos de 3');
-    h += '<div class="sem-tries"><span class="sem-dots" role="img" aria-label="' + esc(triesA) + '">' + dots + '</span><small class="sem-tt">' + esc(bestT) + '</small></div>';
+    // la racha, en la misma fila (una fila más echaba «¡A jugar!» fuera de la vista a 568x320): la gota con el número al final; el texto, para el lector
+    var sk = st.streak || { cur: 0 }, rkT = streakLine(st);
+    h += '<div class="sem-tries"><span class="sem-dots" role="img" aria-label="' + esc(triesA) + '">' + dots + '</span><small class="sem-tt">' + esc(bestT) + '</small>' +
+      '<span class="sem-rk' + (sk.cur ? ' on' : '') + '" role="img" aria-label="' + esc(rkT) + '" title="' + esc(rkT) + '">' + flame(sk.cur) + '</span></div>';
     var go = st.left > 0;
     h += '<div class="sem-acts"><button class="mi primary sem-go sp-patch' + (go ? '' : ' off') + '" data-sem="go"' + (go ? '' : ' aria-disabled="true"') + '><span class="sp-l"><span class="sp-t">' + (go ? '¡A jugar!' : 'Mañana más') + '</span>' +
-      '<small class="sp-s">' + esc(go ? (st.left === 1 ? 'Queda 1 hoy' : 'Quedan ' + st.left + ' hoy') : 'Mañana, 3 nuevos') + '</small></span></button>' +
+      '<small class="sp-s">' + esc(go ? (st.left === 1 ? 'Queda 1 hoy' : 'Quedan ' + st.left + ' hoy') : 'Mañana, otra jugada') + '</small></span></button>' +
       (st.best ? '<button class="sp-btn sp-sm sp-ink sem-share" data-sem="share" data-shape="1" aria-label="Compartir tu resultado" title="Compartir"><span class="sp-ic">' + SHARE_IC + '</span><span class="sp-t sem-st">Compartir</span></button>' : '') + '</div></div>';
     // columna derecha: el mapa del grupo
     var list = groupList(st);
@@ -96,7 +110,7 @@
       '<button type="button" role="radio" data-semmap="S" aria-checked="' + (mode === 'S') + '"' + (mode === 'S' ? ' class="on"' : '') + '>Saque</button>' +
       '<button type="button" role="radio" data-semmap="A" aria-checked="' + (mode === 'A') + '"' + (mode === 'A' ? ' class="on"' : '') + '>Ataque</button></span></div>' +
       mapSVG(list, mode, st.me);
-    if (st.groupOld && st.group) h += '<p class="sem-old">Cadena de la semana ' + M.wkNum(st.group.wk) + ' (ya cerrada)</p>';
+    if (st.groupOld && st.group) h += '<p class="sem-old">Cadena del ' + esc(M.dayLbl(st.group.wk)) + ' (ya cerrada)</p>';
     if (list.length) {
       h += '<ul class="sem-list">';
       list.forEach(function (e, i) {
@@ -109,10 +123,25 @@
     if (!list.length || (list.length === 1 && list[0].n === st.me)) h += '<p class="sem-empty">Comparte tu resultado y el mapa se llena con el de tus amigos</p>';
     return h + '</div>';
   }
+  /** Cuerpo de la ventana al entrar (ui.js semPop la abre con VB.Splat.sheet, título «La jugada del día»): a la izquierda el brochazo con
+   *  el tipo de jugada, el marcador y el set; a la derecha el objetivo en una línea, sede y nivel, la racha y los intentos de hoy.
+   *  → {html, desc} (desc = todo en una frase, para aria-describedby). */
+  function popHTML() {
+    var M = S(); if (!M) return null;
+    var st = M.state(), sit = st.sit, a = sit.score[0], b = sit.score[1], sk = st.streak || { cur: 0, best: 0 };
+    var meta = [sit.mapName, sit.diffName, sit.six ? '6 contra 6' : sit.kind === 'beach' ? '2 contra 2, playa' : '2 contra 2'];
+    var lf = st.left === 1 ? 'Queda 1 intento hoy' : 'Quedan ' + st.left + ' intentos hoy';
+    var rk = streakLine(st) + (sk.cur ? '. ¡Que no se corte!' : '');
+    var h = '<div class="semp" aria-hidden="true"><div class="semp-tk sp-ticket sp-noshine" data-shape="2"><span class="semp-t">' + esc(sit.title) + '</span>' +
+      '<b class="semp-sc">' + a + '<i>-</i>' + b + '</b><span class="semp-sub">' + sep([sit.famLbl, sit.srvLbl]) + '</span></div>' +
+      '<div class="semp-i"><p class="semp-goal">' + esc(sit.goal) + '</p><p class="semp-meta">' + sep(meta) + '</p>' +
+      '<p class="semp-rk' + (sk.cur ? ' on' : '') + '">' + flame(sk.cur) + '<span>' + esc(rk) + '</span></p><p class="semp-lf">' + esc(lf) + '</p></div></div>';
+    var desc = sit.title + '. ' + sit.goal + '. ' + sit.label + '. ' + meta.join(', ') + '. ' + rk + '. ' + lf + '.';
+    return { html: h + '<p class="sr" id="sempDesc">' + esc(desc) + '</p>', desc: desc };
+  }
   function foot() {
     var M = S(); if (!M) return '';
-    var wk = M.week();
-    return '<span class="nw">Semana <b>' + M.wkNum(wk) + '</b></span><span class="sep sep-v"><span class="sr">, </span></span><span class="nw">Cambia el lunes</span>' +
+    return '<span class="nw">Hoy, <b>' + esc(M.dayLbl(M.today())) + '</b></span><span class="sep sep-v"><span class="sr">, </span></span><span class="nw">Cambia cada día</span>' +
       '<span class="sep sep-v"><span class="sr">, </span></span><span class="nw">Sin XP ni medallas</span>';
   }
   function toast(t) { try { if (VB.Splat && VB.Splat.toast) VB.Splat.toast(esc(t), { key: 'sem' }); } catch (e) { } }
@@ -139,5 +168,5 @@
     }
     copy(text + ' ' + url, cb);
   }
-  VB.SemanaUI = { tabHTML: tabHTML, foot: foot, mapSVG: mapSVG, share: share, groupList: groupList, PAL: PAL };
+  VB.SemanaUI = { tabHTML: tabHTML, popHTML: popHTML, streakLine: streakLine, foot: foot, mapSVG: mapSVG, share: share, groupList: groupList, PAL: PAL };
 })();
