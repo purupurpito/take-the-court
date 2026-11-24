@@ -3,18 +3,20 @@
  * de sim en un anillo (Float64Array para move: con Float32Array la resim se desincroniza, T1) y FOTOS de la partida (VB.Sim.copyGame
  * sobre partidas «sombra» creadas una vez en reset). La repetición resimula una sombra (el «corredor» R, R.replay = true) con las
  * entradas grabadas mientras la sim en vivo espera; Players/FX/cámara pintan R con su código de siempre.
- *  - Solo 2v2 humano (ni demo, ni ejercicio, ni espectador; autopilot solo con reset(g, {force:true}) o &replay=1). 6v6 humano: preparado
- *    detrás de REPLAY6 (APAGADO, 21-nov-2026; reset(g, {six:true}) lo enciende en las pruebas). En 6v6 hay menos sombras (K6: 3 fotos
- *    clave y 2 mejores jugadas → 8 en vez de 11, por la memoria del móvil). Antes de encenderlo falta lo de pintado (Players.bindReplay
- *    con los 12 en pista y los cambios hechos entre la jugada guardada y la de ahora), la cámara 6v6 en CameraRig.replay, la pestaña
- *    «Jugadas» de la hoja final 6v6, medirlo con tools/perf.js y pasar replaytest (e) de «apagado» a «graba».
+ *  - 2v2 y 6v6 humanos (ni demo, ni ejercicio, ni espectador; autopilot solo con reset(g, {force:true}) o &replay=1). 6v6: REPLAY6
+ *    ENCENDIDO el 24-nov-2026 (antes apagado; reset(g, {six:true}) sigue valiendo en las pruebas). En 6v6 hay menos sombras (K6: 3 fotos
+ *    clave y 2 mejores jugadas → 8 en vez de 11, por la memoria del móvil) y el avance rápido va a un tercio de pasos por frame. El
+ *    pintado de los 12 y de los cambios hechos entre la jugada y ahora lo resuelve Players (bindReplay + syncRigs sobre R); la cámara
+ *    de la repetición es la de tele (tvShot, que ya encuadra a los 12); la hoja final 6v6 tiene «Jugadas».
+ *  - Desde el 24-nov-2026 no hay repetición automática: aviso «Pulsa V para ver la repetición» (offerTick / takeOffer, más abajo).
+ *    autoReady() sigue para las pruebas de node (tools/replaytest.js) pero el juego ya no la llama.
  *  - Sin guardado, sin red, sin THREE, sin DOM (los textos los pinta ui.js con info()/list()). Se carga en node (tools/replaytest.js).
  *  - Cero basura por frame en el grabador (arrays tipados y objetos reutilizados). La única memoria nueva: las sombras de reset() y
  *    los objetos de evento que la sim ya crea al resimular (igual que en vivo).
  *  - No toca la partida en vivo ni g.rng: solo la lee (copyGame(sombra, g) y stateHash(g)). La huella 2v2 no cambia.
  *  - Textos (R2): «Punto de set» / «Punto de partido» / «Mejores jugadas»; frase con VB.Recap.playPhrase (con guarda).
- * Orden en main.js (T22): Sim.step → Replay.onStep(simIn, g) en cada paso; tras drainEvents → Replay.onEvents(g, frameEvents) cada
- * frame; si Replay.autoReady(g) → Replay.start('auto'); con Replay.active() → gdtR = Replay.tick(realDt, evP, evF) y, si
+ * Orden en main.js (T22): Sim.step → Replay.onStep(simIn, g) en cada paso; tras drainEvents → Replay.onEvents(g, frameEvents) y
+ * Replay.offerTick(g, realDt) cada frame (V / LT / toque → Replay.takeOffer()); con Replay.active() → gdtR = Replay.tick(realDt, evP, evF) y, si
  * Replay.runner() (= R), se pinta R en vez de g (orden de S3-C1 §3 main.js). Replay mantiene VB.ctx.replay (objeto reutilizado o null).
  */
 (function () {
@@ -43,11 +45,15 @@
     HITS_N: 16,           // anillo de toques
     MAX_STEPS: 12,        // pasos de R por frame como mucho (como MAX_STEPS de main.js)
     ME_BONUS: 0.12,       // puntuación extra de las jugadas de tu equipo
-    AUTO_HL: 0.55         // highlight mínimo para repetir automáticamente un cierre de set que no sea ace/remate/dejada/bloqueo
+    AUTO_HL: 0.55,        // highlight mínimo para ofrecer la repetición de un cierre de set que no sea ace/remate/dejada/bloqueo
+    OFFER_HL: 0.65,       // highlight mínimo para ofrecer la repetición de un punto cualquiera (≈ 1 de cada 11 puntos: unos 8 por partido)
+    OFFER_T: 4            // s (tiempo real) que se ve el aviso «Pulsa V para ver la repetición» / el botoncito táctil
   };
   // 6v6 (REPLAY6): menos sombras, por la memoria (cada copia de un 6v6 lleva plantilla, banquillo, líbero y entrenador)
-  var REPLAY6 = false;
-  var K6 = { KF_N: 3, BEST_N: 2 };
+  var REPLAY6 = true;   // ENCENDIDO el 24-nov-2026 (pintado de los 12 y cambios: players.js; «Jugadas» en la hoja 6v6: recap.js)
+  // PREP_DIV: el avance rápido reparte un tercio de pasos por frame (un paso de 6v6 cuesta ~3,5 veces uno de 2v2: 27 µs frente a 8 en
+  // escritorio; con 120 pasos por frame en el móvil la preparación se comía ~14 ms del frame)
+  var K6 = { KF_N: 3, BEST_N: 2, PREP_DIV: 3 };
   var kfN = K.KF_N, bestN = K.BEST_N;   // las de este partido (reset)
   // eventos de R que se reparten (evP para Players; evF = lo mismo sin point, para FX y Audio). Nunca a UI.ingest, Career ni Badges
   var PASS = { hit: 1, swing: 1, miss: 1, toss: 1, jump: 1, landPlayer: 1, dive: 1, block: 1, net: 1, netTouch: 1, land: 1, bounce: 1,
@@ -57,7 +63,7 @@
   // ONLINE (fase 6, notes/net.md): modo «dual» = graba las DOS entradas de cada paso de la partida CONFIRMADA (Sim.step(gc, STEP, ins)
   // con ins = [hueco 0, hueco 1]) con sus bits de red. Anillos y tramos aparte: el modo offline (mv/fl) no cambia de formato
   var F_CHAL = 32, F_SKIP = 64, F_TMO = 128, F_AI = 256;
-  var TXT = { set: 'Punto de set', match: 'Punto de partido', best: 'Mejores jugadas', end: 'Fin de la repetición' };
+  var TXT = { set: 'Punto de set', match: 'Punto de partido', point: 'Repetición', best: 'Mejores jugadas', end: 'Fin de la repetición' };
 
   var STEP = 1 / 120;
   var CAP = K.LOG_CAP;
@@ -77,21 +83,23 @@
    *  en vivo desde reset (k0 = paso de la foto g; start = inicio visible; pt = paso del punto; hashStep = paso de hashPt; end = fin). */
   function mkClip(own) {
     return { ok: false, own: own, g: null, mv: own ? new Float64Array(K.CLIP_CAP * 2) : null, fl: own ? new Uint8Array(K.CLIP_CAP) : null, mv2: null, fl2: null,
-      k0: 0, start: 0, slowFrom: 0, slowTo: 0, pt: 0, hashStep: 0, hashPt: 0, end: 0, ptT: 0, score: 0, serial: 0, auto: false,
+      k0: 0, start: 0, slowFrom: 0, slowTo: 0, pt: 0, hashStep: 0, hashPt: 0, end: 0, ptT: 0, score: 0, serial: 0, auto: false, offer: false,
       fx: 0, fy: 0, fz: 0, meta: mkMeta() };
   }
   function copyClip(d, s) {
     d.ok = s.ok; d.k0 = s.k0; d.start = s.start; d.slowFrom = s.slowFrom; d.slowTo = s.slowTo; d.pt = s.pt; d.hashStep = s.hashStep;
-    d.hashPt = s.hashPt; d.end = s.end; d.ptT = s.ptT; d.score = s.score; d.serial = s.serial; d.auto = s.auto;
+    d.hashPt = s.hashPt; d.end = s.end; d.ptT = s.ptT; d.score = s.score; d.serial = s.serial; d.auto = s.auto; d.offer = s.offer;
     d.fx = s.fx; d.fy = s.fy; d.fz = s.fz; copyMeta(d.meta, s.meta);
   }
 
   // ------------------------------------------------------------------ estado del grabador
   var RP = {
-    on: false, why: 'reset', g: null, force: false, headless: false, mobile: false,
+    on: false, why: 'reset', g: null, force: false, headless: false, mobile: false, six: false,
     step: 0, tLast: -1, timerLast: 0,
     rec: false, tossStep: 0, nextKf: 0, kfI: 0, ptStep: -1, hashStep: -1, hashPt: 0, endStep: -1, ptT: 0,
     hit0: 0, hitsN: 0, overturned: false, skipSeen: false, serial: 0, autoDone: -1, desync: 0, prepMs: 0,
+    ofSerial: -1, ofLeft: 0, ofDone: -1, ofTaken: 0, ofHold: false,   // aviso de repetición (offerTick): punto ofrecido, s que le quedan, último ya ofrecido
+
     dual: false, me: 0, vs: 0   // online: dual = dos entradas por paso; me = tu equipo canónico (puntuación extra); vs = 1 → se pinta girado (invitado)
   };
   var kfToss = null, kf = [], kfStep = new Float64Array(K.KF_N), R = null, PR = null, RV = null;   // RV = vista girada de R (invitado online)   // R = corredor; PR = la siguiente de la cola, preparándose
@@ -258,6 +266,7 @@
     c.score = meta.highlight + (w === RP.me ? K.ME_BONUS : 0);
     c.serial = ++RP.serial;
     c.auto = (meta.setWon || meta.matchWon) && (DECISIVE[meta.how] === 1 || meta.highlight >= K.AUTO_HL);
+    c.offer = c.auto || (meta.how !== 'error' && meta.highlight >= K.OFFER_HL);   // (24-nov-2026: aviso con botón, ver offerTick)
     c.ok = true;
     RP.ptStep = -1;
     if (!(meta.how === 'error' && meta.rallyHits < 4) && endAt - k0 <= K.CLIP_CAP) offerBest(c);
@@ -320,7 +329,7 @@
     o = o || {};
     RP.on = false; RP.g = g || null; RP.step = 0; RP.tLast = -1; RP.timerLast = 0; RP.rec = false; RP.ptStep = -1; RP.hashStep = -1;
     RP.endStep = -1; RP.kfI = 0; RP.hit0 = 0; RP.hitsN = 0; RP.overturned = false; RP.skipSeen = false; RP.serial = 0; RP.autoDone = -1;
-    RP.desync = 0; RP.prepMs = 0;
+    RP.desync = 0; RP.prepMs = 0; RP.ofSerial = -1; RP.ofLeft = 0; RP.ofDone = -1; RP.ofTaken = 0; RP.ofHold = false; OFFER.on = false; setOfferCtx();
     RP.dual = !!o.dual; RP.me = RP.dual && o.slot === 1 ? 1 : 0; RP.vs = RP.me; RV = null;
     if (RP.dual && !mv2) { mv2 = new Float64Array(CAP * 4); fl2 = new Uint16Array(CAP * 2); }
     last.ok = false; last.g = null;
@@ -330,7 +339,7 @@
     RP.why = why;
     if (why) { kfToss = null; kf.length = 0; R = null; PR = null; for (i = 0; i < K.BEST_N; i++) best[i].g = null; return false; }
     RP.force = !!o.force; RP.headless = !!o.headless;
-    var six = g.size !== 2; kfN = six ? K6.KF_N : K.KF_N; bestN = six ? K6.BEST_N : K.BEST_N;
+    var six = g.size !== 2; kfN = six ? K6.KF_N : K.KF_N; bestN = six ? K6.BEST_N : K.BEST_N; RP.six = six;
     var cx = ctxOf();
     RP.mobile = o.mobile != null ? !!o.mobile : !!(cx && cx.isMobile);
     STEP = 1 / ((VB.C && VB.C.SIM_HZ) || 120);
@@ -379,6 +388,68 @@
     return true;
   }
 
+  // ------------------------------------------------------------------ aviso de repetición (decisión de Ferran, 24-nov-2026)
+  // Ya no hay repetición automática: tras un punto que la merece (clip.offer: los cierres de set y de partido que antes la daban sola
+  // y los puntos con highlight >= OFFER_HL que no sean error) sale un aviso pequeño OFFER_T s: «Pulsa V para ver la repetición» en PC
+  // (V / LT, los botones del challenge: el aviso nunca sale con un challenge posible, así que no chocan) y un botoncito en táctil
+  // (ui.js lo pinta con ctx.replayOffer). Si no se pulsa, el partido sigue sin esperar: el aviso se va solo, con el saque siguiente
+  // (la foto del saque se reutiliza) o al salir de 'playing'. Si se pulsa, takeOffer() → start(kind). Nunca en el online (RP.dual:
+  // la repetición para la sim en vivo y rompería la sincronía) ni con el ajuste «Al final» / «No».
+  var OFFER = { on: false, left: 0, dur: K.OFFER_T, kind: '', serial: -1 };   // ctx.replayOffer (objeto reutilizado o null)
+  function setOfferCtx() { var cx = ctxOf(); if (cx) cx.replayOffer = OFFER.on ? OFFER : null; }
+  function offerOk(g) {
+    if (!RP.on || RP.dual || PL.phase || g !== RP.g || !last.ok || RP.rec || RP.step - last.k0 > CAP) return false;
+    var cx = ctxOf();
+    if (cx) {
+      if (cx.state && cx.state !== 'playing') return false;
+      if (cx.settings && cx.settings.replays && cx.settings.replays !== 'auto') return false;
+      if (cx.frozen && !RP.ofHold) return false;
+    }
+    return true;
+  }
+  /** Cada frame del partido en vivo (main.js, tras onEvents; dt = tiempo real, no corre en pausa). Abre el aviso del último punto si
+   *  lo merece (una vez por punto), lo cierra al acabarse su tiempo o si ya no se puede ver. → OFFER si se ve el aviso; si no, null. */
+  function offerTick(g, dt) {
+    if (OFFER.on) {
+      if (last.serial !== OFFER.serial || !offerOk(g)) OFFER.on = false;
+      else if (!RP.ofHold) { OFFER.left -= dt > 0 ? dt : 0; if (OFFER.left <= 0) { OFFER.left = 0; OFFER.on = false; } }
+      if (!OFFER.on) setOfferCtx();
+      return OFFER.on ? OFFER : null;
+    }
+    if (!last.ok || !last.offer || RP.ofDone === last.serial || RP.skipSeen || !offerOk(g)) return null;
+    // con TU challenge posible, con el de la CPU pedido (g.cpuChal: lo decide al acabar el punto) o con una revisión no hay aviso de ese
+    // punto (la jugada sigue en «Jugadas»): V y LT son del challenge. Si solo la CPU podría pedirlo y ha decidido que no, sí hay aviso
+    // (antes, con la repetición automática, cualquier challenge posible la cancelaba: 5 de cada 8 puntos grandes se quedaban sin ella)
+    var Sm = S();
+    if (g.review || g.cpuChal || (Sm.canChallenge && Sm.canChallenge(g, 0) > 0)) { RP.ofDone = last.serial; return null; }
+    // Ambiente de Carrera: con protesta, tarjeta o castigo en marcha, tampoco (las fichas «Protestar / Dejarlo» usan la misma zona)
+    if (g.amb && (g.holdLock > g.time || (g.lastPoint && g.lastPoint.penalty))) { RP.ofDone = last.serial; return null; }
+    var U = VB.UI; if (U && ((U.ambChoiceRect && U.ambChoiceRect()) || (U.cardRect && U.cardRect()))) { RP.ofDone = last.serial; return null; }
+    RP.ofDone = last.serial;
+    OFFER.on = true; OFFER.serial = last.serial; OFFER.left = K.OFFER_T; OFFER.dur = K.OFFER_T;
+    OFFER.kind = last.meta.matchWon ? 'match' : last.meta.setWon ? 'set' : 'point';
+    setOfferCtx();
+    return OFFER;
+  }
+  /** V / LT / el botoncito táctil con el aviso a la vista: la repetición de ese punto. → true si empieza. */
+  function takeOffer() {
+    if (!OFFER.on) return false;
+    var k = OFFER.kind;
+    OFFER.on = false; setOfferCtx();
+    if (!offerOk(RP.g) || last.serial !== OFFER.serial) return false;
+    if (!start(k)) return false;
+    RP.ofTaken++;
+    return true;
+  }
+  function offer() { return OFFER.on ? OFFER : null; }
+  /** Depuración (escena debug=replay&offer=1, capturas y mobaudit): el aviso del último punto ya, aunque no lo mereciera, y quieto
+   *  (hold: la barra no se vacía). → true si sale. */
+  function forceOffer(hold) {
+    if (!last.ok) return false;
+    last.offer = true; RP.ofDone = -1; RP.skipSeen = false; RP.ofHold = !!hold;
+    return !!offerTick(RP.g, 0);
+  }
+
   // ------------------------------------------------------------------ reproducción
   function setCtx() {
     var cx = ctxOf();
@@ -394,6 +465,8 @@
     out.kind = kind; out.i = i; out.n = n; out.phrase = ph;
     if (kind === 'match') {
       out.title = TXT.match; out.pill = ''; out.sub = m.sets[v] + '-' + m.sets[1 - v] + ' | ' + sc; out.aria = 'Repetición: punto de partido';
+    } else if (kind === 'point') {
+      out.title = TXT.point; out.pill = ''; out.sub = ordTxt(m.setNo) + ' set | ' + sc; out.aria = 'Repetición del punto. ' + ph;
     } else if (kind === 'set') {
       out.title = TXT.set; out.pill = ''; out.sub = ordTxt(m.setNo) + ' set | ' + sc; out.aria = 'Repetición: punto de set del ' + ordTxt(m.setNo) + ' set';
     } else {
@@ -528,12 +601,13 @@
     return true;
   }
 
-  /** Repite el último punto: kind 'set' | 'match' | 'auto' (elige por el punto) | 'best' (= playBest(j)). onEnd opcional. */
+  /** Repite el último punto: kind 'set' | 'match' | 'point' | 'auto' (elige por el punto: partido, set o punto; antes del aviso, 'auto'
+   *  daba siempre 'set' fuera del punto de partido) | 'best' (= playBest(j)). onEnd opcional. */
   function start(kind, j, onEnd) {
     if (!RP.on || PL.phase || !R) return false;
     if (kind === 'best') return playBest(j, onEnd);
     if (!last.ok || RP.step - last.k0 > CAP) return false;
-    if (kind !== 'set' && kind !== 'match') kind = last.meta.matchWon ? 'match' : 'set';
+    if (kind !== 'set' && kind !== 'match' && kind !== 'point') kind = last.meta.matchWon ? 'match' : last.meta.setWon ? 'set' : 'point';
     RP.autoDone = last.serial;
     return begin(kind, last, 0, 1, 1, onEnd);
   }
@@ -586,6 +660,7 @@
     if (!PL.phase || !c) return 0;
     realDt = realDt > 0 ? realDt : 0;
     var budget = RP.mobile ? K.PREP_STEPS_MOBILE : K.PREP_STEPS;
+    if (RP.six) budget = Math.round(budget / K6.PREP_DIV);
     if (PL.phase === 'prep') {
       var t0 = now(), n0 = 0;
       while (PL.k < c.start && n0 < budget) { stepG(R, c, PL.k); PL.k++; n0++; }
@@ -666,11 +741,11 @@
     K: K, TXT: TXT, PASS: PASS, REPLAY6: REPLAY6, K6: K6,
     reset: reset, enabled: enabled, onStep: onStep, onEvents: onEvents, autoReady: autoReady, start: start, playBest: playBest,
     tick: tick, skip: skip, abort: abort, active: active, runner: runner, info: info, list: list, bestCount: bestCount,
-    desync: desync, prepMs: prepMs, cut: cut,
+    desync: desync, prepMs: prepMs, cut: cut, offerTick: offerTick, takeOffer: takeOffer, offer: offer, _forceOffer: forceOffer,
     /** Pruebas (tools/replaytest.js): copia de lectura del estado interno. */
     _state: function () {
-      return { on: RP.on, why: RP.why, step: RP.step, dual: RP.dual, vs: RP.vs, rec: RP.rec, serial: RP.serial, phase: PL.phase, k: PL.k, rate: PL.rate,
-        last: last.ok ? { k0: last.k0, start: last.start, pt: last.pt, end: last.end, slowFrom: last.slowFrom, slowTo: last.slowTo, auto: last.auto, how: last.meta.how, score: last.score } : null,
+      return { on: RP.on, why: RP.why, step: RP.step, ofTaken: RP.ofTaken, ofDone: RP.ofDone, dual: RP.dual, vs: RP.vs, rec: RP.rec, serial: RP.serial, phase: PL.phase, k: PL.k, rate: PL.rate,
+        last: last.ok ? { k0: last.k0, start: last.start, pt: last.pt, end: last.end, slowFrom: last.slowFrom, slowTo: last.slowTo, auto: last.auto, offer: last.offer, serial: last.serial, how: last.meta.how, score: last.score } : null,
         best: list().map(function (o) { return o.pts; }), clip: PL.clip ? { start: PL.clip.start, end: PL.clip.end, slowFrom: PL.clip.slowFrom, slowTo: PL.clip.slowTo, pt: PL.clip.pt, hashStep: PL.clip.hashStep } : null };
     },
     _R: function () { return R; }

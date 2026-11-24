@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false, q6Asked: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false, q6Asked: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' aviso «Pulsa V para ver la repetición» tras los puntos grandes, desde el 24-nov-2026 | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -1937,6 +1937,11 @@
       ctx.actions.setSetting(k, v);
     }
   };
+  /** Aviso de repetición (botoncito táctil de ui.js): ve la repetición del último punto. true si empieza. */
+  ctx.actions.takeReplay = function () {
+    if (net || ctx.state !== 'playing' || !VB.Replay || !VB.Replay.takeOffer) return false;
+    try { return !!VB.Replay.takeOffer(); } catch (e) { reportError('Replay.takeOffer', e); return false; }
+  };
   // Challenge (B7): pide revisión de la última llamada de línea para el humano (equipo 0). true si sim la acepta
   ctx.actions.challenge = function () {
     if (net) { if (net.view && ctx.state === 'playing') { net.sess.request('chal'); return true; } return false; }   // online: Precisa, en la entrada; Fluida, ch → chok (netfluid _chalAsk)
@@ -2290,6 +2295,9 @@
         if (zNew !== zNow) ctx.actions.setSetting('camZoom', zNew);
         call('UI', 'zoomHint', zNew, zNew !== zNow);
       }
+      // aviso de repetición (24-nov-2026, VB.Replay.offerTick): V / LT con el aviso a la vista ven la repetición. Son los botones del
+      // challenge, pero el aviso nunca sale con un challenge posible (ni online), así que no chocan
+      if (it.challenge && ctx.replayOffer && ctx.state === 'playing' && !rpA && RPL && RPL.takeOffer) { var tko = false; try { tko = RPL.takeOffer(); } catch (e) { reportError('Replay.takeOffer', e); } if (tko) it.challenge = false; }
       if (it.challenge && ctx.state === 'playing' && !(intro.left > 0)) ctx.actions.challenge(); // B4: V / LT
       if (it.any) call('Audio', 'unlock');
       if (ctx.state !== 'playing') {
@@ -2345,7 +2353,9 @@
     }
     if (net) { /* (online: netFrame ya lo hizo arriba) */ }
     else if (running && intro.left > 0) { gdt = realDt; edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0; }
-    else if (running && R) {
+    else if (running && (R || (rpA && g && g.mode !== 'point' && g.mode !== 'over'))) {
+      // (repetición pedida con el aviso ya fuera de la pausa del punto: el vivo espera también mientras se prepara y entra la
+      // cortinilla; si no, la CPU podía sacar detrás de la cortinilla y el saque te pillaba al volver)
       // la sim en vivo espera (su g.timer no corre); los eventos pendientes (escenas, inicio de partida) esperan con ella
       edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0;
       for (var rk = 0; rk < frameEvents.length; rk++) pendingEvents.push(frameEvents[rk]);
@@ -2378,9 +2388,10 @@
       if (n === MAX_STEPS) acc = 0;
       if (bench.ff) ffDrawSkip = true;
       Sim.drainEvents(g, frameEvents);
-      // S3-C1: eventos del vivo al grabador (saque, toques, punto) y repetición automática de las bolas de set y de partido
-      // (autoReady mira el ajuste, «Menos movimiento», el challenge, la pausa saltada y los 1,6 s tras el punto)
-      if (rpRec) { try { RPL.onEvents(g, frameEvents); if (RPL.autoReady(g)) RPL.start('auto'); } catch (e) { reportError('Replay.onEvents', e); } }
+      // S3-C1: eventos del vivo al grabador (saque, toques, punto) y, desde el 24-nov-2026, el aviso «Pulsa V para ver la repetición»
+      // (offerTick: cierres de set y de partido y puntos grandes; mira el ajuste, el challenge y la pausa saltada). Ya no hay repetición
+      // automática: si no se pulsa, el partido sigue sin esperar
+      if (rpRec) { try { RPL.onEvents(g, frameEvents); if (RPL.offerTick) RPL.offerTick(g, realDt); } catch (e) { reportError('Replay.onEvents', e); } }
       if (ctx.state === 'playing' && g.finished && frameEvents.some(isGameOver)) setState('over');
       // E6: la 10ª repetición del ejercicio (la sim no emite gameOver: drillEnd y g.drill.done)
       else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) { if (g.careerDrill) careerDrillDone(g); if (g.careerExtDrill) careerExtDrillDone(g); setState('over'); }
@@ -3107,10 +3118,11 @@
         pfSeedDemo(); ctx.actions.toMenu(); call('UI', 'openProfile', { tab: Q.tab || '' }); return;
       // S3-C1: repeticiones. replay = autopilot grabado (como &replay=1) con sets a 11 hasta la 1ª bola de set ganada (&match=1: la de
       // partido) y su repetición, que se ve entera y vuelve al vivo (&rpt=s la congela a los s; &auto=1 no la lanza: la decide
-      // Replay.autoReady como en un partido; &seed=, &map=). best = el partido entero grabado hasta la hoja final con la pestaña
+      // el aviso de Replay.offerTick como en un partido; &offer=1: el aviso ya, quieto; &seed=, &map=). best = el partido entero grabado hasta la hoja final con la pestaña
       // «Jugadas» (&tab=plays la abre; &play=1 ve todas las jugadas). &career=1: Carrera de prueba (frases con los nombres)
       case 'replay': case 'best': {
-        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, venue: venueNow(), points: +Q.points || 11, present: true });
+        var rp6 = Q.format === '6v6'; if (rp6) forceVenue('hall');   // (&format=6v6: la repetición del 6v6, 24-nov-2026)
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, venue: rp6 ? undefined : venueNow(), format: rp6 ? '6v6' : undefined, points: +Q.points || 11, present: true });
         if (Q.career === '1') g.career = debugCareerCs(g);
         var RPd = VB.Replay;
         if (RPd && RPd.reset && RPd.reset(g, { force: true })) rpPre = g; else console.warn('[VB] escena ' + name + ': sin grabador de repeticiones (' + (RPd && RPd._state ? RPd._state().why : 'sin js/replay.js') + ')');
@@ -3143,7 +3155,8 @@
     if (state === 'paused') { setState('playing'); setState('paused'); } else setState(state);
     if (trialDbg) { careerEnd = trialDbg; endTweaked = false; }   // (la pinta el frame tras la hoja de ui.js: careerTrialSheet o VB.UI.endCareer)
     ctx.frozen = !live && name !== 'serve' && name !== 'hud' && name !== 'pause' && name !== 'replay' && !(name === 'best' && Q.play === '1');
-    if (name === 'replay' && Q.auto !== '1') call('Replay', 'start', 'auto');
+    if (name === 'replay' && Q.offer === '1') { var ofh = Q.ohold !== '0'; if (ofh) ctx.frozen = true; call('Replay', '_forceOffer', ofh); }   // &offer=1: el aviso «Pulsa V…» con la escena quieta (&ohold=0: corre y se va a los 4 s)
+    else if (name === 'replay' && Q.auto !== '1') call('Replay', 'start', 'auto');
     bestPend = name === 'best' && Q.play === '1';
     call('CameraRig', 'snap', g);
     if (name === 'subs6menu') call('UI', 'openSubs', Q.pick === '1');

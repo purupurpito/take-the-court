@@ -19,3 +19,9 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - Pasa en todos los niveles menos en Fácil, también en la Carrera.
 - En la Carrera también te estudian si haces un partido de más de 9.
 - Te estudian desde la Hiperliga. En la Hiperliga 2, solo al final de la liga y en las finales.
+
+## Repeticiones (decisión de Ferran del 24-nov)
+- Las repeticiones ya no salen solas: tras un gran punto tienes unos segundos para pedirla.
+- En PC, pulsa V para verla. Con mando, LT. En el móvil, toca el botón «Repetición».
+- Si no la pides, el partido sigue sin esperar.
+- Ahora también hay repeticiones en el 6 contra 6, y sus mejores jugadas al final del partido.

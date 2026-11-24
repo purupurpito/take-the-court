@@ -579,10 +579,10 @@
       rest.push({ id: 'opts', label: 'Cambiar opciones' }, { id: 'menu', label: 'Menú principal' });
       M.buttons = { primary: { id: 'again', label: 'Revancha' }, rest: rest };
     }
-    // pestañas: «Jugadas (n)» solo con jugadas, fuera del 6v6 y del Entrenamiento (R10)
+    // pestañas: «Jugadas (n)» solo con jugadas, fuera del Entrenamiento y del espectador (R10; el 6v6 también desde el 24-nov-2026)
     var np = d.plays | 0;
     M.tabs = ['sum', 'stats'];
-    if (np > 0 && (d.size | 0) !== 6 && !d.drill && !d.watch) M.tabs.push('plays');
+    if (np > 0 && !d.drill && !d.watch) M.tabs.push('plays');
     M.tabLabels = { sum: TAB_LABEL.sum, stats: TAB_LABEL.stats, plays: TAB_LABEL.plays + ' (' + np + ')' };
     // bloques presentes, en el orden fijo del Resumen
     var B = [];

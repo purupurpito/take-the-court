@@ -2123,3 +2123,17 @@ Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fl
 - **Vista previa**: icono dibujado (SVG) a la derecha del nombre de la fila: marca con su tamaño y contraste, y el vuelo con o sin aro. En
   el móvil va en la 2ª columna de la etiqueta; no sale si la ayuda va recortada (el botón ⓘ ocupa ese sitio) ni por debajo de 600 px de
   ancho (a 568×320 no cabía sin partir el nombre en tres líneas).
+
+## Repeticiones con botón y 6v6 (24-nov-2026, rama decisiones)
+- Ya no hay repetición automática. `VB.Replay.offerTick(g, realDt)` (main.js, cada frame del vivo tras `onEvents`) abre el aviso de los
+  clips con `clip.offer` (los de `clip.auto` y los puntos con `highlight ≥ K.OFFER_HL` = 0,65 que no son error) durante `K.OFFER_T` = 4 s
+  de tiempo real; lo cierra el saque siguiente (`RP.rec`), salir de 'playing' o el ajuste. `ctx.replayOffer` (objeto reutilizado o null)
+  lo pinta ui.js `rpOffTick` en `#rpOff` (sitio del challenge; PC «Pulsa V para ver la repetición», mando «Pulsa LT…», táctil
+  «REPETICIÓN»). V / LT (`it.challenge`, antes que el challenge) y el toque (`ctx.actions.takeReplay`) → `Replay.takeOffer()` →
+  `start(kind)` con kind 'match' | 'set' | 'point' (rótulo «Repetición»). Sin aviso con tu challenge posible, con `g.cpuChal`, revisión,
+  protesta o tarjeta; nunca en el online (`RP.dual`). `autoReady` queda solo para la parte node de replaytest.
+- Con una repetición pedida fuera de la pausa del punto (modo 'serve'), el vivo espera también en 'prep'/'in' (main.js).
+- Escena `debug=replay&offer=1`: el aviso quieto (`Replay._forceOffer(true)`; `&ohold=0` corre). `&format=6v6` en `debug=replay|best`.
+- 6v6: `REPLAY6 = true`. players.js no rehace los rigs al enlazar la sombra R (`g.replay && REP.g === g`): `syncRigs(R)` pone a los 12 de
+  la jugada (cambios y líbero incluidos) y, al volver, `syncRigs(g)` a los del vivo. recap.js ya no quita «Jugadas» en el 6v6. Avance
+  rápido a un tercio de pasos por frame (`K6.PREP_DIV`). mobaudit: `aviso-repeticion` y `repeticion-6v6`.

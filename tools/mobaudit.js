@@ -228,6 +228,8 @@ const SCREENS = [
   { id: 'estadistica-2v2', area: 'partido', q: 'debug=stats', open: "return M.until(()=>VB.UI.isPanelOpen(),8000);", wait: 700, primary: '' },
   { id: 'estadistica-6v6', area: 'partido', q: 'debug=stats&format=6v6', open: "return M.until(()=>VB.UI.isPanelOpen(),8000);", wait: 700, primary: '' },
   { id: 'repeticion', area: 'partido', q: 'debug=replay&rpt=1', open: "return M.until(()=>VB.ctx.state==='playing',8000);", wait: 1500, exit: '', primary: '' },
+  { id: 'repeticion-6v6', area: 'partido', q: 'debug=replay&format=6v6&rpt=1.5', open: "return M.until(()=>VB.ctx.replay&&VB.ctx.replay.phase==='play',12000);", wait: 2200, exit: '', primary: '' },   // (24-nov-2026: REPLAY6 encendido)
+  { id: 'aviso-repeticion', area: 'partido', q: 'debug=replay&offer=1', open: "await M.until(()=>document.getElementById('boot').classList.contains('gone'),15000); return M.until(()=>!!VB.ctx.replayOffer&&document.getElementById('rpOff').classList.contains('show'),8000);", wait: 700, exit: '', primary: '#rpOff' },   // aviso «Pulsa V…» / botoncito táctil (24-nov-2026)
 ];
 
 // ------------------------------------------------------------------------------------------------ utilidades

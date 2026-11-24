@@ -487,6 +487,7 @@
     el.ambCard = $('ambCard'); el.ambCard1 = $('ambCard1'); el.ambCard2 = $('ambCard2');
     if (el.ambChR) el.ambChR.addEventListener('pointerdown', ambTap);
     el.chal = $('chal'); el.chalK = el.chal ? el.chal.firstChild : null; el.chalKey = $('chalKey'); el.chalN = $('chalN'); el.chalBar = $('chalBar'); el.sbChal = $('sbChal');
+    el.rpOff = $('rpOff'); el.rpOffT = $('rpOffT'); el.rpOffBar = $('rpOffBar');
     try { subsDom(); } catch (e) { console.error('[VB][ERROR] UI.subsDom: ' + e); }   // banquillo y cambios (6v6)
   }
   function device() {
@@ -655,6 +656,32 @@
     if (chal.n !== n) { chal.n = n; el.chalN.textContent = n; el.chalN.hidden = !n; }
     fr = Math.round(fr * 100) / 100;
     if (chal.bar !== fr) { chal.bar = fr; el.chalBar.style.transform = 'scaleX(' + fr + ')'; }
+  }
+
+  // Aviso de repetición (24-nov-2026, decisión de Ferran): con ctx.replayOffer (VB.Replay.offerTick) a la vista, en el sitio del
+  // challenge: PC «Pulsa V para ver la repetición» (la tecla del challenge, reasignable), mando «Pulsa LT…» (PS: L2), táctil un
+  // botoncito «REPETICIÓN» con ▶. Se va solo (barra que se vacía); el toque lo pide con ctx.actions.takeReplay. Cero basura por frame.
+  var rpo = { key: '', bar: -1 };
+  function rpOffTick(g) {
+    if (!el.rpOff) return;
+    var of = ctx.state === 'playing' && !g.demo && !(ctx.introLeft > 0) ? ctx.replayOffer : null;
+    var dv = of ? device() : '', key = of ? dv + padFam() + '|' + of.serial : '';
+    if (rpo.key !== key) {
+      var was = rpo.key !== '';
+      rpo.key = key; rpo.bar = -1;
+      el.rpOff.className = of ? 'show' + (dv === 'touch' ? ' tch' : '') : '';
+      if (of) {
+        var kb = (VB.Input && VB.Input.glyph && safe(function () { return VB.Input.glyph('challenge', 'keyboard'); })) || 'V';
+        var k = dv === 'gamepad' ? (padFam() === 'ps' ? 'L2' : 'LT') : kb;
+        if (dv === 'touch') el.rpOffT.textContent = 'REPETICIÓN';
+        else el.rpOffT.innerHTML = 'Pulsa <span class="key' + (dv === 'gamepad' ? ' pad' : '') + '">' + escT(k) + '</span> para ver la repetición';
+        el.rpOff.setAttribute('aria-label', 'Ver la repetición');
+        if (!was) srSay(dv === 'touch' ? 'Repetición disponible: toca el botón para verla.' : 'Repetición disponible: pulsa ' + k + ' para verla.');
+      }
+    }
+    if (!of) return;
+    var fr = Math.round(Math.max(0, Math.min(1, of.left / (of.dur || 4))) * 100) / 100;
+    if (rpo.bar !== fr) { rpo.bar = fr; el.rpOffBar.style.transform = 'scaleX(' + fr + ')'; }
   }
 
   // =====================================================================
@@ -2527,6 +2554,7 @@
   function hud(g, dt) {
     var demo = g.demo;
     chalTick(g);
+    rpOffTick(g);
     var drOn = !!(g.drill && !demo); e1.on = false;
     if (last.drOn !== drOn) { last.drOn = drOn; el.app.classList.toggle('drill-on', drOn); }
     var wOn = !!(g.watch && !demo);   // espectador táctil: sin mandos táctiles, la pausa del HUD es la salida (index.html .watch-on)
@@ -6383,8 +6411,8 @@
     msTiming: { vals: [true, false], labels: ['Sí', 'No'] },
     // 6v6: cambios de tu equipo (main.js ctx.settings.subs6 → coach[0].auto): el entrenador CPU también cambia (nunca a ti) o solo los que pidas
     subs6: { vals: ['auto', 'manual'], labels: ['Automáticos', 'Solo los míos'] },
-    // S3-C1: repeticiones (main.js ctx.settings.replays → VB.Replay): puntos de set y de partido solos, solo en «Jugadas», o ninguna
-    replays: { vals: ['auto', 'end', 'off'], labels: ['Automáticas', 'Al final', 'No'] },
+    // S3-C1: repeticiones (main.js ctx.settings.replays → VB.Replay): aviso con botón tras los puntos grandes, solo en «Jugadas», o ninguna
+    replays: { vals: ['auto', 'end', 'off'], labels: ['Con botón', 'Al final', 'No'] },   // ('auto': el aviso «Pulsa V…» tras los puntos grandes; antes, Automáticas)
     // la zona y el saque de firma (20-nov-2026; main.js ctx.settings.zone / serveSig / serveGest; filas que pone znOptRows en Ajustes · Juego)
     zone: { vals: ['career', 'all', 'off'], labels: ['Solo Carrera', 'Siempre', 'No'] },
     serveSig: VB.SERVE_SIG ? { vals: VB.SERVE_SIG.ids.slice(), labels: VB.SERVE_SIG.ids.map(function (id) { var d = VB.SERVE_SIG.byId[id]; return d.short || d.name; }) } : { vals: ['clasico'], labels: ['Clásico'] },
@@ -8522,6 +8550,11 @@
       if (el.chal) el.chal.addEventListener('pointerdown', function (ev) {
         ev.preventDefault(); ev.stopPropagation();
         if (ctx.actions && ctx.actions.challenge) ctx.actions.challenge();
+      });
+      // aviso de repetición (táctil, ratón): por encima de #touch para que el toque no llegue al joystick
+      if (el.rpOff) el.rpOff.addEventListener('pointerdown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        if (ctx.actions && ctx.actions.takeReplay) ctx.actions.takeReplay();
       });
       // menús v2: JUGAR → modos; Partido rápido → preparación; ¡A JUGAR! → partido (la Carrera la abre career-ui.js en #btnCareer)
       el.btnPlay.addEventListener('click', function () { menuGo('play'); });

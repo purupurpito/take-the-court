@@ -4,7 +4,7 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 **decisión provisional**: cambiarlo es tocar el sitio que se indica. Lo que Ferran sí decidió está en la memoria
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
-Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · IA del 24-nov (rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
+Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · IA del 24-nov (rama decisiones) · Repeticiones con botón (24-nov, rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
 publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
@@ -271,9 +271,7 @@ Ferran: «Quiero que la IA se adapte excepto en modo Fácil» y las reglas nueva
 - **Jefes en la Carrera de pista** (`BOSS_HALL = true`, career-life.js): uno por liga, en el club más fuerte de tu liga. **Decisión
   provisional: puestos Muro = central, Martillo = opuesto, Cañón = receptor y Pulpo = receptor** (la propuesta decía líbero, pero el
   líbero rival no sale de la Carrera y no se le pueden dar atributos de jefe). El jefe juega con su nombre y su dorsal.
-- **Repeticiones en 6v6**: preparadas y APAGADAS (`REPLAY6 = false`, js/replay.js). La resimulación de partidos 6v6 enteros cuadra
-  (desync 0), pero falta lo visual (los 12 jugadores en la repetición, la cámara 6v6, la pestaña «Jugadas» de la hoja 6v6) y medirlo en
-  el móvil. **Decisión provisional: también automáticas en los puntos de set y de partido, como en el 2v2.**
+- **Repeticiones en 6v6**: ENCENDIDAS el 24-nov (rama decisiones; ver «Repeticiones con botón» más abajo). Con el mismo aviso que el 2v2.
 - **Torneo de la semana**: **decisión provisional: cubierto por «La jugada del día»** (antes «El mismo 22-24»); no se construye y `w`/`weeks` quedan solo como
   compatibilidad del guardado.
 - **S4_SYNC = true** (account.js): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos ya viajan con la cuenta. La semana
@@ -281,7 +279,6 @@ Ferran: «Quiero que la IA se adapte excepto en modo Fácil» y las reglas nueva
 - Preguntas:
   1. Sedes: ¿Cúpula también en partidos de liga de élite? ¿Can Rebot en toda la 2ª, o el 25 % te vale?
   2. Jefes de pista: ¿te valen los puestos (Pulpo de receptor)?
-  3. Repeticiones 6v6: ¿automáticas en los puntos de set y de partido, o solo desde «Jugadas»?
   4. ¿Confirmas que las reglas del 16-nov siguen desplegadas tal cual?
 
 ## Señas del árbitro y Cuaderno del árbitro (js/senas.js, notes/splat.md `.sp-sena`)
@@ -409,6 +406,32 @@ desde la Hiperliga (y en la Hiperliga 2, finales y final de liga), y «por la l�
      campo rival. ¿Lo quieres entero, fuera de la imagen, o te vale cortado por abajo cuando está en primer plano?
   2. ¿Te vale que la cámara se eche atrás con el zoom 1 en las colocaciones altas?
 
+## Repeticiones con botón (decisión de Ferran del 24-nov; js/replay.js, rama decisiones, sin versión)
+Ferran: «la repetición con un botón por si quieres verla. En PC que sea "Pulsa V para ver la repetición", en móvil sale un pequeño botón
+durante un tiempo corto». Ya no hay repetición automática.
+- **Decisión provisional: el aviso dura 4 s** (`K.OFFER_T`). Se va antes si empieza el saque siguiente (la foto del saque se reutiliza) o
+  si sales del partido. Si no lo pulsas, el partido sigue sin esperar.
+- **Decisión provisional: qué puntos lo dan.** Los que antes daban repetición automática (cierres de set y de partido con ace, remate,
+  dejada, bloqueo o un punto grande) y además los **puntos grandes** que no sean error (`highlight ≥ 0,65`, `K.OFFER_HL`): unos 8 por
+  partido de 2v2 (1 de cada 11 puntos). Es de los dos equipos, como «Jugadas».
+- **Decisión provisional: los botones.** PC: **V** (la tecla del challenge; si la cambias en Controles, el aviso dice la tuya). Mando:
+  **LT** (L2 en PlayStation), el del challenge. No chocan: el aviso nunca sale cuando tú puedes pedir challenge (ni con el de la CPU
+  pedido o una revisión en marcha). Antes, cualquier challenge posible cancelaba la automática y se perdían 5 de cada 8 puntos grandes;
+  ahora, si solo la CPU podría pedirlo y no lo pide, el aviso sale. Táctil: botoncito SPLAT «REPETICIÓN» con ▶ (44 px de alto) donde va
+  el botón del challenge, con una barra que se vacía.
+- **Decisión provisional: el online no tiene aviso** (la repetición para la partida en vivo y rompería la sincronía). Al final siguen
+  las «Jugadas», como antes.
+- **Decisión provisional: con «Menos movimiento» el aviso sale igual** (la repetición la pides tú; sigue sin cámara lenta). Antes, la
+  automática no salía.
+- Ajustes › Juego › Repeticiones: «Automáticas» pasa a llamarse **«Con botón»** (mismo valor guardado `auto`, sin migración). «Al final»
+  y «No» siguen igual.
+- Si la pides con el saque siguiente esperando (fuera de la pausa del punto), el partido espera también mientras entra la repetición,
+  para que la CPU no saque detrás de la cortinilla.
+- **6v6 (REPLAY6 encendido).** Los 12 se pintan en la repetición (también si hubo un cambio o entró el líbero entre la jugada y ahora),
+  con la cámara de tele; la hoja final 6v6 tiene «Jugadas». Medido con la CPU frenada ×4 a 844x390 (calidad media): la repetición va a
+  58 fps y 14,6 ms de JS por frame, el partido en vivo a 49 fps y 15,5 ms; la preparación, como mucho 6 ms por frame (el avance rápido
+  del 6v6 reparte un tercio de pasos por frame, `K6.PREP_DIV`). En el móvil de verdad no se ha medido: pruébalo a mano.
+
 ## Pruebas (replaytest)
 - **Decisión provisional:** la semilla de la prueba de repeticiones automáticas se calcula solo en pabellón, y los saltos de la
   repetición que pasan de 0,4 s se repiten una vez antes de darlos por malos (como otras pruebas con el PC cargado). No cambia nada del
@@ -417,8 +440,7 @@ desde la Hiperliga (y en la Hiperliga 2, finales y final de liga), y «por la l�
 ## Lo que queda detrás de un interruptor
 - **Retomar el partido en la Carrera**: `CAREER` de js/resume.js (`VB.Resume.CAREER = false`; `?resumecareer=1` para probar). El Partido
   rápido sí se retoma (4.9).
-- **Repeticiones en 6v6**: `REPLAY6 = false` en js/replay.js. Grabadas y resimuladas en las pruebas, sin pintar todavía (faltan los 12
-  jugadores en la repetición, la cámara 6v6, la pestaña «Jugadas» de la hoja 6v6 y medirlo en el móvil).
+- **Repeticiones en 6v6**: encendidas el 24-nov (`REPLAY6 = true` en js/replay.js; se apagan poniéndolo a `false`).
 - **Ensayos de la charanga en los menús**: `XAR_WHEN.menu = false` en js/audio.js (hechos, apagados).
 - **Insignia «rompemanos» del jefe Muro**: sigue cortada (tiraría un dado más y cambiaría la huella).
 - **Rencor leve con sueldo peor**: encendido; se apaga con `BOND_PAY[1] = 1` en js/career-life.js.

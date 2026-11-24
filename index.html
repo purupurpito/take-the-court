@@ -231,6 +231,22 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 #chal.rev .ch-key{background:transparent;color:#ffc8a8;font:600 13px/1 var(--ui);padding:0}
 @keyframes chPulse{50%{opacity:.45}}
 #app.end-on #chal,#app.intro-on #chal{display:none}
+/* Aviso de repetición (24-nov-2026, ui.js rpOffTick con ctx.replayOffer): donde el challenge (nunca salen a la vez), unos segundos.
+   PC: «Pulsa V para ver la repetición»; mando: «Pulsa LT…»; táctil: botoncito «REPETICIÓN» con ▶ (44 px de alto). La barra se vacía */
+#rpOff{position:absolute;right:calc(16px + var(--sr));top:calc(18px + 52px * var(--hs,1) + var(--st));z-index:6;display:none;align-items:center;gap:8px;
+  height:40px;padding:0 14px 0 10px;border:0;border-radius:12px;color:#fff;font:700 14px/1 var(--ui);cursor:pointer;pointer-events:auto;overflow:hidden;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;white-space:nowrap;max-width:calc(100% - 32px - var(--sl) - var(--sr))}
+#rpOff.show{display:flex;animation:fadeUp .25s var(--ease) both}
+.rm #rpOff.show{animation:tvFade .15s linear both}
+#rpOff .ro-ic{flex:none;width:24px;height:24px;border-radius:50%;background:#ffd23f;display:flex;align-items:center;justify-content:center}
+#rpOff .ro-ic svg{width:15px;height:15px;fill:#1d1530;margin-left:2px}
+#rpOff .ro-t{overflow:hidden;text-overflow:ellipsis}
+#rpOff .key{font:700 13px/1 var(--ui);color:#0b1220;background:#ffd23f;border-radius:6px;padding:4px 7px;margin:0 2px}
+#rpOff .key.pad{background:#ffd23f;color:#0b1220}
+#rpOff .ch-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--tk,#1d1530)}
+#rpOff .ch-bar b{display:block;height:100%;width:100%;background:#ffd23f;transform-origin:0 50%}
+#rpOff.tch{height:44px;padding:0 16px 0 10px;font:800 15px/1 var(--display);letter-spacing:.1em}
+#app.end-on #rpOff,#app.intro-on #rpOff,#app.replay #rpOff{display:none}
 .sb-set{display:flex;align-items:center;padding:0 12px;background:var(--glass2);color:var(--gold);border-radius:0 8px 0 0;border:1px solid var(--line);border-left:0;border-bottom:0}
 .sb-body{background:linear-gradient(180deg,rgba(14,22,40,.95),rgba(8,13,24,.95));border:1px solid var(--line);border-radius:0 12px 12px 12px;overflow:hidden;min-width:236px}
 .sb-row{position:relative;display:grid;grid-template-columns:7px 1fr 18px 30px 52px;align-items:center;gap:8px;height:40px;padding-right:12px}
@@ -1567,6 +1583,8 @@ kbd,.key{background:#fff7e8;color:var(--tk);border:1.5px solid var(--tk);border-
 #chal.rev{box-shadow:inset 0 0 0 2px var(--tk),inset 0 0 0 4px #ff5a2c,3px 4px 0 var(--tk)}
 #chal .ch-key{box-shadow:0 0 0 1.5px var(--tk);text-shadow:none}
 #chal .ch-bar{height:4px;background:var(--tk)}
+#rpOff{background:var(--tp);box-shadow:inset 0 0 0 2px var(--tk),inset 0 0 0 4px #ffd23f,3px 4px 0 var(--tk);text-shadow:var(--ring1)}
+#rpOff .ro-ic,#rpOff .key{box-shadow:0 0 0 1.5px var(--tk);text-shadow:none}
 #skip{background:var(--tp);border-color:var(--tk);box-shadow:0 0 0 1.5px var(--tk),3px 4px 0 1.5px var(--tk);text-shadow:var(--ring1)}
 #fsTip{background:var(--tp);box-shadow:inset 0 0 0 2px var(--tk),4px 5px 0 var(--tk)}
 
@@ -4305,7 +4323,19 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 6px 0 5.5px var(--sp-ink);font:400 14px/1 var(--sp-pop);letter-spacing:.06em;text-shadow:none;rotate:-2deg}
 #app #rpExit:is(:focus-visible,.kf){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
 #app #rpExit:active{translate:2px 3px}
+/* aviso de repetición (#rpOff): pegatina crema con filo de tinta, ▶ en botón dorado, tecla en tinta y barra dorada que se vacía */
+#app #rpOff{border-radius:12px 16px 11px 15px/15px 11px 16px 12px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);
+  font:400 13px/1 var(--sp-pop);letter-spacing:.04em;text-shadow:none;rotate:-1.5deg}
+#app #rpOff .ro-ic{background:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-ink)}
+#app #rpOff .ro-ic svg{fill:var(--sp-ink)}
+#app #rpOff .key{border-radius:6px 8px 6px 7px;background:var(--sp-ink);color:var(--sp-cream);box-shadow:none}
+#app #rpOff .ch-bar{height:5px;background:rgba(21,16,42,.18)}
+#app #rpOff .ch-bar b{background:var(--sp-gold);box-shadow:inset 0 -1.5px 0 rgba(21,16,42,.35)}
+#app #rpOff.tch{font-size:14px;letter-spacing:.06em}
+#app #rpOff:active{translate:2px 3px}
 @media (max-height:420px){
+  #app #rpOff{height:36px;font-size:12px;padding:0 12px 0 8px}
+  #app #rpOff.tch{height:44px;font-size:13px}
   #rpBug{font-size:12px;padding:5px 9px 4px}
   #rpCap .rp-hd{font-size:12px;padding:4px 12px 3px 10px;margin-bottom:4px}
   #rpCap .rp-ph{font-size:14.5px;padding:5px 12px 1px 11px}
@@ -6429,6 +6459,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     </div>
   </div>
   <button id="chal" type="button" tabindex="-1" aria-label="Pedir challenge"><span class="ch-k">CHALLENGE</span><span class="ch-key" id="chalKey">V</span><b class="ch-n" id="chalN">7</b><i class="ch-bar"><b id="chalBar"></b></i></button>
+  <button id="rpOff" type="button" tabindex="-1" aria-label="Ver la repetición"><span class="ro-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><span class="ro-t" id="rpOffT">Repetición</span><i class="ch-bar"><b id="rpOffBar"></b></i></button>
   <div id="ambChoice" role="group" aria-label="Protesta"><span class="amc-s" id="ambChoiceS"></span><div class="amc-r" id="ambChoiceR"></div><i class="amc-bar"><b id="ambChoiceBar"></b></i></div>
   <div id="ambCard" aria-hidden="true"><i class="amk-c"></i><span class="amk-t"><b class="amk-1" id="ambCard1"></b><span class="amk-2" id="ambCard2"></span></span></div>
   <div id="banner" aria-live="polite"><div class="bn-rib"><div id="bn1"></div></div><div id="bn2"></div><div id="bn3" hidden></div></div>
@@ -6806,7 +6837,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
             <button class="opt" data-opt="aimSet" data-need="Sim"><span>Colocación dirigida<small>Sí: eliges el destino con la dirección (sin dirección, alta a la 4). No: siempre a tu compañero</small></span><span class="seg sp-seg" data-seg="aimSet"></span></button>
             <button class="opt" data-opt="jsetAim" data-need="Sim"><span>Colocación en salto con diana<small>Sí: en salto, mueves la diana y la colocación va donde la pongas. No: como siempre</small></span><span class="seg sp-seg" data-seg="jsetAim"></span></button>
             <button class="opt" data-opt="msTiming"><span>Golpe al milisegundo<small>El sello dice cuántos ms llegas pronto o tarde</small></span><span class="seg sp-seg" data-seg="msTiming"></span></button>
-            <button class="opt" data-opt="replays"><span>Repeticiones<small>Automáticas: los puntos de set y de partido. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
+            <button class="opt" data-opt="replays"><span>Repeticiones<small>Con botón: tras los puntos grandes, unos segundos para pedirla. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
             <button class="opt opt-go" data-go="ctl"><span>Controles<small>Ver y cambiar teclas y botones</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button type="button" class="opt-reset sp-pill" data-reset="game">Restablecer este apartado</button>
           </div>
