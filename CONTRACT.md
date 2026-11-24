@@ -96,6 +96,10 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
   borrar nada; si falla la lista o algún DELETE (partidas y sala propia), no se borra la cuenta (error 'partial'). account.js deja de
   subir si otra pestaña quita la sesión (evento `storage` y comprobación en push()). Lo que diga el código sobre datos (netlog, online, cuenta) tiene que cuadrar con la
   política: ver notes/playstore/privacidad.md. Ajustes › Info › «Privacidad» (`data-go="priv"`) la abre en otra pestaña.
+- **App de Android (TWA, 24-nov-2026):** `android/` es el proyecto de Bubblewrap que abre https://takethecourt.com a pantalla completa
+  (paquete `com.takethecourt.app`). Solo se edita `android/twa-manifest.json` (luego `bubblewrap update`); `display`, `orientation` y
+  colores tienen que ser los del manifest de build-pages. `pages/.well-known/assetlinks.json` lleva el mismo paquete y las huellas
+  SHA-256 (huecos hasta que existan las claves). Las claves nunca en el repo. Prueba: `node tools/twatest.js`; pasos: notes/playstore/android.md.
 - Three.js: `https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js` (verificado 200; r149 es el último sin aviso de deprecación del build UMD).
   API r149: `outputEncoding`/`sRGBEncoding`, `CapsuleGeometry` disponible, `THREE.ColorManagement.legacyMode = false` (lo pone main.js:
   los hex de materiales son sRGB; **toda textura de color de canvas debe llevar `tex.encoding = THREE.sRGBEncoding`**).

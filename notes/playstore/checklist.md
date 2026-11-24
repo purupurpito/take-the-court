@@ -37,7 +37,7 @@ Páginas web que se enlazan (las hace otra pista; tienen que estar publicadas an
 | 0.5 | Decidir sobre el id de dispositivo que sube en el perfil (declararlo o que no suba; js/profile.js:8 y :17). | [TÚ] decide | Hoy se declara (seguridad-datos.md §2.14) |
 | 0.6 | Recomendado: nombre visible por defecto anónimo, filtro básico de nombres y «Ocultar o denunciar nombre» (clasificacion.md §6). | [CÓDIGO] | Recomendado |
 | 0.7 | Recomendado: servir three.js y las fuentes desde takethecourt.com y añadir un service worker, para que la app abra sin red (ficha.md §5.1). Si no, Bubblewrap enseña su pantalla «sin conexión». | [CÓDIGO] | Opcional |
-| 0.8 | `/.well-known/assetlinks.json` (se rellena en la Fase 4 con las huellas SHA-256). Ojo: build-pages.js copia `pages/` archivo a archivo con `copyFileSync`; una carpeta `pages/.well-known/` lo haría fallar. Hay que añadir al build la creación de `_site/.well-known/assetlinks.json`. La publicación va por `actions/upload-pages-artifact` (sin Jekyll), así que las carpetas con punto se sirven; comprobar con `curl -i https://takethecourt.com/.well-known/assetlinks.json` que da 200, `application/json` y sin redirecciones. | [CÓDIGO] | Pendiente |
+| 0.8 | `/.well-known/assetlinks.json`: está en `pages/.well-known/assetlinks.json` con el paquete y **dos huecos** para las huellas SHA-256 (se rellenan en la Fase 4). build-pages copia `pages/` entera con subcarpetas y escribe `.nojekyll`, así que sale en `_site/.well-known/` (lo comprueba `node tools/twatest.js`). Tras publicar, comprobar con `curl -i https://takethecourt.com/.well-known/assetlinks.json` que da 200, `application/json` y sin redirecciones. | [CÓDIGO] hecho · [TÚ] huellas | Falta rellenar las huellas |
 
 ---
 
@@ -79,32 +79,34 @@ Páginas web que se enlazan (las hace otra pista; tienen que estar publicadas an
 
 | # | Paso | Quién | Nota |
 |---|---|---|---|
-| 4.1 | **Elegir el nombre de paquete** (`packageId`), por ejemplo `com.takethecourt.app`. **No se puede cambiar nunca** después de subir la primera versión. | [TÚ] decide | Solo minúsculas, puntos y guiones bajos. Mejor un dominio que controlas al revés. |
-| 4.2 | Instalar Node, JDK 17 y Bubblewrap: `npm i -g @bubblewrap/cli`. Bubblewrap ofrece descargar el JDK y el SDK de Android la primera vez. | [TÚ] o [CÓDIGO] | ⚠ La versión de JDK que pide Bubblewrap puede cambiar. |
-| 4.3 | `bubblewrap init --manifest=https://takethecourt.com/manifest.webmanifest` en una carpeta nueva fuera del sitio web (por ejemplo `twa/` en el repo o un repo aparte). | [TÚ] o [CÓDIGO] | Lee nombre, colores, iconos, `display: fullscreen` y `orientation: landscape` del manifest (tools/build-pages.js:81-83). |
-| 4.4 | Respuestas de `init` / `twa-manifest.json`: host `takethecourt.com`; start URL `/`; nombre «Take the Court»; `launcherName` «Take the Court»; display **fullscreen**; orientación **landscape** (igual que el manifest); colores `#070b14`; icono `https://takethecourt.com/icon-512.png`; **notificaciones: no**; **delegación de ubicación: no**; **Play Billing: no**; fallback **Custom Tabs** (no WebView); `appVersionCode` 1 y `appVersionName` «1.22.0». | [TÚ] o [CÓDIGO] | Sin notificaciones ni ubicación, la app no pide permisos sensibles (clasificacion.md §5). |
-| 4.5 | **Nivel de API objetivo**: Play exige un `targetSdkVersion` mínimo para apps nuevas y actualizaciones. Desde el 31-ago-2025 era Android 15 (API 35); desde el 31-ago-2026, lo esperable es **Android 16 (API 36)**. Si Bubblewrap genera uno más bajo, subirlo en `app/build.gradle`. | [CÓDIGO] | ⚠ Comprobar la cifra actual en la Consola y en la ayuda «Requisito de nivel de API objetivo». |
-| 4.6 | **Clave de subida (upload key)**: Bubblewrap crea `android.keystore` y pide dos contraseñas. | [TÚ] | |
-| 4.7 | **Copia de seguridad de la clave**: el `.keystore`, su alias y las dos contraseñas, en **dos sitios distintos** fuera del repo (por ejemplo, gestor de contraseñas + disco cifrado). **Nunca** en git ni en el repo público. | [TÚ] | Con Play App Signing, si se pierde la clave de subida se puede pedir otra a Google, pero lleva días. |
-| 4.8 | `bubblewrap build` → `app-release-bundle.aab` (lo que se sube a Play) y un `.apk` para probar. | [TÚ] o [CÓDIGO] | Play solo acepta AAB en apps nuevas. |
-| 4.9 | Subir el primer AAB (a Pruebas internas, Fase 6) con **Play App Signing** activado (obligatorio en apps nuevas): Google guarda la clave de firma de la app. | [TÚ] | |
-| 4.10 | Copiar las huellas **SHA-256** de Consola › Probar y publicar › Configuración › **Integridad de la app**: la del certificado de **firma de la app** (Google) y la del certificado de **subida** (la tuya). | [TÚ] | ⚠ El menú puede llamarse distinto. |
-| 4.11 | Poner las dos huellas en `/.well-known/assetlinks.json` (Fase 0.8), publicar la web y comprobarlo con la herramienta de Google «Statement List Generator and Tester» o con `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://takethecourt.com&relation=delegate_permission/common.handle_all_urls`. | [CÓDIGO] + [TÚ] | Si falla, la TWA enseña la barra de direcciones de Chrome arriba. |
+| 4.1 | **Nombre de paquete** (`packageId`): propuesto `com.takethecourt.app`, ya puesto en `android/twa-manifest.json` y en `pages/.well-known/assetlinks.json`. **No se puede cambiar nunca** después de subir la primera versión. Si se elige otro, cambiarlo en los dos sitios y `bubblewrap update` (twatest comprueba que coinciden). | [TÚ] decide | Solo minúsculas, puntos y guiones bajos. Mejor un dominio que controlas al revés. |
+| 4.2 | Instalar Bubblewrap (`npm i -g @bubblewrap/cli`) y comprobar con `bubblewrap doctor` el JDK 17 y el SDK de Android. En este PC ya están (`~/.bubblewrap/config.json`). | [TÚ] | android.md §1. ⚠ La versión de JDK que pide Bubblewrap puede cambiar. |
+| 4.3 | Proyecto de la TWA: **ya generado** en `android/` con Bubblewrap 1.27 (no hace falta `bubblewrap init`). Solo se edita `android/twa-manifest.json`; el resto se regenera con `bubblewrap update`. | [LISTO] | android.md, tabla de valores. `node tools/twatest.js` comprueba que cuadra con el manifest de la web. |
+| 4.4 | Valores de `twa-manifest.json`: host `takethecourt.com`; start URL `/`; nombre y `launcherName` «Take the Court»; display **fullscreen**; orientación **landscape** (igual que el manifest de la web); colores `#070B14`; icono `icon-512.png` e icono adaptable `icon-maskable.png`; **notificaciones: no**; **ubicación: no**; **Play Billing: no**; fallback **Custom Tabs**; `appVersionCode` 1 y `appVersionName` «1.0.0» (versión de la app, no del juego); minSdk 24. | [LISTO] · [TÚ] revisa | Sin notificaciones ni ubicación, la app no pide permisos sensibles (clasificacion.md §5). Falta copiar `notes/playstore/graficos/icono-512.png` a `pages/icon-maskable.png` antes del primer `bubblewrap update`. |
+| 4.5 | **Nivel de API objetivo**: Play exige un `targetSdkVersion` mínimo para apps nuevas y actualizaciones. Desde el 31-ago-2025 era Android 15 (API 35); desde el 31-ago-2026, lo esperable es **Android 16 (API 36)**. El proyecto generado lleva **36**. | [LISTO] | ⚠ Comprobar la cifra actual en la Consola y en la ayuda «Requisito de nivel de API objetivo». |
+| 4.6 | **Clave de subida (upload key)** con `keytool`, fuera del repo y en una ruta sin espacios (por ejemplo `C:\claves-ttc\take-the-court-subida.keystore`, alias `subida`). | [TÚ] | android.md §2 (comando exacto). |
+| 4.7 | **Copia de seguridad de la clave**: el `.keystore`, su alias y las dos contraseñas, en **dos sitios distintos** fuera del repo (por ejemplo, gestor de contraseñas + disco cifrado). **Nunca** en git ni en el repo público (`android/.gitignore` las ignora y twatest falla si encuentra una). | [TÚ] | Con Play App Signing, si se pierde la clave de subida se puede pedir otra a Google, pero lleva días. |
+| 4.8 | En `android/`: `bubblewrap build --signingKeyPath=<ruta de la clave> --signingKeyAlias=subida` → `app-release-bundle.aab` (lo que se sube a Play) y `app-release-signed.apk` para probar. | [TÚ] | android.md §4. Play solo acepta AAB en apps nuevas. Ya se compiló aquí una prueba de depuración y el AAB sin firmar: salen bien. |
+| 4.9 | Subir el primer AAB (a Pruebas internas, Fase 6) con **Play App Signing** activado (obligatorio en apps nuevas): Google guarda la clave de firma de la app. | [TÚ] | android.md §3. |
+| 4.10 | Copiar las huellas **SHA-256**: la de **firma de la app** (Google) de Consola › Probar y publicar › Configuración › **Integridad de la app**, y la de **subida** con `keytool -list -v` (o de la misma página). | [TÚ] | android.md §5. ⚠ El menú puede llamarse distinto. |
+| 4.11 | Pegar las dos huellas en `pages/.well-known/assetlinks.json` (en lugar de `{{SHA256_FIRMA_APP_PLAY}}` y `{{SHA256_CLAVE_SUBIDA}}`), pasar `STRICT_TWA=1 node tools/twatest.js`, publicar la web y comprobarlo con la herramienta de Google (https://developers.google.com/digital-asset-links/tools/generator) o con `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://takethecourt.com&relation=delegate_permission/common.handle_all_urls`. | [TÚ] (+ [CÓDIGO] si se quiere) | android.md §5 y §7. Si falla, la TWA enseña la barra de direcciones de Chrome arriba. |
 
-Plantilla de `assetlinks.json` (sustituir el paquete y las huellas):
+`pages/.well-known/assetlinks.json` (ya en el repo; solo faltan las huellas):
 
 ```json
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "{{PAQUETE}}",
-    "sha256_cert_fingerprints": [
-      "{{SHA256_FIRMA_APP_PLAY}}",
-      "{{SHA256_CLAVE_SUBIDA}}"
-    ]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.takethecourt.app",
+      "sha256_cert_fingerprints": [
+        "{{SHA256_FIRMA_APP_PLAY}}",
+        "{{SHA256_CLAVE_SUBIDA}}"
+      ]
+    }
   }
-}]
+]
 ```
 
 ### 4.12 Pruebas en un móvil real antes de la prueba cerrada
@@ -244,8 +246,8 @@ La respuesta de Google suele tardar unos días (⚠ hasta 7 o más). Si la recha
 **Falta en el repo [CÓDIGO]**
 
 - ~~`pages/privacidad.html`, `pages/borrar-cuenta.html` y el enlace dentro del juego.~~ Hecho (24-nov-2026).
-- `/.well-known/assetlinks.json` en el build.
+- ~~`/.well-known/assetlinks.json` en el build.~~ Hecho (24-nov-2026): `pages/.well-known/assetlinks.json` (con dos huecos para las huellas) y build-pages copia `pages/` con subcarpetas.
 - Borrado de los netlogs al borrar la cuenta (Cloud Function) o plazo de conservación. (Las salas ya se borran, 24-nov-2026.)
 - ~~Gráfico de funciones 1024×500 y capturas.~~ Hecho: `notes/playstore/graficos/`.
 - Recomendado: nombre visible anónimo, filtro y denuncia de nombres; fuentes y three.js propios y service worker.
-- El proyecto de la TWA (`twa-manifest.json`), si se quiere tener en el repo (sin la clave).
+- ~~El proyecto de la TWA (`twa-manifest.json`), si se quiere tener en el repo (sin la clave).~~ Hecho (24-nov-2026): `android/`, ver android.md.

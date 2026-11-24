@@ -791,6 +791,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `vestuxaudit.js`, `vestuxprobe.js` y `vestuxwp6.js`. Plan y lista final en notes/vestuario-plan.md §4; detalle en notes/players.md § Vestuario.
 - Imprescindibles 1.22.0 (rama investigacion): `node tools/hitwhytest.js`, `jugaryatest.js`, `cortostest.js`, `a11ymarktest.js`,
   `touchedittest.js [568x320]`, `resumetest.js [--node|--browser]`, `turntest.js` y `variedadtest.js [segundos] [--base <ref>]` (13 min).
+- Google Play (rama playstore, 24-nov-2026): `node tools/policytest.js` (páginas legales) y `node tools/twatest.js` (app de Android en
+  `android/` y `pages/.well-known/assetlinks.json`; `STRICT_TWA=1` antes de publicar la app). Pasos del responsable en notes/playstore/android.md.
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

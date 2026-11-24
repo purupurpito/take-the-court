@@ -30,6 +30,7 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 | `seguridad-datos.md` | Formulario de Seguridad de los datos contestado pregunta por pregunta, con la línea de código que respalda cada respuesta. |
 | `clasificacion.md` | Cuestionario IARC, público objetivo, anuncios, acceso a la app para los revisores (con cuentas de prueba) y otras declaraciones. |
 | `privacidad.md` | Cómo funcionan las dos páginas legales, el borrado de la cuenta, y qué cambios del código obligan a tocar la política. |
+| `android.md` | La app de Android (TWA en `android/`): valores elegidos, clave de subida, compilar el AAB, las dos huellas para `assetlinks.json`, subir a la prueba cerrada y cómo actualizarla. |
 | `graficos/` | Icono 512, gráfico destacado 1024×500, 8 capturas de móvil y 4 de tablet. `graficos/README.md` dice qué es cada uno y en qué orden subirlos. |
 
 ### Herramientas
@@ -38,6 +39,7 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 |---|---|
 | `node tools/policytest.js` | Pruebas de las páginas legales (contenido frente al código, build, Chrome a 360×640 y 568×320, borrado de la cuenta con sus fallos). `KEEP=1` guarda capturas. |
 | `STRICT_POLICY=1 node tools/build-pages.js` | Build que falla si faltan las páginas legales o quedan huecos. |
+| `node tools/twatest.js` | Pruebas de la TWA: `pages/.well-known/assetlinks.json` (JSON, paquete y formato de las huellas), `android/twa-manifest.json` frente al manifest de la web, sin claves en el repo y assetlinks en el build. `STRICT_TWA=1` falla si quedan huecos en las huellas. |
 | `node tools/storeshots.js --out notes/playstore/graficos` | Vuelve a sacar todos los gráficos del juego (un minuto más o menos). |
 
 ## Huecos para rellenar
@@ -47,12 +49,13 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 | `Ferran Sanchís Armesto` | `pages/privacidad.html` (es y en), `checklist.md` | Nombre o razón social del responsable de los datos. |
 | `help@takethecourt.com` | las dos páginas (texto y `mailto:`), `ficha.md`, `checklist.md`, `clasificacion.md`, `seguridad-datos.md` | Correo de contacto para privacidad y borrado. |
 | `{{USUARIO_PRUEBA_1/2}}`, `{{CLAVE_PRUEBA_1/2}}` | `clasificacion.md` (acceso a la app) | Dos cuentas de prueba para los revisores (para probar el online entre las dos). |
-| `{{PAQUETE}}`, `{{SHA256_FIRMA_APP_PLAY}}`, `{{SHA256_CLAVE_SUBIDA}}` | `checklist.md` (assetlinks.json) | Nombre del paquete y huellas de las claves (salen de la Consola y de Bubblewrap). |
+| `{{SHA256_FIRMA_APP_PLAY}}`, `{{SHA256_CLAVE_SUBIDA}}` | `pages/.well-known/assetlinks.json` | Huellas SHA-256 de la clave de firma de Play y de tu clave de subida (android.md §5). |
+| `{{RUTA_FUERA_DEL_REPO}}` | `android/twa-manifest.json` (`signingKey.path`) | No hace falta tocarlo: la ruta de la clave se pasa al compilar (android.md §4). |
 | `{{RESUMEN_COMENTARIOS}}`, `{{ESTIMACION}}`, `{{CAMBIOS_TRAS_PRUEBA}}` | `checklist.md` (solicitud de producción) | Lo que salga de la prueba cerrada. |
 
 ## Decisiones pendientes
 
-1. **Nombre del paquete** (permanente). Propuesta: `com.takethecourt.app`.
+1. **Nombre del paquete** (permanente). Propuesta: `com.takethecourt.app` (ya puesta en `android/twa-manifest.json` y en `pages/.well-known/assetlinks.json`).
 2. **Nombre público de desarrollador** y si se declara **comerciante en la UE** (si sí, se publican dirección y teléfono).
 3. **Informes de red (netlogs).** Hoy no se borran nunca, ni al borrar la cuenta; las páginas lo dicen. Opciones: Cloud Function
    que los borre al borrar el usuario (necesita el plan Blaze), plazo de 90 días con TTL de Firestore, o las dos. Si se elige
@@ -77,4 +80,5 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 - La sala online a 640×360 desplaza y las reglas quedan medio difuminadas abajo (es el diseño del lobby, que avisa de que hay más).
   Por eso la captura `movil-05` se saca a 720×405. Si se quiere que quepa entera en móviles de 360 de alto, ajustar el lobby.
 - `pages/netlogs.html` (de otra pista, ya publicada) tiene un comentario con el nombre del dueño. Conviene quitarlo.
-- `assetlinks.json` lo tiene que escribir `tools/build-pages.js` (no se puede poner una carpeta `pages/.well-known`): ver `checklist.md`.
+- `assetlinks.json` está en `pages/.well-known/` y build-pages copia `pages/` con subcarpetas (comprobado por `tools/twatest.js`).
+- Falta `pages/icon-maskable.png` (copia de `graficos/icono-512.png`) antes del primer `bubblewrap update`: ver android.md.
