@@ -5854,8 +5854,8 @@
     uiSound('start'); goMatch();
   }
   /** Rendimiento del 1r 6v6 (24-nov-2026, Ferran: «la primera vez que juegues en 6v6 que salga la opción de escogerlo»): antes del primer
-   *  partido 6v6 de este aparato que se empieza DESDE LOS MENÚS (¡A jugar! del Partido rápido en 6 contra 6 y «Jugar partido» de la
-   *  Carrera de pista), la ventana de la calidad (perfNote). Se apunta en q6Asked (solo este aparato) al cerrarla, elija lo que elija,
+   *  partido 6v6 de este aparato que se empieza DESDE LOS MENÚS (¡A jugar! del Partido rápido en 6 contra 6, «Jugar partido» de la
+   *  Carrera de pista, la jugada del día y el reto del día en 6v6 y el panel «Primer partido»), la ventana de la calidad (perfNote). Se apunta en q6Asked (solo este aparato) al cerrarla, elija lo que elija,
    *  y después sigue cb (el partido). true si la ha abierto. Nunca en depuración (salvo &q6=1) ni online. */
   function perfFirst(cb) {
     if (ctx.net || (ctx.debug ? ctx.params.q6 !== '1' : ctx.settings.q6Asked)) return false;
@@ -6047,10 +6047,13 @@
     if (!wasReturning) { seenSet(V); return; }
     if (ctx.debug || ctx.params.autopilot || ctx.params.nonews) return;
     aboutAuto = 'waiting';
-    var idle = 0;
+    var idle = 0, inst = false;
     aboutIv = setInterval(function () {
       if (seenGet() === V) { clearInterval(aboutIv); if (aboutAuto === 'waiting') aboutAuto = 'off'; return; }
+      if (VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) inst = true;
       if (semPopSt === 'waiting' || semPopOpen()) { idle = 0; return; }   // (la jugada del día sale la primera)
+      // como mucho dos ventanas solas al entrar: con la jugada del día y el aviso de instalar ya vistos, las Novedades esperan a la próxima visita
+      if (semPopSt === 'shown' && inst) { clearInterval(aboutIv); aboutAuto = 'off'; return; }
       var ok = VB.UI.menuIdle() && !document.hidden && !(VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) &&
         !(VB.Account && VB.Account.isOpen && safe(VB.Account.isOpen)) && !(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
       idle = ok ? idle + 250 : 0;
@@ -7373,7 +7376,9 @@
     var dd = rtDaily(); if (!dd || !dd.opts) return;
     var o = Object.assign({}, dd.opts); if (mini) o.introKind = 'mini';
     var f = function () { ctx.actions.startMatch(o); };
-    if (!wipeRun(2, f) && !wp.cb) f();
+    var go = function () { if (!wipeRun(2, f) && !wp.cb) f(); };
+    if (o.format === '6v6' && perfFirst(go)) return;   // (reto del día en 6v6: la calidad del 1r 6v6, como en ¡A jugar!)
+    go();
   }
   /** Hoja final del reto → «Retos»: al menú, en la página Retos (Volver lleva a Jugar). */
   function goRetosList() {
@@ -7403,7 +7408,10 @@
       ctx.actions.startMatch(o);
     };
     if (M.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, otra jugada'); return; }
-    if (!wipeRun(2, f) && !wp.cb) f();
+    var go = function () { if (!wipeRun(2, f) && !wp.cb) f(); }, sx = null;
+    try { sx = M.situation(); } catch (e) { sx = null; }
+    if (sx && sx.six && perfFirst(go)) return;   // (jugada del día en 6v6: la calidad del 1r 6v6 antes de gastar el intento)
+    go();
   }
   /** Hoja final de la situación → «Ver el grupo»: al menú, en Retos › Semana (Volver lleva a Jugar). */
   function goSemanaList() { rtTab = 'semana'; rtTabSave('semana'); goRetosList(); }
@@ -7469,7 +7477,9 @@
     if (!semPopWanted(false)) return false;
     semPopSt = 'waiting';
     var idle = 0, tries = 0, iv = setInterval(function () {
-      if (++tries > 240 || semPopSt !== 'waiting') { clearInterval(iv); if (semPopSt === 'waiting') semPopSt = 'off'; return; }   // (1 min sin portada libre: ya no es «al entrar»)
+      if (semPopSt !== 'waiting') { clearInterval(iv); return; }
+      // 1 min sin portada libre, o ya se ha ido a jugar: ya no es «al entrar» (no sale después del partido); el turno pasa al reto del día
+      if (++tries > 240 || ctx.state !== 'menu') { clearInterval(iv); semPopSt = 'off'; retoAuto(); return; }
       var ok = VB.UI.menuIdle() && !document.hidden && !firstOn && !segOn && !(VB.Splat.sheetOpen && VB.Splat.sheetOpen()) &&
         !(VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) && !(VB.Account && VB.Account.isOpen && safe(VB.Account.isOpen)) &&
         !(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
@@ -8349,6 +8359,7 @@
     o = o || {};
     if (sn.open || !ctx || ctx.net) return false;
     sn.kind = ''; snBuild('perf');
+    sn.shown = true;   // (una sola ventana antes del partido: con la de la calidad, el aviso de colocador espera a otra sesión)
     if (el.menu) el.menu.classList.add('sn-hide');   // (desde el menú: la ventana sola sobre el partido de fondo, sin la página de debajo)
     sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
     sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
@@ -8498,7 +8509,9 @@
     /** Pruebas (E3): panel abierto, pila de vuelta, pestaña de Ajustes, pestañas compactas y captura en curso. */
     _settings: function () { return { panel: panel, stack: pstack.map(function (x) { return x.name; }), tab: setTabs ? setTabs.get() : '', compact: !!(el.setTabs && el.setTabs.classList.contains('tabs-ic')), capturing: capturing, ctl: ctlView, glyph: { hit: GLYPH.keyboard.hitT, jump: GLYPH.keyboard.jumpT, padHit: GLYPH.gamepad.hitT } }; },
     /** Portada del menú libre (sin panel, sin cortinilla, sin telón): install.js espera a esto para su aviso (nunca encima de «Primer partido»). */
-    menuIdle: function () { return ctx.state === 'menu' && !panel && !wp.ph && mpage === 'main' && !sn.open && !(bootStage < 2 && bootBusy()); }, // (!sn.open: nada encima del aviso de colocador)
+    menuIdle: function () { return ctx.state === 'menu' && !panel && !wp.ph && mpage === 'main' && !sn.open && !(VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()) && !(bootStage < 2 && bootBusy()); }, // (!sn.open / sin hoja SPLAT: nada encima del aviso de colocador ni de la jugada del día)
+    /** Ventanas al entrar (una cola: jugada del día → instalar → novedades): true mientras la jugada del día espera para salir (install.js espera). */
+    popWaiting: function () { return semPopSt === 'waiting'; },
     /** Pestañas reutilizables (ver «PESTAÑAS» arriba): VB.UI.tabs(host, items, opts) → api {get, set, step, refresh, hint, focus}. */
     tabs: makeTabs,
     /** Mando: −1 con LB/L1 pulsado, +1 con RB/R1 (o Y). Para cambiar de pestaña con it.switchPlayer fuera de ui.js. */
@@ -8588,7 +8601,7 @@
       buildTabs();
       lkInit();   // Vestuario
       el.btnFirstTut.addEventListener('click', function () { click(); openPanel('tut', 'menu'); });
-      el.btnFirstPlay.addEventListener('click', function () { uiSound('start'); goMatch(); });
+      el.btnFirstPlay.addEventListener('click', function () { var go = function () { uiSound('start'); goMatch(); }; if (fmt6() && perfFirst(go)) return; go(); });
       if (el.btnSeguir) el.btnSeguir.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goSeguir(); });
       if (el.btnNow) el.btnNow.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goNow('ya'); });
       if (el.btnStartTut) el.btnStartTut.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; click(); openPanel('tut', 'menu'); });
