@@ -320,7 +320,7 @@
       var card = function (x) {
         var v = x.dec ? String(x.v).replace('.', ',') : num(x.v), n = x.dec ? String(x.n).replace('.', ',') : num(x.n);
         return '<div class="lf-a' + (x.done ? ' done' : '') + '">' + (x.done ? '<i class="lf-st" role="img" aria-label="Conseguido">✓</i>' : '') + '<b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' +
-          (x.done ? '<small>' + esc(rwS(x.reward)) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small>' + (x.pt ? esc(String(x.pt).replace(/^Tu liga: nivel (\d+) de (\d+).*$/, 'Nivel $1/$2')) : v + '/' + n) + ' · ' + esc(rwS(x.reward)) + '</small></div>') + '</div>';
+          (x.done ? '<small>' + esc(rwS(x.reward)) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small><span class="lf-gn">' + (x.pt ? esc(String(x.pt).replace(/^Tu liga: nivel (\d+) de (\d+).*$/, 'Nivel $1/$2')) : v + '/' + n) + '</span><span class="lf-gs"> · </span><span class="lf-gr">' + esc(rwS(x.reward)) + '</span></small></div>') + '</div>';
       };
       var todo = a.filter(function (x) { return !x.done; }), got = a.filter(function (x) { return x.done; });
       return '<div class="card lf-gph">' + H.q('Logros', 'Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero. Llevas ' + done + ' de ' + a.length + '.') +

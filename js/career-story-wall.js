@@ -722,7 +722,7 @@
       h += '<p class="muted st-wsub">Publica algo (una vez por jornada)' + (ph ? '' : ':') + '</p><div class="acts st-acts" style="display:flex;flex-direction:column;gap:8px">' +
         TONES.map(function (T, i) {
           // el efecto en la línea pequeña, como las cartas de «Tu semana» y las respuestas (▲/▼; el color lo pone el botón)
-          var hn = S.hint(c, T.e).map(function (x) { return '<span class="' + (x[1] ? 'st-up' : 'st-dn') + '">' + E2(ph ? String(x[0]).replace(/^Pique con tu rival$/, 'Pique') : x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' ');
+          var hn = S.hint(c, T.e).map(function (x) { return '<span class="' + (x[1] ? 'st-up' : 'st-dn') + '">' + E2(ph ? String(x[0]).replace(/^Pique con tu rival$/, 'Pique') : x[0]) + (ph ? '\u00a0' : ' ') + (x[1] ? '▲' : '▼') + '</span>'; }).join(' ');   // (móvil: el triángulo nunca suelto)
           return '<button data-act="st-wall-pub-' + i + '" style="min-height:44px">' + E2(T.t) + (hn ? '<small>' + hn + '</small>' : '') + '</button>';
         }).join('') + '</div>';
     } else if (s.wall && s.post === s.mN) h += '<p class="muted">Ya has publicado esta jornada.</p>';

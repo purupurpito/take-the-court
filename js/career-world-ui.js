@@ -288,11 +288,19 @@
     if (H.crest) { var k = C().club ? C().club(c, r.id) : null; if (k) return H.crest(k, 22, { c: c }); }
     return H.kitSw && r.kit ? H.kitSw(r.kit).replace('cr-kit', 'cr-kit kit-mini') : '';
   }
+  /** Titular ya escapado. Móvil (ronda 2, carrera-liga-vida-v): los clubes de la noticia con su nombre corto (sin el patrocinador; el largo
+   *  sigue en la ficha y en el aria-label) y los marcadores «21-16» sin partir. PC: el texto de siempre. */
+  function newsT(c, x) {
+    var t = String(x.t || '');
+    if (!(H && H.ph && H.ph() && H.shortClub)) return esc(t);
+    (x.c || []).forEach(function (id) { var k = C().club ? C().club(c, id) : null, s = k && k.name ? H.shortClub(k) : ''; if (s && s !== k.name) t = t.split(k.name).join(s); });
+    return esc(t).replace(/\b(\d{1,2}-\d{1,2})\b/g, '<span class="nw">$1</span>');
+  }
   /** Una noticia: botón que abre la ficha de su primer club (si existe) o texto suelto. fresh: sin ver hasta este pintado. */
   function newsItem(c, x, fresh) {
     var id = x.c && x.c.length ? x.c[0] : -1, k = id >= 0 ? C().club(c, id) : null;
     var cls = 'cw-nb' + (x.me === 1 ? ' me' : x.me === 2 ? ' rv' : '') + (fresh ? ' fresh' : '');
-    var inner = '<small>' + esc(W().newsWhen(x)) + (x.me === 2 && /^rival/.test(x.k) ? '<span class="cw-mk">Tu rival</span>' : '') + '</small><b>' + esc(x.t) + '</b>';
+    var inner = '<small>' + esc(W().newsWhen(x)) + (x.me === 2 && /^rival/.test(x.k) ? '<span class="cw-mk">Tu rival</span>' : '') + '</small><b>' + newsT(c, x) + '</b>';
     return k ? '<button class="' + cls + '" data-act="cw-club" data-id="' + k.id + '" aria-label="' + esc(x.t) + '. Ver la ficha de ' + esc(k.name) + '">' + inner + '</button>'
       : '<div class="' + cls + '">' + inner + '</div>';
   }

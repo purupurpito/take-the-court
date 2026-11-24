@@ -1364,3 +1364,56 @@ storyuitest, girotest (26): todas OK.
 - Firma: la descripción breve en la tarjeta no se añadió (está en la hoja al tocar, como en horizontal). El gesto: las manchas `.seg` dejan
   algo de aire vertical entre filas (el dibujo es más bajo que el objetivo de 48).
 - Estado sigue siendo largo (lesión, plan, puesto, ánimo, plan del entrenador, progreso): «Elegir plan» se ve en la primera pantalla a 360.
+
+#### 8.6.5 Paquete carrera-liga-vida-v (24-nov-2026)
+
+Mensajes, Liga, Vida, Palmarés, premios y Vitrina de Estrellas en vertical (html.pv). CSS en `PV_LV()` (`js/career-ui.js`, tras el bloque de
+carrera-jugador-club-v; prefijo `PW`, `W(cv)` = `PW #crBody[data-cv…]`). Lo que cambia QUÉ SE DICE va con `PH()`/`H.ph()` (= mob, vale también en
+horizontal). PC sin cambios.
+
+**Hecho**
+- *Redes*: los 3 tonos en fila de 64 sin tope de alto; efectos como fichas con el triángulo pegado (` ` antes de ▲/▼ en el móvil:
+  «Entrenador ▼», nunca «▼ Fama»); publicaciones a 15. *Bandeja*: ya estaba (segmentado Bandeja 4 · Redes, vista previa por palabra); avatar 40.
+- *Tabla*: `table-layout:fixed`, columnas de cifras de 28 (Pts 34), «#» 30; escudo 24 siempre a la izquierda y el nombre hasta 2 líneas por
+  palabras (antes «Voley Alcobendense» bajaba debajo del escudo); la cabecera pegada a `top:-22px` (no asoma media fila por encima) y el rótulo de
+  la tabla por encima de su sombra. Pie «Puntos: 3 por ganar 2-0…» con los marcadores sin partir (`PTS_LINE()`, antes «1-» / «2.»).
+- *Jornadas*: el rival entero (nombre corto, 2 líneas si hace falta; fuera el `nowrap`/elipsis en línea con `!important`), «Próximo» como ficha
+  oscura, Jefe a 12, filas sin resultado al 82 %.
+- *Noticias* (`career-world-ui.js newsT`): en el móvil los clubes de la noticia con `shortClub` («Voley Lucus se sube al liderato…», el largo
+  sigue en el aria-label y en la ficha) y los marcadores en `.nw`; titular a 15, «T1 J4» a 12. Vale también en horizontal.
+- *Clubes / selector de liga*: «‹ España · Hiperliga 2 ›» con `text-wrap:balance` y letra clamp(15-18) («España · / Hiperliga 2 · 12», nunca
+  «Hiperliga / 2 · 12»); filas de 52. Ordinales: se queda la forma de la guía (1r, 2º, 3r, 4º…; memoria «ordinales»): la lista y la ficha usan la
+  misma función.
+- *Premios / Datos*: pestañas en rejilla 3+2 con el rótulo entero (antes «PUESTOSAQUE»); fila [puesto 34 con la flecha debajo][nombre 16 + club 13
+  en 2.ª línea, sin elipsis][nota].
+- *Vitrina* (Palmarés y Estrellas): 3 columnas también a 360 (gap 12/10), nombre entero en 2 líneas.
+- *Temporadas*: los totales de la carrera, uno por línea (`p.cr-tot`, sin «|» sueltos).
+- *Ajustes*: rótulo + «?» arriba, el selector a todo el ancho (Dificultad en 2×2, Cuánta vida en 3, Lesiones en 2; antes «FÁCI NOR DIFÍCEXPEI»),
+  la frase de la elegida entera debajo; «Crear Carrera de pista» con «6 contra 6» de subtítulo (móvil; en PC el texto de siempre).
+- *Cifras*: cada temporada como tarjeta («T1 Voley Sanroqueño» arriba; Puesto · PJ · PG · Puntos · Nota con el rótulo debajo, alineados abajo);
+  «Ver tabla completa» a todo el ancho debajo (antes tapaba «Por temporada»).
+- *Fama*: celebraciones con la ficha de fama debajo si no cabe (antes «Se / desbloquea / con la fama»); la primera baja bajo el «?».
+- *Tienda*: nombre en letra de cuerpo 15 (no versalitas en 3 líneas), «Nv 0/3» como ficha, precio de 44 × 88.
+- *Logros* (`career-life-ui.js`: `.lf-gn` / `.lf-gr`): tarjeta de 3 líneas a todo el ancho (título + premio a la derecha / descripción / barra +
+  «1/5»); en horizontal se ve igual que antes.
+- *Camino*: rejilla de niveles de 5 columnas con casillas de 56 (antes tira lateral).
+
+**Métricas** (`…/movil2/r2-ligavida/`: `v` = 37 ids × 360/390/412, DPR 2; `h` = × 568/844/915; `pc` = × 1280/1024)
+
+| pasada | recortes no perm. | < 12 | < 44 | solapes | tapado-pie | pisados | toques juntos | despl. lateral |
+|---|---|---|---|---|---|---|---|---|
+| r2-marco/v → **v** | 35 → **0** | 0 → 0 | 26 → **0** | 0 → 0 | 0 → 0 | 13 → **0** | 765 → 720 | 0 → 0 |
+| r2-recortes/hfull → **h** | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 264 → 262 | igual |
+| pcbase → **pc** | solo las conocidas (inbox y league-clubs, arnés); frente a r2-marco/pc todo igual salvo +29 caracteres de inbox (mensaje del Club distinto en la muestra; a ojo, igual) |
+
+`tapados` V 2 → 4: filas que quedan a medias bajo la barra o la cabecera pegada según el desplazamiento (tabla a 360-412, Ajustes a 390). En H,
+`< 14` sube en Logros por partir «1/5 · +1 pts» en dos `span` (mismo aspecto).
+
+**Pruebas** (primer plano): csscheck, careertest (2248), storymsgtest (113), storywalltest (88), storyuitest (145), storyseasontest (83),
+worldtest (155), lifetest (110), racetest (2485), allstartest (210), girotest (26): todas OK.
+
+**Pendiente**
+- Premios: la edad («22 años») no está en la fila (el dato no llega a `rowPh`); el segmentado ocupa 2 filas.
+- Cifras: «En toda tu carrera» sigue en una fila de 4 (cabe a 360 sin cortar); Temporadas no se ha fundido con Cifras.
+- Horizontal: los totales de Temporadas a 568 siguen con algún «|» al principio de línea (no tocado: el paquete es vertical).
+- Fama: queda aire entre el sello «Celebración» y la primera fila (el «?» va encima).
