@@ -40,6 +40,6 @@ La política describe la 1.22.0 tal cual (inventario del 24-nov-2026). Hay que t
   (hoy: sin plazo, no se borra con la cuenta, no se puede desactivar);
 - se enciende el TURN (`VB.NET_TURN_URL` en js/netconfig.js; la política dice que no hay retransmisión y policytest lo vigila);
 - cambia el nombre por defecto del online (netlobby.js `defaultName`), se añade chat, denuncias o bloqueo;
-- se sirven las fuentes o three.js desde el propio dominio (se puede quitar Google Fonts / cdnjs de la lista);
+- ~~se sirven las fuentes o three.js desde el propio dominio~~ hecho el 24-nov-2026 (`vendor/`, `notes/offline.md`): la política ya no nombra Google Fonts ni cdnjs y dice que el juego guarda una copia de sus archivos para jugar sin conexión. Si un día el index vuelve a pedir algo a otra web, volver a nombrarla (policytest lo vigila);
 - se añade analítica, anuncios, pagos o cualquier servicio nuevo;
 - cambian `DOCS` o `deleteAccount()` de js/account.js (borrar-cuenta.html copia sus llamadas; policytest compara las dos).

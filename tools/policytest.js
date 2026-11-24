@@ -62,7 +62,8 @@ if (SRC['privacidad.html']) {
     ['IP al rival y STUN', /dirección IP[\s\S]*STUN|STUN[\s\S]*dirección IP/, /IP address[\s\S]*STUN|STUN[\s\S]*IP address/],
     ['nombre visible por defecto (personaje o usuario)', /nombre de tu personaje de la Carrera[\s\S]*nombre de usuario/, /Career character's name[\s\S]*username/],
     ['Firestore en la UE (eur3)', /eur3/, /eur3/],
-    ['proveedores: GitHub, Cloudflare, Google Fonts, cdnjs', /GitHub[\s\S]*Cloudflare[\s\S]*Google Fonts[\s\S]*cdnjs|GitHub Pages[\s\S]*Cloudflare[\s\S]*cdnjs[\s\S]*Google Fonts/, /GitHub[\s\S]*Cloudflare[\s\S]*cdnjs/],
+    ['proveedores: GitHub y Cloudflare', /GitHub Pages[\s\S]*Cloudflare/, /GitHub Pages[\s\S]*Cloudflare/],
+    ['copia de los archivos para jugar sin conexión', /copia de los archivos del juego para poder jugar sin conexión/, /copy of the game files so you can play offline/],
     ['transferencias (Marco de Privacidad / cláusulas tipo)', /Marco de Privacidad de Datos UE-EE\. UU\./, /Data Privacy Framework/],
     ['derechos y AEPD', /portabilidad[\s\S]*aepd\.es/, /portability[\s\S]*aepd\.es/],
     ['edad mínima 14 años', /mayores de 14 años/, /aged 14 or over/],
@@ -72,6 +73,12 @@ if (SRC['privacidad.html']) {
     ['enlace a la página de borrar la cuenta', /href="borrar-cuenta\.html"/, /href="borrar-cuenta\.html#en"/]
   ];
   for (const [n, rEs, rEn] of need) check(rEs.test(es) && rEn.test(en), 'privacidad: ' + n + ' (es y en)');
+  // three.js y las fuentes van en vendor/ desde el 24-nov-2026 (notes/offline.md): ni el juego ni la política hablan de cdnjs ni de
+  // Google Fonts. Si un día el index vuelve a pedirlas, la política tiene que volver a nombrarlas (y esta prueba, a exigirlo).
+  const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const thirdIdx = /cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(idxSrc);
+  check(!thirdIdx, 'index.html no pide nada a cdnjs ni a Google Fonts (three.js y fuentes en vendor/)');
+  check(!/Google Fonts|cdnjs/.test(s), 'privacidad: no nombra Google Fonts ni cdnjs (ya no se usan)');
   check(!/\bTURN\b|turn\.takethecourt/.test(s), 'privacidad: no presenta como activo el TURN (apagado en netconfig.js)');
   const ncfg = fs.readFileSync(path.join(ROOT, 'js', 'netconfig.js'), 'utf8');
   check(/VB\.NET_TURN_URL\s*=\s*''/.test(ncfg), 'netconfig.js: el TURN sigue apagado (si se enciende, hay que cambiar «no usamos servidores de retransmisión»)');

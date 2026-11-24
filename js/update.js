@@ -10,6 +10,8 @@
  *   - Traspaso a takethecourt.com (1.20.0, notes/dominio.md): el puente de la dirección antigua (bridge/) también sirve un version.json
  *     con la 1.20.0, así que las pestañas viejas que siguen abiertas ven «Hay una versión nueva», «Reiniciar» las lleva al puente y el
  *     puente, a takethecourt.com con la partida. Por eso la petición es RELATIVA (sirve igual en /make-the-cut/ y en la raíz).
+ *   - Service worker (js/sw-reg.js, sw.js; notes/offline.md): «Reiniciar» pasa por VB.SW.apply (la versión nueva instalada toma el
+ *     control con skipWaiting) y luego recarga con ?u=; la navegación va primero a la red, así que llega el index nuevo.
  *   - Sin red, en file:// o sin version.json no hace nada. Pruebas: &vnew=X.Y.Z hace como si la publicada fuera X.Y.Z (sin pedir nada).
  * API: VB.Update.check(force) · .cmp(a, b) (-1/0/1, por números) · .latest (la publicada más nueva que se ha visto, o '') ·
  *      .outdated() (hay una más nueva que la mía) · .note(v) (versión de una sala o del rival: si es más nueva, cuenta) · .show(force) · .reload() · .versionText(rv) (texto del online según quién está atrás).
@@ -30,7 +32,14 @@
   function outdated() { return !!U.latest && !!mine() && cmp(U.latest, mine()) > 0; }
   function playing() { var c = VB.ctx; return !!(c && (c.state === 'playing' || c.state === 'paused')); }
 
+  // Con service worker (js/sw-reg.js), antes de recargar se le dice a la versión nueva que tome el control (si no, la recarga
+  // seguiría con la vieja); VB.SW.apply llama a go una sola vez. Sin service worker (file://, otro dominio), recarga enseguida.
   function reload() {
+    var S = VB.SW;
+    if (S && S.apply && !U.reloading) { U.reloading = true; S.apply(go); return; }
+    if (!U.reloading) go();
+  }
+  function go() {
     try { var u = new URL(location.href); u.searchParams.set('u', Date.now().toString(36)); u.searchParams.delete('vnew'); location.replace(u.toString()); }
     catch (e) { location.reload(); }
   }

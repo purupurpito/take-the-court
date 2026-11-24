@@ -8,7 +8,7 @@ políticas, formularios y gráficos. Nada de esto está publicado todavía: hace
 1. Rellenar los huecos (lista abajo) y tomar las decisiones pendientes.
 2. Seguir `checklist.md` fase por fase (cuenta de desarrollador, Bubblewrap, assetlinks, ficha, pruebas cerradas, producción).
 3. Antes de publicar la web con las páginas legales:
-   `STRICT_POLICY=1 node tools/build-pages.js` (falla si quedan huecos) y `node tools/policytest.js`.
+   `STRICT_POLICY=1 node tools/build-pages.js` (falla si quedan huecos), `node tools/policytest.js` y `node tools/offlinetest.js`.
 
 ## Qué hay
 
@@ -40,6 +40,7 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 | `node tools/policytest.js` | Pruebas de las páginas legales (contenido frente al código, build, Chrome a 360×640 y 568×320, borrado de la cuenta con sus fallos). `KEEP=1` guarda capturas. |
 | `STRICT_POLICY=1 node tools/build-pages.js` | Build que falla si faltan las páginas legales o quedan huecos. |
 | `node tools/twatest.js` | Pruebas de la TWA: `pages/.well-known/assetlinks.json` (JSON, paquete y formato de las huellas), `android/twa-manifest.json` frente al manifest de la web, sin claves en el repo y assetlinks en el build. `STRICT_TWA=1` falla si quedan huecos en las huellas. |
+| `node tools/offlinetest.js` | Juego sin red (service worker, `notes/offline.md`): primera visita, sin red (menú, partido rápido, Carrera, privacidad), publicación de una versión nueva con «Reiniciar» y caché vieja borrada. Unos 2 min. |
 | `node tools/storeshots.js --out notes/playstore/graficos` | Vuelve a sacar todos los gráficos del juego (un minuto más o menos). |
 
 ## Huecos para rellenar
@@ -80,5 +81,8 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 - La sala online a 640×360 desplaza y las reglas quedan medio difuminadas abajo (es el diseño del lobby, que avisa de que hay más).
   Por eso la captura `movil-05` se saca a 720×405. Si se quiere que quepa entera en móviles de 360 de alto, ajustar el lobby.
 - `pages/netlogs.html` (de otra pista, ya publicada) tiene un comentario con el nombre del dueño. Conviene quitarlo.
+- **Sin conexión** (24-nov-2026): three.js y las fuentes van en `vendor/` y hay service worker; la app se juega sin red tras la
+  primera visita y la ficha ya dice «Juega sin conexión». Hay que publicar esa versión de la web ANTES de mandar la ficha
+  (ficha.md §5.1). La política ya no nombra Google Fonts ni cdnjs. Detalles: `notes/offline.md`.
 - `assetlinks.json` está en `pages/.well-known/` y build-pages copia `pages/` con subcarpetas (comprobado por `tools/twatest.js`).
 - Falta `pages/icon-maskable.png` (copia de `graficos/icono-512.png`) antes del primer `bubblewrap update`: ver android.md.

@@ -793,6 +793,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `touchedittest.js [568x320]`, `resumetest.js [--node|--browser]`, `turntest.js` y `variedadtest.js [segundos] [--base <ref>]` (13 min).
 - Google Play (rama playstore, 24-nov-2026): `node tools/policytest.js` (páginas legales) y `node tools/twatest.js` (app de Android en
   `android/` y `pages/.well-known/assetlinks.json`; `STRICT_TWA=1` antes de publicar la app). Pasos del responsable en notes/playstore/android.md.
+- Sin red (rama playstore, 24-nov-2026): `node tools/offlinetest.js` (service worker, vendor/, publicación con «Reiniciar»; ~2 min).
+  Diseño en notes/offline.md. Desde entonces el juego no pide nada a cdnjs ni a Google Fonts (lo de «file://» de arriba es historia).
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

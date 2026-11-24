@@ -30,13 +30,13 @@ Páginas web que se enlazan (las hace otra pista; tienen que estar publicadas an
 
 | # | Paso | Quién | Estado |
 |---|---|---|---|
-| 0.1 | Política de privacidad publicada en `/privacidad.html`, con `Ferran Sanchís Armesto` y `help@takethecourt.com` rellenados. Tiene que nombrar la app, decir qué datos se recogen y para qué, con quién se comparten (proveedores: Google Firebase en la UE, GitHub, Cloudflare, Google Fonts, cdnjs, STUN), la IP que ve el rival en el online, los informes de red, cuánto se conserva cada cosa, cómo borrar la cuenta, los derechos del RGPD y la reclamación ante la AEPD. HTML normal, sin PDF y sin pedir sesión. | [CÓDIGO] + [TÚ] revisa | Pendiente |
+| 0.1 | Política de privacidad publicada en `/privacidad.html`, con `Ferran Sanchís Armesto` y `help@takethecourt.com` rellenados. Tiene que nombrar la app, decir qué datos se recogen y para qué, con quién se comparten (proveedores: Google Firebase en la UE, GitHub, Cloudflare, STUN; desde el 24-nov-2026 three.js y las fuentes van en `vendor/` y ya no se nombran cdnjs ni Google Fonts), la IP que ve el rival en el online, los informes de red, cuánto se conserva cada cosa, cómo borrar la cuenta, los derechos del RGPD y la reclamación ante la AEPD. HTML normal, sin PDF y sin pedir sesión. | [CÓDIGO] + [TÚ] revisa | Pendiente |
 | 0.2 | Página de borrado en `/borrar-cuenta.html`: pasos dentro del juego, vía por correo sin la app, qué se borra y qué se conserva y cuánto tiempo. | [CÓDIGO] + [TÚ] | Pendiente |
 | 0.3 | Enlace a la política **dentro del juego** (Ajustes › Info o el panel de Cuenta). Play lo pide a las apps con cuentas. | [CÓDIGO] | Pendiente |
 | 0.4 | Arreglar el borrado incompleto (netlogs, salas, errores ignorados) o dejar escrito el plazo de conservación. Ver seguridad-datos.md §0. | [CÓDIGO] + [TÚ] decide | Pendiente |
 | 0.5 | Decidir sobre el id de dispositivo que sube en el perfil (declararlo o que no suba; js/profile.js:8 y :17). | [TÚ] decide | Hoy se declara (seguridad-datos.md §2.14) |
 | 0.6 | Recomendado: nombre visible por defecto anónimo, filtro básico de nombres y «Ocultar o denunciar nombre» (clasificacion.md §6). | [CÓDIGO] | Recomendado |
-| 0.7 | Recomendado: servir three.js y las fuentes desde takethecourt.com y añadir un service worker, para que la app abra sin red (ficha.md §5.1). Si no, Bubblewrap enseña su pantalla «sin conexión». | [CÓDIGO] | Opcional |
+| 0.7 | three.js y las fuentes servidas desde takethecourt.com (`vendor/`) y service worker (`sw.js`, `js/sw-reg.js`): la app abre y se juega sin red tras la primera visita (`notes/offline.md`, `node tools/offlinetest.js`). Tiene que estar publicado antes de mandar la ficha con «Juega sin conexión» (ficha.md §5.1). | [CÓDIGO] | Hecho (24-nov-2026), falta publicar |
 | 0.8 | `/.well-known/assetlinks.json`: está en `pages/.well-known/assetlinks.json` con el paquete y **dos huecos** para las huellas SHA-256 (se rellenan en la Fase 4). build-pages copia `pages/` entera con subcarpetas y escribe `.nojekyll`, así que sale en `_site/.well-known/` (lo comprueba `node tools/twatest.js`). Tras publicar, comprobar con `curl -i https://takethecourt.com/.well-known/assetlinks.json` que da 200, `application/json` y sin redirecciones. | [CÓDIGO] hecho · [TÚ] huellas | Falta rellenar las huellas |
 
 ---
@@ -118,7 +118,7 @@ Páginas web que se enlazan (las hace otra pista; tienen que estar publicadas an
 | El aviso «Instalar» de js/install.js **no** sale | Detecta `display-mode` fullscreen o standalone (js/install.js:26); sin comprobar en TWA. |
 | El aviso de versión nueva y «Reiniciar» (js/update.js) | Las actualizaciones del juego llegan por la web, sin subir otro AAB. |
 | Vibración, mando, compartir sala y enlace de la semana | APIs del dispositivo (inventario §F). |
-| Abrir sin red | Debe salir la pantalla sin conexión de Bubblewrap (o el juego, si se hizo 0.7). |
+| Abrir sin red | Tras abrirla una vez con red, en modo avión: arranca el juego y se juega (Partido rápido, Carrera). La primera vez sin red sale la pantalla sin conexión de Bubblewrap. |
 | Tamaños 360×640 vertical y 568×320 apaisado | Móvil primero: comprobar que nada se corta. |
 | Que el progreso de Chrome **no** pasa solo a la TWA | La TWA comparte el almacenamiento de Chrome para el origen, así que normalmente sí lo comparte; sin comprobar tras desinstalar. Contarlo bien en borrar-cuenta.html. |
 
@@ -249,5 +249,5 @@ La respuesta de Google suele tardar unos días (⚠ hasta 7 o más). Si la recha
 - ~~`/.well-known/assetlinks.json` en el build.~~ Hecho (24-nov-2026): `pages/.well-known/assetlinks.json` (con dos huecos para las huellas) y build-pages copia `pages/` con subcarpetas.
 - Borrado de los netlogs al borrar la cuenta (Cloud Function) o plazo de conservación. (Las salas ya se borran, 24-nov-2026.)
 - ~~Gráfico de funciones 1024×500 y capturas.~~ Hecho: `notes/playstore/graficos/`.
-- Recomendado: nombre visible anónimo, filtro y denuncia de nombres; fuentes y three.js propios y service worker.
+- Recomendado: nombre visible anónimo, filtro y denuncia de nombres; ~~fuentes y three.js propios y service worker~~ (hecho, 24-nov-2026: `notes/offline.md`).
 - ~~El proyecto de la TWA (`twa-manifest.json`), si se quiere tener en el repo (sin la clave).~~ Hecho (24-nov-2026): `android/`, ver android.md.

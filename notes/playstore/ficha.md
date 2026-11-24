@@ -19,7 +19,7 @@ Lo que va entre `{{ }}` lo rellena el responsable. No pongas aquí ningún corre
 | App o juego | **Juego** |
 | Gratis o de pago | **Gratis** (ojo: una app gratis ya no se puede pasar a de pago) |
 | Categoría | **Juegos › Deportes** (Sports) |
-| Etiquetas | Hasta 5 de la lista cerrada de la Consola. Propuesta, por orden: «Voleibol» si aparece (comprobar en la Consola), «Deportes», «Multijugador», «Un jugador» / «Sin conexión» solo si la Consola la ofrece y el juego carga sin red (ver la nota de §5), «Casual» o «Estilizado». Elegir solo las que encajen de verdad. |
+| Etiquetas | Hasta 5 de la lista cerrada de la Consola. Propuesta, por orden: «Voleibol» si aparece (comprobar en la Consola), «Deportes», «Multijugador», «Un jugador» / «Sin conexión» si la Consola la ofrece (el juego carga sin red desde la versión con service worker, ver la nota de §5), «Casual» o «Estilizado». Elegir solo las que encajen de verdad. |
 | Correo de contacto (obligatorio, público) | `help@takethecourt.com` |
 | Teléfono (opcional, público) | Vacío (recomendado) |
 | Sitio web | `https://takethecourt.com` |
@@ -54,7 +54,7 @@ Vóley 3D de playa y pista: 2 contra 2, 6 contra 6 y una Carrera de verdad.
 
 ### Descripción completa (máx. 4000)
 
-2.296 caracteres:
+2.316 caracteres:
 
 ```text
 Take the Court es un juego de vóley en 3D con estilo cartoon. Juega en la playa o en pabellón, con las reglas de verdad y partidos que se deciden en el último punto.
@@ -92,7 +92,7 @@ ONLINE (BETA)
 Juega 1 contra 1 con otra persona: cada una lleva a su jugador y la IA hace de pareja. Busca una sala abierta o entra con el código de un amigo. Elige la conexión Precisa o la Fluida. Para el online hace falta una cuenta gratuita.
 
 SIN ANUNCIOS NI COMPRAS
-No hay anuncios ni compras dentro del juego. Sin cuenta puedes jugar a todo menos al online. Con una cuenta opcional, tu progreso se guarda en la nube y sigues en otro dispositivo.
+No hay anuncios ni compras dentro del juego. Juega sin conexión: sin cuenta puedes jugar a todo menos al online. Con una cuenta opcional, tu progreso se guarda en la nube y sigues en otro dispositivo.
 
 Clubes, jugadores y patrocinadores son inventados.
 ```
@@ -121,7 +121,7 @@ Alternativa corta (14): `Take the Court`
 
 ### Full description (máx. 4000)
 
-2.232 caracteres:
+2.246 caracteres:
 
 ```text
 Take the Court is a cartoon-style 3D volleyball game. Play on the beach or indoors, with real rules and matches decided on the last point.
@@ -159,7 +159,7 @@ ONLINE (BETA)
 Play 1v1 against another person: each of you controls your own player, with the AI as your partner. Join an open room or enter a friend's code. Choose Precise or Smooth connection. Online play needs a free account.
 
 NO ADS, NO PURCHASES
-There are no ads and no in-game purchases. Without an account you can play everything except online. With an optional account, your progress is saved in the cloud and you can continue on another device.
+There are no ads and no in-game purchases. Play offline: without an account you can play everything except online. With an optional account, your progress is saved in the cloud and you can continue on another device.
 
 Clubs, players and sponsors are fictional.
 
@@ -188,11 +188,12 @@ Las capturas no pueden enseñar el nombre del responsable ni datos de cuentas re
 
 ## 5. Notas y avisos
 
-1. **«Sin conexión»**: el juego se juega sin cuenta, pero hoy **no carga sin red**: no hay service worker y three.js y las
-   fuentes vienen de cdnjs y Google Fonts (inventario, gap 12). Por eso la ficha dice «sin cuenta» y no «sin conexión». Si se
-   añade el service worker y se sirven three.js y las fuentes desde takethecourt.com, se puede cambiar la frase de §2 por:
-   «Juega sin conexión: sin cuenta puedes jugar a todo menos al online.» (y en inglés: «Play offline: without an account you
-   can play everything except online.»). No prometerlo antes: un revisor o una reseña lo pillan enseguida.
+1. **«Sin conexión»** (24-nov-2026, rama playstore): el juego ya carga y se juega sin red después de una visita con red:
+   three.js y las fuentes van en `vendor/` y hay service worker (`notes/offline.md`, probado con `node tools/offlinetest.js`).
+   Por eso §2 ya dice «Juega sin conexión: sin cuenta puedes jugar a todo menos al online.» / «Play offline: without an account
+   you can play everything except online.». **Solo vale cuando esté publicada en takethecourt.com la versión con el service
+   worker**: si se manda la ficha antes, volver a la frase anterior («Sin cuenta puedes jugar…» / «Without an account you can
+   play…», 2.296 y 2.232 caracteres). La primera vez que se abre la app hace falta red (para bajar el juego).
 2. **Online**: en 1.22.0 el online es solo 1 contra 1 (cada persona con su jugador y la IA de pareja; formato `2v2` en las
    reglas). El 2 contra 2 con cuatro personas y el 6 contra 6 online están en otra rama y **no están publicados**. Cuando se
    publiquen, cambiar el bloque «ONLINE (BETA)» por, por ejemplo: «Juega con otras personas: 1 contra 1, 2 contra 2 con cuatro

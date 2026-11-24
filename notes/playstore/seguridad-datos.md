@@ -53,7 +53,7 @@ se enciende el TURN), **hay que volver a revisar este formulario**.
 
 **Sí.**
 
-- Todo el tráfico con Firebase (Auth y Firestore), GitHub Pages, cdnjs y Google Fonts va por HTTPS (js/account.js:103 y :114).
+- Todo el tráfico con Firebase (Auth y Firestore) y GitHub Pages va por HTTPS (js/account.js:103 y :114). three.js y las fuentes salen del propio takethecourt.com (`vendor/`, desde el 24-nov-2026): ya no hay cdnjs ni Google Fonts.
 - El canal entre jugadores es WebRTC, que siempre cifra con DTLS/SRTP (js/netrtc.js).
 - Si un día se enciende el TURN, el Worker va por HTTPS y el tráfico retransmitido sigue cifrado con DTLS.
 

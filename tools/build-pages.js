@@ -18,6 +18,13 @@
  * resto de pages/ (https://takethecourt.com/privacidad.html y /borrar-cuenta.html). Llevan los huecos {{RESPONSABLE}} y
  * {{CONTACTO_EMAIL}} hasta que el dueño los rellene. Por defecto el build solo AVISA si faltan o si quedan huecos {{...}};
  * con STRICT_POLICY=1 FALLA (úsalo antes de mandar la ficha a Google Play: STRICT_POLICY=1 node tools/build-pages.js).
+ * pages/ se copia ENTERA y con subcarpetas (pages/.well-known/assetlinks.json → /.well-known/assetlinks.json para la TWA); el
+ * .nojekyll de _site hace que GitHub Pages sirva las carpetas que empiezan por punto.
+ * Sin red (24-nov-2026, notes/offline.md): three.js y las fuentes van en vendor/ (vendor/README.md) y se copian a _site/vendor; llevan
+ * ?v=<hash> como los js. Se genera _site/sw.js a partir de la plantilla sw.js con la lista de TODO lo que necesita el juego (index,
+ * js del index, vendor, woff2 de vendor/fonts/fonts.css, iconos, manifest, páginas legales) y el sha-256 de cada archivo; la caché
+ * se llama 'ttc-<VB.VERSION>-<hash de la lista>', así cada publicación estrena caché y el service worker borra las viejas. Lo
+ * registra js/sw-reg.js. Prueba: node tools/offlinetest.js.
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -101,7 +108,10 @@ const manifest = { id: './', name: 'Take the Court', short_name: 'Take the Court
 // con un index nuevo. El index.html sí puede tardar esos 10 min en renovarse; los js que referencia son siempre los suyos.
 const crypto = require('crypto');
 const ver = f => crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, 'js', f))).digest('hex').slice(0, 8);
-const htmlV = html.replace(/src="js\/([A-Za-z0-9_-]+\.js)"/g, (m, f) => 'src="js/' + f + '?v=' + ver(f) + '"');
+const hashOf = rel => crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, rel))).digest('hex').slice(0, 8);
+const htmlV = html.replace(/src="js\/([A-Za-z0-9_-]+\.js)"/g, (m, f) => 'src="js/' + f + '?v=' + ver(f) + '"')
+  .replace(/(src|href)="(vendor\/[A-Za-z0-9_\/.-]+\.(?:js|css))"/g, (m, a, f) => a + '="' + f + '?v=' + hashOf(f) + '"');
+if (/https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)/.test(htmlV)) fail('el index todavía pide three.js o las fuentes a otra web: tienen que ir en vendor/ (notes/offline.md)');
 const icons = (htmlV.match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["']/gi) || []).length;
 if (icons !== 1) fail('el index de Pages tiene ' + icons + ' rel="icon" (debe haber uno, icon.svg)');
 fs.rmSync(OUT, { recursive: true, force: true });
@@ -111,7 +121,38 @@ fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 if (CNAME) fs.writeFileSync(path.join(OUT, 'CNAME'), CNAME + '\n');   // (Pages por Actions lo ignora: ver la cabecera)
 fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
 fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ v: VERSION }));   // (js/update.js: aviso de versión nueva en los móviles con una anterior)
-for (const f of fs.readdirSync(path.join(ROOT, 'pages'))) fs.copyFileSync(path.join(ROOT, 'pages', f), path.join(OUT, f)); // iconos y og.png
+fs.cpSync(path.join(ROOT, 'pages'), OUT, { recursive: true }); // iconos, og.png, páginas legales y .well-known/ (con subcarpetas)
+if (fs.existsSync(path.join(ROOT, 'vendor'))) fs.cpSync(path.join(ROOT, 'vendor'), path.join(OUT, 'vendor'), { recursive: true, filter: f => !/README\.md$/i.test(f) }); // three.js, fuentes y sus licencias
 for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (f.endsWith('.js')) fs.copyFileSync(path.join(ROOT, 'js', f), path.join(OUT, 'js', f));
+// ---- service worker (sw.js): lista de lo que hace falta para jugar sin red, con el sha-256 de cada archivo
+// (las copias mínimas de abouttest/policytest no llevan la plantilla sw.js: entonces no hay service worker y se avisa)
+const swTplFile = path.join(ROOT, 'sw.js'), hasSw = fs.existsSync(swTplFile);
+let swCfg = null, preBytes = 0;
+if (hasSw) {
+  const sha256 = rel => crypto.createHash('sha256').update(fs.readFileSync(path.join(OUT, rel.split('?')[0]))).digest('hex');
+  const pre = new Map();
+  const addPre = (u, page) => { if (!pre.has(u)) { if (!fs.existsSync(path.join(OUT, u.split('?')[0]))) fail('sw: falta ' + u + ' en ' + OUT); pre.set(u, Object.assign({ u, h: sha256(u) }, page ? { page: 1 } : {})); } };
+  addPre('index.html', true);
+  for (const f of POLICY_PAGES) if (fs.existsSync(path.join(OUT, f))) addPre(f, true);
+  for (const mm of htmlV.matchAll(/\b(?:src|href)="((?:js|vendor)\/[^"#]+)"/g)) addPre(mm[1]);
+  for (const mm of htmlV.matchAll(/<link\b[^>]*\bhref="([A-Za-z0-9_.-]+\.(?:svg|png|webmanifest))"/g)) addPre(mm[1]);
+  for (const ic of manifest.icons) addPre(ic.src);
+  for (const css of [...pre.keys()].filter(u => /\.css(\?|$)/.test(u))) {
+    const dir = path.posix.dirname(css.split('?')[0]);
+    for (const mm of fs.readFileSync(path.join(OUT, css.split('?')[0]), 'utf8').matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)) {
+      if (/^(data:|https?:|\/)/.test(mm[1])) fail('sw: ' + css + ' pide ' + mm[1] + ' (solo rutas relativas de vendor/)');
+      addPre(path.posix.join(dir, mm[1]));
+    }
+  }
+  const preList = [...pre.values()];
+  const SWHASH = crypto.createHash('sha256').update(preList.map(f => f.u + ' ' + f.h).join('\n')).digest('hex').slice(0, 10);
+  swCfg = { v: VERSION, hash: SWHASH, cache: 'ttc-' + VERSION + '-' + SWHASH, files: preList };
+  const swTpl = fs.readFileSync(swTplFile, 'utf8');
+  if (!swTpl.includes('var VB_SW = null; /*@@VB_SW@@*/')) fail('sw.js sin la línea «var VB_SW = null; /*@@VB_SW@@*/»');
+  fs.writeFileSync(path.join(OUT, 'sw.js'), swTpl.replace('var VB_SW = null; /*@@VB_SW@@*/', () => 'var VB_SW = ' + JSON.stringify(swCfg) + ';'));
+  preBytes = preList.reduce((n, f) => n + fs.statSync(path.join(OUT, f.u.split('?')[0])).size, 0);
+}
 if (policyNotes.length) console.log('build-pages: aviso (páginas legales): ' + policyNotes.join('; ') + '. Con STRICT_POLICY=1 el build fallaría.');
 console.log('Pages listo en ' + OUT + ' (' + fs.readdirSync(path.join(OUT, 'js')).length + ' scripts, v' + VERSION + (SHA ? ' ' + SHA : '') + ', ' + BASE + (CNAME ? ', CNAME ' + CNAME : '') + ')');
+if (!hasSw) console.log('build-pages: aviso: no hay plantilla sw.js, la web sale SIN service worker (no se podrá jugar sin red)');
+else console.log('sw.js: caché ' + swCfg.cache + ', ' + swCfg.files.length + ' archivos para jugar sin red (' + (preBytes / 1048576).toFixed(2) + ' MB)');
