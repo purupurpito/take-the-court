@@ -304,6 +304,27 @@ function measure(o) {
   res.targets.nTight = res.targets.tight.length; res.targets.nOverlap = res.targets.overlap.length;
 
   // ---------------- (c) recortes: elipsis, line-clamp, overflow oculto con texto, y fuera del viewport
+  // (ronda 2, §8.3) permitidos = los que tienen un antepasado con data-trunc="name" (nombre propio largo en una lista, la ficha a un toque)
+  // o data-trunc="preview" (vista previa cortada por palabra, SP.cutWords): van aparte (res.clippedOk); los demás cuentan como recorte y
+  // se apuntan con el texto ENTERO (res.clipped[].full). Recorte 'o' = contenedor con overflow hidden/clip cuyo hijo con texto (o tabla)
+  // se sale de él (columna Nota de una tabla, chips «Caducan al j»): el texto del hijo cortado.
+  function fullTxt(e) { return String(e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 200); }
+  function truncOk(e) { var a = e.closest && e.closest('[data-trunc]'); return !!a && /^(name|preview)$/.test(a.getAttribute('data-trunc')); }
+  res.clippedOk = []; res.nClippedOk = 0;
+  var clipSeen = new Set();
+  function addClip(e, kind, extra) {
+    if (clipSeen.has(e)) return false; clipSeen.add(e);
+    var it = Object.assign({ s: sel(e), kind: kind, t: txt(e), full: fullTxt(e), sw: e.scrollWidth, cw: e.clientWidth, sh: e.scrollHeight, ch: e.clientHeight }, extra || {});
+    if (truncOk(e)) { res.nClippedOk++; if (res.clippedOk.length < 30) res.clippedOk.push(it); return false; }
+    nClip++; if (kind === 'o') res.nClipO = (res.nClipO || 0) + 1; if (res.clipped.length < 30) res.clipped.push(it);   // (nClipO: los 'o', para comparar con pasadas viejas sin ellos)
+    return true;
+  }
+  function xMute(e, cs) {
+    if (!/auto|scroll/.test(cs.overflowX) || e.scrollWidth <= e.clientWidth + 2) return false;
+    if (e.classList.contains('sp-more-x') || e.matches('.tb-row,.pv-strip,.sp-tabs-strip,.sp-tabs-strip *,.sp-tbl,.sp-tbl-full') || e.closest('.sp-sheet .sp-tbl-full')) return false;
+    var mk = cs.maskImage && cs.maskImage !== 'none' ? cs.maskImage : cs.webkitMaskImage && cs.webkitMaskImage !== 'none' ? cs.webkitMaskImage : '';
+    return !mk;
+  }
   var els = document.body.getElementsByTagName('*'), nClip = 0;
   for (var k2 = 0; k2 < els.length; k2++) {
     var e2 = els[k2];
@@ -319,9 +340,32 @@ function measure(o) {
     if (cs2.textOverflow === 'ellipsis' && e2.scrollWidth > e2.clientWidth + 1) kind = 'ellipsis';
     else if (cs2.webkitLineClamp && cs2.webkitLineClamp !== 'none' && e2.scrollHeight > e2.clientHeight + 1) kind = 'line-clamp';
     else if (ownTxt && /hidden|clip/.test(cs2.overflowX + cs2.overflowY) && (e2.scrollWidth > e2.clientWidth + 2 || e2.scrollHeight > e2.clientHeight + 3) && cs2.display !== 'inline') kind = 'overflow';
-    if (kind) { nClip++; if (res.clipped.length < 30) res.clipped.push({ s: sel(e2), kind: kind, t: txt(e2), sw: e2.scrollWidth, cw: e2.clientWidth, sh: e2.scrollHeight, ch: e2.clientHeight }); }
-    // (móvil, spec §6.1.3) elipsis que corta información: todas menos la ayuda de una fila (.sp-lrow .sp-s) y [data-ph-ell]
-    if (kind === 'ellipsis' && !(e2.closest('.sp-s') && e2.closest('.sp-lrow')) && !e2.closest('[data-ph-ell]')) { res.nEllBad = (res.nEllBad || 0) + 1; if ((res.ellBad = res.ellBad || []).length < 15) res.ellBad.push({ s: sel(e2), t: txt(e2) }); }
+    if (kind) addClip(e2, kind);
+    // (ronda 2) recorte 'o': overflow hidden/clip sin texto propio pero con hijos de texto (o una tabla) que se salen de la caja; o una fila que
+    // se desplaza de lado SIN señal de que hay más (sin desvanecido .sp-more-x ni máscara; no las tiras de pestañas): «Caducan al j» de cesiones
+    else if (!ownTxt && (/hidden|clip/.test(cs2.overflowX + cs2.overflowY) ? (e2.scrollWidth > e2.clientWidth + 2 || e2.scrollHeight > e2.clientHeight + 2) : xMute(e2, cs2)) && cs2.display !== 'inline') {
+      var cr = e2.getBoundingClientRect(), bl = parseFloat(cs2.borderLeftWidth) || 0, bt = parseFloat(cs2.borderTopWidth) || 0;
+      var box = { l: cr.left + bl, t: cr.top + bt, r: cr.left + bl + e2.clientWidth, b: cr.top + bt + e2.clientHeight };
+      var hx = /hidden|clip|auto|scroll/.test(cs2.overflowX), hy = /hidden|clip/.test(cs2.overflowY);
+      var tw2 = document.createTreeWalker(e2, NodeFilter.SHOW_TEXT, null), tn, cut = null;
+      while (!cut && (tn = tw2.nextNode())) {
+        if (!tn.nodeValue.trim()) continue;
+        var tp = tn.parentElement; if (!tp || tp === e2 || tp.closest(SKIP) || !cvis(tp) || clipSeen.has(tp) || tp.closest('[role=tab],.tab')) continue;   // (las pestañas de una tira asoman en el borde a propósito)
+        var ct = getComputedStyle(tp), selfCut = tp.scrollWidth > tp.clientWidth + 1 || tp.scrollHeight > tp.clientHeight + 2;
+        if (selfCut && (ct.textOverflow === 'ellipsis' || (ct.webkitLineClamp && ct.webkitLineClamp !== 'none') || /hidden|clip/.test(ct.overflowX + ct.overflowY))) continue;   // (se recorta él mismo: se mide él solo)
+        // (dentro de un desplazable propio, no es recorte: se llega desplazando)
+        var inS = false; for (var q2 = tp; q2 && q2 !== e2; q2 = q2.parentElement) { var cq = getComputedStyle(q2); if (/auto|scroll/.test(cq.overflowX + cq.overflowY)) { inS = true; break; } if (q2 !== tp && /hidden|clip/.test(cq.overflowX + cq.overflowY)) { inS = true; break; } }
+        if (inS) continue;
+        var rg = document.createRange(); rg.selectNodeContents(tn); var tr2 = rg.getBoundingClientRect(); if (tr2.width < 1 || tr2.height < 1) continue;
+        var outX = hx && (tr2.right > box.r + 2 || tr2.left < box.l - 2), outY = hy && (tr2.bottom > box.b + 2 || tr2.top < box.t - 2);
+        // (fuera del todo = otro problema —«fuera»—; aquí, lo que asoma a medias o se corta en el borde)
+        var inter = tr2.right > box.l && tr2.left < box.r && tr2.bottom > box.t && tr2.top < box.b;
+        if ((outX || outY) && (inter || e2.querySelector('table'))) cut = tp;
+      }
+      if (cut) addClip(cut, 'o', { box: sel(e2) });
+    }
+    // (móvil, spec §6.1.3) elipsis que corta información: todas menos la ayuda de una fila (.sp-lrow .sp-s), [data-ph-ell] y data-trunc
+    if (kind === 'ellipsis' && !(e2.closest('.sp-s') && e2.closest('.sp-lrow')) && !e2.closest('[data-ph-ell]') && !truncOk(e2)) { res.nEllBad = (res.nEllBad || 0) + 1; if ((res.ellBad = res.ellBad || []).length < 15) res.ellBad.push({ s: sel(e2), t: txt(e2) }); }
     // fuera del viewport (texto u objetivo) sin un contenedor que se desplace para llegar
     if ((ownTxt || cand.has(e2)) && (r2.right > W + 1 || r2.bottom > H + 1 || r2.left < -1 || r2.top < -1)) {
       var inScroll = false;
@@ -388,6 +432,36 @@ function measure(o) {
     var ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left), oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
     if (ox > 2 && oy > 2) { res.rot.n++; if (res.rot.list.length < 10) res.rot.list.push({ a: sel(ea), b: sel(eb), area: Math.round(ox * oy) }); }
   }
+  // (ronda 2) «pisados»: rótulos de texto NO tocables que se montan unos sobre otros dentro del mismo panel (Ataque/Bloqueo/Saque de Cifras
+  // a 568): por el núcleo de cada línea de texto (getClientRects del rango), entre elementos sin parentesco, con más de 3×3 px y 24 px² en común
+  res.pis = { n: 0, list: [] };
+  var PG0 = new Map(), TGT = EXPL + ',.sp-btn,.sp-tab,.tab,label';
+  seenEl.forEach(function (rec, pe) {
+    if (rec.scroll || pe.closest(TGT)) return;
+    var L = [];
+    for (var cn = pe.firstChild; cn; cn = cn.nextSibling) {
+      if (cn.nodeType !== 3 || !cn.nodeValue.trim()) continue;
+      rng.selectNodeContents(cn); var rs0 = rng.getClientRects();
+      // (el núcleo de la línea: el 56 % del centro; la caja entera de las letras de rótulo, con interlineado < 1, siempre roza la de arriba)
+      for (var ri0 = 0; ri0 < rs0.length; ri0++) { var q0 = rs0[ri0]; if (q0.width >= 2 && q0.height >= 2) { var ins = q0.height * 0.22; L.push({ left: q0.left, right: q0.right, top: q0.top + ins, bottom: q0.bottom - ins }); } }
+    }
+    if (!L.length) return;
+    var grp = pe.closest('.sp-panel,.sp-sheet,#panel,.card,[role=dialog],section,#end,#pause,#menu,#career') || document.body;
+    if (!PG0.has(grp)) PG0.set(grp, []);
+    PG0.get(grp).push({ e: pe, r: L });
+  });
+  PG0.forEach(function (arr) {
+    if (arr.length > 400) arr = arr.slice(0, 400);
+    for (var pi = 0; pi < arr.length; pi++) for (var pj = pi + 1; pj < arr.length; pj++) {
+      var A1 = arr[pi], B1 = arr[pj]; if (related(A1.e, B1.e)) continue;
+      var hitP = 0;
+      for (var a1 = 0; a1 < A1.r.length && !hitP; a1++) for (var b1 = 0; b1 < B1.r.length && !hitP; b1++) {
+        var ra1 = A1.r[a1], rb1 = B1.r[b1], ox1 = Math.min(ra1.right, rb1.right) - Math.max(ra1.left, rb1.left), oy1 = Math.min(ra1.bottom, rb1.bottom) - Math.max(ra1.top, rb1.top);
+        if (ox1 > 3 && oy1 > 3 && ox1 * oy1 > 24) hitP = Math.round(ox1 * oy1);
+      }
+      if (hitP) { res.pis.n++; if (res.pis.list.length < 12) res.pis.list.push({ a: sel(A1.e), at: txt(A1.e), b: sel(B1.e), bt: txt(B1.e), area: hitP }); }
+    }
+  });
   // (móvil, spec §6.1.6, solo aviso) alcance: la acción principal abajo a la derecha (x > 50 %, y > 55 %)
   if (res.primary && res.primary.r) { var pr = res.primary.r; res.reach = (pr.x + pr.w / 2) > W * 0.5 && (pr.y + pr.h / 2) > H * 0.55; }
   return res;
@@ -406,6 +480,74 @@ function scrollAll() {
   return n;
 }
 
+/** (ronda 2, §8.3) «tapado por el pie»: tras llevar cada zona al final (scrollAll), texto visible que sigue debajo de (i) algo opaco fijo
+ *  de la parte de abajo que no es de su zona (dock, .pv-tabbar, barra de acciones; no capas a pantalla completa ni velos) o (ii) el
+ *  desvanecido de fin de scroll de su zona (.sp-more que ya no puede bajar más: overflow oculto o al final). Devuelve {n, list}. */
+function footCover() {
+  var W = innerWidth, H = innerHeight, out = { n: 0, list: [] };
+  var SKIP = 'svg,script,style,noscript,template,canvas,.sr,.sr-only,.visually-hidden,#fps,#srLive,#offArrow';
+  function cvis(e) { return !e.checkVisibility || e.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }); }
+  function related(a, b) { return a === b || a.contains(b) || b.contains(a); }
+  function sel(e) { var s = e.tagName.toLowerCase(); if (e.id) return s + '#' + e.id; var c = [].slice.call(e.classList || []).slice(0, 2); return s + (c.length ? '.' + c.join('.') : ''); }
+  function seeThrough(e) {
+    if (/^(CANVAS|IMG|VIDEO|svg|SVG|PATH)$/.test(e.tagName)) return false;
+    var cs = getComputedStyle(e); if (+cs.opacity < 0.15) return true;
+    var bg = cs.backgroundColor, tr = !bg || bg === 'transparent' || /rgba\(.*,\s*0(\.0*)?\)$/.test(bg);
+    return tr && cs.backgroundImage === 'none' && cs.borderTopWidth === '0px' && cs.boxShadow === 'none' && (cs.backdropFilter || 'none') === 'none' && !cs.maskImage;
+  }
+  function zoneOf(e) {
+    for (var p = e.parentElement; p && p !== document.body; p = p.parentElement) { var cs = getComputedStyle(p); if (/auto|scroll/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 2) return p; }   // (la que se desplaza en vertical de verdad)
+    return null;
+  }
+  var pe0 = document.createElement('style'); pe0.textContent = '*,*::before,*::after{pointer-events:auto!important}'; document.head.appendChild(pe0);
+  // ¿la zona está delante? (su borde de arriba no lo tapa nada opaco que no sea suyo)
+  var fgC = new Map();
+  function fg(z) {
+    if (fgC.has(z)) return fgC.get(z);
+    var zr = z.getBoundingClientRect(), x = Math.min(W - 1, Math.max(0, zr.left + zr.width / 2)), y = Math.min(H - 1, Math.max(0, zr.top + Math.min(12, zr.height / 2))), ok = true;
+    var st = document.elementsFromPoint(x, y);
+    for (var i = 0; i < st.length; i++) { var h = st[i]; if (h === document.documentElement || h === document.body) break; if (related(h, z)) break; if (!seeThrough(h)) { ok = false; break; } }
+    fgC.set(z, ok); return ok;
+  }
+  var seen = new Set(), tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), n, rg = document.createRange();
+  while ((n = tw.nextNode())) {
+    var t = n.nodeValue.replace(/\s+/g, ' ').trim(); if (!t) continue;
+    var pe = n.parentElement; if (!pe || seen.has(pe) || pe.closest(SKIP) || pe.closest('[inert],[aria-hidden="true"]') || !cvis(pe)) continue;
+    rg.selectNodeContents(n); var r = rg.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+    if (r.bottom <= 0 || r.top >= H || r.right <= 0 || r.left >= W) continue;
+    seen.add(pe);
+    var z = zoneOf(pe), zr0 = z ? z.getBoundingClientRect() : { top: 0, bottom: H }, zr = { top: Math.max(0, zr0.top), bottom: Math.min(H, zr0.bottom) }; zr.height = Math.max(1, zr.bottom - zr.top);   // (lo que se ve de la zona)
+    if (r.top >= zr.bottom - 1 || r.bottom <= zr.top + 1) continue;   // (fuera de su zona: no se ve, no lo tapa nada)
+    var cx = Math.min(W - 1, Math.max(0, r.left + Math.min(r.width, 24) / 2)), cy = Math.min(H - 1, Math.max(0, Math.min(r.top + r.height / 2, zr.bottom - 2)));
+    var st = document.elementsFromPoint(cx, cy), by = null;
+    for (var i = 0; i < st.length; i++) {
+      var h = st[i]; if (h === document.documentElement || h === document.body) break;
+      if (related(h, pe)) break;
+      if (!seeThrough(h)) { by = h; break; }
+    }
+    var why = '';
+    // (solo contenido de una zona que se desplaza y que está delante: lo de debajo de un menú, un aviso o el HUD del partido no cuenta)
+    if (by && z && fg(z) && !z.contains(by) && !related(by, z) && !by.matches('.sp-catch,.pv-veil') && !by.closest('#spSheets,#rotate')) {
+      var br = by.getBoundingClientRect();
+      if (br.height < H * 0.6 && br.top >= zr.top + zr.height * 0.4 && r.top >= zr.top + zr.height * 0.4) why = 'pie';   // (abajo de lo que se ve; lo que pasa por debajo de una cabecera pegada arriba, al desplazar, no)
+    }
+    // (ii) desvanecido de fin de scroll que ya no se puede apartar
+    var fa = pe.closest('.sp-more,.more');   // (.more: la hoja final, ui.js endMore)
+    if (!why && fa && fg(fa)) {
+      var fcs = getComputedStyle(fa), canDown = /auto|scroll/.test(fcs.overflowY) && fa.scrollTop + fa.clientHeight < fa.scrollHeight - 2;
+      if (!canDown) {
+        var aft = getComputedStyle(fa, '::after'), mk = fcs.maskImage && fcs.maskImage !== 'none' ? fcs.maskImage : fcs.webkitMaskImage && fcs.webkitMaskImage !== 'none' ? fcs.webkitMaskImage : '';
+        var mm = /calc\(100% - ([\d.]+)px\)/.exec(mk), fh = aft.content && aft.content !== 'none' && aft.content !== 'normal' ? parseFloat(aft.height) || 0 : mk ? (mm ? +mm[1] : 24) : 0;
+        var fr = fa.getBoundingClientRect(), fb = fr.top + (parseFloat(fcs.borderTopWidth) || 0) + fa.clientHeight;
+        if (fh > 0 && r.bottom > fb - fh + 2 && r.top < fb) { why = 'fade'; by = fa; }
+      }
+    }
+    if (why) { out.n++; if (out.list.length < 15) out.list.push({ s: sel(pe), t: t.slice(0, 60), why: why, by: by ? sel(by) : '' }); }
+  }
+  document.head.removeChild(pe0);
+  return out;
+}
+
 // (espejo de scrollAll) todo lo desplazable vuelve al principio antes de abrir la siguiente pantalla
 function resetScroll() {
   var n = 0, all = document.body.getElementsByTagName('*');
@@ -417,4 +559,4 @@ function resetScroll() {
   return n;
 }
 
-module.exports = { helpers: helpers, measure: measure, scrollAll: scrollAll, resetScroll: resetScroll };
+module.exports = { helpers: helpers, measure: measure, scrollAll: scrollAll, resetScroll: resetScroll, footCover: footCover };

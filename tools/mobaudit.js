@@ -13,14 +13,20 @@
  *   no se dan --sizes), DPR=2 (deviceScaleFactor), TOUCH=0 (sin táctil en los tamaños de móvil), GL=swiftshader.
  * Cómo se abre cada pantalla: tabla SCREENS de abajo. Cada fila = {id, area, q (query de index.html; las filas con la misma q
  *   comparten una carga de página, en orden), open (cuerpo JS async en la página; M = window.__MA, ver mobaudit-page.js
- *   helpers(); devolver false = «no se pudo abrir»), wait (ms tras abrir), exit / primary (selectores; '' = no aplica)}.
+ *   helpers(); devolver false = «no se pudo abrir»), wait (ms tras abrir), exit / primary (selectores; '' = no aplica), land (ronda 2:
+ *   en vertical se abre apaisado y se gira después: filas que esperan algo del partido en juego, que en vertical se para)}.
  *   Todas las cargas llevan &ma_clean=1 (borra localStorage antes de cargar: sin Carrera ni récord) y &uianim=0.
  *   Estado fijado entre pantallas (movil-aire, 23-nov-2026): zurdos solo en las filas «-zurdos»; Mensajes abre Bandeja; Liga › Clubes,
  *   la lista. Columna «rot» = rótulos no tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar). El interruptor
  *   de fitSeg se mide por su fila (.ph-trow) y la flecha del final de un selector (.arr.end) cuenta como desactivada.
  * Vertical (ronda 2, 24-nov-2026; --sizes 360x740,390x844,412x915): tier = html.pv sin .ph; si una carga no acaba en vertical (el
- *   partido en juego: ctx.portraitBlock detiene la simulación) se carga apaisado y se gira. El aviso de girar del partido en juego se
- *   mide tal cual («girar (partido)»); el de fuera del juego (Carrera, crPortrait) se aparta para medir lo de debajo («girar»).
+ *   partido en juego: ctx.portraitBlock detiene la simulación) se carga apaisado y se gira. Columna «girar»: las pantallas que enseñan
+ *   el aviso #rotate («girar (partido)» = partido en juego, lo esperado; «girar» = fuera del juego, a quitar). La Carrera ya no lo pide.
+ * Ronda 2 (paquete sistema-v, notes/movil-aire.md §8.6.1): recortes «permitidos» aparte (antepasado data-trunc="name"|"preview"; columna
+ *   perm); los demás, con su texto entero al final de summary.txt; recorte 'o' (overflow oculto con un hijo de texto o una tabla que se
+ *   sale); «pie» = texto tapado por el pie (dock, barra, desvanecido) con todo desplazado al final (mobaudit-page.js footCover); «pis» =
+ *   rótulos de texto no tocables que se pisan dentro de un panel. Antes de cada pantalla de la Carrera que no es de lesión se cura la
+ *   lesión de la muestra (si no, la natl-tarjeta, las Estrellas o la propuesta de puesto salían «De baja» por la fila anterior).
  * Comparar dos pasadas: node tools/mobcompare.js <antes> <después> [salida.html].
  */
 'use strict';
@@ -40,8 +46,10 @@ for (let i = 0; i < argv.length; i++) {
 const OUT = path.resolve(A.out || path.join(CDP.ROOT, 'tools', 'out', 'mobaudit'));
 const PHONES = '568x320,667x375,740x360,844x390,915x412', DESKS = '1280x720,1920x1080,1024x768';
 const DESK = A.desktop || process.env.DESKTOP === '1';
-let sizeList = (A.sizes || process.env.SIZES || (A.desktop ? '' : PHONES)).split(',').filter(Boolean).map(s => ({ s, touch: process.env.TOUCH !== '0' }));
-if (DESK) sizeList = sizeList.concat(DESKS.split(',').map(s => ({ s, touch: false })));
+// (ronda 2) --desktop --sizes a,b: esos tamaños SIN táctil y solo ellos (antes se medían dos veces: con táctil y luego sin él)
+const DESK_ONLY = !!A.desktop && !!(A.sizes || process.env.SIZES);
+let sizeList = (A.sizes || process.env.SIZES || (A.desktop ? '' : PHONES)).split(',').filter(Boolean).map(s => ({ s, touch: !DESK_ONLY && process.env.TOUCH !== '0' }));
+if (DESK && !DESK_ONLY) sizeList = sizeList.concat(DESKS.split(',').map(s => ({ s, touch: false })));
 const DPR = +process.env.DPR || 1;
 const ONLY = A.only ? new RegExp(A.only, 'i') : null;
 const AREA = A.area || '';
@@ -69,6 +77,8 @@ const XO = (sid, m, id, k, t, s) => { const r = XR(sid, m, id, k, t, s); r.q += 
 // Estrellas en Partido: la tarjeta queda bajo la cabecera del hub; se espera a que esté y se baja hasta ella
 const XAS = r => Object.assign(r, { open: r.open.replace(/return (M\.career\([^)]*\));$/, "await $1; var e = await M.until(()=>document.querySelector('#career .as-card'),2000) && document.querySelector('#career .as-card'); if (!e) return false; e.scrollIntoView({block:'center'}); return true;") });
 const PAUSE_EXIT = '#btnResume';
+// (ronda 2) cura la lesión de las dos Carreras de muestra (playa y pista) sin cambiar nada más; deja el modo como estaba
+const HEAL = "(function(){try{var C=VB.Career;if(!C||!C.get||!C.setMode)return 0;var m0=C.mode?C.mode():null,n=0;['beach','hall'].forEach(function(m){if(C.has&&!C.has(m))return;C.setMode(m);var c=C.get();if(!c)return;var ch=false;if(c.inj&&c.inj.cur){c.inj.cur=null;c.inj.back=0;c.inj.rust=0;ch=true;}if(c.last&&c.last.inj){delete c.last.inj;ch=true;}if(ch){C.save(c);n++;}});if(m0)C.setMode(m0);return n;}catch(e){return -1}})()";
 const HUD_EXIT = '#btnHudPause, #touch .vt-pause';   // (táctil: la pausa es la del overlay)
 
 const SCREENS = [
@@ -196,8 +206,8 @@ const SCREENS = [
   { id: 'carrera-previa', area: 'carrera', q: 'debug=intro&kind=long&career=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
   // árbitros con nombre (21-nov-2026): la designación en la previa larga y la ficha «Frenar a … / Dejarle» (playa y pista)
   { id: 'carrera-previa-arbitro', area: 'carrera', q: 'debug=intro&kind=long&career=1&arb=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
-  { id: 'partido-frenar-playa', area: 'partido', q: 'debug=amb&k=brake', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
-  { id: 'partido-frenar-pista', area: 'partido', q: 'debug=amb&k=brake&format=6v6', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
+  { id: 'partido-frenar-playa', area: 'partido', q: 'debug=amb&k=brake', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '', land: true },
+  { id: 'partido-frenar-pista', area: 'partido', q: 'debug=amb&k=brake&format=6v6', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '', land: true },
 
   // ---------------- PARTIDO
   { id: 'hud-2v2', area: 'partido', q: 'debug=hud', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 1200, exit: HUD_EXIT, primary: '' },
@@ -300,17 +310,19 @@ async function main() {
             try { await page.evalJs('(' + PG.resetScroll.toString() + ')()'); await sleep(80); } catch (e) { }
             // (movil-aire §3.13) zurdos solo en las filas «-zurdos»: hud-2v2-peloteo heredaba el espejo de hud-2v2-zurdos (misma carga)
             if (!/zurdos/.test(s.id)) { try { await page.evalJs("try{if(VB.ctx&&VB.ctx.settings&&VB.ctx.settings.touchMirror===true)VB.ctx.actions.setSetting('touchMirror',false)}catch(e){}"); } catch (e) { } }
+            // (ronda 2) la lesión de la muestra (filas «-lesion» y «-partido-baja») no pasa a las demás pantallas de la Carrera de la misma carga
+            if (s.area === 'carrera' && !/lesion|partido-baja/.test(s.id)) { try { await page.evalJs(HEAL); } catch (e) { } }
+            // (ronda 2) land: en vertical el partido en juego se para (portraitBlock) y lo que espera la fila no llega: se abre apaisado y se gira
+            const [lw, lh] = sz.split('x').map(Number), landNow = !!s.land && lh > lw;
+            if (landNow) { await page.setSize(lh + 'x' + lw, prof.touch, DPR); await sleep(350); }
             try {
               const r = await withTimeout(page.evalJs('(async()=>{const M=window.__MA;' + s.open + '})()', true), s.openMs || 20000, s.id);   // (openMs: filas que tardan en abrir, p. ej. la ficha de una disputa)
               ok = r !== false && r !== null && r !== 0;
               if (!ok) err = 'no se pudo abrir';
             } catch (e) { err = 'no se pudo abrir: ' + String(e.message || e).split('\n')[0].slice(0, 160); }
             await sleep(s.wait || 220);
-            // (ronda 2) aviso de girar FUERA del partido en juego (la Carrera en vertical, crPortrait de ui.js): se aparta para medir y
-            // capturar lo que hay debajo, y la fila lo apunta («girar»); el del partido en juego (ctx.portraitBlock) se deja y se mide tal cual
-            let rotHidden = false;
-            try { rotHidden = await page.evalJs("(function(){var st=document.getElementById('__maRot'); if(st) st.remove(); var r=document.getElementById('rotate'); var on=!!(r&&!r.hidden&&r.getClientRects().length)&&!(VB.ctx&&VB.ctx.portraitBlock); if(on){st=document.createElement('style'); st.id='__maRot'; st.textContent='#rotate{display:none!important}'; document.head.appendChild(st);} return on;})()"); } catch (e) { }
-            if (rotHidden) await sleep(120);
+            if (landNow) { await page.setSize(sz, prof.touch, DPR); await sleep(450); }
+            // (ronda 2, sistema-v: la Carrera ya no pide girar —fuera crPortrait de ui.js—; el aviso #rotate se mide tal cual: columna «girar»)
             const file = path.join(OUT, sz, s.id + '.png');
             let m = null;
             try { m = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id); }
@@ -325,10 +337,11 @@ async function main() {
                   const m2 = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id);
                   m.afterScroll = { n: nS, exit: m2.exit, primary: m2.primary };
                 }
+                // (ronda 2) tapado por el pie: lo que, con todo al final, sigue debajo del dock, la barra o el desvanecido
+                m.foot = await withTimeout(page.evalJs('(' + PG.footCover.toString() + ')()'), 20000, 'pie ' + s.id);
               } catch (e) { }
             }
             if (!m) m = { err: err || 'sin métricas' };
-            if (rotHidden) { m.rotate = true; m.rotateGame = false; m.rotateHidden = true; }
             // (ronda 2) tier por orientación: escritorio sin .ph ni .pv; móvil apaisado .ph; móvil en vertical (táctil, ancho <= 500) .pv y sin .ph
             if (m.tier) { const [tw, th] = sz.split('x').map(Number), desk = DESKS.split(',').includes(sz), port = th > tw;
               m.tierOk = desk ? (!m.tier.ph && !m.tier.pv) : port ? (prof.touch && tw <= 500 ? m.tier.pv && !m.tier.ph : !m.tier.ph) : m.tier.ph; }
@@ -360,25 +373,40 @@ async function main() {
     // (ronda 2) aviso de girar en algún tamaño: «girar (partido)» = en juego, lo esperado; «girar» = fuera del juego, a quitar
     const rotate = Object.values(bs).some(x => x.rotate) ? (Object.values(bs).every(x => !x.rotate || x.rotateGame) ? 'girar (partido)' : 'girar') : '';
     const rot = Math.max(0, ...Object.values(bs).map(x => x.rot ? x.rot.n : 0));   // (movil-aire: rótulos no tocables que se solapan)
+    // (ronda 2) recortes permitidos (data-trunc), tapado por el pie y rótulos de texto pisados: el máximo de los tamaños
+    const perm = Math.max(0, ...Object.values(bs).map(x => x.nClippedOk || 0)), foot = Math.max(0, ...Object.values(bs).map(x => x.foot ? x.foot.n : 0)), pis = Math.max(0, ...Object.values(bs).map(x => x.pis ? x.pis.n : 0));
     sc.summary = { worst, score: ws, minFont: minF === 99 ? null : minF, n12: m.fonts ? m.fonts.n12 : null, n14: m.fonts ? m.fonts.n14 : null, smallT: m.targets ? m.targets.nSmall : null,
-      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, rot, rotate, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
+      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, rot, perm, foot, pis, rotate, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
     rows.push([id, sc.area, sc.summary]);
   }
   fs.writeFileSync(path.join(OUT, 'metrics.json'), JSON.stringify(metrics, null, 1));
-  const head = 'pantalla'.padEnd(36) + ' área     peor       letraMin  <12  <14  toq<44 solap enorme recort fuera salida princ tier despl elip pest  rot';
+  const head = 'pantalla'.padEnd(36) + ' área     peor       letraMin  <12  <14  toq<44 solap enorme recort fuera salida princ tier despl elip pest  rot perm  pie  pis';
   const lines = [head, '-'.repeat(head.length)];
   for (const [id, area, s] of rows) {
     lines.push(id.padEnd(36) + ' ' + area.padEnd(8) + ' ' + String(s.worst || '-').padEnd(10) + ' ' + String(s.minFont == null ? '-' : s.minFont).padStart(8) + ' ' + String(s.n12 ?? '-').padStart(4) + ' ' + String(s.n14 ?? '-').padStart(4) + ' ' +
       String(s.smallT ?? '-').padStart(6) + ' ' + String(s.overlap ?? '-').padStart(5) + ' ' + String(s.huge ?? '-').padStart(6) + ' ' + String(s.clipped ?? '-').padStart(6) + ' ' + String(s.off ?? '-').padStart(5) + ' ' + (s.exitOk ? '  ok  ' : '  NO  ') + (s.primOk ? ' ok  ' : ' NO  ') +
-      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + String(s.rot ?? '-').padStart(5) + (s.rotate ? '  [' + s.rotate + ']' : '') + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
+      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + String(s.rot ?? '-').padStart(5) + String(s.perm ?? '-').padStart(5) + String(s.foot ?? '-').padStart(5) + String(s.pis ?? '-').padStart(5) + (s.rotate ? '  [' + s.rotate + ']' : '') + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
   }
   lines.push('', 'tier = html.ph en los tamaños de móvil apaisados, html.pv (sin .ph) en los verticales y sin ninguno en 1280x720 / 1920x1080 / 1024x768 · despl = tras llevar cada zona al final, la salida y la principal',
     'siguen dentro y pulsables · elip = elipsis que cortan información (salvo .sp-lrow .sp-s y [data-ph-ell]) · pest = filas de pestañas que no caben sin desvanecido ·',
-    'rot = rótulos NO tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar).',
+    'rot = rótulos NO tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar) · recort = recortes NO permitidos (elipsis, line-clamp,',
+    'overflow, o = hijo de texto o tabla que se sale de su caja) · perm = recortes permitidos (data-trunc="name"|"preview") · pie = texto tapado por el',
+    'dock / la barra / el desvanecido con todo desplazado al final · pis = rótulos de texto no tocables que se pisan en un panel · [girar] = enseña #rotate.',
     'En metrics.json además: fonts.read14 / btn15 / tab13 (lectura < 14, rótulos < 15, pestañas < 13), reach (principal abajo a la derecha, aviso), hscroll.');
-  const txt = lines.join('\n');
+  // (ronda 2) recortes NO permitidos con su texto entero (todos los tamaños), tapado por el pie y pisados: para los paquetes siguientes
+  const det = ['', 'Recortes no permitidos (texto entero), tapado por el pie y pisados, por pantalla y tamaño:'];
+  for (const id of Object.keys(metrics.screens)) {
+    const bs = metrics.screens[id].bySize;
+    for (const sz of Object.keys(bs)) {
+      const x = bs[sz]; if (!x || !x.fonts) continue;
+      for (const c of (x.clipped || [])) det.push('  ' + id + ' @' + sz + ' [' + c.kind + '] ' + c.s + ' «' + (c.full || c.t) + '»');
+      for (const c of ((x.foot && x.foot.list) || [])) det.push('  ' + id + ' @' + sz + ' [pie:' + c.why + '] ' + c.s + ' «' + c.t + '» bajo ' + c.by);
+      for (const c of ((x.pis && x.pis.list) || [])) det.push('  ' + id + ' @' + sz + ' [pis] «' + c.at + '» / «' + c.bt + '»');
+    }
+  }
+  const txt = lines.concat(det).join('\n');
   fs.writeFileSync(path.join(OUT, 'summary.txt'), txt + '\n');
-  console.log(txt);
+  console.log(lines.join('\n'));
   console.log('\n' + rows.length + ' pantallas × ' + sizeList.length + ' tamaños en ' + metrics.seconds + ' s; fallos al abrir: ' + nFail + '\n→ ' + OUT);
   return 0;
 }

@@ -515,7 +515,7 @@
   // móvil (movil-aire §5.3): tocar una fila de la lista la ELIGE (marco dorado + ✓) y la barra de abajo confirma («Confirmar plan» /
   // «Pedir Opuesto»); en PC el toque sigue aplicando al momento. pick = { where: 'plan' | 'ask', k }.
   var pick = null;
-  function phNow() { try { var de = document.documentElement; return !!(de && de.classList.contains('ph')); } catch (e) { return false; } }
+  function phNow() { try { var de = document.documentElement; return !!(de && (de.classList.contains('ph') || de.classList.contains('pv'))); } catch (e) { return false; } }   // (móvil, también en vertical: tocar elige y se confirma)
   function abbr(s) { s = String(s || ''); return s.length > 5 ? s.slice(0, 3) : s; }
   function esc(H, s) { return H && H.esc ? H.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
   function spH(H, a, k) { return H && H.sp ? H.sp(a, k) : a.join(' | '); }

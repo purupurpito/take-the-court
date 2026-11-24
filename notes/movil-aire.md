@@ -1081,3 +1081,124 @@ y lo pendiente.
 ### 8.6 Registro de la ronda 2
 
 (Cada paquete añade aquí su apartado: `#### 8.6.N Paquete <key> (fecha)`.)
+
+#### 8.6.1 Paquete sistema-v (24-nov-2026)
+
+Sistema común de vertical sobre el que trabajan los 8 paquetes siguientes; no rediseña pantallas. PC: todo CSS nuevo bajo `:root.pv` (prefijo
+`:root.pv:not(#_):not(#_):not(#_)`) o en utilidades que solo tocan `.ph`/`.pv`; todo JS de disposición tras `SP.phone()` / `SP.pv()` / `SP.mob()`.
+
+**JS (`js/splat.js`, `VB.Splat`)**
+- `mob()` = `html.ph || html.pv` (QUÉ SE DICE) · `pv()` · `phone()` (DÓNDE VA, apaisado). En horizontal `mob() == phone()`.
+- `?pv=1|0` fuerza el vertical (con `?pv=1` sin `?ph=` se quita `.ph`); el `<script>` del `<head>` de `index.html` ya pone `html.pv` antes del
+  primer pintado (táctil, ancho ≤ 500, alto > ancho).
+- `tierKey()` lleva `v`; `vb:tier` salta con cualquier cambio de `ph`/`ph-s`/`ph-w`/`pv`; `vb:ph` salta cuando cambia `mob()` **o** `pv` (girar).
+  `detail` = `{ph, pv, mob, s, w, flip}`. Comprobado con `tools/girotest.js` (nuevo, 21 comprobaciones): 390x844 ↔ 844x390 repinta Carrera,
+  cuenta (usuario y contraseña siguen), crear jugador (el nombre sigue) y sala online.
+- `cutWords(texto, n)`: corta por palabra (nunca a mitad) y añade «…»; quien lo use marca el nodo `data-trunc="preview"`. Nombres propios largos
+  con elipsis CSS: `data-trunc="name"` (y la ficha a un toque). mobaudit los cuenta aparte («permitidos»).
+- `more(el)` en el móvil (no en las `.tb-row`): desvanecido solo si `scrollHeight > clientHeight + 2` y `padding-bottom` en línea =
+  max(el suyo, `--ph-fade` / `--pv-fade`) mientras hay algo que desplazar. PC igual.
+- `sheet()` con `pv()`: la hoja lleva `.pv-sheet`, el velo `.pv-veil` y lo de detrás `inert` (`inertBehind(keep, …)`, exportado); sin «Cerrar»
+  al pie con `mob()` (una sola salida). `modal(el, {sheet})`: en vertical velo `.pv-veil`, `inert` detrás y, con `sheet` (selector o `true`),
+  ese panel pasa a `.pv-sheet` mientras está abierto (el aviso del colocador ya lo pide: `{sheet:'.sn-sheet'}`).
+- `shorten()` (`data-ph-short`), `tbl()` (`data-ph-cols`) y `toastClear()` pasan a `mob()`; `fitSeg` y `helpFit` siguen con `phone()`.
+
+**Clasificación de «es móvil»** (contenido → `mob()`; disposición → `phone()`):
+- `js/career-ui.js`: `PH()` = mob (los ~80 usos: nombres cortos, `phKick`, apartados fundidos `TABS_PH`/`LIFE_PH`, sobre `.cr-mail`, `SUB_PH`,
+  `phDedupe`, `phDecide`, `phDock`, `phFlow`, `phReveal`, `qBtn`, `lgPick`, `phCountryRow`, `HLP.ph` de las extensiones…). `PHL()` nuevo = phone:
+  `phFitDock` (encoger a una línea), `phModeSeg` en la cabecera / `modeSeg` en el cuerpo, «Ir directo a las pruebas» a la cabecera. El raíl
+  (`.sp-vtabs`) lo decide ui.js `fitTabs` con `phone()`: en vertical las 5 pestañas salen arriba en fila (sin maquetar). `PV_CSS` (nuevo, prefijo
+  `PV`): solo el sobre `.cr-mail` y `#crDock` en vertical (flex, 2/3 + 1/3, texto en dos líneas sin elipsis).
+- `js/ui.js`: `phMob()` nuevo. A mob: píldoras de la previa (`introLT`), nombre de pila en el XP de la hoja, marcadores `nw` de la situación,
+  «Pinta: …» fuera, `LK_LABEL_PH`, «Editar disposición», viñetas `TUT_PH` + «Más detalle», `rtTxtPh` de Maestría, `SP.modal` del aviso del
+  colocador, `endMore` (ver abajo). Se quedan con phone: `phHud` (HUD, hoja final `endTools`), `fitTabs` (raíl/tira), toasts de Vestuario/Perfil,
+  filas táctiles de Controles, `phPanel`/`phNow` (fitSeg), editor táctil, banner de la zona, subtítulo de JUGAR (`subOn`: depende del sello).
+- `career-story-ui.js` («N mensajes» fuera), `career-world-ui.js` (trofeos tocables), `career-dev.js` (`phNow`: tocar elige y se confirma),
+  `menu-jugador.js` («Continuar»): mob. `account.js`, `install.js`, `netlobby.js`, `input.js`: phone (disposición; los paquetes v deciden).
+- `endMore` (hoja final) con `phMob()`: desvanecido solo con algo debajo, se vuelve a medir con ResizeObserver/MutationObserver y, si queda
+  puesto, otra medida a los 400 ms (hasta 3): se quedaba pegado y tapaba «3 de bloqueo · 2 aces» del MVP (lo entrante desborda unos px un
+  momento sin cambiar de tamaño). Mejora también en horizontal.
+
+**CSS (`index.html`)**
+- Utilidades: `:root:not(.ph):not(.pv) .ph-only` · `:root:is(.ph,.pv) .ph-no` / `.ph-hide` · nuevas `.pv-only` · `.pv-no` · `.pvh-no` (fuera solo en
+  horizontal). `.pv-no` puesto a: los «?» `.sp-q.ph-only` de Partido rápido (rompían la lista), `.pf-n` del botón Perfil, `.sem-vw` (Mapa | Grupo),
+  `.fb-attq` (la «i» de «Se adjunta…», que en vertical se lee entero). Atajos `.fb-keys` fuera también con `.pv`.
+- Tokens `:root.pv{…}` (junto a `:root.ph.ph-s`): `--pv-g` · `--pv-gt` · `--pv-gb` · `--pv-fw` · `--pv-body` 15 · `--pv-cap` 13 · `--pv-micro` 12 ·
+  `--pv-head` clamp(18, 5.4vw, 22) · `--pv-title` clamp(24, 7.2vw, 30) · `--pv-bar` 52 · `--pv-tab-h` 56 + gb · `--pv-cta-h` 56 · `--pv-btn-h` 48 ·
+  `--pv-dock-h` cta + 16 · `--pv-fade` 24 · `--pv-tap` 44 · `--pv-gap` 8 · `--pv-pad` 12. `viewport-fit=cover` ya estaba.
+- Componentes (bloque «— móvil en VERTICAL (.pv) — componentes compartidos», antes de `/* ==== fin SPLAT */`, documentados en su comentario):
+  `.pv-bar` (`.pv-bk` o `.sp-back` · `.pv-bt` hasta 2 líneas, nunca elipsis · `.pv-ba`) · `.pv-tabbar` (hijos con `svg` 24 + `span` 12; activa
+  `.on`/`[aria-selected=true]`/`[aria-current=page]` con mancha amarilla; `.dot` / `.tb-b`) · `.pv-dock` (+ `.pv-dock-tab` encima de la barra;
+  principal `.sp-patch`/`.pri`/`[data-pv-main]` a 2/3) · `.pv-docked` · `.pv-tabbed` · `.pv-strip` dentro de `.pv-stripw` (chevrón con `.sp-more-x`) ·
+  `.pv-sheet` (genérica con 4 `:not(#_)` y la de `#spSheets`) · `.pv-veil`. Desvanecido de los paneles a `--pv-fade`.
+- Textos cortos que ya existían con su par largo escondido por CSS de `.ph`, también en vertical: aviso del colocador (`.sn-sh` / `.sn-lg`,
+  «Más») y antetítulo corto de la hoja de Carrera (`.ek-s`). «Más detalle» de Cómo se juega en su fila (no se come «Siguiente»).
+
+**Aviso de girar**: fuera `crPortrait()` y su `'C'` de `syncScreens` (ui.js); `el.rotate.hidden = !ctx.portraitBlock` como en la base. La
+Carrera entera se ve en vertical (aún sin maquetar). El partido en juego sigue con `ctx.portraitBlock`.
+
+**Arnés** (`tools/mobaudit.js`, `tools/mobaudit-page.js`, `tools/mobcompare.js`)
+- Recortes: `clippedOk` / `nClippedOk` (antepasado `data-trunc="name"|"preview"`; columna **perm**); los demás en `clipped[]` con `full` (texto
+  entero) y listados al final de `summary.txt` («Recortes no permitidos (texto entero), tapado por el pie y pisados…»). Recorte **`o`**
+  (`nClipO`): contenedor con overflow hidden/clip (o una fila que se desplaza de lado sin desvanecido ni máscara, que no sea tira de pestañas)
+  cuyo hijo de texto o tabla se sale («Caducan al jugar» de cesiones a 568).
+- **pie** (`m.foot = {n, list}`, `footCover()` tras `scrollAll`): texto que con todo desplazado al final sigue bajo algo opaco de abajo que no es
+  de su zona (dock, barra) o bajo el desvanecido `.sp-more`/`.more` que ya no se puede apartar (comprobado: con `.more` puesto a mano en la hoja
+  final a 844 da los 4 datos del MVP).
+- **pis** (`m.pis = {n, list}`): rótulos de texto no tocables que se pisan en el mismo panel (núcleo del 56 % de cada línea; Ataque/Bloqueo/Saque
+  de Cifras a 568). `rot` sigue igual.
+- Estado: `HEAL` cura la lesión de las Carreras de muestra antes de cada fila de la Carrera que no es `-lesion`/`-partido-baja` (antes la
+  natl-tarjeta, las Estrellas, la propuesta de puesto, Entreno, Contrato… salían «De baja» / «+ BAJA» heredado de la fila anterior).
+- Columna **girar**: qué pantallas enseñan `#rotate` (ya no se aparta nada). Fila con **`land: true`** (partido-frenar-*): en vertical se abre
+  apaisado y se gira (antes «no se pudo abrir» en vertical). `--desktop --sizes a,b` mide esos tamaños sin táctil y solo una vez.
+- mobcompare: columnas **permitidos**, **recortes o**, **tapado-pie**, **pisados**; tercer argumento = salida; en el `.md`, «Por pantalla» (cada
+  pantalla × tamaño que cambia, ▲/▼). Con una pasada vieja (sin `foot`), «recortes» se compara sin los `o`.
+
+**Pasadas** (`…/scratchpad/movil2/`; v1 y h1 con DPR 2; pc1 con DPR 1 como `pcbase`; hojas de contactos `v1/contact.html`, `h1/contact.html`;
+comparaciones `v1.html/.md`, `h1.html/.md`, `pc1.html/.md`). 241 pantallas, **0 fallos al abrir** en vertical y en horizontal (v0 tenía 6:
+frenar); en PC, los 2 de siempre (frenar a 1024, como `pcbase`).
+
+| pasada | recortes no permitidos (de ellos `o`) | permitidos | tapado-pie | pisados | < 12 | < 44 | principal NO | girar |
+|---|---|---|---|---|---|---|---|---|
+| v0 (antes) | 830 | – | – | – | 1436 | 193 | 62 | 141 pantallas (119 de Carrera) |
+| **v1** | **501 (24)** | 0 | 0 | 71 | 1131 | 199 | **0** | **22** (solo partido en juego, banquillo, previas y repetición) |
+| h0 | 88 | – | – | – | 0 | 1 | 0 | 0 |
+| **h1** | **106 (11)** | 0 | 0 | 11 | 0 | 0 | 0 | 0 |
+| pcbase / **pc1** | 647 / 689 (11) | 0 | – / 16 | – / 320 | 2021 / 2004 | 1211 / 1211 | 48 / 48 | 0 |
+
+(Sumas de los 3 tamaños. pc1 se pasó antes del último ajuste del recorte `o`, el de las filas que se desplazan de lado: sus `o` son de la regla
+anterior; no cambia la comparación con `pcbase`, que se hace sin los `o`.)
+
+- H igual: las diferencias h0 → h1 son del arnés (lesión que ya no se hereda: el hub sano enseña «Jugar» + informe y la línea de la Selección,
+  +7 recortes en carrera-*-match / natl-tarjeta / cesion-aviso / cesiones / estrellas-finde) y de las métricas nuevas (11 `o`, 11 pisados).
+- PC: frente a `pcbase` solo cambian las filas conocidas (inbox y league-clubs del arnés, dbgSets de carrera-juvenil-hoja y
+  carrera-estrellas-partido-hoja, ruido de controles-keyboard y final-stats) y las de la Carrera que antes salían lesionadas por la fila
+  anterior (carrera-*-match a 1024, natl-tarjeta, cesion-aviso, propuesta-puesto, player-train, club-contract/team/offers, estrellas-finde,
+  cesiones, plan): mirado a ojo (propuesta-puesto 1280, match 1024: lo único distinto es «De baja» frente a «Jugar»). partido-frenar-* a
+  1024x768 «no se pudo abrir», igual que en `pcbase`.
+- Nuevos `o` y pisados de H para `recortes`: «Caducan al jugar» (cesiones 568), «Prenda» (life-pass), «Peloteo libre» (entreno), «Errores» del
+  índice de estadística, «Set 3» (estadistica-6v6), «Abrir sala» (online-create), «Ver cómo se juega» (primer-partido); pisados «Eres colocador»
+  / «Coloca con la diana» (aviso del colocador), «Ataque»/«Bloqueo»/«Saque» (final-stats y carrera-resumen-stats a 568), «24 puntos» / «Nota 7,8»
+  (resumen de jornada 568). Ojo: algunos `o` en parches («Crear jugador» de crear en vertical) pueden ser el brochazo girado: mirar antes.
+
+**30 peores filas de v1** (peor tamaño; recort = no permitidos): online-list y online-aviso (360: recort 3, < 12 21) · entreno (360: recort 8,
+< 12 11) · final-primero (360: recort 7, < 12 12) · final-stats (360: < 12 17) · carrera-pista-league-table (412: < 44 12) ·
+carrera-playa-league-table (390: < 44 10) · carrera-natl-partido-hoja (360: < 12 12, pis 2) · perfil-entreno, -carrera, -cuaderno-pie,
+-vestuario, -insignias, -retos, -hitos, -cuaderno (360: < 12 12-13) · carrera-resumen-stats (360: < 12 15) · carrera-pista-inbox (412: recort 9) ·
+carrera-natl-partido-hoja-derrota (360: < 12 11) · carrera-playa-inbox (412: recort 8) · carrera-playa-league-cal (360: recort 6, pis 3) ·
+home-seguir-carrera, home-carrera, home-seguir (360: recort 3, < 12 6-7) · carrera-hoja-final, carrera-resumen-jornada, final-reto (360: < 12 10) ·
+quick-6v6 (360: recort 3) · controles-touch-editor-zurdos (412: recort 4; debe pedir girar, paneles-v) · carrera-playa-honors-titles (412: < 12 11).
+
+**Pantallas de este paquete, V antes → después** (recortes sumados en los 3 tamaños): carrera-*-match 5-6 → 0-2 y sin aviso de girar; league-cal
+35 → 8; propuesta-puesto 7 → 0 (< 12 7 → 0); natl-tarjeta 6 → 0; estrellas-voto 4-5 → 0-2 y «principal NO» 3 → 0; cesiones y honors-stats 2-3 →
+0-2 (la columna Nota se ve: columnas del móvil con `tbl` = mob); opiniones-sug y pausa-bug < 12 6 → 0 (sin atajos). Igual (sin maquetar, para
+su paquete): inbox (23: vistas previas → `cutWords` en carrera-liga-vida-v), home-carrera, hojas finales, final-stats (< 12 17-24), cuenta-crear,
+instalar-ios (`.pv-sheet` en paneles-v / menus-v). La Carrera en vertical sale con la cabecera de PC + 5 pestañas de icono arriba + `#crDock`
+abajo (contenido de `.ph` con CSS de PC): la maqueta carrera-marco-v. Algunas pantallas de la Carrera pasan de 0 a 3 «< 12» en vertical (cosas
+de `.ph` que en vertical aún no tienen su CSS): para carrera-marco-v.
+
+**Pendiente** (para los paquetes siguientes): la Carrera vertical entera (cabecera, `.pv-tabbar`, `.pv-dock`, decisión arriba: la propuesta de
+puesto queda bajo la Selección); las vistas previas de la Bandeja con `cutWords` + `data-trunc="preview"`; cuenta / instalar / aviso del colocador
+como `.pv-sheet` (el aviso ya la recibe vía `SP.modal`, pero su CSS de `#setNote` manda en ancho/fondo); «< 12» de las hojas finales y Perfil en
+vertical; 3 «salida NO» de carrera-banquillo en vertical (la pausa queda bajo el velo: lo esperado, partido-v); el subtítulo de JUGAR en vertical
+(`subOn` con phone: menus-v decide el texto corto).

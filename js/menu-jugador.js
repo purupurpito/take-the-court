@@ -138,7 +138,7 @@
     if (!H) return;
     var rv = n && n.rival, away = n && n.kind === 'league' && n.atHome === false;
     var crests = me ? '<span class="sp-crest">' + crest(me, 40, c) + '</span>' + (rv ? '<i class="sp-vs">' + (away ? 'en' : 'vs') + '</i><span class="sp-crest">' + crest(rv, 40, c) + '</span>' : '') : '<span class="sp-crest">' + S.BALL + '</span>';
-    var k = rv ? 'Próximo partido' : 'Carrera · ' + H.kind, ttl = rv ? rv.name : H.title, ln = rv ? (H.chip ? H.chip + ' · ' : '') + (S.phone() ? 'Continuar' : 'Continuar carrera') : (H.chip ? H.chip + ' · ' : '') + (H.line || '');
+    var k = rv ? 'Próximo partido' : 'Carrera · ' + H.kind, ttl = rv ? rv.name : H.title, ln = rv ? (H.chip ? H.chip + ' · ' : '') + ((S.mob ? S.mob() : S.phone()) ? 'Continuar' : 'Continuar carrera') : (H.chip ? H.chip + ' · ' : '') + (H.line || '');
     var h = '<span class="sp-tk-stub">' + crests + '</span><span class="sp-tk-main"><small class="sp-k">' + esc(k) + '</small><b class="sp-t">' + esc(ttl) + '</b><small class="sp-s">' + esc(ln) + '</small></span>' +
       '<span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>';
     var cmp = h.replace(/n\d+"/g, '"').replace(/n\d+\)/g, ')');

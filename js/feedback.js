@@ -302,7 +302,7 @@
       '<div class="fb-foot" data-nav data-sp-row><p class="fb-keys sp-hints" aria-hidden="true"><span class="kh"><span class="key">Ctrl</span> + <span class="key">Intro</span> envía</span>' +
         '<span class="kh"><span class="key">Esc</span> cierra</span></p>' +
         // (movil-aire §5.1: en el móvil «Se adjunta…» va tras esta «i», en la columna de Enviar; .ph-only = no existe en PC)
-        '<button type="button" class="sp-q fb-attq ph-only" data-kb-hide aria-label="Qué se manda con tu mensaje" data-q-title="Qué se manda" data-q-src="#fbAtt">i</button>' +
+        '<button type="button" class="sp-q fb-attq ph-only pv-no" data-kb-hide aria-label="Qué se manda con tu mensaje" data-q-title="Qué se manda" data-q-src="#fbAtt">i</button>' +
         spb('cancel', 'Cancelar', 'sp-cream', 1, ' id="fbCancel"') + spb('send', 'Enviar', 'sp-kit', 2, ' id="fbSend"') + '</div>';
     var ta = h.querySelector('#fbText');
     ta.value = draft[k];

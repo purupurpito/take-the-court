@@ -1368,7 +1368,7 @@
     // beat B: dos datos como mucho (se reserva su hueco desde el principio: la tarjeta no salta al entrar)
     var b = plan && plan.b && plan.b.length ? plan.b : null;
     // (móvil, movil-aire §5.5: una píldora por dato, que parten de línea con flex-wrap; la del árbitro, en corto)
-    var bph = b && document.documentElement.classList.contains('ph');
+    var bph = b && phMob();
     if (el.introLT) { el.introLT.innerHTML = !b ? '' : bph ? b.map(function (x) { return '<span>' + sepHTML([typeof x === 'string' ? x.replace(/, te sacó (amarilla|roja) en la (J\d+)$/, ' ($1 en la $2)') : x], 'v') + '</span>'; }).join('') : '<span>' + sepHTML(b, 'v') + '</span>'; el.introLT.classList.toggle('lt-ph', !!bph); el.introLT.hidden = !b; }
     // beat C: lo que está en juego (con el jefe, su pista debajo)
     var c = plan && plan.c, sk = el.introStake;
@@ -2942,6 +2942,9 @@
   }
   /** Móvil (html.ph; movil-aire §5.7): ¿es un teléfono? (la clase la pone splat.js; sin ella, PC y tableta igual que siempre). */
   function phHud() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** (ronda 2, movil-aire §8.2) ¿móvil en cualquier orientación? (html.ph o html.pv): decide QUÉ SE DICE (textos cortos, una sola salida);
+   *  la disposición (dónde va cada cosa) sigue con phHud() / VB.Splat.phone() en horizontal. En PC, false. */
+  function phMob() { return !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()); }
   /** Móvil táctil (movil-aire §5.7): los avisos del saque («Espera el silbato» y «SACAR flotante · SALTAR potente», en UNA línea) van en la
    *  franja de abajo, en el hueco entre el joystick y los botones (encima del sacador, que está de espaldas abajo), nunca arriba junto a la
    *  seña o la cinta. Busca, de abajo arriba, la franja donde cabe el aviso sin pisar un botón (touchBoxes) y lo centra en su hueco. Clase
@@ -3124,13 +3127,10 @@
     }
   }
   function isOut(node) { return !!(node && node._outT); }
-  /** (movil-aire §3.12) la Carrera en un móvil en vertical (html.pv, splat.js): el aviso de girar, sin parar nada (no hay simulación) */
-  function crPortrait() {
-    return ctx.state === 'menu' && document.documentElement.classList.contains('pv') && !!(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
-  }
+  // (ronda 2, movil-aire §8.2: fuera el aviso de girar de la Carrera —crPortrait—; la Carrera entera se ve en vertical. El partido en juego
+  //  sigue pidiendo girar con ctx.portraitBlock)
   function syncScreens(g) {
-    var crPv = crPortrait();
-    var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (crPv ? 'C' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (ctx.replay ? 'R' : '') + (panel || '');
+    var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (ctx.replay ? 'R' : '') + (panel || '');
     if (key === shown) return;
     shown = key;
     showNode(el.menu, s === 'menu' && !panel);
@@ -3152,7 +3152,7 @@
     // al empezar el partido costaba un frame de 100-120 ms (rasterizado del marcador; medido en Chrome/ANGLE).
     // Así ya está pintado y el primer frame del partido baja a < 35 ms.
     el.hud.hidden = false; el.hud.classList.toggle('warm', s === 'menu');
-    el.rotate.hidden = !ctx.portraitBlock && !crPv;
+    el.rotate.hidden = !ctx.portraitBlock;
     // la viñeta no se suma al velo de las hojas (pausa, final, paneles)
     el.veil.classList.toggle('under', (s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.endHold && !endGate && !ctx.replay && !el.end.classList.contains('dock')) || !!panel));
     if (s === 'menu') { hideBanner(); renderMenu(); }
@@ -3266,7 +3266,7 @@
     if (el.btnPlay.classList.contains('primary') === flat) el.btnPlay.classList.toggle('primary', !flat);
     // (movil-aire §5.1: en el móvil, al revés que en PC: la línea pequeña de JUGAR sale cuando JUGAR es lo primero —el sello ya no la tapa—
     // y se quita cuando hay un billete encima, que baja JUGAR a 52 px)
-    var subOn = VB.Splat && VB.Splat.phone && VB.Splat.phone() ? !flat : flat;
+    var subOn = phHud() ? !flat : flat;   // (disposición: depende de si el sello tapa la línea; en vertical, como en PC hasta que menus-v la maquete)
     if (el.playMainSub && el.playMainSub.hidden === subOn) el.playMainSub.hidden = !subOn;
     var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
     if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
@@ -4179,6 +4179,24 @@
     var pn = endTab === 'sum' ? el.endSum : endTab === 'stats' ? el.endStatsTab : el.endPlays;
     if (!pn || pn.hidden || el.end.hidden) return;
     var m = pn.scrollHeight - pn.clientHeight - pn.scrollTop > 6;
+    // (ronda 2, §8.3; móvil en las dos orientaciones) el desvanecido solo si de verdad queda algo debajo, y se vuelve a medir cuando el
+    // contenido cambia de tamaño (las letras y las fichas del MVP llegan tarde: se quedaba puesto con la hoja sin desplazamiento y tapaba
+    // «3 de bloqueo · 2 aces» a 844)
+    if (phMob()) {
+      m = pn.scrollHeight > pn.clientHeight + 2 && pn.scrollTop + pn.clientHeight < pn.scrollHeight - 2;
+      // (lo que entra animado desborda unos píxeles un momento sin cambiar de tamaño —el ResizeObserver no lo ve—: con el desvanecido
+      // puesto, otra medida a los 400 ms, hasta 3 seguidas)
+      if (!pn._emTm) pn._emN = 0;
+      if (m && ++pn._emN <= 3) { clearTimeout(pn._emT); pn._emT = setTimeout(function () { pn._emTm = true; try { endMore(); } finally { pn._emTm = false; } }, 400); }
+      if (!pn._emRO && typeof ResizeObserver !== 'undefined') {
+        var again = function () { if (pn._emQ) return; pn._emQ = requestAnimationFrame(function () { pn._emQ = 0; endMore(); }); };
+        try {
+          pn._emRO = new ResizeObserver(again); pn._emRO.observe(pn);
+          var obs = function () { for (var c = pn.firstElementChild; c; c = c.nextElementSibling) pn._emRO.observe(c); };
+          obs(); new MutationObserver(function () { obs(); again(); }).observe(pn, { childList: true });
+        } catch (e) { }
+      }
+    }
     if (pn.classList.contains('more') !== m) pn.classList.toggle('more', m);
   }
   /** Botones del modelo (principal + resto) sobre los cuatro de siempre: again/next → #btnAgain; againAlt; opts/retos → #btnEndOpts; menu. */
@@ -4332,7 +4350,7 @@
         case 'xp':
           var xh = '';
           M.xp.forEach(function (r) {
-            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(document.documentElement.classList.contains('ph') ? String(r.name || '').split(' ')[0] : r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
+            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(phMob() ? String(r.name || '').split(' ')[0] : r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
               (r.bar != null ? '<i class="rc-bar" aria-hidden="true"><i style="--w:' + Math.round(r.bar * 100) + '%"></i></i>' : '') + (r.lvlUp ? '<span class="lv">' + escT(r.lvlT) + '</span>' : '') + '</span>';
           });
           blk('rc-xp', H.xp, xh + (M.badges.length ? rcBadges(M.badges) : ''));
@@ -4362,7 +4380,7 @@
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
-        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + (document.documentElement.classList.contains('ph') ? escT(t).replace(/(\d+-\d+)/g, '<span style="white-space:nowrap">$1</span>') : escT(t)) + '</span>'; }).join('')); break;   // (el resultado «17-15» no se parte)
+        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + (phMob() ? escT(t).replace(/(\d+-\d+)/g, '<span style="white-space:nowrap">$1</span>') : escT(t)) + '</span>'; }).join('')); break;   // (el resultado «17-15» no se parte)
       }
     });
     return h;
@@ -5047,7 +5065,7 @@
     var isNew = false; for (var k = 0; k < ops.length && !isNew; k++) if (ops[k].cat && U[ops[k].v]) isNew = true;
     var col = lkIsCol(slot), hp = lkHelpOf(slot, o, locked, lt);
     // (móvil, movil-aire §5.6: «Pinta: Calcetines» en la fila Calcetines repite el título: fuera)
-    if (hp.k === 'use' && VB.Splat && VB.Splat.phone && VB.Splat.phone() && hp.t.toLowerCase() === ('Pinta: ' + label).toLowerCase()) hp = { t: '', k: '' };
+    if (hp.k === 'use' && phMob() && hp.t.toLowerCase() === ('Pinta: ' + label).toLowerCase()) hp = { t: '', k: '' };
     var sw = o.hex >= 0 ? '<i class="lk-sw" style="background:' + hx(o.hex) + '"></i>' : col ? '<i class="lk-sw auto"></i>' : '';
     var help = hp.t ? (hp.k === 'lock' ? LK_LOCK : hp.k === 'warn' ? LK_EYE : '') + escT(hp.t) : '';
     // la estrella solo desde rareza 1 (lo común no lleva: antes todo llevaba «★», U9)
@@ -5059,7 +5077,7 @@
     return '<button type="button" class="mi lk-r sp-btn sp-ink sp-calm' + (locked ? ' lock' : '') + (isNew ? ' new sp-dot' : '') + (col ? ' col' : '') + (hp.k === 'dim' ? ' dim' : '') +
       (hp.t ? ' has-h h-' + hp.k : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
       // (rótulo con «▦ n»: cuántas opciones hay y que al tocar la fila se abre la rejilla de miniaturas; antes no se veía que la hubiera)
-      '<span class="mi-l"><span class="lk-k">' + escT(LK_LABEL_PH[slot] && VB.Splat && VB.Splat.phone && VB.Splat.phone() ? LK_LABEL_PH[slot] : label) + '<span class="lk-cnt" aria-hidden="true">' + LK_GRID_IC + n + '</span></span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
+      '<span class="mi-l"><span class="lk-k">' + escT(LK_LABEL_PH[slot] && phMob() ? LK_LABEL_PH[slot] : label) + '<span class="lk-cnt" aria-hidden="true">' + LK_GRID_IC + n + '</span></span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
       (help ? '<small class="mi-h">' + help + '</small>' : '') + '</span>' +
       '<span class="mi-v sp-select"><span class="arr" data-d="-1" aria-hidden="true">' + LK_ARR_L + '</span><span class="arr" data-d="1" aria-hidden="true">' + LK_ARR_R + '</span></span></button>';
   }
@@ -6303,7 +6321,7 @@
       var R = ctlRows(ctlView);
       if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button>' +
         // 1.22.0 (imprescindible 4.2): editor de disposición (VB.Input.editLayout): mover, tamaño y opacidad por botón, zurdos y restablecer
-        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>' + (VB.Splat && VB.Splat.phone && VB.Splat.phone() ? 'Editar disposición' : 'Disposición de botones') + '<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
+        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>' + (phMob() ? 'Editar disposición' : 'Disposición de botones') + '<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
       if (ctlView === 'touch' && VB.Splat && VB.Splat.phone && VB.Splat.phone()) {
         // V-TOUCHCTL (móvil): Táctil con las mismas filas que Teclado / Mando: rótulo dorado + UNA línea de ayuda a la izquierda
         // (primera frase del paréntesis; «i» con helpFit si no cabe) y los botones a la derecha. En PC sigue la <dl>.
@@ -7277,7 +7295,7 @@
     var S = TUT[i], g = G(), rl = tutBeach() && S.ruleBeach ? S.ruleBeach : S.rule;
     if (rl && tutBeach()) rl = rl.replace('<b>8 segundos</b>', '<b>5 segundos</b>'); // en la playa, 5 s para sacar (sim C.SERVE_CLOCK_BEACH)
     el.tutStep.textContent = S.step; el.tutTitle.innerHTML = coachHTML(escT(S.title)); // «1r toque» en pastilla
-    var tph = !S.faults && TUT_PH[i] && VB.Splat && VB.Splat.phone && VB.Splat.phone();
+    var tph = !S.faults && TUT_PH[i] && phMob();
     var tmb = document.getElementById('btnTutMore'); if (tmb) tmb.hidden = !tph;
     el.tutText.innerHTML = S.faults ? faultsHtml() : tph ? '<ul class="tut-ph">' + TUT_PH[i](g).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'
       : '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '');
@@ -7531,7 +7549,7 @@
       h = '';
       // SPLAT: grupo = pegatina pequeña de tinta; reto = pegatina del color de su grupo (dorada con el oro) con la medalla en pegatina
       // redonda, el progreso en texto y la barra de pintura hasta la siguiente medalla
-      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'], rtPh = !!(VB.Splat && VB.Splat.phone && VB.Splat.phone());
+      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'], rtPh = phMob();
       (R.GROUPS || []).forEach(function (G, gi) {
         h += '<p class="rt-grp"><i class="sp-chip sp-ink">' + escT(G.name) + '</i></p>';
         R.LIST.forEach(function (b) {
@@ -7681,7 +7699,7 @@
       (fr * 100).toFixed(1) + ' 100"/></svg><small>Nv</small><b>' + lv.lvl + '</b></span>' +
       (S.vit.length ? '<span class="pf-vi" aria-hidden="true">' + S.vit.map(function (it) { return '<i class="pf-ic t' + pfTier(it) + '">' + pfIcon(it) + '</i>'; }).join('') + '</span>' : '') +
       '<span class="pf-al">Álbum ' + S.have + '/' + S.total + '</span>' + (S.un ? '<i class="pf-dot" aria-hidden="true"></i>' : '') +
-      '<i class="pf-n ph-only" aria-hidden="true">' + S.have + '</i>';   // (móvil, movil-aire §5.1: el álbum como círculo con su contador)
+      '<i class="pf-n ph-only pv-no" aria-hidden="true">' + S.have + '</i>';   // (móvil, movil-aire §5.1: el álbum como círculo con su contador)
     b.setAttribute('aria-label', 'Perfil: nivel ' + lv.lvl + ', álbum ' + S.have + ' de ' + S.total + (S.un ? '. Hay novedades' : ''));
   }
   // ---- avisos (#pfNote): de 2,6 a 3,4 s cada uno, como mucho 3 en cola (si hay más, un resumen) ----
@@ -8517,7 +8535,7 @@
     sn.root.hidden = false; sn.root.classList.remove('in');
     // móvil: tinte del 20 % detrás mientras está abierto (VB.Splat.modal); en PC, como siempre
     if (sn.rel) { sn.rel(); sn.rel = null; }
-    if (VB.Splat && VB.Splat.modal && VB.Splat.phone && VB.Splat.phone()) sn.rel = VB.Splat.modal(sn.root);
+    if (VB.Splat && VB.Splat.modal && phMob()) sn.rel = VB.Splat.modal(sn.root, { sheet: '.sn-sheet' });   // (vertical: hoja inferior .pv-sheet con velo)
     requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
     snFocus(sn.root.querySelector('[data-sn="on"]'), device() !== 'touch');
     uiSound('open');

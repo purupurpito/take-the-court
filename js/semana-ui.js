@@ -95,7 +95,7 @@
     // (móvil, movil-aire §5.6: con lista del grupo, la columna derecha enseña UNA cosa a toda la altura, el mapa o la lista, con un
     //  segmento «Mapa | Grupo (3)» de 44; .ph-only: en PC no sale y se ven las dos como siempre)
     var vwOn = list.length > 0, isList = vwOn && vw === 'list';
-    if (vwOn) h += '<div class="sem-r sem-vwh" data-vw="' + (isList ? 'list' : 'map') + '"><span class="sem-vw ph-only" role="radiogroup" aria-label="Qué enseña la columna">' +
+    if (vwOn) h += '<div class="sem-r sem-vwh" data-vw="' + (isList ? 'list' : 'map') + '"><span class="sem-vw ph-only pv-no" role="radiogroup" aria-label="Qué enseña la columna">' +
       '<button type="button" role="radio" data-semvw="map" aria-checked="' + !isList + '"' + (isList ? '' : ' class="on"') + '>Mapa</button>' +
       '<button type="button" role="radio" data-semvw="list" aria-checked="' + isList + '"' + (isList ? ' class="on"' : '') + '>Grupo (' + list.length + ')</button></span>';
     h += (vwOn ? '' : '<div class="sem-r">') + '<div class="sem-gh"><b>Mapa del grupo</b><span class="sem-seg" role="radiogroup" aria-label="Qué enseña el mapa">' +

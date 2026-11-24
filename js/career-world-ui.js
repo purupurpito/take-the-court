@@ -472,7 +472,7 @@
     var ul = !got && s.unlock ? '<small class="tc-ul">Desbloquea: ' + esc(s.unlock.name) + '</small>' : '';
     var al = s.name + ': ' + (got ? 'ganado ' + (n === 1 ? '1 vez, temporada ' : n + ' veces, temporadas ') + seasonsTxt(s.won) : 'sin ganar' + (s.need ? '. ' + s.need : '')) + (ul ? '. Desbloquea: ' + s.unlock.name : '');
     // SPLAT: el trofeo en un sello dorado (ganado) o en su hueco de trazo discontinuo (por ganar)
-    var ph = typeof document !== 'undefined' && document.documentElement.classList.contains('ph'), tag = ph ? 'button' : 'div';
+    var ph = !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()), tag = ph ? 'button' : 'div';   // (ronda 2: móvil en las dos orientaciones; el detalle, al tocar)
     if (ph) tcSlots.push({ s: s, du: du });
     return '<' + tag + ' class="tc-slot ' + (got ? 'got' : 'empty') + '"' + (ph ? ' type="button" data-act="cw-tc" data-id="' + (tcSlots.length - 1) + '"' : ' role="img"') + ' aria-label="' + esc(al) + '"><span class="tc-st">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' + (n > 1 ? '<i class="tc-x">×' + n + '</i>' : '') + '</span>' +
       '<b class="tc-n">' + esc(short ? tcShort(s.name) : s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</' + tag + '>';

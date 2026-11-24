@@ -42,10 +42,12 @@
 <script>
 /* SPLAT · móvil (notes/splat.md «Móvil»): html.ph = móvil apaisado (alto ≤ 500 y apaisado; sin exigir táctil), .ph-s = alto ≤ 345,
    .ph-w = ancho ≥ 800. Antes del primer pintado (sin parpadeo). ?ph=1 / ?ph=0 lo fuerzan. js/splat.js lo repite al girar o cambiar
-   de tamaño (window.__phTier) y avisa con el evento «vb:ph» en document. */
-(function(){try{var q=/[?&]ph=([01])/.exec(location.search),R=document.documentElement.classList;
+   de tamaño (window.__phTier) y avisa con el evento «vb:ph» en document. html.pv = móvil en vertical (táctil, ancho ≤ 500, alto > ancho;
+   movil-aire §8.2); ?pv=1 / ?pv=0 lo fuerzan (con ?pv=1 sin ?ph=, fuera .ph). */
+(function(){try{var q=/[?&]ph=([01])/.exec(location.search),v=/[?&]pv=([01])/.exec(location.search),R=document.documentElement.classList;
  function t(){var on=q?q[1]==='1':matchMedia('(max-height:500px) and (min-aspect-ratio:5/4)').matches,h=innerHeight,w=innerWidth;
-  R.toggle('ph',on);R.toggle('ph-s',on&&h<=345);R.toggle('ph-w',on&&w>=800);return on;}
+  var pv=v?v[1]==='1':matchMedia('(pointer:coarse)').matches&&w<=500&&h>w;if(pv&&v&&!q)on=false;
+  R.toggle('ph',on);R.toggle('ph-s',on&&h<=345);R.toggle('ph-w',on&&w>=800);R.toggle('pv',pv);return on;}
  t();window.__phTier=t;}catch(e){}})();
 </script>
 <meta name="theme-color" content="#070b14">
@@ -3690,8 +3692,8 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .sp-kv dd{margin:0;font:600 var(--ph-row,16px)/1.25 var(--sp-ui);min-width:0}
 /* utilidades: proxy de fitSeg (el original queda oculto), solo en el móvil / fuera del móvil, dos líneas sin elipsis */
 .ph-hid{display:none!important}
-:root:not(.ph) .ph-only{display:none!important}
-:root.ph .ph-hide{display:none!important}
+:root:not(.ph):not(.pv) .ph-only{display:none!important}
+:root:is(.ph,.pv) .ph-hide{display:none!important}
 #endKicker .nw,#coach .nw,#pause .sh-k .nw{white-space:nowrap}   /* REV-PARTIDO: el antetítulo final (y el de la pausa) solo se parte entre trozos (ui.js nw) */
 .ph-2l{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;text-overflow:clip}
 html.sp-kb [data-kb-hide]{display:none!important}
@@ -3727,6 +3729,15 @@ html.sp-kb [data-kb-hide]{display:none!important}
   --ph-bar:48px;--ph-tap:44px;--ph-row-1:44px;--ph-row-h:52px;--ph-row-2:64px;--ph-row-t:36px;--ph-cta-h:52px;--ph-btn-h:44px;
   --ph-dock-h:calc(var(--ph-cta-h) + var(--ph-gb) + 8px);--ph-fade:24px}
 :root.ph.ph-s{--ph-pad:10px;--ph-bar:44px;--ph-cta-h:48px}
+/* — móvil en VERTICAL (.pv) — tokens (ronda 2, 24-nov-2026; notes/movil-aire.md §8.2 y §8.6.1). html.pv = táctil, ancho ≤ 500 y más alto que
+   ancho (js/splat.js; ?pv=1 lo fuerza). Prefijo de toda regla de vertical: «:root.pv:not(#_):not(#_):not(#_)» (como el de .ph). Los --ph-*
+   NO valen en vertical: usar estos. Suelo absoluto de letra 12 (--pv-micro); cuerpo 15, secundario 13. */
+:root.pv{
+  --pv-g:max(16px,var(--sl),var(--sr));--pv-gt:max(12px,env(safe-area-inset-top,0px));--pv-gb:max(12px,env(safe-area-inset-bottom,0px));
+  --pv-fw:calc(100vw - 2 * var(--pv-g));
+  --pv-body:15px;--pv-cap:13px;--pv-micro:12px;--pv-head:clamp(18px,5.4vw,22px);--pv-title:clamp(24px,7.2vw,30px);
+  --pv-bar:52px;--pv-tab-h:calc(56px + var(--pv-gb));--pv-cta-h:56px;--pv-btn-h:48px;--pv-dock-h:calc(var(--pv-cta-h) + 16px);--pv-fade:24px;
+  --pv-tap:44px;--pv-gap:8px;--pv-pad:12px}
 /* variables de los componentes (todas las pantallas crecen solas) */
 :root.ph:not(#_):not(#_):not(#_) .sp-btn{--sp-fs:var(--ph-btn)}
 :root.ph:not(#_):not(#_):not(#_) .sp-lg{--sp-fs:calc(var(--ph-btn) + 2px)}
@@ -3879,7 +3890,14 @@ html.sp-kb [data-kb-hide]{display:none!important}
 /* — móvil (.ph) — «con aire» (movil-aire, 23-nov-2026; notes/movil-aire.md §3 y §7). Componentes compartidos para los paquetes de zona; cada
    pantalla los aplica a lo suyo. Todo bajo :root.ph (o :root.pv, el vertical táctil): en PC no cambia nada. */
 /* utilidad: lo contrario de .ph-only (= .ph-hide, con el nombre de la especificación) */
-:root.ph .ph-no{display:none!important}
+:root:is(.ph,.pv) .ph-no{display:none!important}   /* (ronda 2: .ph-only / .ph-no / .ph-hide = contenido del móvil, también en vertical) */
+/* ronda 2 (§8.2): .pv-only = solo en vertical · .pv-no = fuera en vertical (p. ej. un .ph-only que es de disposición apaisada) ·
+   .pvh-no = fuera solo en horizontal (lo de vertical que no pinta nada apaisado) */
+:root:not(.pv) .pv-only{display:none!important}
+:root.pv .pv-no{display:none!important}
+:root.ph .pvh-no{display:none!important}
+/* atajos de teclado (Ctrl+Intro envía · Esc cierra) de Opiniones y del bug de la pausa: fuera en el móvil, también en vertical */
+:root.pv:not(#_):not(#_):not(#_) #panel.sp-pn .fb-keys{display:none}
 /* suelo de 12 px (--ph-micro): «MOVER», COLOCAR y el número de la lupa en el editor de la disposición táctil (el del partido ya lo tiene) */
 :root.ph:not(#_):not(#_):not(#_) :is(#touch,.vte) .vt-tip{font-size:max(var(--ph-micro),12px);letter-spacing:.08em;color:rgba(255,255,255,.85)}
 :root.ph:not(#_):not(#_):not(#_) :is(#touch,.vte) .vt-set{font-size:max(var(--ph-micro),calc(11px * var(--vts,1)))}
@@ -3965,6 +3983,92 @@ html.sp-kb [data-kb-hide]{display:none!important}
 /* separación mínima contando el adorno (§3.2): segmentados y filas de botones */
 :root.ph:not(#_):not(#_):not(#_) .sp-seg,:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg{gap:var(--ph-gap-min)}
 :root.ph:not(#_):not(#_):not(#_) .ph-btn-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ph-btn-gap)}
+/* — móvil en VERTICAL (.pv) — componentes compartidos (ronda 2, paquete sistema-v; notes/movil-aire.md §8.2 y §8.6.1). Solo el componente:
+   cada paquete de zona lo aplica a sus pantallas. Nada de esto existe sin html.pv (PC y horizontal, igual).
+   · .pv-bar  cabecera compacta de --pv-bar (52) en top: var(--pv-gt): [.pv-bk (o .sp-back) ‹ redondo de 44, el texto pasa a aria-label con
+              VB.Splat.phBar] [.pv-bt título corto escrito a mano, hasta 2 líneas, NUNCA elipsis] [.pv-ba acciones de 44].
+   · .pv-tabbar  barra inferior fija de hasta 5 ítems (<nav class="pv-tabbar"><button class="pv-ti" aria-selected="true"><svg/><span>Partido</span>
+              <i class="dot"></i></button>…): icono 24 + rótulo 12; la activa con la mancha amarilla SPLAT detrás del icono; punto rojo .dot (o
+              contador .tb-b); alto --pv-tab-h con padding-bottom --pv-gb; fondo opaco.
+   · .pv-dock  acción principal fija abajo (encima de la barra con .pv-dock-tab): la principal (.sp-patch o .pri) a todo el ancho o 2/3 con el
+              secundario 1/3 a la izquierda; rótulo con clamp() y hasta 2 líneas, NUNCA text-overflow.
+   · .pv-docked  la zona que se desplaza bajo el dock: padding-bottom = dock + margen inferior + 12 (+ la barra con .pv-tabbed).
+   · .pv-tabbed  la zona que se desplaza sobre la barra de pestañas (sin dock): padding-bottom = barra + 12.
+   · .pv-strip  tira desplazable de lado (sub-pestañas, chips): fondo opaco, desvanecido de 16 en el borde con más (.sp-more-x de VB.Splat.more)
+              y chevron (envolver en .pv-stripw); la activa, centrada al entrar: VB.Splat.reveal(activa, {inline:'center'}).
+   · .pv-sheet  hoja inferior (la ponen VB.Splat.sheet() y VB.Splat.modal(el, {sheet}) con html.pv): anclada abajo, ancho completo, radio 20 arriba
+              con asa, max-height calc(100dvh - var(--pv-gt) - 24px), fondo opaco, ✕ de 44 dentro (top/right 12), acciones al pie con --pv-gb;
+              velo .pv-veil rgba(10,6,24,.7) que tapa también la cabecera; lo de detrás, inert (VB.Splat.inertBehind). */
+:root.pv:not(#_):not(#_):not(#_) .pv-bar{position:relative;display:flex;align-items:center;gap:10px;box-sizing:border-box;min-height:var(--pv-bar);margin:0;padding:0;min-width:0}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>:is(.pv-bk,.sp-back){position:relative;flex:none;display:inline-grid;place-items:center;width:var(--pv-tap);height:var(--pv-tap);min-width:var(--pv-tap);min-height:var(--pv-tap);
+  margin:0;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>:is(.pv-bk,.sp-back)>:not(svg),:root.pv:not(#_):not(#_):not(#_) .pv-bar>:is(.pv-bk,.sp-back)>.sp-blob{display:none}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>:is(.pv-bk,.sp-back)>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>:is(.pv-bk,.sp-back):is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>:is(.pv-bk,.sp-back):active{transform:scale(.92)}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>.pv-bt{flex:1 1 auto;min-width:0;margin:0;font:400 var(--pv-head)/1.1 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream);text-transform:none;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word;text-shadow:2px 2px 0 var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>.pv-ba{flex:none;margin-left:auto;display:flex;align-items:center;gap:var(--pv-gap)}
+:root.pv:not(#_):not(#_):not(#_) .pv-bar>.pv-ba>*{min-width:var(--pv-tap);min-height:var(--pv-tap)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);box-sizing:border-box;height:var(--pv-tab-h);
+  margin:0;padding:4px max(6px,var(--sl)) var(--pv-gb) max(6px,var(--sr));background:var(--sp-ink);box-shadow:0 -2.5px 0 rgba(255,244,220,.16),0 -8px 18px rgba(10,6,24,.35)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>*{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;min-height:48px;margin:0;padding:2px 2px 0;
+  border:0;background:none;box-shadow:none;color:rgba(255,244,220,.78);font:700 var(--pv-micro)/1.1 var(--sp-ui);letter-spacing:.01em;text-transform:none;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>*>svg{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>*>span{display:block;max-width:100%;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>:is(.on,[aria-selected="true"],[aria-current="page"]){color:var(--sp-cream)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>:is(.on,[aria-selected="true"],[aria-current="page"])::before{content:"";position:absolute;z-index:-1;left:50%;top:0;width:52px;height:32px;margin-left:-26px;background:var(--sp-gold);
+  border-radius:46% 54% 42% 58%/58% 44% 56% 42%;transform:rotate(-6deg);box-shadow:0 0 0 2px var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>:is(.on,[aria-selected="true"],[aria-current="page"])>svg{color:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>*:is(.kf,:focus-visible){outline:none;color:var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>*>.dot{position:absolute;top:2px;left:calc(50% + 10px);width:10px;height:10px;margin:0;border-radius:50%;background:var(--sp-danger);box-shadow:0 0 0 2px var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbar>*>.tb-b{position:absolute;top:0;left:calc(50% + 8px);min-width:18px;padding:1px 5px;box-sizing:border-box;border-radius:9px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink);
+  font:700 var(--pv-micro)/1.2 var(--sp-ui);font-style:normal;text-shadow:none}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock{position:fixed;left:var(--pv-g);right:var(--pv-g);bottom:var(--pv-gb);z-index:29;display:flex;align-items:stretch;gap:12px;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock.pv-dock-tab{bottom:calc(var(--pv-tab-h) + 8px)}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock>*{flex:1 1 0;min-width:0;min-height:var(--pv-btn-h);margin:0}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock>:is(.sp-patch,.pri,[data-pv-main]){flex:2 1 0;min-height:var(--pv-cta-h)}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock>:only-child{flex:1 1 100%}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock :is(.sp-t,.sp-s){white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;display:block}
+:root.pv:not(#_):not(#_):not(#_) .pv-dock>:is(.sp-patch,.pri,[data-pv-main]) .sp-t{font-size:clamp(17px,5.2vw,22px);line-height:1.08}
+:root.pv:not(#_):not(#_):not(#_) .pv-docked{padding-bottom:calc(var(--pv-dock-h) + var(--pv-gb) + 12px);scroll-padding-bottom:calc(var(--pv-dock-h) + var(--pv-gb) + 12px)}
+:root.pv:not(#_):not(#_):not(#_) .pv-tabbed{padding-bottom:calc(var(--pv-tab-h) + 12px);scroll-padding-bottom:calc(var(--pv-tab-h) + 12px)}
+:root.pv:not(#_):not(#_):not(#_) .pv-docked.pv-tabbed{padding-bottom:calc(var(--pv-dock-h) + var(--pv-tab-h) + 12px);scroll-padding-bottom:calc(var(--pv-dock-h) + var(--pv-tab-h) + 12px)}
+:root.pv:not(#_):not(#_):not(#_) .pv-stripw{position:relative;min-width:0}
+:root.pv:not(#_):not(#_):not(#_) .pv-strip{display:flex;align-items:center;gap:var(--pv-gap);min-width:0;margin:0;padding:4px var(--pv-g);overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;
+  background:var(--sp-ink);scroll-padding:0 var(--pv-g)}
+:root.pv:not(#_):not(#_):not(#_) .pv-strip::-webkit-scrollbar{display:none}
+:root.pv:not(#_):not(#_):not(#_) .pv-strip>*{flex:0 0 auto;min-height:var(--pv-tap)}
+:root.pv:not(#_):not(#_):not(#_) .pv-strip.sp-more-x{-webkit-mask:linear-gradient(to right,#000 calc(100% - 16px),transparent);mask:linear-gradient(to right,#000 calc(100% - 16px),transparent)}
+:root.pv:not(#_):not(#_):not(#_) .pv-stripw:has(>.pv-strip.sp-more-x)::after{content:"›";position:absolute;right:2px;top:50%;width:28px;height:28px;margin-top:-14px;display:grid;place-items:center;border-radius:50%;
+  background:var(--sp-ink);color:var(--sp-cream);font:700 20px/1 var(--sp-ui);pointer-events:none;box-shadow:0 0 0 2px rgba(255,244,220,.25)}
+/* hojas en vertical: velo, hoja anclada abajo con asa, ✕ dentro */
+:root.pv:not(#_):not(#_):not(#_) .pv-veil,:root.pv:not(#_):not(#_):not(#_) #spSheets .sp-catch{background:rgba(10,6,24,.7)}
+:root.pv:not(#_):not(#_):not(#_):not(#_) .pv-sheet{position:fixed;left:0;right:0;bottom:0;top:auto;translate:none;rotate:none;transform:none;box-sizing:border-box;width:auto;max-width:none;max-height:calc(100dvh - var(--pv-gt) - 24px);
+  margin:0;padding:24px var(--pv-g) calc(var(--pv-gb) + 12px);border-radius:20px 20px 0 0;overflow-y:auto;overscroll-behavior:contain}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .sp-sheet.pv-sheet{position:absolute;left:0;right:0;bottom:0;top:auto;translate:none;width:auto;max-width:none;max-height:calc(100dvh - var(--pv-gt) - 24px);
+  padding:24px var(--pv-g) calc(var(--pv-gb) + 12px);border-radius:20px 20px 0 0;overflow:hidden;display:flex;flex-direction:column}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .sp-sheet.pv-sheet:not(.sp-paper){background:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .sp-sheet.pv-sheet.sp-paper{background:var(--sp-cream)}
+:root.pv:not(#_):not(#_):not(#_) .pv-sheet::before{content:"";position:absolute;left:50%;top:8px;width:40px;height:5px;margin-left:-20px;border-radius:3px;background:currentColor;opacity:.35;pointer-events:none}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-sh-h{min-height:44px;padding-right:52px;margin:0 0 8px}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-sh-t{font-size:var(--pv-head);white-space:normal}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-x{position:absolute;top:12px;right:12px;width:44px;height:44px;min-width:44px;min-height:44px;margin:0}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-sh-b{font-size:var(--pv-body)}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-dock{flex-wrap:wrap;gap:12px;margin-top:12px}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-dock>.sp-btn{flex:1 1 0;min-width:0;min-height:var(--pv-btn-h)}
+:root.pv:not(#_):not(#_):not(#_) #spSheets .pv-sheet .sp-dock .sp-t{white-space:normal;text-overflow:clip;overflow:visible}
+/* desvanecido de fin de scroll de los paneles en vertical: --pv-fade (splat.js more() reserva ese hueco abajo) */
+:root.pv:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll.sp-more::after{height:var(--pv-fade);margin-top:calc(-1 * var(--pv-fade) - var(--sp-g))}
+/* textos cortos del móvil que ya existían con su par largo escondido por CSS de .ph: también en vertical (contenido, no disposición) */
+:root.pv:not(#_):not(#_):not(#_) #setNote:not(.sn-x) :is(.sn-lg,.sn-s){display:none}
+:root.pv:not(#_):not(#_):not(#_) #setNote.sn-x .sn-sh{display:none}
+:root.pv:not(#_):not(#_):not(#_) #setNote .sn-more{display:inline-flex;align-items:center;min-height:44px;min-width:44px;vertical-align:middle;margin:-12px 0;padding:0 6px;border:0;background:none;color:var(--sp-gold);font:700 var(--pv-body)/1 var(--sp-ui);text-decoration:underline;cursor:pointer}
+:root.pv:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>:not(.ek-s){display:none}
+:root.pv:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on{font-size:0}
+:root.pv:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>.ek-s{display:inline;font-size:var(--pv-cap);line-height:1.25}
+/* lo que mob() ya enseña en vertical y aún no tenía sitio (los paquetes de zona lo maquetan): «Más detalle» de Cómo se juega en su fila,
+   sin comerse «Siguiente» */
+:root.pv:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav .tut-more{order:-1;flex:1 0 100%;justify-content:center;min-height:44px}
 /* ==== fin SPLAT: sistema de diseño ==== */
 
 /* =====================================================================
@@ -7617,11 +7721,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <div class="qlist sp-opts" data-nav aria-label="Opciones del partido">
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optFmt" data-shape="0" data-opt="format" aria-label="Formato: 2 contra 2"><span class="mi-l">Formato<small class="mi-h" id="fmtHelp">Tú y tu pareja contra la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="2 contra 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="fmtVal">2 contra 2</b></span><span class="arr" data-d="1" aria-label="6 contra 6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optVenue" data-shape="2" data-opt="arena" aria-label="Escenario: Pabellón"><span class="mi-l">Escenario<small class="mi-h" id="venueHelp">Palau del Mar, pista cubierta de 18 × 9</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Pabellón"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="venueVal">Pabellón</b></span><span class="arr" data-d="1" aria-label="Playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es la cámara" data-q-title="Cámara en 6 contra 6" data-q-src="#cam6Help">?</button></div>
+        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only pv-no" data-skip tabindex="-1" aria-label="Qué es la cámara" data-q-title="Cámara en 6 contra 6" data-q-src="#cam6Help">?</button></div>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optDiff" data-shape="1" data-opt="difficulty"><span class="mi-l">Dificultad<small class="mi-h" id="diffHelp">Nivel de la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más fácil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="diffVal">Normal</b><span class="lvl" id="diffLvl"><em></em><em></em><em></em><em></em></span></span><span class="arr" data-d="1" aria-label="Más difícil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optLen" data-shape="2" data-opt="matchLen" aria-label="Duración: Completo"><span class="mi-l">Duración<small class="mi-h" id="lenHelp">Al mejor de 3 sets</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más largo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="lenVal">Completo</b></span><span class="arr" data-d="1" aria-label="Más corto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es Duración" data-q-title="Duración" data-q-src="#lenHelp">?</button></div>
+        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optLen" data-shape="2" data-opt="matchLen" aria-label="Duración: Completo"><span class="mi-l">Duración<small class="mi-h" id="lenHelp">Al mejor de 3 sets</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más largo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="lenVal">Completo</b></span><span class="arr" data-d="1" aria-label="Más corto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only pv-no" data-skip tabindex="-1" aria-label="Qué es Duración" data-q-title="Duración" data-q-src="#lenHelp">?</button></div>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optPts" data-shape="3" data-opt="setPoints"><span class="mi-l">Puntos por set<small class="mi-h" id="ptsHelp">Al mejor de 3; el 3r set, a 15</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Menos puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ptsVal">25</b></span><span class="arr" data-d="1" aria-label="Más puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCtrl" data-shape="0" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es Controlar" data-q-title="Controlar" data-q-src="#ctrlHelp">?</button></div>
+        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCtrl" data-shape="0" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only pv-no" data-skip tabindex="-1" aria-label="Qué es Controlar" data-q-title="Controlar" data-q-src="#ctrlHelp">?</button></div>
         <button class="mi primary sp-patch" id="btnGo"><span class="sp-l"><span class="sp-t">¡A jugar!</span><span class="mi-s sp-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
       </div>
     </div>

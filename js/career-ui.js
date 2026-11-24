@@ -51,7 +51,12 @@
   // Móvil (html.ph; notes/splat.md §9, notes/carrera.md «Móvil»): columna de 6 apartados a la izquierda (Fama y Palmarés juntos en
   // «Vida»: 7 pestañas y Volver no caben en 320 de alto) y las sub-pestañas en tira arriba. Por dentro tab/sub siguen siendo los de
   // siempre ('life' / 'honors'): la columna solo los agrupa. Jugador › Entreno no sale en la tira (el plan está en Partido).
-  function PH() { var de = typeof document !== 'undefined' && document.documentElement; return !!(de && de.classList && de.classList.contains('ph')); }
+  // (ronda 2, movil-aire §8.2) PH() = móvil en cualquier orientación (html.ph o html.pv): QUÉ SE DICE (textos y nombres cortos, apartados
+  // fundidos con Mensajes en el sobre y Palmarés dentro de Vida, rótulos Firma/Ropa/Jornadas/Ajustes, phDedupe, la decisión en la barra de
+  // abajo, una sola salida). PHL() = solo el apaisado (html.ph): DÓNDE VA (raíl, medidas, la tira en la cabecera, encajar el dock en una línea).
+  // En horizontal PH() == PHL(): la salida apaisada no cambia.
+  function PH() { var de = typeof document !== 'undefined' && document.documentElement; return !!(de && de.classList && (de.classList.contains('ph') || de.classList.contains('pv'))); }
+  function PHL() { var de = typeof document !== 'undefined' && document.documentElement; return !!(de && de.classList && de.classList.contains('ph')); }
   var ICO = function (d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
   var TAB_IC = {
     match: ICO('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-2 3-2 6 0 8.5s2 5.5 0 8.5M4.2 9c3 1.2 6.5 1.6 7.8 3s4.8 1.8 7.8 3"/>'),
@@ -2108,7 +2113,7 @@
     var all = function (sel, r) { return Array.prototype.slice.call((r || body).querySelectorAll(sel)); };
     // juvenil, presentación (1ª página): «Ir directo a las pruebas» sube a la cabecera como botón fantasma pequeño
     var sk = body.querySelector('.pro-bar [data-act="pro-skip"]');
-    if (sk && head) { sk.classList.remove('warn'); sk.classList.add('pro-skiph'); sk.classList.toggle('armed', /^Confirmar/.test(sk.textContent)); head.appendChild(sk); }
+    if (sk && head && PHL()) { sk.classList.remove('warn'); sk.classList.add('pro-skiph'); sk.classList.toggle('armed', /^Confirmar/.test(sk.textContent)); head.appendChild(sk); }
     // partido a medias: «Seguir el partido» a la barra de abajo; la nota en una línea
     var lk = body.querySelector('.card.cr-lock');
     if (lk) {
@@ -2226,7 +2231,7 @@
   /** Móvil (movil-aire §3.7): el rótulo del parche de la barra va en UNA línea; si no cabe en su ancho (máx. 62vw), baja la letra de
    *  punto en punto hasta 15 px (nunca se corta ni parte en dos). */
   function phFitDock() {
-    var p = dock && !dock.hidden && dock.querySelector('.sp-patch'), t = p && p.querySelector('.sp-t'); if (!t || !PH()) return;
+    var p = dock && !dock.hidden && dock.querySelector('.sp-patch'), t = p && p.querySelector('.sp-t'); if (!t || !PHL()) return;   // (vertical: 2 líneas con clamp, sin encoger)
     t.style.fontSize = '';
     var fs = parseFloat(getComputedStyle(t).fontSize) || 20, i = 0;
     while (i++ < 10 && fs > 15 && t.scrollWidth > t.clientWidth + 1) { fs -= 1; t.style.fontSize = fs + 'px'; }
@@ -3721,10 +3726,10 @@
     if (!cos.some(function (x) { return x.code === form.country; })) form.country = cos.some(function (x) { return x.code === 'ES'; }) ? 'ES' : (cos[0] && cos[0].code);
     if (ps.indexOf(form.pos) < 0) form.pos = ps[0];
     var st = C().genSt(H6.START_OVR, form.pos, null), P = VB.Prog, co = cos.filter(function (x) { return x.code === form.country; })[0] || {}, P6 = C().POS6;
-    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PH() ? phModeSeg() : '');
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PHL() ? phModeSeg() : '');
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = ''; body.setAttribute('data-cv', 'create');
     var has = C().has('hall');
-    var h = '<div class="cf">' + (PH() ? '' : modeSeg()) + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + (PHL() ? '' : modeSeg()) + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
       '<div class="card"><p>Vóley de pista, 6 contra 6, en el pabellón. Empiezas con una media de ' + H6.START_OVR + ' en un club modesto de tu país' + (co.divs > 1 ? ' (2ª división, o una prueba en la 1ª)' : '') + '. Liga por jornadas, copa nacional y, si tu club se clasifica, copas internacionales. Ascensos y descensos. Si destacas, los ojeadores de las ligas fuertes (también de fuera) te ficharán. Controlas solo a tu jugador, en su puesto.' +
       (VB.Leagues && VB.Leagues.provisional ? ' <span class="tag y">Ligas provisionales</span>' : '') + '</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
@@ -3906,9 +3911,9 @@
     if (form.mode === 'hall' && C().hall) { renderCreate6(c); return; }
     var B = C().beach || C();   // la ficha es de playa aunque la Carrera activa sea la de pista (la fachada mandaría league(0), START_OVR y WEEKS a la pista)
     var R = B.ROLES, st = B.genSt(B.START_OVR, form.role, null), P = VB.Prog;
-    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PH() ? phModeSeg() : '');
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PHL() ? phModeSeg() : '');
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = ''; body.setAttribute('data-cv', 'create');
-    var h = '<div class="cf">' + (PH() ? '' : modeSeg()) + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + (PHL() ? '' : modeSeg()) + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
       '<div class="card"><p>Empiezas con media ' + B.START_OVR + ' y sin club. Los clubes del <b>' + esc(B.league(0).name) + '</b> te harán ofertas: cada uno te da un compañero distinto.</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
       '<div><label>Dorsal</label><div class="stp"><button data-act="num" data-d="-1" aria-label="Dorsal anterior">−</button><b aria-live="polite">' + form.num + '</b><button data-act="num" data-d="1" aria-label="Dorsal siguiente">+</button></div></div>' +
@@ -4500,7 +4505,7 @@
     // carrera, una frase corta como la de Partido rápido
     var chip = '';
     var hl = isHall(c);
-    if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : VB.Splat && VB.Splat.phone && VB.Splat.phone() ? 'Playa o pista: crea tu jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';   // (móvil: una línea)
+    if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : PH() ? 'Playa o pista: crea tu jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';   // (móvil: una línea)
     else if (xTake(c) && xFn(xTake(c), 'hero')) { var xq = xTry(xTake(c), 'hero', [c], {}) || {}; chip = xq.chip || ''; t = xq.line || xq.title || ''; }
     else if (lockPeek()) { chip = 'Partido a medias'; t = lockPeek().sub; }
     else if (c.phase === 'pick') { chip = plural((c.offers || []).length, 'oferta', 'ofertas'); t = 'Elige club'; }
@@ -4509,10 +4514,25 @@
     if (c) chip = (hl ? 'Pista ' : 'Playa ') + chip;
     var h = (chip ? sp([chip], 'c') : '') + esc(t); if (s._crH !== h) { s._crH = h; s.innerHTML = h; }
   }
+  // (ronda 2, sistema-v) Carrera en VERTICAL (html.pv): aún sin maquetar (lo hace el paquete carrera-marco-v). Aquí solo lo mínimo para que lo
+  // que PH() ya pinta en vertical (el sobre de Mensajes de la cabecera) no salga con el dibujo de PC sin medidas. Prefijo PV = :root.pv + 3 ids.
+  var PV = Q.replace(':root', ':root.pv');
+  var PV_CSS = [
+    PV + ' .cr-mail{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0 6px;padding:0;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;' +
+      'background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    PV + ' .cr-mail svg{width:22px;height:22px;fill:none;stroke:currentColor}',
+    PV + ' .cr-mail.on{background:var(--sp-gold);color:var(--sp-ink)}',
+    PV + ' .cr-dock .sp-t,' + PV + ' .cr-dock .sp-s{white-space:normal;overflow:visible;text-overflow:clip}',   // (la barra de abajo ya lleva la decisión: nunca «JUGAR P…»)
+    PV + ' .cr-dock{display:flex;align-items:stretch;gap:12px}',
+    PV + ' .cr-dock>.sp-btn{flex:1 1 0;min-width:0;max-width:none;width:auto}',
+    PV + ' .cr-dock>.sp-patch{flex:2 1 0}',
+    PV + ' .cr-dock>.sp-btn .sp-t{font-size:clamp(15px,4.6vw,20px);line-height:1.08;overflow-wrap:break-word}',
+    PV + ' .cr-mail .tb-b{position:absolute;top:-7px;right:-9px;min-width:20px;padding:1px 5px;box-sizing:border-box;border-radius:7px 9px 7px 8px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink);font:700 12px/1.2 var(--sp-ui);font-style:normal;text-align:center;pointer-events:none}'
+  ].join('\n');
   /** El <style> de la Carrera, una vez (al cargar: también lleva la hoja final del partido de Carrera, #end.career). */
   function ensureCss() {
     if (styleEl) return;
-    styleEl = document.createElement('style'); styleEl.id = 'careerCss'; styleEl.textContent = [CSS, SPLAT_CSS, PH_CSS].join('\n');
+    styleEl = document.createElement('style'); styleEl.id = 'careerCss'; styleEl.textContent = [CSS, SPLAT_CSS, PH_CSS, PV_CSS].join('\n');
     document.head ? document.head.appendChild(styleEl) : document.body.appendChild(styleEl);
   }
   function init() {
