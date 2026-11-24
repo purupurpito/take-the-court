@@ -202,7 +202,9 @@ function measure(o) {
   var res = { vp: W + 'x' + H, fonts: { small12: [], n12: 0, n14: 0, min: null, hist: {}, read14: 0, btn15: 0, tab13: 0, readL: [], btnL: [], tabL: [] }, targets: { n: 0, small: [], tight: [], overlap: [], covered: [] }, clipped: [], off: [], scroll: [], exit: null, primary: null, density: { chars: 0, targets: 0, words: 0 } };
   // (móvil, spec §6.1.1) tier: html.ph / .ph-s / .ph-w; y desplazamiento lateral de la página (§6.1.7)
   var RC = document.documentElement.classList;
-  res.tier = { ph: RC.contains('ph'), s: RC.contains('ph-s'), w: RC.contains('ph-w') };
+  res.tier = { ph: RC.contains('ph'), pv: RC.contains('pv'), s: RC.contains('ph-s'), w: RC.contains('ph-w') };   // (movil-aire ronda 2: pv = móvil en vertical)
+  // (ronda 2) aviso de girar visible (partido en juego en vertical): la pantalla no se mide como tal
+  try { var rt0 = document.getElementById('rotate'); res.rotate = !!(rt0 && !rt0.hidden && rt0.getClientRects().length); res.rotateGame = !!(window.VB && VB.ctx && VB.ctx.portraitBlock); } catch (e) { }
   var se = document.scrollingElement || document.documentElement;
   res.hscroll = se.scrollWidth > W + 1;
 

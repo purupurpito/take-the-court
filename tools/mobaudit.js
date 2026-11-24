@@ -18,6 +18,9 @@
  *   Estado fijado entre pantallas (movil-aire, 23-nov-2026): zurdos solo en las filas «-zurdos»; Mensajes abre Bandeja; Liga › Clubes,
  *   la lista. Columna «rot» = rótulos no tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar). El interruptor
  *   de fitSeg se mide por su fila (.ph-trow) y la flecha del final de un selector (.arr.end) cuenta como desactivada.
+ * Vertical (ronda 2, 24-nov-2026; --sizes 360x740,390x844,412x915): tier = html.pv sin .ph; si una carga no acaba en vertical (el
+ *   partido en juego: ctx.portraitBlock detiene la simulación) se carga apaisado y se gira. El aviso de girar del partido en juego se
+ *   mide tal cual («girar (partido)»); el de fuera del juego (Carrera, crPortrait) se aparta para medir lo de debajo («girar»).
  * Comparar dos pasadas: node tools/mobcompare.js <antes> <después> [salida.html].
  */
 'use strict';
@@ -277,7 +280,16 @@ async function main() {
         await page.setSize(prof.sizes[0], prof.touch, DPR);
         page.errors.length = 0;
         await page.navigate('ma_clean=1&uianim=0&' + g.q);
-        const ready = await waitReady(page);
+        let ready = await waitReady(page);
+        // (ronda 2) en vertical el partido en juego no arranca (ctx.portraitBlock detiene la simulación y la carga no acaba): se carga
+        // apaisado y se gira, como quien gira el móvil con el partido empezado; así sale el aviso de girar
+        const [pw0, ph0] = prof.sizes[0].split('x').map(Number);
+        if (!ready && ph0 > pw0) {
+          process.stderr.write('  (vertical) ' + g.q + ': no cargó en vertical; se carga apaisado y se gira\n');
+          await page.setSize(ph0 + 'x' + pw0, prof.touch, DPR); page.errors.length = 0;
+          await page.navigate('ma_clean=1&uianim=0&' + g.q);
+          ready = await waitReady(page);
+        }
         if (!ready) process.stderr.write('  (aviso) la página no dijo «lista» para ' + g.q + '\n');
         for (const sz of prof.sizes) {
           await page.setSize(sz, prof.touch, DPR); await sleep(350);
@@ -294,6 +306,11 @@ async function main() {
               if (!ok) err = 'no se pudo abrir';
             } catch (e) { err = 'no se pudo abrir: ' + String(e.message || e).split('\n')[0].slice(0, 160); }
             await sleep(s.wait || 220);
+            // (ronda 2) aviso de girar FUERA del partido en juego (la Carrera en vertical, crPortrait de ui.js): se aparta para medir y
+            // capturar lo que hay debajo, y la fila lo apunta («girar»); el del partido en juego (ctx.portraitBlock) se deja y se mide tal cual
+            let rotHidden = false;
+            try { rotHidden = await page.evalJs("(function(){var st=document.getElementById('__maRot'); if(st) st.remove(); var r=document.getElementById('rotate'); var on=!!(r&&!r.hidden&&r.getClientRects().length)&&!(VB.ctx&&VB.ctx.portraitBlock); if(on){st=document.createElement('style'); st.id='__maRot'; st.textContent='#rotate{display:none!important}'; document.head.appendChild(st);} return on;})()"); } catch (e) { }
+            if (rotHidden) await sleep(120);
             const file = path.join(OUT, sz, s.id + '.png');
             let m = null;
             try { m = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id); }
@@ -311,7 +328,10 @@ async function main() {
               } catch (e) { }
             }
             if (!m) m = { err: err || 'sin métricas' };
-            if (m.tier) m.tierOk = m.tier.ph === !DESKS.split(',').includes(sz);
+            if (rotHidden) { m.rotate = true; m.rotateGame = false; m.rotateHidden = true; }
+            // (ronda 2) tier por orientación: escritorio sin .ph ni .pv; móvil apaisado .ph; móvil en vertical (táctil, ancho <= 500) .pv y sin .ph
+            if (m.tier) { const [tw, th] = sz.split('x').map(Number), desk = DESKS.split(',').includes(sz), port = th > tw;
+              m.tierOk = desk ? (!m.tier.ph && !m.tier.pv) : port ? (prof.touch && tw <= 500 ? m.tier.pv && !m.tier.ph : !m.tier.ph) : m.tier.ph; }
             if (err) { m.err = err; nFail++; process.stderr.write('  ✗ ' + s.id + ' @' + sz + ': ' + err + '\n'); }
             if (page.errors.length) { m.jsErrors = page.errors.slice(0, 5); page.errors.length = 0; }
             m.shot = path.relative(OUT, file).replace(/\\/g, '/');
@@ -337,9 +357,11 @@ async function main() {
     const scrOk = Object.values(bs).every(x => !x.afterScroll || ((!x.afterScroll.exit || x.afterScroll.exit.ok || !(x.exit && x.exit.ok)) && (!x.afterScroll.primary || x.afterScroll.primary.ok || !(x.primary && x.primary.ok))));
     const ell = Math.max(0, ...Object.values(bs).map(x => x.nEllBad || 0)), tabs = Math.max(0, ...Object.values(bs).map(x => (x.tabOver || []).length));
     const hscr = Object.values(bs).some(x => x.hscroll);
+    // (ronda 2) aviso de girar en algún tamaño: «girar (partido)» = en juego, lo esperado; «girar» = fuera del juego, a quitar
+    const rotate = Object.values(bs).some(x => x.rotate) ? (Object.values(bs).every(x => !x.rotate || x.rotateGame) ? 'girar (partido)' : 'girar') : '';
     const rot = Math.max(0, ...Object.values(bs).map(x => x.rot ? x.rot.n : 0));   // (movil-aire: rótulos no tocables que se solapan)
     sc.summary = { worst, score: ws, minFont: minF === 99 ? null : minF, n12: m.fonts ? m.fonts.n12 : null, n14: m.fonts ? m.fonts.n14 : null, smallT: m.targets ? m.targets.nSmall : null,
-      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, rot, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
+      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, rot, rotate, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
     rows.push([id, sc.area, sc.summary]);
   }
   fs.writeFileSync(path.join(OUT, 'metrics.json'), JSON.stringify(metrics, null, 1));
@@ -348,9 +370,9 @@ async function main() {
   for (const [id, area, s] of rows) {
     lines.push(id.padEnd(36) + ' ' + area.padEnd(8) + ' ' + String(s.worst || '-').padEnd(10) + ' ' + String(s.minFont == null ? '-' : s.minFont).padStart(8) + ' ' + String(s.n12 ?? '-').padStart(4) + ' ' + String(s.n14 ?? '-').padStart(4) + ' ' +
       String(s.smallT ?? '-').padStart(6) + ' ' + String(s.overlap ?? '-').padStart(5) + ' ' + String(s.huge ?? '-').padStart(6) + ' ' + String(s.clipped ?? '-').padStart(6) + ' ' + String(s.off ?? '-').padStart(5) + ' ' + (s.exitOk ? '  ok  ' : '  NO  ') + (s.primOk ? ' ok  ' : ' NO  ') +
-      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + String(s.rot ?? '-').padStart(5) + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
+      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + String(s.rot ?? '-').padStart(5) + (s.rotate ? '  [' + s.rotate + ']' : '') + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
   }
-  lines.push('', 'tier = html.ph en los tamaños de móvil y sin él en 1280x720 / 1920x1080 / 1024x768 · despl = tras llevar cada zona al final, la salida y la principal',
+  lines.push('', 'tier = html.ph en los tamaños de móvil apaisados, html.pv (sin .ph) en los verticales y sin ninguno en 1280x720 / 1920x1080 / 1024x768 · despl = tras llevar cada zona al final, la salida y la principal',
     'siguen dentro y pulsables · elip = elipsis que cortan información (salvo .sp-lrow .sp-s y [data-ph-ell]) · pest = filas de pestañas que no caben sin desvanecido ·',
     'rot = rótulos NO tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar).',
     'En metrics.json además: fonts.read14 / btn15 / tab13 (lectura < 14, rótulos < 15, pestañas < 13), reach (principal abajo a la derecha, aviso), hscroll.');
