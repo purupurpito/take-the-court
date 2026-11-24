@@ -373,25 +373,32 @@ Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en p
 - **Decisión provisional: una cesión no cuenta**, y un título con el club de la cesión da cariño a ese club.
 - **Contestado (24-nov): «El rencor ya está bien».** Las decisiones de arriba se quedan tal cual; sin preguntas.
 
-## Árbitros con nombre (js/career-world.js, js/arbitro.js, notes/ambiente.md «Árbitros con nombre y carácter»)
-Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las líneas solo en la Carrera.
-- **Decisión provisional: la ficha «Frenar a [tu pareja]» también sale en la playa** (pregunta 2 sin respuesta; propuesta de la ficha).
-  Solo en pista con brazalete: una condición en arbitro.js (`!st.hall ||` …).
-- **Decisión provisional: factores de línea**: lince p1-p3 × 0,6 (falla un 40 % menos), nervioso × 1,3 en derbi.
-- **Decisión provisional: para el nervioso cuentan como derbi** también el clásico y la final.
-- **Decisión provisional: dos apellidos de aire español en todas las ligas, también las extranjeras** de la Carrera de pista: la
-  pregunta de la ficha era para las ligas de España y Ferran no dijo nada de las demás. Hoy `panel()` (career-world.js) usa ARB_FN y
-  ARB_R + ARB_S para todos los colegios sin mirar el país de la liga; el juego no tiene un generador de nombres por país (el de los
-  jugadores mezcla países), así que cambiarlo pide hacer piezas por país.
-- **Decisión provisional: frases de fama** en la previa: «fama de mano dura», «deja jugar», «ojo de lince», «los derbis le pesan», «de manual».
-- Los apellidos se hacen con piezas (18 raíces × 12 finales); `ARB_NO` quita los que existen. Conviene que alguien repase la lista por si
-  alguno coincide con un apellido real.
-- Preguntas:
-  1. ¿La ficha «Frenar» también en la playa?
-  2. ¿Te valen los factores de las líneas (lince −40 %, nervioso +30 % en derbis, clásicos y finales)?
-  3. ¿Te gustan las frases de fama?
-  4. En las ligas extranjeras de la Carrera de pista, ¿los árbitros también con nombre y dos apellidos de aire español, o con nombres
-     del país de la liga?
+## Árbitros con nombre (js/career-world.js, js/arbitro.js, js/arena.js, notes/ambiente.md «Árbitros con nombre y carácter»)
+Ferran decidió: dos apellidos inventados en España; el lince y el nervioso afectan a las líneas solo en la Carrera. El 24-nov: «Frenar» se
+queda como está (también en la playa); los factores de lince y nervioso, como están; cada árbitro de la Carrera con su aspecto fijo; en el
+Partido rápido, el de pista larguirucho con poco pelo y el de playa calvo, sin nada y a veces con gorra; la frase de fama te la dice
+alguien de tu equipo; nombres con aire del país en las ligas extranjeras. Hecho en la rama decisiones.
+- **Decisión provisional: para el nervioso cuentan como derbi** también el clásico y la final (sin cambios).
+- **Decisión provisional: tabla del aspecto por carácter** (`LOOK_TRAIT` en js/arbitro.js, de una semilla fija por carrera y árbitro):
+  mano dura = robusto (80 %), ceño serio, bigote a menudo, sin gafas; deja jugar = pelo (80 %), barba la mitad de las veces, cara
+  tranquila, casi siempre gorra en la playa; lince = gafas finas (70 %) y si no, mirada aguda (ceño), delgado o larguirucho; nervioso =
+  gafas redondas gruesas siempre y poco pelo (calvo 1 de cada 4); de manual = de todo un poco. Piel y color de pelo según el país del
+  colegio; canas a veces (más en el de mano dura). En la playa la gorra (blanca con visera azul) sale según el carácter.
+- **Decisión provisional: el 2º árbitro, los jueces de línea y el anotador no cambian** (solo el 1r tiene aspecto propio). No hay retrato
+  del árbitro en la previa ni en una ficha, así que su cara solo se ve en la silla durante el partido.
+- **Decisión provisional: quién dice la fama.** Siempre el entrenador («Alex (entrenador): Ojo, fama de mano dura»); en la
+  playa, la mitad de los árbitros te los presenta tu pareja («Iker (tu pareja): …»), fijo por árbitro. Si cabe, dice el apellido del 1r.
+  Frases en `ARB_SAYS` (career-world.js); la línea cabe en 44 letras como antes, así que la frase es corta («Ojo, fama de mano dura»). Con recuerdo (tarjeta, frenada,
+  protesta) sigue saliendo «1r: Nombre, te sacó amarilla en la J4».
+- **Decisión provisional: competiciones internacionales** (rival de otro país): pita un colegio NEUTRAL, de un país que no es ni el tuyo
+  ni el del rival, como en la CEV (`arbKeyOf`, lista `ARB_NEU`). Las ligas y copas de tu país, el colegio de tu liga.
+- **Decisión provisional: estilos de nombre por país** (`ARB_STY` / `ARB_CC`): Bélgica con nombres franceses, Suiza y Austria alemanes,
+  Serbia y Eslovenia comparten estilo, Argentina, Perú y Filipinas usan las piezas españolas con nombres de allí; nombre y UN apellido
+  (en España, dos). Cada estilo tiene su lista de apellidos reales que no pueden salir.
+- **Decisión provisional: carreras guardadas.** Los nombres no se guardan (salen de la semilla), así que los árbitros de ligas extranjeras
+  ya vistos pasan a llamarse con el nombre del país, de forma coherente en todas partes; la libreta (tarjetas, protestas) sigue con ellos.
+  Solo los mensajes viejos de la bandeja conservan el nombre de antes. Los de España y la playa no cambian.
+- Conviene que alguien repase los apellidos (los españoles y los de cada país) por si alguno coincide con una persona conocida.
 
 ## «Te tienen estudiado» (scouting; js/sim.js g.scout, js/ai.js, js/career.js study*, notes/carrera.md)
 Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan. El 24-nov: media ≥ 7 o un partido de más de 9, solo
@@ -465,7 +472,7 @@ durante un tiempo corto». Ya no hay repetición automática.
 - **Ensayos de la charanga en los menús**: `XAR_WHEN.menu = false` en js/audio.js (hechos, apagados).
 - **Insignia «rompemanos» del jefe Muro**: sigue cortada (tiraría un dado más y cambiaría la huella).
 - **Rencor leve con sueldo peor**: encendido; se apaga con `BOND_PAY[1] = 1` en js/career-life.js.
-- **Ficha «Frenar a tu pareja» en la playa**: encendida; se limita a la pista con brazalete en js/arbitro.js.
+- **Ficha «Frenar a tu pareja» en la playa**: encendida (Ferran, 24-nov: se queda); se limitaría a la pista con brazalete en js/arbitro.js.
 - **Sello de la semana en la portada**: si faltan js/semana.js o js/semana-ui.js, vuelve el sello del reto del día.
 - Encendidos en esta rama (antes apagados): `S4_SYNC = true` (js/account.js) y `BOSS_HALL = true` (js/career-life.js).
 - Sin cambios aquí: el Acta del partido sigue oculta (solo tu cuenta).
@@ -477,7 +484,7 @@ durante un tiempo corto». Ya no hay repetición automática.
   de Firestore del 16-nov siguen tal cual (el comentario de cabecera de firebase/firestore.rules todavía da «S4_SYNC = true» como
   pendiente; no se ha tocado).
 - Un partido táctil de verdad provocando señas, y una Carrera de pista con un jefe y con un club con rencor.
-- Repasar los apellidos de los árbitros por si alguno coincide con uno real.
+- Repasar los apellidos de los árbitros (España y cada país) por si alguno coincide con una persona conocida.
 - Al juntar esta rama con main: main ya va por la 1.20.0 (Take the Court) y esta rama sube a la 1.21.0 sin la 1.20.0, así que
   js/version.js chocará y hay que dejar las dos entradas. También hay que pasar a la marca nueva el enlace de `js/semana.js link()` y el
   título de compartir de `js/semana-ui.js share()`.

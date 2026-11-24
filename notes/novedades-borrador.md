@@ -44,3 +44,10 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - Un balón pintado en la mejilla y una mancha de tinta alrededor del ojo.
 - En el nivel 99, el pelo arcoíris: solo se consigue así.
 - Si ya tenías el nivel, te los llevas al entrar.
+
+## Árbitros (decisiones de Ferran del 24-nov)
+- En la Carrera, cada árbitro tiene su cara: pelo o calva, gafas, bigote, barba, complexión… y siempre la misma.
+- Su aspecto va con su carácter: el de mano dura tiene cara seria, el nervioso lleva gafas redondas.
+- En la playa, algunos árbitros pitan con gorra.
+- Antes del partido, tu entrenador (o tu pareja, en la playa) te avisa de qué fama tiene el árbitro.
+- En las ligas de otros países, los árbitros tienen nombres de allí. En los partidos internacionales pita un árbitro de un país neutral.

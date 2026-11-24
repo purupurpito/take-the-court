@@ -610,5 +610,27 @@ pregunta 17 de prensa «¿Qué te ha parecido el arbitraje de {ref}?», al final
 solo con 1r designado y tarjeta o protesta en el partido. **Acta** (oculta): ui.js `actaMeta.refs` = [1r, 2º, anotador] de `cs.arb`;
 acta.js los usa si vienen los tres.
 
+**Aspecto, fama dicha y nombres por país (24-nov-2026, rama decisiones; decisiones de Ferran).**
+- *Aspecto del 1r* (`VB.Arbitro.look(o)`, puro, sin g.rng): `{hair full|thin|bald, glasses ''|round|thin, stache, beard, cap, build
+  lanky|normal|stout, brow flat|frown, skin, hairC}`. Carrera: `onSetup` añade a `cs.arb` `lk` (`arbLook(c, id)`, fijo por carrera y
+  árbitro) y `sty` (estilo del colegio); la tabla por carácter es `LOOK_TRAIT` (mano dura robusto y serio, deja jugar con pelo y barba a
+  menudo, lince gafas finas o ceño, nervioso gafas redondas y poco pelo, manual de todo) y la piel/pelo por país `LOOK_REG`; gorra solo en
+  la playa. Fuera de la Carrera (sin `trait`): pista = larguirucho con poco pelo; playa = calvo, sin nada, gorra si
+  `hash01(seed, 0x10C, 0xCA9) < 0,4` (semilla del partido, `g.seed`).
+- *arena.js*: el 1r (`makePerson` con `baldable`) lleva en huesos de la cabeza las piezas `browF/browW` (cejas rectas / ceño), `thin`
+  (mechones y dos pelos), `glR/glT` (gafas), `stache`, `beard`, `cap`, además del casquete (`hair`) y el brillo (`shine`). `refLook()`
+  abre (escala 1) o pliega (1e-4) cada hueso, cambia la complexión (`REF_BUILD`: piernas/tronco y anchura) y repinta piel y pelo solo en
+  los vértices del 1r (`refColorsInit` los busca una vez tras fusionar; una subida con `updateRange`). Todo va en la SkinnedMesh común de
+  los oficiales: **0 dibujos más**. `refLookFor(g)` (cada frame, barato) lo rehace si cambia `g.career.arb` o `g.seed`. `_dbg().refLook(spec)`
+  fuerza uno (capturas: `tools/refshots.js [carpeta] [WxH] [hall|beach]`).
+- *Fama dicha*: sin recuerdo, `arbLine` devuelve `arbSay(c, R, k)`: «Quién: frase» ≤ `ARB_SAY` (44, como ARB_LINE: la previa pone sus dos líneas seguidas en una sola) letras; quién = el entrenador del
+  reparto de career-story («Alex (entrenador)»; sin él, «Tu entrenador»); en la playa, la mitad de los árbitros (por el id) tu pareja
+  («Iker (tu pareja)»). Frases en `ARB_SAYS`, con `{r}` = apellido si cabe. La línea con recuerdo sigue siendo «1r: …» ≤ 44.
+- *Nombres por país*: `panel(c, key)` con `arbStyle(key)` ≠ 'es' (ligas extranjeras de la pista, `ARB_CC`) usa `ARB_STY[sty]`: nombre
+  (`fn`) y UN apellido de piezas `r + s`, sin repetir apellido ni raíz en el colegio y fuera de `no` (apellidos reales conocidos, uno o más
+  por estilo) y de `ARB_NO`; `la`/`ph` usan las piezas españolas. España ('ES…') y playa ('B…'): el código de antes, mismo azar.
+  Internacional (`n.foreign`): `arbKeyOf` elige un colegio neutral (`ARB_NEU`, ni tu país ni el del rival; `rngOf(seed, 'arb-neu', …)`).
+  Los nombres no se guardan: en carreras guardadas los colegios extranjeros pasan a los nombres nuevos sin tocar la libreta.
+
 Escenas: `?debug=amb&k=brake` (la 1ª disputa en contra abre «Frenar a … / Dejarle», 1r «Quirada»; `&format=6v6` en pista; `&arb=1`
 da el 1r con nombre en las demás) y `?debug=intro&kind=long&career=1&arb=1` (designación con recuerdo; `&arb=2` sin él).
