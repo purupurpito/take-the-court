@@ -2036,6 +2036,19 @@ panel «Primer partido» → Jugar (5 toques) y, en el móvil, podía salir ante
 - Pruebas: `node tools/jugaryatest.js` (portada, toque, partido corto, primer punto, «Y ahora», ?jugar, aviso de instalar en el móvil);
   mobaudit `home-jugarya` y `final-primero`; drive.js baja con ↓ del billete a JUGAR en el perfil nuevo.
 
+## Primera vez, formato en Jugar, dorsales y rendimiento (24-nov-2026, rama decisiones; decisiones de Ferran)
+- **Primera vez**: `firstWanted(nw)` en syncHero pone `#menu.first-run` cuando sale «¡Jugar ya!» y no hay `record.intro` ni `record.tut`.
+  El CSS (bloque «PRIMERA VEZ» al final de SPLAT · PORTADA) esconde todo lo de `.mlist` menos `#btnNow` y `#btnStartTut` (también con
+  `?menu=old`) y deja el logotipo en el móvil. Cerrar el tutorial (closePanel con `was === 'tut'`) pone `record.intro = 1` y el foco en
+  «¡Jugar ya!». `VB.UI.refreshMenu()` vuelve a leer `make-the-cut.record`. `&first=1` en depuración (mobaudit `home-primera`).
+- **Formato en Jugar**: `#plFmt` (data-sp-row + data-sp-col0: al bajar se va a la 1ª columna, Partido rápido, no al sello) con
+  `data-fmt="2v2|6v6"`; `plFmtSync()` al entrar en Jugar y al elegir. `#btnQuick` ya no fuerza 2v2. Sin `#btn6v6`.
+- **Dorsales**: `sqRole(num)` = papel del atleta de VB.Prog; lo usan Jugadores (`.sq-pn`, `.sq-long` si > 8 letras), Vestuario
+  (`.lk-rl` / `.lk-ra`: en `.ph` solo la inicial), Controlar, la portada y la hoja final.
+- **Rendimiento**: main.js `deviceGuess()` (memoria, núcleos, GPU de WEBGL_debug_renderer_info, píxeles) y `autoStart()`; `ctx.qGuess`,
+  `ctx.qAutoStart()`. ui.js `perfFirst(cb)` / `perfNote()` reutilizan `#setNote` (`sn.kind` 'set' | 'perf'); con la ventana abierta
+  `#menu.sn-hide`. Ajuste de aparato `q6Asked`. `&q6=1` en depuración (mobaudit `aviso-rendimiento`).
+
 ## Partidos cortos (22-nov-2026, rama investigacion; imprescindible 4.5)
 - **Menú:** fila «Duración» (`#optLen`, ajuste `matchLen`) en Partido rápido, junto a Dificultad (Dificultad deja de ocupar la fila entera:
   la rejilla sigue en 3 filas de 2 y cabe a 568×320): Completo → Un set → «Desde 20-20» (el valor dice desde dónde empieza: `puntos-5`).

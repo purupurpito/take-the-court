@@ -4,7 +4,7 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 **decisión provisional**: cambiarlo es tocar el sitio que se indica. Lo que Ferran sí decidió está en la memoria
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
-Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Backlog del 21-nov · Señas · Xaranga · Semana · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
+Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · Backlog del 21-nov · Señas · Xaranga · Semana · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
 publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
@@ -42,7 +42,8 @@ rama pendientes, sin publicar.
      partido»); la revancha de ese partido también es corta.
   3. `?jugar` vale para todos (no solo novatos): arranca el partido corto sin pasar por el menú y se quita del enlace.
   4. «Y ahora» sale una sola vez, al acabar el primer partido; Cuenta solo si no hay sesión.
-  ¿Te vale el billete encima de JUGAR, o prefieres que JUGAR haga de «Jugar ya» la primera vez (un botón menos)?
+  **Contestado el 24-nov** («Cuando alguien se meta al juego por PRIMERA VEZ que le dé de opciones Jugar ya o Tutorial»): ver «Menús:
+  decisiones de Ferran del 24-nov», abajo.
 - **4.2 «Botones táctiles movibles, con opacidad y modo zurdo»** (notes/camera_input.md «Disposición táctil»). Ajustes › Controles › Táctil ›
   «Disposición de botones»: editor a pantalla completa con los botones de verdad (arrastrar, Tamaño 70-150 % y Opacidad 30-100 % por botón,
   «Zurdos», «Restablecer», «Listo»). Solo en el aparato (`make-the-cut.device`), nunca en la cuenta. **Decisiones provisionales:**
@@ -64,7 +65,8 @@ rama pendientes, sin publicar.
   4. Vale también en 6 contra 6. **«Jugar ya» (un set a 15) solo cuenta en el primer partido de quien no ha jugado nunca** (22-nov,
      revisión de la rama: antes contaba siempre y su revancha y `?jugar` daban victorias y XP baratas). La revancha de ese primer partido
      y `?jugar` de quien ya ha jugado son un corto más (`g.short` «Un set»): no cuentan y la hoja dice «Partido corto».
-  ¿Prefieres que los cortos cuenten aparte (p. ej. su propio «ganados de jugados») en vez de no contar?
+  **Contestado el 24-nov** («Los partidos cortos son partidos sin más, sin traer experiencia ni nada»): se quedan así, sin contar nada
+  (comprobado: `g.short` no da récord, retos, insignias ni XP; tools/cortostest.js).
 - **4.6 «Marca de tu jugador» y 4.7 «Indicador de caída»** (Ajustes › Accesibilidad; notes/ui_main.md «Marca de tu jugador e indicador de
   caída»). Solo visuales, sin tocar huellas. **Decisiones provisionales:**
   1. Alto contraste = **blanco con borde negro** (halo y galón); no amarillo, que es el color del aro de golpeo.
@@ -79,10 +81,10 @@ rama pendientes, sin publicar.
      Accesibilidad» (7 s). Se apunta en el ajuste nuevo `laSeen`.
   4. La vista previa es un icono en la fila; a 568×320 no cabe y no sale.
   ¿Te vale que «Auto» retire el aro en Difícil y Experto, o lo quieres siempre entero salvo que lo cambie el jugador?
-- **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
-  1. Falta de posición (`RULES.posicion` de js/senas.js): el texto dice «todos en su sitio de rotación», pero el juego **solo** la pita
-     al equipo que recibe (regla 7.4, desde 1.11.0); la justificación del 21-nov (que también pita al que saca) es falsa. Propuesta:
-     «Reglas 7.4-7.5: al saque, el equipo que recibe, cada uno en su sitio de rotación.» ¿La pones?
+- **Preguntas del reglamento (informe §7, puntos 2 y 4):**
+  1. Falta de posición: **contestado el 24-nov** («En el reglamento ya sale que el equipo que saca es libre de ocupar la posición que
+     quiera»): puesta la propuesta en `RULES.posicion`, **sin la primera coma** para caber en los 80 caracteres de senatest: «Reglas
+     7.4-7.5: al saque el equipo que recibe, cada uno en su sitio de rotación.»
   2. Saque (`RULES.saque`): dice «se golpea con una mano»; la 12.4.1 dice «con una mano o cualquier parte del brazo». ¿Se corrige?
   3. Señas: la n.º 19 (red) también cubre el saque que toca la red y no pasa, y la n.º 12 es bloqueo o pantalla. ¿Ajustamos las
      explicaciones del Cuaderno a eso?
@@ -204,6 +206,40 @@ rama pendientes, sin publicar.
   por la IA variada (comprobada en main y en el commit de la IA variada). **Fallan igual en main 1.21.0, sin tocar:** contacttest
   (holgura mano-balón en pass/dig, dive y forearm; main da 4 fallos) y balltest (pelota en la banda de las playas de día, nota 23-26
   con umbral 30; main igual). camtest «clutter» y la fila «home» de mobaudit a 844×390 fallaron una vez por tiempos y pasan solas.
+
+## Menús: decisiones de Ferran del 24-nov (rama decisiones, sin versión)
+Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al hacerlo (cambiarlas es tocar el sitio que se dice).
+- **Primera vez** (js/ui.js `firstWanted`, `#menu.first-run`; billete `#btnStartTut` en index.html y js/menu-jugador.js). La portada de
+  quien no ha jugado nunca es solo «¡Jugar ya!» y «Tutorial», con el logotipo encima también en el móvil. **Se acaba** al jugar cualquier
+  partido (el mismo `everPlayed` de «Jugar ya») **o al cerrar el tutorial, se acabe o no** (`record.intro = 1`). Empezar un partido y
+  salir a medias no la acaba. Después sale la portada de siempre, con el billete «¡Jugar ya!» encima hasta el primer partido (como en
+  1.22.0). Quien ya acabó el tutorial antes (`record.tut`) no la ve. El panel «Primer partido» (tutorial o jugar ya, al pulsar ¡A jugar!)
+  ya solo sale a quien no pasó por esa portada (p. ej. con una Carrera empezada y sin partidos). En depuración, `&first=1`.
+- **6v6 en JUGAR** (index.html `#plFmt`, js/ui.js `plFmtSync`). Hoy el 6v6 ya estaba en Jugar, pero como una mancha más («6 contra 6»)
+  al lado de Entrenamiento. Ahora el formato es una **opción** en la cabecera de Jugar, justo encima del Partido rápido: dos pestañas
+  «2v2 | 6v6» (el ajuste «Formato» de siempre; el parche dice cuál). La mancha 6 contra 6 se ha quitado y **Partido rápido ya no
+  vuelve a ponerte en 2v2** al entrar. La fila Formato de la preparación sigue (es la misma opción). Teclado y mando: ↑ desde Partido
+  rápido llega al formato, ←/→ entre los dos, Intro/A lo elige y ↓ vuelve a Partido rápido.
+- **Dorsales en el 2v2** (js/ui.js `sqRole`). En los menús tus dos jugadores van **por su papel** («Bloqueador», «Universal», de
+  js/prog.js): selector de Jugadores (con la inicial en el disco), selector del Vestuario (en el móvil solo la inicial, «B» y «U»: el
+  nombre entero no cabe junto a Pista/Playa), Controlar «Un jugador» («Llevas al bloqueador; la IA lleva al universal»), la línea de
+  Jugadores de la portada («Nivel 3 los dos» / «Niveles 3 y 2») y la XP e insignias de la hoja final. **No cambia nada guardado**: el
+  dorsal sigue en `VB.Prog` y en la camiseta, y en lo que pasa en la pista (consejos, MVP, cambios del 6v6) se sigue diciendo el número.
+- **Rendimiento** (js/main.js `deviceGuess` / `autoStart`). «Auto» ya bajaba y subía con los fps medidos; ahora además **empieza** según
+  el aparato: GPU por software, ≤ 2 GB o ≤ 2 núcleos (o móvil con ≤ 3 GB) → baja; GPU modesta (Mali-4xx/T6-8, Adreno 2xx-50x, PowerVR
+  viejas, Intel HD 2000-5000) → un nivel menos; ≤ 4 GB o ≤ 4 núcleos → como mucho media; PC con pantalla 4K y ≤ 6 núcleos → media.
+  Nunca empieza por encima del tope de siempre (alta en PC, media en móvil). En depuración no se aplica (las pruebas y perf.js no
+  cambian). Ajustes › Imagen sigue con Auto / Alta / Media / Baja (la nota dice «Auto se ajusta sola a tu aparato (ahora: media)»).
+- **Ventana del 1r 6v6** (js/ui.js `perfFirst` / `perfNote`, la misma hoja del aviso de colocador). Sale antes del primer partido 6v6
+  de este aparato **que se empieza desde los menús**: ¡A jugar! del Partido rápido en 6 contra 6 y «Jugar partido» de la Carrera de
+  pista. Opciones: **Auto (recomendada, con el nivel en el que empezaría)**, Alta, Media y Baja; la de ahora dice «Ahora». Esc / B =
+  dejarla como está. Se apunta en `q6Asked` (solo este aparato, `make-the-cut.device`) elija lo que elija y el partido empieza al
+  cerrarla. No sale en la revancha, al reiniciar, al retomar ni en el online. Recomiendo Auto y no un nivel fijo porque Auto ya
+  empieza en lo que diga el aparato y se corrige con los fps; si prefieres que recomiende un nivel fijo, es `perfHTML` en js/ui.js.
+- **Tope de dibujos del 6v6 en calidad baja: se queda en 45** (tools/perf.js `CALLS_LOW`). Bajarlo a 33-35 como el 2v2 obligaría a juntar
+  mallas de los 12 jugadores (trabajo de render, no de menús) y lo medido (37-39) ya va holgado; el tope es una alarma, no un objetivo.
+- **Confirmado sin tocar**: «Cerrar sesión» no borra el progreso del aparato; el Circuito Mundial sigue como reto; los partidos cortos
+  siguen sin dar XP ni nada.
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
@@ -429,12 +465,11 @@ Cada bote a menos de 5 cm de la línea se convierte en un momento propio del jue
   cambio de nombre a Take the Court, ¿se sigue llamando «El Corte»?
 
 ## Preguntas abiertas de TRASPASO.md (siguen sin respuesta)
-1. **Circuito Mundial**: los clubes de élite (media ≥ 80, IA Experto) no los gana nadie. ¿Reto final o se suaviza (`DIFF_AT`)?
-2. **«Cerrar sesión»**: no borra el progreso del aparato (si se comparte el móvil, el siguiente lo ve). ¿Debe borrarlo?
-3. **Tope de dibujos del 6v6**: en calidad baja se aceptan 45 (medido 37-39). ¿Se queda o se baja a 33 como el 2v2?
+(Contestadas el 24-nov y quitadas de aquí: Circuito Mundial = se queda como reto, sin suavizar `DIFF_AT`; «Cerrar sesión» no borra
+el progreso del aparato, comprobado en js/account.js `signOut` —solo olvida la sesión y avisa «Tu progreso sigue en este dispositivo»—;
+tope de dibujos del 6v6 lo decido yo, abajo en «Menús».)
 4. **Repo de redirección**: la dirección vieja /voley-3d/ da 404. ¿Se hace la redirección en purupurpito.github.io?
-5. Música en ogg dentro de index.html o procedural; ¿moneda única o ninguna?; ¿el 6v6 visible en JUGAR?
+5. Música en ogg dentro de index.html o procedural; ¿moneda única o ninguna? (el 6v6 en JUGAR, contestado el 24-nov: ver «Menús»)
 6. Premios por nivel: ¿se quedan en 8 (había 17 propuestos)?
-7. Dorsales «N.º 1 / N.º 2» en Jugadores: ¿se quedan así?
 8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
 9. Torneo de la semana: ¿lo damos por cubierto con «El mismo 22-24»? (también arriba, en Backlog del 21-nov y en la Semana).
