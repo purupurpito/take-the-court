@@ -5505,6 +5505,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{grid-row:1/-1;grid-column:1;--lkt:76px;--lkg:10px}
 /* con la rejilla abierta, su «‹» hace de Volver: la cabecera se va y caben dos filas de fichas a 568×320 */
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook.lk-gon .mp-head{display:none}
+/* Vestuario: tus dos jugadores por su papel (24-nov-2026, sin dorsales); en el móvil solo la inicial (B, U): el nombre entero no cabe junto a la sede */
+#mpLook .lk-ra{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-rl{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-ra{display:inline}
+:root:not(.ph):not(#_):not(#_):not(#_) #menu #mpLook .lk-top{flex-wrap:wrap;row-gap:6px}
 /* 380 de alto o menos (568×320, 640×360): el título, el jugador y la sede van en UNA fila (sin «Vestuario», sin «N.º» ni «En»:
    «‹ PELO · 1 2 · PISTA PLAYA») y la lista gana una fila entera (a 568×320 se veían 1-2 filas y ninguna miniatura) */
 @media (max-height:380px){
@@ -6219,6 +6224,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{min-height:60px;padding:5px 10px 5px 8px;gap:8px;align-items:center}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{width:36px;height:36px;font-size:20px}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{font-size:var(--ph-row)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn.sq-long{font-size:clamp(12px,2vh,17px);letter-spacing:0}   /* (papel largo, «Bloqueador»: 24-nov-2026, sin dorsales) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn.sq-long{font-size:calc(var(--ph-row) * .82)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{font-size:var(--ph-cap);white-space:normal;overflow:visible;line-height:1.2}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pp{font-size:var(--ph-cap)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm{display:block;white-space:nowrap}

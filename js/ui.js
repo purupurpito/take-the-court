@@ -3287,9 +3287,9 @@
     }
     if (el.squadSub && VB.Prog) {
       var sq = VB.Prog.get().a, pt = sq[0].pts + sq[1].pts;
-      // sin puntos: una pastilla por jugador con su dorsal en círculo («(1) Nv 3  (2) Nv 2»)
+      // sin puntos: el nivel de los dos (sin dorsales, 24-nov-2026: «Nivel 3 los dos» o «Niveles 3 y 2»)
       setHTML(el.squadSub, 'sqs', pt ? pt + (pt === 1 ? ' punto de mejora' : ' puntos de mejora')
-        : sepHTML(sq.map(function (a) { return { h: '<i class="dn" aria-label="N.º ' + a.num + '">' + a.num + '</i>Nv ' + a.lvl }; }), 'c'));
+        : sq[0].lvl === sq[1].lvl ? 'Nivel ' + sq[0].lvl + ' los dos' : 'Niveles ' + sq[0].lvl + ' y ' + sq[1].lvl);
       el.btnSquad.classList.toggle('has-pts', pt > 0);
     }
     // Vestuario: punto en el botón de la portada mientras haya algo nuevo sin ver
@@ -3308,12 +3308,12 @@
     if (!el.sqBody || !VB.Prog) return;
     var P = VB.Prog, d = P.get();
     if (sqSel >= d.a.length) sqSel = 0;
-    // selector de atleta (radio): dorsal, rol, nivel y aviso de puntos sin gastar
+    // selector de atleta (radio): papel (sin dorsal: 24-nov-2026), nivel, media y aviso de puntos sin gastar
     var ph = '';
     d.a.forEach(function (a, i) {
       var on = i === sqSel;
       ph += '<button class="sq-pk sp-btn sp-wide sp-calm sp-quiet ' + (on ? 'sp-gold on' : 'sp-ink') + (a.pts ? ' has-pts' : '') + '" data-shape="' + (i * 2 + 1) + '" role="radio" aria-checked="' + on + '" data-pick="' + i + '"' + (on ? '' : ' tabindex="-1"') + '>' +
-        '<span class="sq-num">' + a.num + '</span><span class="sq-pn">N.º ' + a.num + '<small>' + escT(a.role || '') + '<span class="sq-lv"> (Nv&nbsp;' + a.lvl + ')</span><span class="sq-pm"><span class="sep sep-v"><span class="sr">, </span></span><span class="sq-pl">Nv&nbsp;' + a.lvl + ' · </span>Media ' + P.ovr(a.st) + '</span></small></span>' +
+        '<span class="sq-num" aria-hidden="true">' + escT(String(a.role || '?').charAt(0)) + '</span><span class="sq-pn' + (String(a.role || '').length > 8 ? ' sq-long' : '') + '">' + escT(a.role || sqRole(a.num)) + '<small class="sq-lm">Nv&nbsp;' + a.lvl + ' · Media ' + P.ovr(a.st) + '</small></span>' +
         (a.pts ? '<em class="sq-pp" aria-label="' + a.pts + ' puntos de mejora">+' + a.pts + '</em>' : '') + '</button>';
     });
     var ae0 = document.activeElement, pickF = ae0 && el.sqPick && el.sqPick.contains(ae0), pickKb = pickF && ae0.classList.contains('kf');
@@ -3337,7 +3337,7 @@
       gr[1].forEach(function (k) {
         var v = a.st[k], c = P.cost(v), can = v < P.MAX && a.pts >= c;
         html += '<div class="sq-r' + (upKey === i + ':' + k ? ' up' : '') + '" title="' + (P.HINT[k] || '') + '"><span>' + P.LABEL[k] + '<small>' + (P.HINT[k] || '') + '</small></span><span class="bar"><i style="width:' + v + '%"></i></span><b>' + v + '</b>' +
-          '<button data-i="' + i + '" data-up="' + k + '"' + (can ? '' : ' disabled') + ' aria-label="Mejorar ' + P.LABEL[k] + ' del ' + a.num + ' (' + c + (c === 1 ? ' punto' : ' puntos') + ')">' + (v >= P.MAX ? 'máx' : '+' + c) + '</button></div>';
+          '<button data-i="' + i + '" data-up="' + k + '"' + (can ? '' : ' disabled') + ' aria-label="Mejorar ' + P.LABEL[k] + ' del ' + escT(String(a.role || sqRole(a.num)).toLowerCase()) + ' (' + c + (c === 1 ? ' punto' : ' puntos') + ')">' + (v >= P.MAX ? 'máx' : '+' + c) + '</button></div>';
       });
       html += '</div>';
     }
@@ -3391,7 +3391,7 @@
     var h = '';
     list.forEach(function (u) {
       var b = VB.Badges.BY[u.id];
-      h += '<span class="l' + u.lvl + '"' + (u.eq && !u.prev ? ' title="Equipada"' : '') + '><i class="bd-ic">' + (b ? b.icon : '') + '</i>N.º ' + u.num + ': <b>' + VB.Badges.label(u) + '</b></span>';
+      h += '<span class="l' + u.lvl + '"' + (u.eq && !u.prev ? ' title="Equipada"' : '') + '><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + escT(sqRole(u.num)) + ': <b>' + VB.Badges.label(u) + '</b></span>';
     });
     return '<div class="end-bd">' + h + '</div>';
   }
@@ -3614,7 +3614,7 @@
       var dfk = ctx.game.difficulty, perP = [stats.p[0], stats.p[1]];
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
-        xh += '<span>N.º ' + sqa[i].num + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">¡NIVEL ' + r.lvl + '! +' + r.pts + ' puntos</span>' : '') + '</span>';
+        xh += '<span>' + escT(sqa[i].role || sqRole(sqa[i].num)) + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">¡NIVEL ' + r.lvl + '! +' + r.pts + ' puntos</span>' : '') + '</span>';
         // (B6: lo mismo para el bloque «Progreso» del Resumen, con la barra de nivel)
         endAw.push({ num: sqa[i].num, xp: r.xp | 0, lvl: r.lvl | 0, lvlUp: !!r.lvlUp, pts: r.pts | 0, cur: sqa[i].xp | 0, need: VB.Prog.need ? VB.Prog.need(sqa[i].lvl) : 0 });
       });
@@ -4145,7 +4145,7 @@
     var h = '';
     list.slice(0, 3).forEach(function (u) {
       var b = VB.Badges.BY && VB.Badges.BY[u.id], tier = u.tier || (VB.Badges.TIERS && VB.Badges.TIERS[u.lvl]) || '';
-      h += '<span class="l' + (u.lvl | 0) + '" title="' + escT(VB.Badges.label ? VB.Badges.label(u) : u.name) + '"><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + (u.num ? 'N.º ' + u.num + ': ' : '') + '<b>' + escT(u.name || '') + '</b><small>' + (u.prev ? 'sube a ' + tier : 'nueva (' + tier + ')') + '</small></span>';
+      h += '<span class="l' + (u.lvl | 0) + '" title="' + escT(VB.Badges.label ? VB.Badges.label(u) : u.name) + '"><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + (u.num ? escT(sqRole(u.num)) + ': ' : '') + '<b>' + escT(u.name || '') + '</b><small>' + (u.prev ? 'sube a ' + tier : 'nueva (' + tier + ')') + '</small></span>';
     });
     if (list.length > 3) h += '<span class="more">+' + (list.length - 3) + '</span>';
     return '<div class="end-bd rc-bd">' + h + '</div>';
@@ -4927,13 +4927,14 @@
     if (!el.mpLook || !lk.fit) return;
     var U = {}, uu = lkUnseen(); uu.forEach(function (id) { U[id] = 1; });
     // selector de jugador (radio; solo el elegido entra en el recorrido ↑/↓, ←/→ cambia)
-    var car = lkCareer(), picks = [[0, '<span class="lk-sx">N.º </span>' + lkSquadNum(0)], [1, '<span class="lk-sx">N.º </span>' + lkSquadNum(1)]];   // (a 320 de alto, sin «N.º»: va en la fila del título)
+    var car = lkCareer(), rl = function (i) { var r = sqRole(lkSquadNum(i)); return '<span class="lk-rl">' + escT(r) + '</span><span class="lk-ra" aria-hidden="true">' + escT(r.charAt(0)) + '</span>'; },
+      picks = [[0, rl(0)], [1, rl(1)]];   // (sin dorsales, 24-nov-2026: el papel de cada uno; en el móvil solo la inicial —«B», «U»—, como el disco de Jugadores: no cabe más)
     if (car || lk.who === 'career') picks.push(['career', 'Carrera']);
     var ph = '';
     picks.forEach(function (p) {
       var on = p[0] === lk.who;
       ph += '<button type="button" class="lk-pk sp-tab' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-lkpick="' + p[0] + '"' + (on ? '' : ' tabindex="-1" data-skip') +
-        (p[0] === 'career' ? ' title="Tu jugador de la Carrera"' : '') + '>' + p[1] + '</button>';
+        (p[0] === 'career' ? ' title="Tu jugador de la Carrera"' : ' aria-label="' + escT(sqRole(lkSquadNum(p[0]))) + '"') + '>' + p[1] + '</button>';
     });
     var ae = document.activeElement, kb = !!(ae && ae.classList && ae.classList.contains('kf'));
     var fPick = ae && el.lkPick.contains(ae), fVen = ae && el.lkVen.contains(ae);
@@ -5378,7 +5379,7 @@
     lkGridReset();
     lkLoad(w); lk.ukey = '';
     uiSound('click');
-    srSay(w === 'career' ? 'Tu jugador de la Carrera' : 'N.º ' + lk.num);
+    srSay(w === 'career' ? 'Tu jugador de la Carrera' : sqRole(lk.num));
     lkRender(); restartAnim(el.lkList, 'tp-n');
     lk.pvT = 0; lkPvFlush();
   }
@@ -6506,6 +6507,13 @@
     var g = ctx && ctx.game, t = g && g.teams && g.teams[0];
     return [t && t[0] && t[0].num || 1, t && t[1] && t[1].num || 2];
   }
+  /** DORSALES (24-nov-2026, Ferran: «Los dorsales en 2v2 no se escogen, y tampoco hace falta mostrarlos como Opción»): en los menús del 2v2
+   *  (Jugadores, Vestuario, Controlar, hoja final) tus dos jugadores se nombran por su papel («Bloqueador», «Universal»; VB.Prog), no por el
+   *  dorsal. El dorsal sigue en la camiseta y en lo que pasa en la pista. sqRole(num) = papel del atleta con ese dorsal (o «N.º n»). */
+  function sqRole(num) {
+    try { var a = VB.Prog && VB.Prog.get().a; for (var i = 0; a && i < a.length; i++) if ((a[i].num | 0) === (num | 0) && a[i].role) return a[i].role; } catch (e) { }
+    return 'N.º ' + num;
+  }
   /** ¿Modo «Control: Uno»? En partido manda el partido (g.ctrlMode); en el menú, el ajuste. */
   function oneMode() {
     var g = ctx && ctx.game;
@@ -6783,7 +6791,7 @@
     // menú: control (los dos / uno), misma fila que los puntos
     // (6v6, lote A: la misma fila recorre los puestos jugables —Receptor, Colocador, Opuesto, Central— y guarda role6)
     var ci = optIndex('ctrlMode'), tn = teamNums(), R6 = six ? roles6() : null, ri = six ? Math.max(0, R6.indexOf(role6)) : ci, rn = six ? R6.length : OPT.ctrlMode.vals.length;
-    var cd = six ? 'Controlar al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '; la IA lleva al resto del equipo)' : OPT.ctrlMode.desc[ci] + (ci > 0 ? ' (el n.º ' + tn[0] + '; la IA lleva al n.º ' + tn[1] + ')' : '');
+    var cd = six ? 'Controlar al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '; la IA lleva al resto del equipo)' : OPT.ctrlMode.desc[ci] + (ci > 0 ? ' (el ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() + ')' : '');
     var cl = six ? roleName() : OPT.ctrlMode.labels[ci];
     el.optCtrl.classList.toggle('lock', six && rn < 2);
     if (el.optCtrl.title !== cd) { el.optCtrl.title = cd; el.optCtrl.setAttribute('aria-label', 'Control: ' + cd); }
@@ -6802,7 +6810,7 @@
     }
     // pastillas (CSS .mi.primary .mi-s .chip; el nivel en amarillo); el lector lee «Partido rápido, Normal, Sets a 25»
     setSep(el.playSub, six ? ['6 contra 6', { t: OPT.difficulty.labels[di], c: 'hi' }, 'Sets a ' + OPT.setPoints.vals[pi], roleName()]
-      : [vb ? 'Playa' : 'Pabellón', { t: OPT.difficulty.labels[di], c: 'hi' }, vb ? 'Sets a 21' : 'Sets a ' + OPT.setPoints.vals[pi], ci > 0 ? 'Solo el n.º ' + tn[0] : 'A los dos'], 'c');
+      : [vb ? 'Playa' : 'Pabellón', { t: OPT.difficulty.labels[di], c: 'hi' }, vb ? 'Sets a 21' : 'Sets a ' + OPT.setPoints.vals[pi], ci > 0 ? 'Solo el ' + sqRole(tn[0]).toLowerCase() : 'A los dos'], 'c');
     el.optCtrl.classList.toggle('one', ci > 0 && !six);
     // Partido rápido: una línea de ayuda bajo cada fila (con Playa, Puntos explica las reglas de playa)
     setText(el.fmtHelp, 'fh', six ? 'Equipos completos: llevas al ' + roleName().toLowerCase() : 'Tú y tu pareja contra la CPU');
@@ -6811,7 +6819,7 @@
     setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
     var lshort = lk !== 'full' || (!vb && ptsN === 7);
     setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da experiencia' : ''));
-    setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al n.º ' + tn[0] + '; la IA lleva al n.º ' + tn[1] : 'El control pasa a quien va a tocar');
+    setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() : 'El control pasa a quien va a tocar');
   }
   /** Una línea por nivel de dificultad (fila Dificultad de Partido rápido). */
   var DIFF_HELP = ['La CPU saca suave', 'Ataca y defiende a medio gas', 'Defiende casi todo', 'Casi no falla'];
