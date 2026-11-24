@@ -9,7 +9,7 @@
  *     el resto de la página va sin exp.
  *  2) Con el emulador de Firestore (como tools/roomtest.js): las reglas. Se prueba una COPIA con el hash de un correo de prueba en
  *     vez del de Ferran (el correo de verdad no está en el repo). Dos pasadas: las de origin/main (las desplegadas, sin exp; con
- *     git) y las de este árbol (exp opcional entre 80 y 100 días), y en cada una el cliente de verdad contra el emulador.
+ *     git) y las de este árbol (exp opcional, en el futuro y como mucho a 100 días), y en cada una el cliente de verdad contra el emulador.
  * Uso: node tools/netlogtest.js [--no-emu] [--port 8093]
  */
 'use strict';
@@ -127,6 +127,30 @@ async function noExpUnit() {
   const NL3 = freshNetLog();
   quickMatch(NL3, link); await sleep(30);
   check('con las reglas nuevas: una escritura, con exp', calls.length === 1 && calls[0] === 'exp,j,t,uid,ver' && NL3._noExp() === false, calls);
+  // cerrar la pestaña (pagehide): el reintento ya no correría, así que solo va exp si se sabe que las reglas lo aceptan
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const unloadMatch = (NLx) => { const sess = { rttSeq: 0, rttLast: 0, stats: { sent: 1, recv: 1, bytesOut: 10, steps: 1, resyncs: 0, depth: 0, maxDepth: 0, waits: 0, frames: 1 }, status: 'playing', delay: 2, adv: 0, cmpBad: -1, rivalName: 'Bea', opts: {} };
+    const net = { sess, link, slot: 0, epoch: 0, name: 'Ana', rival: 'Bea' }; NLx.frame(net, { status: 'playing', unstable: false, solo: false, gone: false, result: null }); NLx._unload(net); };
+  calls.length = 0;
+  globalThis.fetch = async (url, o) => { const b = JSON.parse(o.body); calls.push(Object.keys(b.fields).sort().join()); return { status: 'exp' in b.fields ? 403 : 200 }; };
+  const NL4 = freshNetLog();
+  check('EXP_RULES sigue en false hasta desplegar las reglas nuevas', NL4.EXP_RULES === false);
+  unloadMatch(NL4); await sleep(30);
+  check('pagehide con las reglas de antes y sin saber nada: sin exp a la primera (se guarda)', calls.length === 1 && calls[0] === 'j,t,uid,ver', calls);
+  calls.length = 0;
+  globalThis.fetch = async (url, o) => { calls.push(Object.keys(JSON.parse(o.body).fields).sort().join()); return { status: 200 }; };
+  const NL5 = freshNetLog();
+  quickMatch(NL5, link); await sleep(30);
+  check('un informe con exp guardado lo apunta en el aparato (make-the-cut.netlogexp)', store.get('make-the-cut.netlogexp') === '1' && calls[0] === 'exp,j,t,uid,ver', calls);
+  const NL6 = freshNetLog(); calls.length = 0;
+  unloadMatch(NL6); await sleep(30);
+  check('…y desde entonces el pagehide ya va con exp (también tras recargar)', calls.length === 1 && calls[0] === 'exp,j,t,uid,ver', calls);
+  globalThis.fetch = async (url, o) => { const b = JSON.parse(o.body); calls.push(Object.keys(b.fields).sort().join()); return { status: 'exp' in b.fields ? 403 : 200 }; };
+  const NL7 = freshNetLog(); calls.length = 0;
+  quickMatch(NL7, link); await sleep(30);
+  check('un 403 con exp borra la marca (reglas de antes otra vez)', !store.has('make-the-cut.netlogexp') && calls.join('|') === 'exp,j,t,uid,ver|j,t,uid,ver', calls);
+  delete globalThis.localStorage;
 }
 
 /* ---------- 1b) sesión Fluida simulada (Online V2) ---------- */
@@ -248,7 +272,7 @@ async function rulesChecks(port, isNew, ADMIN) {
     check('exp = ahora + 90 días: se acepta', e90 === 200, e90);
     check('exp = ahora + 81 y + 99 días: se aceptan', await call('PATCH', '/netlogs/uidA_exp081', doc('uidA', '{}', { exp: ts(81 * D) }), A) === 200
       && await call('PATCH', '/netlogs/uidA_exp099', doc('uidA', '{}', { exp: ts(99 * D) }), A) === 200);
-    check('exp = ahora + 10 días: no', await call('PATCH', '/netlogs/uidA_exp010', doc('uidA', '{}', { exp: ts(10 * D) }), A) === 403);
+    check('exp = ahora + 10 días: sí (reloj del aparato atrasado: caduca antes, nunca después)', await call('PATCH', '/netlogs/uidA_exp010', doc('uidA', '{}', { exp: ts(10 * D) }), A) === 200);
     check('exp = ahora + 200 días: no', await call('PATCH', '/netlogs/uidA_exp200', doc('uidA', '{}', { exp: ts(200 * D) }), A) === 403);
     check('exp en el pasado: no', await call('PATCH', '/netlogs/uidA_exppas', doc('uidA', '{}', { exp: ts(-D) }), A) === 403);
     check('exp que no es fecha: no', await call('PATCH', '/netlogs/uidA_expstr', doc('uidA', '{}', { exp: { stringValue: '2099-01-01' } }), A) === 403

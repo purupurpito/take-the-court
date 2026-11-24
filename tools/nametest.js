@@ -41,6 +41,10 @@ const BAD = [
   'Me cago en todo', 'mecagüen', 'Pepe_Puta', 'Puta69', 'Ana Puta', 'kys', 'stfu', 'ctm', 'lpm', 'la puta madre', 'putamadre',
   'Cabron 99', 'Mi3rd4', '$hit', 'C@bron', 'gilipoya'.replace('ya', 'llas')
 ];
+// insulto + cifras (lo más corriente en un apodo: «Puto1», «zorra2024») y envuelto en x («xXPutaXx», «xPutax»)
+for (const w of ['Puto', 'puta', 'zorra', 'Polla', 'putos', 'ElPuto', 'Nazi', 'Mierda', 'gilipollas', 'Cabron'])
+  for (const d of ['1', '3', '7', '13', '2024', '_1']) BAD.push(w + d);
+BAD.push('4puta', '1zorra', 'xXputaXx', 'XxPutaxX', 'xXnaziXx', 'xPutax', 'xXElPutoXx', 'xXputa1Xx', 'xxPollaxx', 'XzorraX');
 const missed = BAD.filter(n => !F.bad(n));
 check(BAD.length + ' insultos escritos de muchas formas: todos saltan', missed.length === 0, missed);
 
@@ -112,6 +116,20 @@ check('shown: deja los nombres normales y tapa los insultos', F.shown('Ana', 'u1
   ls.setItem('make-the-cut.nick', 'a@b.es');
   check('nick(): nada con @', N.nick() === '');
   check('MSG = «Ese nombre no vale: elige otro.»', N.MSG === 'Ese nombre no vale: elige otro.');
+  // paso de 1.22.0: un apodo igual al personaje o al usuario de la cuenta (guardado sin querer al pulsar «Guardar») se borra
+  const mig = (init, extra) => { const l = fakeStorage(init), c = load(['js/netroom.js', 'js/namefilter.js'], l); Object.assign(c.VB, extra || {}); return { l, N: c.VB.NameFilter }; };
+  const acc = u => ({ Account: { netInfo: () => ({ uid: 'u1', kind: 'user', user: u }) } });
+  const car = n => ({ Career: { beach: { get: () => ({ player: { name: n } }) }, hall: { get: () => null } } });
+  { const { l, N } = mig({ 'make-the-cut.nick': 'pepe_99' }, acc('Pepe_99'));
+    check('paso 1.22.0: apodo = usuario de la cuenta → se borra y vuelve el anónimo', N.nick() === '' && l.getItem('make-the-cut.nick') === null && l.getItem('make-the-cut.nickv') === '1'); }
+  { const { l, N } = mig({ 'make-the-cut.nick': 'Lola Mar' }, car('Lola Mar'));
+    check('paso 1.22.0: apodo = personaje de la Carrera → se borra', N.nick() === '' && l.getItem('make-the-cut.nick') === null); }
+  { const { l, N } = mig({ 'make-the-cut.nick': 'Bea Ruiz' }, Object.assign(acc('pepe'), car('Lola')));
+    check('paso 1.22.0: un apodo distinto se queda y se marca', N.nick() === 'Bea Ruiz' && l.getItem('make-the-cut.nickv') === '1'); }
+  { const { l, N } = mig({ 'make-the-cut.nick': 'Bea Ruiz' });
+    check('paso 1.22.0: sin cuenta abierta no se marca (se vuelve a mirar al entrar)', N.nick() === 'Bea Ruiz' && l.getItem('make-the-cut.nickv') === null); }
+  { const { l, N } = mig({ 'make-the-cut.nick': 'pepe', 'make-the-cut.nickv': '1' }, acc('pepe'));
+    check('paso 1.22.0: con la marca ya puesta no toca nada (lo escribiste tú después)', N.nick() === 'pepe' && l.getItem('make-the-cut.nick') === 'pepe'); }
   // sin localStorage: no rompe, un número para la página
   const ctx = load([], null); ctx.localStorage = undefined; vm.runInContext(rd('js/namefilter.js'), ctx);
   const n0 = ctx.VB.NameFilter.anonName();
@@ -171,6 +189,7 @@ console.log('\nSalas, saludo, récord y enlace de la semana');
     check('lobby: el nombre por defecto ya no sale de la Carrera ni de la cuenta', def.length > 0 && !/careerPlayer|netInfo|inf\.user/.test(def) && /anonName\(\)/.test(def));
     check('lobby: myName usa el apodo solo si no lleva insultos', /function myName\(\) \{[\s\S]{0,300}F\.bad\(n\)/.test(lob));
     check('lobby: al guardar un nombre con insultos, «Ese nombre no vale: elige otro.» (VB.NameFilter.MSG)', /if \(F && F\.bad\(n\)\) \{ L\.msg = F\.MSG;/.test(lob));
+    check('lobby: myName y typedName pasan por migrateNick; guardar un nombre pone la marca nickv', (lob.match(/F\.migrateNick\(\)/g) || []).length >= 2 && /ls\(NICK, n\); if \(F && F\.NICKV\) ls\(F\.NICKV, '1'\)/.test(lob));
     check('lobby: guardar vacío vuelve al anónimo', /String\(v \|\| ''\)\.trim\(\)\) \{ ls\(NICK, null\)/.test(lob));
     check('lobby: los nombres del rival (sala, «pre», vuelta) pasan por theirName', (lob.match(/theirName\(/g) || []).length >= 7 && !/NR\(\)\.cleanName\((r\.gname|r\.name|pre\.name|b\.rival)\)/.test(lob));
     check('lobby: el campo empieza con lo que escribiste y enseña el anónimo de fondo', (lob.match(/value="' \+ esc\(typedName\(\)\) \+ '" placeholder="' \+ esc\(defaultName\(\)\)/g) || []).length === 2);

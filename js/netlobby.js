@@ -105,12 +105,13 @@
   /** Tu nombre en el online: el que escribiste en «Tu nombre en el online» si vale (2-16, sin @ ni insultos); si no, el anónimo. */
   function myName() {
     if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name) || 'Jugador';
-    var F = VB.NameFilter, n = NR().cleanName(ls(NICK));
+    var F = VB.NameFilter; if (F && F.migrateNick) F.migrateNick();
+    var n = NR().cleanName(ls(NICK));
     return (n && !(F && F.bad(n)) ? n : '') || defaultName();
   }
   /** Lo que escribiste a mano ('' si juegas con el anónimo): el campo «Tu nombre en el online» empieza con esto y, vacío, enseña el
    *  anónimo de fondo; guardarlo vacío vuelve al anónimo. */
-  function typedName() { if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name); var F = VB.NameFilter, n = NR().cleanName(ls(NICK)); return n && !(F && F.bad(n)) ? n : ''; }
+  function typedName() { if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name); var F = VB.NameFilter; if (F && F.migrateNick) F.migrateNick(); var n = NR().cleanName(ls(NICK)); return n && !(F && F.bad(n)) ? n : ''; }
   /** Nombre que llega de otro (sala, «pre», vuelta tras recargar): limpio y, si lleva un insulto, «Jugador NNNN» (seed = su uid). */
   function theirName(n, seed) { var c = NR().cleanName(n), F = VB.NameFilter; return c && F ? F.shown(c, seed) : c; }
   function rivalUid() { var r = L.room; return r ? (L.role === 'host' ? r.guest : r.host) || '' : ''; }
@@ -1265,7 +1266,8 @@
       if (!String(v || '').trim()) { ls(NICK, null); L.msg = ''; L.edit = ''; render(true); focusA('name'); return; }
       if (!n) { L.msg = 'El nombre tiene que tener entre 2 y 16 caracteres (y no puede ser un correo).'; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
       if (F && F.bad(n)) { L.msg = F.MSG; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
-      ls(NICK, n); L.msg = ''; L.edit = ''; render(true); focusA('name');
+      ls(NICK, n); if (F && F.NICKV) ls(F.NICKV, '1');   // escrito tras 1.22.0: elegido de verdad, el paso de migrateNick ya no lo toca
+      L.msg = ''; L.edit = ''; render(true); focusA('name');
     } else if (k === 'code') { L.edit = ''; render(true); joinCode(v); }
   }
   function focusSel(sel, kf) {

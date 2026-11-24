@@ -108,9 +108,11 @@ service cloud.firestore {
     // cuenta. Crear/actualizar: solo el propio (id = uid_xxx, campo uid), 4 campos, j ≤ 250 000 caracteres. Leer: solo la cuenta de
     // Ferran (SHA-256 del correo, el mismo que js/ui.js usa para el acta: el correo no va en el repo, que es público). Nadie borra
     // desde el cliente.
-    // Caducidad (Google Play, 24-nov-2026; SIN DESPLEGAR): 'exp' opcional, timestamp entre ahora + 80 y ahora + 100 días (el cliente
-    // manda ahora + 90). La borra una política TTL de Firestore sobre netlogs.exp (notes/net.md «Caducidad de los informes»).
-    // Con las reglas de antes, un informe con exp da 403 y js/netlog.js lo repite sin exp: se puede desplegar en cualquier orden.
+    // Caducidad (Google Play, 24-nov-2026; SIN DESPLEGAR): 'exp' opcional, timestamp en el futuro y como mucho ahora + 100 días (el
+    // cliente manda ahora + 90 con su reloj: un reloj atrasado da una caducidad antes, nunca después de 100 días). La borra una
+    // política TTL de Firestore sobre netlogs.exp (notes/net.md «Caducidad de los informes»). Sigue opcional porque los clientes de
+    // 1.22.0 no lo mandan; cuando ya no queden, hacerlo obligatorio (hasAll con 'exp'). Con las reglas de antes, un informe con exp
+    // da 403 y js/netlog.js lo repite sin exp; al cerrar la pestaña no hay reintento y solo manda exp si sabe que se acepta.
     match /netlogs/{id} {
       function admin() {
         return request.auth != null && request.auth.token.email is string
@@ -120,7 +122,7 @@ service cloud.firestore {
         return d.keys().hasOnly(['uid', 'ver', 't', 'j', 'exp']) && d.keys().hasAll(['uid', 'ver', 't', 'j'])
           && d.uid == request.auth.uid && d.ver is string && d.ver.size() <= 20 && d.t is timestamp
           && d.j is string && d.j.size() <= 250000
-          && (!('exp' in d) || (d.exp is timestamp && d.exp >= request.time + duration.value(80, 'd')
+          && (!('exp' in d) || (d.exp is timestamp && d.exp > request.time
                 && d.exp <= request.time + duration.value(100, 'd')));
       }
       allow get, list: if admin();

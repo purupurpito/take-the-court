@@ -1373,15 +1373,24 @@ Para poder decir en la política «los informes de red se borran a los 90 días�
 - **Cliente** (`js/netlog.js`): cada informe lleva `exp` = ahora + 90 días (`timestampValue`, `KEEP_MS`). Si la escritura da 403 con
   `exp` (las reglas desplegadas hasta ahora solo admiten `{uid, ver, t, j}`), se repite UNA vez sin `exp` y el resto de la página va
   sin `exp` (`noExp`, hasta recargar). Así los informes se siguen guardando antes de desplegar las reglas nuevas.
-- **Reglas** (`firebase/firestore.rules`, bloque netlogs, SIN DESPLEGAR): `exp` opcional; si está, timestamp entre ahora + 80 y
-  ahora + 100 días. Los clientes de antes (sin `exp`) siguen funcionando.
+  - **Al cerrar la pestaña** (`pagehide`, keepalive) no hay reintento: la página ya no existe cuando llega el 403. Por eso ahí solo va
+    `exp` si se sabe que las reglas lo aceptan: `EXP_RULES = true` (ponerlo en la versión que salga DESPUÉS de desplegar las reglas
+    nuevas) o un informe con `exp` ya guardado en este aparato (`make-the-cut.netlogexp` = '1', del aparato; un 403 con `exp` la
+    borra). Si no, va sin `exp` (lo aceptan las dos reglas): se guarda, pero sin caducidad.
+- **Reglas** (`firebase/firestore.rules`, bloque netlogs, SIN DESPLEGAR): `exp` opcional; si está, timestamp en el futuro y como
+  mucho ahora + 100 días (un reloj atrasado da una caducidad antes; nunca más de 100 días). Los clientes de antes (sin `exp`) siguen
+  funcionando. Cuando ya no queden clientes 1.22.0, hacer `exp` obligatorio (`hasAll` con `'exp'`) y `EXP_RULES = true`.
+- **Informes sin `exp` después de desplegar** (no los borra el TTL): los de clientes 1.22.0 aún en caché, los de un aparato con el
+  reloj adelantado más de 10 días (403 → reintento sin `exp`) y el primer informe cerrado con la pestaña antes de saber nada (hasta
+  `EXP_RULES = true`). Borrarlos a mano de vez en cuando (visor `netlogs.html`: los que no tienen `exp` y tienen más de 90 días).
 - **Política TTL** (la activa el responsable; no se puede desde las reglas ni desde el cliente):
   `gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`
   o en la Consola: Firestore › Time-to-live (TTL) › Crear política › grupo `netlogs`, campo `exp`. Google borra los documentos
   caducados normalmente en las 24 h siguientes (sin garantía exacta). **Comprobar** si el TTL está disponible en el plan Spark
   (gratis): no lo sé seguro. Los borrados del TTL cuentan como borrados de documentos en la cuota.
 - **Informes de antes**: no llevan `exp` y el TTL no los toca. Borrarlos a mano antes de publicar las páginas que dicen «90 días».
-- **Orden**: reglas y web en cualquier orden (el reintento lo cubre); el TTL y el borrado de los viejos, antes de publicar las páginas.
+- **Orden**: mejor las reglas ANTES que la web. Con la web primero tampoco se pierde nada (el reintento y, al cerrar la pestaña, el
+  envío sin `exp`), pero salen más informes sin caducidad. El TTL y el borrado de los viejos, antes de publicar las páginas.
 - Prueba: `node tools/netlogtest.js` (unidad: `exp`, reintento y memoria; emulador: reglas de origin/main y de este árbol, con el
   cliente de verdad en las dos).
 

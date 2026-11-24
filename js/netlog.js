@@ -15,7 +15,8 @@
  *  - Caducidad (Google Play, 24-nov-2026): exp = ahora + 90 días (timestamp) para que una política TTL de Firestore sobre netlogs.exp
  *    los borre sola (la activa el responsable: notes/net.md «Caducidad de los informes»). Si las reglas desplegadas son las de antes
  *    (solo uid, ver, t, j) la escritura da 403: se repite UNA vez sin exp y el resto de la página ya va sin exp (los informes se
- *    siguen guardando, pero sin caducidad).
+ *    siguen guardando, pero sin caducidad). Al cerrar la pestaña no hay reintento posible: solo va exp si se sabe que las reglas lo
+ *    aceptan (EXP_RULES o 'make-the-cut.netlogexp' = '1' tras un informe con exp guardado en el aparato); si no, sin exp.
  *  - Privacidad: NUNCA direcciones IP ni puertos (de getStats solo el TIPO de candidato y el protocolo), ni el correo. Sí el nombre
  *    de los dos (el mismo que ya enseña el lobby), navegador, sistema y tipo de red que da el navegador.
  *  - Online V2 (modelo Fluida, js/netfluid.js): el informe dice el modelo (modelo: 'precisa' | 'fluida'); cada ventana lleva además
@@ -32,6 +33,13 @@
   var WIN_MS = 10000, ICE_MS = 2000, MAX_WIN = 120, MAX_EV = 200, MAX_J = 240000;
   var KEEP_MS = 90 * 86400000;   // cada informe lleva exp = ahora + 90 días: la política TTL de Firestore lo borra al llegar
   var noExp = false;             // las reglas desplegadas aún no aceptan exp (403): hasta recargar, se manda sin él
+  // Al cerrar la pestaña (pagehide) no hay segunda oportunidad: si la escritura con exp diera 403 (reglas de antes), el reintento sin
+  // exp ya no corre y el informe se pierde. Por eso al cerrar solo se manda exp si se SABE que las reglas lo aceptan: EXP_RULES (poner
+  // a true en la versión que salga después de desplegar las reglas nuevas) o un informe con exp ya guardado en este aparato
+  // ('make-the-cut.netlogexp' = '1', del aparato). Si no, sin exp (las dos reglas lo aceptan).
+  var EXP_RULES = false, EXPK = 'make-the-cut.netlogexp', unloading = false;
+  function expOk() { try { return !!root.localStorage && root.localStorage.getItem(EXPK) === '1'; } catch (e) { return false; } }
+  function setExpOk(v) { try { if (root.localStorage) { if (v) root.localStorage.setItem(EXPK, '1'); else root.localStorage.removeItem(EXPK); } } catch (e) { } }
   var cur = null, Q = {};
   try { (root.location && root.location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) { var p = kv.split('='); if (p[0]) Q[p[0]] = decodeURIComponent(p[1] || ''); }); } catch (e) { }
   var FORCE = Q.netlog === '1';
@@ -188,7 +196,7 @@
     };
   }
 
-  function flush(c, last) {
+  function flush(c, last, unload) {
     if (!c || c.noWrite) return;
     if (c.busy && !last) { c.again = true; return; }
     var A = VB.Account, base = String(A && A.FS_BASE || '').replace(/\/+$/, '');
@@ -206,12 +214,13 @@
         return fetch(base + '/netlogs/' + a.uid + '_' + c.id, { method: 'PATCH', headers: { Authorization: 'Bearer ' + a.token, 'Content-Type': 'application/json' }, body: body, keepalive: last && body.length < 60000 })
           .then(function (res) {
             // 403 con exp = reglas de antes (solo 4 campos): otra vez sin exp, y ya sin exp el resto de la página
-            if (res.status === 403 && withExp) { noExp = true; if (FORCE && root.console) console.info('[netlog] sin exp (reglas de antes)'); return send(false); }
+            if (res.status === 403 && withExp) { noExp = true; setExpOk(false); if (FORCE && root.console) console.info('[netlog] sin exp (reglas de antes)'); return send(false); }
             if (res.status === 403 || res.status === 401) c.noWrite = true;
+            else if (withExp && res.ok !== false && res.status >= 200 && res.status < 300) setExpOk(true);   // las reglas aceptan exp
             if (FORCE && root.console) console.info('[netlog] guardado ' + res.status);
           });
       };
-      return send(!noExp);
+      return send(!noExp && (!unload || EXP_RULES || expOk()));
     }).catch(function (e) { if (FORCE && root.console) console.info('[netlog] sin guardar: ' + (e && e.message)); })
       .then(function () { c.busy = false; if (c.again) { c.again = false; flush(c, false); } });
   }
@@ -224,11 +233,12 @@
     ev(c, t, 'fin', { why: String(why || '') });
     if (t - c.win.t0 > 1000) closeWin(c, t);
     c.ended = true; cur = null;
-    flush(c, true);
+    flush(c, true, unloading);
   }
 
   // cerrar la pestaña a mitad: el informe sale con lo que haya (keepalive)
-  if (root.addEventListener) root.addEventListener('pagehide', function () { if (cur) end(cur.net, 'pestaña'); });
+  if (root.addEventListener) root.addEventListener('pagehide', function () { if (cur) { unloading = true; try { end(cur.net, 'pestaña'); } finally { unloading = false; } } });
 
-  VB.NetLog = { begin: begin, frame: frame, end: end, _cur: function () { return cur; }, _report: function () { return cur ? report(cur) : null; }, _noExp: function () { return noExp; }, KEEP_MS: KEEP_MS };
+  VB.NetLog = { begin: begin, frame: frame, end: end, _cur: function () { return cur; }, _report: function () { return cur ? report(cur) : null; }, _noExp: function () { return noExp; }, _unload: function (net, why) { unloading = true; try { end(net, why || 'pestaña'); } finally { unloading = false; } },
+    KEEP_MS: KEEP_MS, EXP_RULES: EXP_RULES, EXPK: EXPK };
 })();

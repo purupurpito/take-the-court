@@ -45,7 +45,7 @@ apagado, `reset(g, {six: true})` lo enciende solo para las pruebas) y las prueba
 `tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
 Guardados nuevos: `make-the-cut.retos` (v1) y `make-the-cut.profile` (v1) sincronizan con `S4_SYNC = true` en account.js (encendido el 21-nov-2026;
 con `false` ellos, `make-the-cut.career6`, `make-the-cut.career.mode` (`cmode`) y `make-the-cut.legends` irían a `TRACK`, hora sin subir).
-`make-the-cut.semana` (El mismo 22-24), `make-the-cut.role6`, `make-the-cut.nick` y `make-the-cut.anon` (número del nombre anónimo, 24-nov-2026) son del aparato y tampoco van a `DOCS` ni a `TRACK`. `make-the-cut.retostab` (pestaña de Retos),
+`make-the-cut.semana` (El mismo 22-24), `make-the-cut.role6`, `make-the-cut.nick`, `make-the-cut.nickv`, `make-the-cut.netlogexp` y `make-the-cut.anon` (número del nombre anónimo, 24-nov-2026) son del aparato y tampoco van a `DOCS` ni a `TRACK`. `make-the-cut.retostab` (pestaña de Retos),
 `make-the-cut.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `make-the-cut.career(6).prev` (la Carrera local
 que pierde ante la de la cuenta) NUNCA van a `DOCS` ni a `TRACK`. `record.byD` (`{easy|normal|hard|expert:[g,p]}`) va dentro de
 `make-the-cut.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `make-the-cut.settings`. Dentro de las Carreras (sin
@@ -106,8 +106,10 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
   (`make-the-cut.anon`, del aparato) en vez del personaje o el usuario; filtro básico de palabras `bad()` al elegir tu nombre y
   `shown(nombre, uid)` al enseñar los de otros (netroom `room()`, `cleanName` de net.js/netfluid.js/netrec.js/semana.js y
   `theirName` del lobby). Prueba: `node tools/nametest.js`. `js/netlog.js` manda `exp` = ahora + 90 días (TTL de Firestore que
-  activa el responsable); con las reglas de antes, 403 y reintento sin `exp`. Reglas: `exp` opcional entre +80 y +100 días (SIN
-  DESPLEGAR). Prueba: `node tools/netlogtest.js` (emulador con las reglas de origin/main y las de este árbol).
+  activa el responsable); con las reglas de antes, 403 y reintento sin `exp`; al cerrar la pestaña solo con `exp` si se sabe que se
+  acepta (`EXP_RULES` o `make-the-cut.netlogexp`, del aparato). Reglas: `exp` opcional, en el futuro y como mucho +100 días (SIN
+  DESPLEGAR). `VB.NameFilter.migrateNick()`: un apodo guardado igual al personaje o al usuario de la cuenta (lo dejaba «Guardar» en
+  1.22.0 sin tocar nada) se borra una vez (marca `make-the-cut.nickv`, del aparato). Prueba: `node tools/netlogtest.js` (emulador con las reglas de origin/main y las de este árbol).
 - Three.js: `vendor/three/three.min.js` (npm `three@0.149.0`, byte a byte el que servía cdnjs; vendor/README.md). r149 es el último sin aviso de deprecación del build UMD.
 - **Sin red (Google Play, 24-nov-2026; notes/offline.md):** three.js y las fuentes en `vendor/` (fuentes: `vendor/fonts/fonts.css`, los woff2 de Google
   Fonts con sus OFL). build-pages copia `vendor/` y escribe `_site/sw.js` desde la plantilla `sw.js` con la lista de archivos y su sha-256

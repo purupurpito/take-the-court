@@ -795,8 +795,11 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `android/` y `pages/.well-known/assetlinks.json`; `STRICT_TWA=1` antes de publicar la app). Pasos del responsable en notes/playstore/android.md.
 - Nombres y netlogs (rama playstore, 24-nov-2026): `node tools/nametest.js` (nombre anónimo «Jugador NNNN» por defecto y filtro
   básico de palabras, js/namefilter.js) y `node tools/netlogtest.js` (los informes llevan `exp` a 90 días; con las reglas de antes,
-  reintento sin `exp`). Falta del responsable: desplegar las reglas, activar el TTL de `netlogs.exp` y borrar los informes viejos
-  antes de publicar las páginas (notes/playstore/README.md «Decisiones» 3; comprobar si el TTL va en el plan Spark).
+  reintento sin `exp`; al cerrar la pestaña, sin `exp` salvo que se sepa que se acepta). Falta del responsable: desplegar las reglas
+  (mejor antes que la web), activar el TTL de `netlogs.exp` y borrar los informes viejos antes de publicar las páginas
+  (notes/playstore/README.md «Decisiones» 3; comprobar si el TTL va en el plan Spark); en la versión siguiente, `EXP_RULES = true`
+  en js/netlog.js. Pasada de revisión (24-nov): el filtro pilla «Puto1», «zorra2024» y «xXPutaXx»; un apodo guardado sin querer en
+  1.22.0 igual al personaje o al usuario se borra una vez (`migrateNick`).
 - Sin red (rama playstore, 24-nov-2026): `node tools/offlinetest.js` (service worker, vendor/, publicación con «Reiniciar»; ~2 min).
   Diseño en notes/offline.md. Desde entonces el juego no pide nada a cdnjs ni a Google Fonts (lo de «file://» de arriba es historia).
   Pasada de revisión (24-nov): un service worker que espera y es de la versión que ya corre la página se activa solo (antes una

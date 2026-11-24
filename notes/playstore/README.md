@@ -62,8 +62,10 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 2. **Nombre público de desarrollador** y si se declara **comerciante en la UE** (si sí, se publican dirección y teléfono).
 3. **Informes de red (netlogs): 90 días con TTL (elegido y hecho en el código el 24-nov-2026).** Las páginas ya dicen «90 días».
    Para que sea verdad, ANTES de publicar la web con estas páginas (pasos del dueño, en este orden):
-   1. Desplegar las reglas (desde `firebase/`: `npx firebase-tools deploy --only firestore:rules`). El orden con la web da igual:
-      con las reglas de antes, el juego repite el informe sin `exp` (tools/netlogtest.js lo prueba contra las dos).
+   1. Desplegar las reglas (desde `firebase/`: `npx firebase-tools deploy --only firestore:rules`), mejor ANTES que la web. Con la
+      web primero no se pierde ningún informe (el juego repite sin `exp` y, al cerrar la pestaña, manda sin `exp` si no sabe que se
+      acepta), pero quedan más sin caducidad. En la versión siguiente, `EXP_RULES = true` en js/netlog.js. Cuando no queden clientes
+      1.22.0, hacer `exp` obligatorio en las reglas. Los que se queden sin `exp` (notes/net.md «Caducidad»), borrarlos a mano.
    2. Activar la política TTL: `gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`
       o en la Consola de Firebase/Google Cloud: Firestore › Time-to-live (TTL) › Crear política › grupo de colecciones `netlogs`,
       campo `exp`. Tarda un rato en activarse. **Comprobar** que el TTL funciona en el plan Spark (gratis): no lo sé seguro; si la

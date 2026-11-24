@@ -8,21 +8,24 @@
  *      a) al elegir tu nombre (el lobby lo rechaza: «Ese nombre no vale: elige otro.») y para no usar un apodo guardado de antes;
  *      b) al ENSEÑAR nombres que llegan de otros (salas, saludo, «pre», récord online, enlace de la semana): shown() lo cambia por
  *         «Jugador NNNN» (número sacado del uid o del propio nombre), así un cliente modificado no puede enseñar un insulto.
- *    Normaliza: minúsculas, sin tildes (la ñ se queda), l·l, números como letras (0→o 1→i/l 3→e 4→a 5→s 7→t, @→a, $→s),
+ *    Normaliza: minúsculas, sin tildes (la ñ se queda), l·l, números como letras (0→o 1→i/l 3→e 4→a 5→s 7→t, @→a, $→s) y también
+ *    como separadores («Puto1», «zorra13»), x del borde de cada palabra («xXPutaXx», «xPutax»),
  *    letras repetidas («puuuta»), separadores («p.u.t.a», «p u t a», «pu-ta») y palabras pegadas en mayúsculas («ElPutoAmo»).
  *    Las palabras que también son normales o nombres van por palabra entera (TOK); solo las inequívocas se buscan dentro de otras
  *    (SUB). tools/nametest.js prueba los insultos y más de 300 nombres y palabras corrientes que NO deben saltar.
  *    Es un filtro básico: no entiende contexto ni alfabetos parecidos (cirílico); el servidor no lo comprueba (no hay servidor).
  *
  * API (VB.NameFilter): bad(s) · mask(s, seed) → 'Jugador NNNN' · shown(s, seed) → s o mask · anonNum() · anonName() ·
- *   nick() → el apodo guardado si vale (2-16, sin @ ni insultos), si no '' · NICK, ANON (claves) · MSG (texto del rechazo).
+ *   nick() → el apodo guardado si vale (2-16, sin @ ni insultos), si no '' · migrateNick() (paso de 1.22.0: un apodo igual al
+ *   personaje o al usuario de la cuenta, guardado sin querer, se borra; marca 'make-the-cut.nickv') · NICK, NICKV, ANON (claves) ·
+ *   MSG (texto del rechazo).
  * Puro: sin DOM ni THREE; localStorage siempre en try/catch. Nunca toca g.rng (Math.random solo para el número anónimo).
  */
 (function () {
   'use strict';
   var root = typeof window !== 'undefined' ? window : globalThis;
   var VB = root.VB = root.VB || {};
-  var NICK = 'make-the-cut.nick', ANON = 'make-the-cut.anon';
+  var NICK = 'make-the-cut.nick', ANON = 'make-the-cut.anon', NICKV = 'make-the-cut.nickv';
   var MSG = 'Ese nombre no vale: elige otro.';
 
   // Inequívocas: se buscan también DENTRO de otras palabras y con todo pegado («eresunhijoputa»).
@@ -86,10 +89,22 @@
   }
   /** ¿Lleva un insulto? Las inequívocas (SUB) dentro de cada palabra; en una pareja de palabras, solo si la pareja EMPIEZA por una
    *  («gili pollas»), porque dentro de dos nombres juntos aparecen por azar («Paco Jones» → «pacojones»). */
+  /** Quita x de los bordes de cada palabra ANTES de partir las mayúsculas («xXPutaXx» → «Puta», «xPutax» → «Puta»): solo si
+   *  quedan 3 letras o más que no son x. Es una variante más (el nombre tal cual se prueba igual): «Xavi» o «Félix» no cambian nada. */
+  function noX(s) {
+    return String(s == null ? '' : s).replace(/[A-Za-zÀ-ÿñÑ]+/g, function (w) {
+      return w.replace(/^[xX]+(?=[^xX]{3})/, '').replace(/([^xX]{3})[xX]+$/, '$1');
+    });
+  }
   function bad(name) {
-    var n = norm(name);
+    var raw = String(name == null ? '' : name), n = norm(raw);
     if (!n) return false;
-    var vs = [leet(n, 'i'), leet(n, 'l')];
+    // variantes: números como letras (1 → i y 1 → l) y números como separadores («Puto1», «zorra13», «4puta»); y lo mismo sin las x
+    // del borde. Solo se AÑADEN variantes: un nombre que pasaba con una sigue teniendo que pasar con todas (tools/nametest.js).
+    var vs = [], seen = {}, rx = noX(raw), bases = rx !== raw ? [n, norm(rx)] : [n];
+    bases.forEach(function (b) {
+      [leet(b, 'i'), leet(b, 'l'), leet(b.replace(/[0-9]+/g, ' '), 'i')].forEach(function (v) { if (!seen[v]) { seen[v] = 1; vs.push(v); } });
+    });
     for (var v = 0; v < vs.length; v++) {
       var c = candidates(vs[v]), i;
       for (i = 0; i < c.one.length; i++) if (RE_TOK.test(c.one[i]) || RE_SUB.test(c.one[i])) return true;
@@ -116,14 +131,35 @@
     return memAnon;
   }
   function anonName() { return 'Jugador ' + anonNum(); }
+  /** Paso de 1.22.0 (una vez por aparato, marca 'make-the-cut.nickv'): antes el campo «Tu nombre en el online» se abría relleno con
+   *  el nombre del personaje de la Carrera o el usuario de la cuenta, y «Guardar» sin tocar nada lo dejaba en 'make-the-cut.nick'
+   *  como si lo hubieras escrito. Si el apodo guardado es igual (sin mayúsculas) a uno de esos, se borra y vuelves al anónimo.
+   *  Sin cuenta abierta no se marca (se vuelve a mirar al entrar), salvo que el apodo ya coincida con la Carrera o no haya apodo. */
+  function migrateNick() {
+    var l = LS();
+    if (!l) return;
+    try {
+      if (l.getItem(NICKV) === '1') return;
+      var NR = VB.NetRoom, cl = function (x) { return String((NR && NR.cleanName ? NR.cleanName(x) : String(x == null ? '' : x).trim()) || '').toLowerCase(); };
+      var cur = cl(l.getItem(NICK) || '');
+      if (!cur) { l.setItem(NICKV, '1'); return; }
+      var olds = [], C = VB.Career, A = VB.Account, inf = null;
+      ['beach', 'hall'].forEach(function (m) { try { var c = C && C[m] && C[m].get ? C[m].get() : null; if (c && c.player && c.player.name) olds.push(cl(c.player.name)); } catch (e) { } });
+      try { inf = A && A.netInfo ? A.netInfo() : null; } catch (e) { inf = null; }
+      if (inf && inf.user) olds.push(cl(inf.user));
+      if (olds.indexOf(cur) >= 0) { l.removeItem(NICK); l.setItem(NICKV, '1'); return; }
+      if (inf) l.setItem(NICKV, '1');
+    } catch (e) { }
+  }
   /** Apodo escrito a mano y guardado, si vale (mismas reglas que VB.NetRoom.cleanName y sin insultos); si no, ''. */
   function nick() {
+    migrateNick();
     var l = LS(), s = '';
     try { s = l ? l.getItem(NICK) || '' : ''; } catch (e) { s = ''; }
     var NR = VB.NetRoom, c = NR && NR.cleanName ? NR.cleanName(s) : String(s).trim().slice(0, 16);
     return c && c.length >= 2 && c.indexOf('@') < 0 && !bad(c) ? c : '';
   }
 
-  VB.NameFilter = { bad: bad, mask: mask, shown: shown, anonNum: anonNum, anonName: anonName, nick: nick, NICK: NICK, ANON: ANON, MSG: MSG,
+  VB.NameFilter = { bad: bad, mask: mask, shown: shown, anonNum: anonNum, anonName: anonName, nick: nick, migrateNick: migrateNick, NICK: NICK, NICKV: NICKV, ANON: ANON, MSG: MSG,
     _norm: norm, _hash: hash };
 })();
