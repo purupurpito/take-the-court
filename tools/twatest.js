@@ -8,6 +8,8 @@
  *  2) android/twa-manifest.json frente al manifest de la web (el que escribe tools/build-pages.js): host takethecourt.com, startUrl
  *     «/», display y orientation iguales que la web (fullscreen / landscape), colores = theme_color y background_color, sin
  *     notificaciones, fallback customtabs, sin features (ni Play Billing ni ubicación), versión 1+, signingKey fuera del repo.
+ *     El icono adaptable (maskableIconUrl) existe en pages/, es igual a notes/playstore/graficos/icono-512.png y el manifest de la
+ *     web lo anuncia como maskable (bubblewrap update lo baja de takethecourt.com).
  *     manifest-checksum.txt = sha1 del twa-manifest.json (si no, `bubblewrap build` pregunta si regenerar). app/build.gradle dice lo
  *     mismo (applicationId, hostName, versionCode/Name, minSdk, orientation) y targetSdk >= 35 (Play pide el del año: ver checklist 4.5).
  *  3) Claves: android/.gitignore ignora *.keystore y *.jks y no hay ninguna clave ni compilado en android/ ni en git.
@@ -81,7 +83,9 @@ if (check(!twa.__err, 'existe y es JSON válido', twa.__err)) {
   check(twa.iconUrl !== 'https://takethecourt.com/icon-512.png' || fs.existsSync(path.join(ROOT, 'pages', 'icon-512.png')), 'el icono existe en pages/');
   if (twa.maskableIconUrl) {
     const f = twa.maskableIconUrl.replace('https://takethecourt.com/', '');
-    if (!fs.existsSync(path.join(ROOT, 'pages', f))) note('maskableIconUrl apunta a ' + f + ', que aún no está en pages/ (copiar notes/playstore/graficos/icono-512.png a pages/' + f + ' antes de `bubblewrap update`).');
+    check(fs.existsSync(path.join(ROOT, 'pages', f)), 'el icono adaptable (maskableIconUrl → ' + f + ') existe en pages/ (bubblewrap update lo baja de la web)');
+    if (fs.existsSync(path.join(ROOT, 'pages', f))) check(fs.readFileSync(path.join(ROOT, 'pages', f)).equals(fs.readFileSync(path.join(ROOT, 'notes', 'playstore', 'graficos', 'icono-512.png'))), 'pages/' + f + ' = notes/playstore/graficos/icono-512.png (dibujo al 82 %)');
+    check(web.icons ? web.icons.some(i => i.src === f && i.purpose === 'maskable') : fs.readFileSync(path.join(ROOT, 'tools', 'build-pages.js'), 'utf8').includes("src: '" + f + "', sizes: '512x512', type: 'image/png', purpose: 'maskable'"), 'el manifest de la web anuncia ' + f + ' como maskable');
   }
   check(twa.enableNotifications === false, 'sin notificaciones');
   check(twa.fallbackType === 'customtabs', 'fallback customtabs (no WebView)', twa.fallbackType);

@@ -25,7 +25,7 @@ Valores elegidos (cambiarlos en `android/twa-manifest.json` **antes** de la prim
 | `display` / `orientation` | `fullscreen` / `landscape` | Igual que el manifest de la web: el juego es apaisado en el móvil. |
 | Colores | `#070B14` (tema, navegación y fondo de la pantalla de arranque) | `theme_color` y `background_color` de la web. |
 | Icono | `https://takethecourt.com/icon-512.png` | |
-| Icono adaptable (máscara) | `https://takethecourt.com/icon-maskable.png` | Es `notes/playstore/graficos/icono-512.png` (dibujo al 82 %). **Hay que copiarlo a `pages/icon-maskable.png`** y publicarlo antes de usar `bubblewrap update` (twatest avisa). Para este primer proyecto se generó desde el archivo local. |
+| Icono adaptable (máscara) | `https://takethecourt.com/icon-maskable.png` | Es `notes/playstore/graficos/icono-512.png` (dibujo al 82 %). Ya está copiado en `pages/icon-maskable.png` y el manifest de la web lo anuncia como `maskable` (build-pages). Hay que **publicar la web** antes del primer `bubblewrap update` (lo baja de takethecourt.com). twatest falla si falta o si no es igual a `icono-512.png`. |
 | Notificaciones / ubicación / Play Billing | No / no / no | La app no pide permisos sensibles. |
 | `fallbackType` | `customtabs` | Si Chrome no puede abrir la TWA, abre una pestaña personalizada (no un WebView). |
 | `appVersionCode` / `appVersionName` | `1` / `1.0.0` | Es la versión **de la app de Android**, no la del juego (1.22.0…). Solo sube al subir otro AAB. |
@@ -81,12 +81,25 @@ que acepte otra clave de subida, pero tarda días.
 
 Desde la carpeta `android/` del repo:
 
+Lo más sencillo es NO poner las contraseñas en ninguna variable: Bubblewrap pregunta las dos al firmar.
+
 ```
 cd android
-set BUBBLEWRAP_KEYSTORE_PASSWORD=...   (o déjalo sin poner y Bubblewrap pregunta las dos contraseñas)
-set BUBBLEWRAP_KEY_PASSWORD=...
 bubblewrap build --signingKeyPath=C:\claves-ttc\take-the-court-subida.keystore --signingKeyAlias=subida
 ```
+
+Si prefieres dejarlas puestas para esa ventana (no se guardan en ningún archivo), antes del `bubblewrap build`:
+
+- En **PowerShell** (la de siempre en este PC):
+  ```
+  $env:BUBBLEWRAP_KEYSTORE_PASSWORD = 'tu-contraseña-del-almacén'
+  $env:BUBBLEWRAP_KEY_PASSWORD = 'tu-contraseña-de-la-clave'
+  ```
+- En **cmd** (todo lo que va detrás del `=` es la contraseña: sin espacios ni comentarios al final):
+  ```
+  set BUBBLEWRAP_KEYSTORE_PASSWORD=tu-contraseña-del-almacén
+  set BUBBLEWRAP_KEY_PASSWORD=tu-contraseña-de-la-clave
+  ```
 
 Sale `android/app-release-bundle.aab` (el que se sube a Play) y `android/app-release-signed.apk` (para instalarlo a mano en un
 móvil). Los dos están en el `.gitignore`. Si Bubblewrap pregunta «twa-manifest.json has changed, update project?», es que alguien
@@ -159,4 +172,4 @@ probar el APK firmado por ti (`app-release-signed.apk`). Por eso van las dos.
   normal; para probar a pantalla completa, usar el APK firmado con la clave de subida (su huella ya está en assetlinks) o la
   versión de Play.
 - Si el icono adaptable recorta la «T» en algún lanzador, retocar `ICON_SCALE` en `tools/storeshots.js`, volver a sacar
-  `icono-512.png`, copiarlo a `pages/icon-maskable.png`, publicar y `bubblewrap update`.
+  `icono-512.png`, copiarlo a `pages/icon-maskable.png` (twatest comprueba que son iguales), publicar y `bubblewrap update`.

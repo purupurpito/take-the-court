@@ -85,4 +85,5 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
   primera visita y la ficha ya dice «Juega sin conexión». Hay que publicar esa versión de la web ANTES de mandar la ficha
   (ficha.md §5.1). La política ya no nombra Google Fonts ni cdnjs. Detalles: `notes/offline.md`.
 - `assetlinks.json` está en `pages/.well-known/` y build-pages copia `pages/` con subcarpetas (comprobado por `tools/twatest.js`).
-- Falta `pages/icon-maskable.png` (copia de `graficos/icono-512.png`) antes del primer `bubblewrap update`: ver android.md.
+- `pages/icon-maskable.png` (copia de `graficos/icono-512.png`) ya está y el manifest de la web lo anuncia como `maskable`; hay que publicar la web antes del primer `bubblewrap update` (android.md).
+- La instalación del service worker compara cada archivo byte a byte: `takethecourt.com` tiene que seguir en solo DNS en Cloudflare (sin proxy que reescriba HTML). Ver `notes/offline.md`.

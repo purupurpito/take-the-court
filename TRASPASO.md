@@ -795,6 +795,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `android/` y `pages/.well-known/assetlinks.json`; `STRICT_TWA=1` antes de publicar la app). Pasos del responsable en notes/playstore/android.md.
 - Sin red (rama playstore, 24-nov-2026): `node tools/offlinetest.js` (service worker, vendor/, publicación con «Reiniciar»; ~2 min).
   Diseño en notes/offline.md. Desde entonces el juego no pide nada a cdnjs ni a Google Fonts (lo de «file://» de arriba es historia).
+  Pasada de revisión (24-nov): un service worker que espera y es de la versión que ya corre la página se activa solo (antes una
+  recarga sin red volvía al index anterior); un build con los mismos archivos da el mismo sw.js (el hash del index no cuenta
+  `__vbBuild`); si la instalación falla, aviso en consola y no reintenta en 12 h; `pages/icon-maskable.png` publicado y en el
+  manifest (twatest falla si falta). Cloudflare de takethecourt.com tiene que seguir en solo DNS.
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

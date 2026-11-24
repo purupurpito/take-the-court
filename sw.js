@@ -8,6 +8,8 @@
  *    instalación falla y el navegador lo vuelve a intentar más tarde: nunca se queda una caché mezclada.
  *  - NO hace skipWaiting al instalar: la versión nueva espera a que se cierre el juego o a que el jugador pulse «Reiniciar» en
  *    «Hay una versión nueva» (js/update.js manda {type:'skipWaiting'} y recarga). Así nunca cambia nada a mitad de partido.
+ *    Excepción: si la página ya corre esa misma versión (vino de la red), js/sw-reg.js le pregunta su hash ({type:'hash'}) y, si
+ *    coincide con window.__vbBuild.sw, la activa enseguida sin recargar (si no, una recarga sin red volvería al index anterior).
  *  - activate: borra las cachés 'ttc-*' que no son la suya y toma el control de las pestañas (clients.claim).
  *  - fetch: solo contesta a peticiones GET del mismo origen que están en la lista:
  *      · páginas (index, privacidad, borrar-cuenta): primero la red (sin caché del navegador; como mucho 6 s si hay copia) y, si
@@ -28,6 +30,13 @@ var FILES = {}, PAGES = {};
 });
 
 function hex(buf) { var a = new Uint8Array(buf), s = ''; for (var i = 0; i < a.length; i++) s += (a[i] < 16 ? '0' : '') + a[i].toString(16); return s; }
+/** Lo que se comprueba del index (n:1): sin el <script>window.__vbBuild=…</script> (sha del commit y fecha del build, cambian en
+ *  cada build). Igual que en tools/build-pages.js: así un build con los mismos archivos da el mismo sw.js y la misma caché. */
+var VBB = /<script>window\.__vbBuild=[^<]*<\/script>/;
+function hashed(f, b) {
+  if (!f.n) return b;
+  return new TextEncoder().encode(new TextDecoder('utf-8').decode(b).replace(VBB, '')).buffer;
+}
 function busted(u) { var x = new URL(u, BASE); x.searchParams.set('sw', VB_SW.hash); return x.href; }
 
 /** Baja un archivo de la lista y comprueba su sha-256. Los que llevan ?v=<hash> (js, vendor) o un nombre fijo (woff2) se piden
@@ -39,7 +48,7 @@ function grab(f, fresh) {
     if (!r.ok || r.status !== 200) throw new Error('sw: ' + f.u + ' ' + r.status);
     var type = r.headers.get('content-type') || '';
     return r.arrayBuffer().then(function (b) {
-      return crypto.subtle.digest('SHA-256', b).then(function (d) {
+      return crypto.subtle.digest('SHA-256', hashed(f, b)).then(function (d) {
         if (hex(d) !== f.h) { if (plain) return grab(f, true); throw new Error('sw: ' + f.u + ' no es el de esta versión'); }
         var h = new Headers(); if (type) h.set('content-type', type);
         return new Response(b, { status: 200, statusText: 'OK', headers: h });
@@ -65,6 +74,8 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('message', function (e) {
   if (e.data && e.data.type === 'skipWaiting') self.skipWaiting();
+  // js/sw-reg.js pregunta de qué build es este service worker (para activar enseguida el de la versión que ya corre la página)
+  if (e.data && e.data.type === 'hash' && e.ports && e.ports[0]) e.ports[0].postMessage({ hash: VB_SW ? VB_SW.hash : null });
 });
 
 function fromCache(key) { return caches.open(CACHE).then(function (c) { return c.match(key); }); }

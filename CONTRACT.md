@@ -100,11 +100,15 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
   (paquete `com.takethecourt.app`). Solo se edita `android/twa-manifest.json` (luego `bubblewrap update`); `display`, `orientation` y
   colores tienen que ser los del manifest de build-pages. `pages/.well-known/assetlinks.json` lleva el mismo paquete y las huellas
   SHA-256 (huecos hasta que existan las claves). Las claves nunca en el repo. Prueba: `node tools/twatest.js`; pasos: notes/playstore/android.md.
+  Icono adaptable: `pages/icon-maskable.png` = `notes/playstore/graficos/icono-512.png`, en el manifest de la web con `purpose: 'maskable'`.
 - Three.js: `vendor/three/three.min.js` (npm `three@0.149.0`, byte a byte el que servía cdnjs; vendor/README.md). r149 es el último sin aviso de deprecación del build UMD.
 - **Sin red (Google Play, 24-nov-2026; notes/offline.md):** three.js y las fuentes en `vendor/` (fuentes: `vendor/fonts/fonts.css`, los woff2 de Google
   Fonts con sus OFL). build-pages copia `vendor/` y escribe `_site/sw.js` desde la plantilla `sw.js` con la lista de archivos y su sha-256
   (caché `ttc-<VERSION>-<hash>`); `js/sw-reg.js` lo registra solo en https://takethecourt.com y localhost (nunca file://, ni el puente).
-  Sin skipWaiting al instalar: «Reiniciar» de js/update.js pasa por `VB.SW.apply()`. El service worker solo contesta GET del mismo origen
+  Sin skipWaiting al instalar: «Reiniciar» de js/update.js pasa por `VB.SW.apply()`; si el que espera es el de la versión que ya corre
+  la página (`window.__vbBuild.sw` = su hash, se lo pregunta con `{type:'hash'}`), sw-reg.js lo activa sin recargar. El hash del index
+  se calcula sin el `<script>window.__vbBuild=…</script>` (sha/fecha): mismos archivos → mismo sw.js. Los archivos no se pueden
+  reescribir por el camino (Cloudflare en solo DNS). El service worker solo contesta GET del mismo origen
   que están en la lista (páginas: red primero; resto: caché); version.json, Firebase/Google, netlogs y otros orígenes pasan sin tocar.
   Un archivo nuevo que el juego cargue fuera del index (fetch, img, script dinámico) NO entra en la lista solo: añadirlo en build-pages.
   Prueba: `node tools/offlinetest.js`.

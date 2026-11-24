@@ -76,6 +76,15 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     const A = swCfg(SITE_A), B = swCfg(SITE_B);
     check(A && B && A.v === VER_A && B.v === VER_B, 'sw.js con su versión (A ' + (A && A.cache) + ', B ' + (B && B.cache) + ')');
     check(A && B && A.cache !== B.cache && /^ttc-/.test(A.cache), 'cada publicación estrena caché');
+    // Un build con los mismos archivos (otro commit, otra hora: cambia __vbBuild) da el MISMO sw.js: nada que volver a bajar
+    const SITE_A2 = path.join(TMP, 'siteA2');
+    { const r = cp.spawnSync(process.execPath, [path.join(ROOT, 'tools', 'build-pages.js'), SITE_A2], { cwd: ROOT, encoding: 'utf8', env: Object.assign({}, process.env, { PAGES_CNAME: '', STRICT_POLICY: '', GITHUB_SHA: 'fedcba9876' }) });
+      if (r.status !== 0) throw new Error('build-pages falla (A2): ' + (r.stderr || r.stdout)); }
+    const vbb = s => (/window\.__vbBuild=(\{[^<]*\})/.exec(fs.readFileSync(path.join(s, 'index.html'), 'utf8')) || [])[1];
+    check(fs.readFileSync(path.join(SITE_A, 'sw.js'), 'utf8') === fs.readFileSync(path.join(SITE_A2, 'sw.js'), 'utf8') && vbb(SITE_A) !== vbb(SITE_A2),
+      'otro build de los mismos archivos (otro sha y otra fecha en __vbBuild): el mismo sw.js y la misma caché (' + (A && A.cache) + ')');
+    const bA = JSON.parse(vbb(SITE_A) || '{}'), bB = JSON.parse(vbb(SITE_B) || '{}');
+    check(A && B && bA.sw === A.hash && bB.sw === B.hash, 'el index sabe cuál es su service worker (__vbBuild.sw = hash de su sw.js)');
     const bad = A ? A.files.filter(f => /version\.json|netlogs|sw\.js|^https?:|\.well-known|CNAME/.test(f.u)) : [1];
     check(!bad.length, 'la lista no lleva version.json, netlogs, sw.js, .well-known ni otras webs', bad);
     const need = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'privacidad.html', 'borrar-cuenta.html'];
@@ -86,7 +95,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     check(/<script src="js\/sw-reg\.js\?v=/.test(idx), 'el index publicado carga js/sw-reg.js');
     check(fs.existsSync(path.join(SITE_A, '.nojekyll')), '_site lleva .nojekyll (Pages sirve las carpetas con punto)');
     if (fs.existsSync(path.join(ROOT, 'pages', '.well-known'))) check(fs.readdirSync(path.join(ROOT, 'pages', '.well-known')).every(f => fs.existsSync(path.join(SITE_A, '.well-known', f))), 'pages/.well-known se copia a _site/.well-known');
-    const brg = fs.readdirSync(path.join(ROOT, 'bridge')).map(f => fs.readFileSync(path.join(ROOT, 'bridge', f), 'utf8')).join('\n');
+    const brg = fs.readdirSync(path.join(ROOT, 'bridge')).filter(f => !/\.md$/i.test(f)).map(f => fs.readFileSync(path.join(ROOT, 'bridge', f), 'utf8')).join('\n');
     check(!fs.existsSync(path.join(ROOT, 'bridge', 'sw.js')) && !/serviceWorker|sw-reg/.test(brg), 'el puente (bridge/) no tiene service worker ni lo registra');
     const reg = fs.readFileSync(path.join(ROOT, 'js', 'sw-reg.js'), 'utf8');
     check(/host === 'takethecourt\.com'/.test(reg) && /'localhost'/.test(reg) && !/github\.io/.test(reg.replace(/\/\*[\s\S]*?\*\//g, '')), 'sw-reg.js solo registra en takethecourt.com y localhost');
@@ -175,6 +184,19 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     // sirviendo la A un momento si hace falta.
     if (vNow !== VER_A) {
       check(vNow === VER_B, 'la navegación va primero a la red: llega el index nuevo (' + vNow + ')');
+      // La página ya corre la B: su service worker (el de la B) no se queda esperando, se activa solo y sin recargar; así una
+      // recarga sin red sigue en la B y no vuelve al index de la A guardado.
+      const navsB = navs;
+      const askActive = "navigator.serviceWorker.getRegistration().then(function(r){var w=r&&r.active;if(!w||w.state!=='activated'||r.waiting||r.installing)return null;return new Promise(function(ok){var c=new MessageChannel();c.port1.onmessage=function(e){ok(e.data&&e.data.hash)};w.postMessage({type:'hash'},[c.port2]);setTimeout(function(){ok(null)},2000)})})";
+      check(await waitFor(pg, askActive + ".then(function(h){return h==='" + B.hash + "'})", 30000), 'la página en la ' + VER_B + ' activa sola el service worker de la ' + VER_B + ' (nada esperando)');
+      check(navs === navsB, 'esa activación no recarga la página');
+      await waitFor(pg, "caches.keys().then(function(k){return k.length===1})", 5000);
+      const cB = await pg.evalJs('caches.keys().then(JSON.stringify)', true).then(JSON.parse);
+      check(cB.length === 1 && cB[0] === B.cache, 'solo queda la caché de la ' + VER_B, cB);
+      await S.stop(); await offline(true);
+      await go(BASE + '?offB=1');
+      check(await waitFor(pg, READY, 40000) && await pg.evalJs('VB.VERSION') === VER_B, 'SIN RED justo después: recarga en la ' + VER_B + ' (no vuelve a la ' + VER_A + ')');
+      S = await serve(() => root, S.port); await offline(false);
       root = SITE_A; await go(BASE + '?back=1'); await waitFor(pg, READY, 40000); root = SITE_B;
     }
     check(await pg.evalJs('VB.VERSION') === VER_A, 'en la ' + VER_A + ' con la ' + VER_B + ' publicada');

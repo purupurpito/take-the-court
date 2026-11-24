@@ -15,8 +15,11 @@ del mismo origen (farolillo, emPat…), no borra nada, las empaqueta y salta a `
 | `version.json` | `{"v":"<versión del juego>"}` (igual que VB.VERSION, lo exige build-pages): las pestañas viejas (1.15.1+) que siguen abiertas ven «Hay una versión nueva» → «Reiniciar» → puente |
 | `.nojekyll` | que Pages no pase Jekyll |
 
-**No hay `sw.js`**: el juego nunca registró un service worker ni usó Cache Storage ni IndexedDB (comprobado con grep en `js/` e
-`index.html` de la 1.19.2), así que no hay cachés viejas que limpiar ni nada que desregistrar.
+**No hay `sw.js`**: en la dirección antigua (purupurpito.github.io) el juego nunca registró un service worker ni usó Cache Storage
+ni IndexedDB (comprobado con grep en `js/` e `index.html` de la 1.19.2), así que aquí no hay cachés viejas que limpiar ni nada que
+desregistrar, y el puente no debe registrar ninguno. En `takethecourt.com` sí: desde la rama playstore el juego registra `sw.js`
+(`js/sw-reg.js`) y guarda sus archivos en cachés `ttc-*` para jugar sin red (`notes/offline.md`; `?nosw=1` lo quita). Es otro
+origen: no se mezclan.
 
 Opcional: copiar `icon.svg`, `icon-180.png`, `icon-192.png`, `icon-512.png` y `og.png` desde `pages/` del juego, para que las apps
 instaladas viejas y las vistas previas de enlaces antiguos no reciban el HTML del 404. No hace falta para que el puente funcione.
