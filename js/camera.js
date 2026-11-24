@@ -3097,6 +3097,9 @@
       fxPt(p.x, p.y, mx(0, p.z) + 1.85, 0.95, -1.05, 0.95); fxPt(p.x, p.y, mx(0, p.z) + 0.3, 0.95, -1.05, 0.95);
       fxPt(rs.x, rs.y, rz + 1.9, 0.95, -1, 0.95);
       if (!fast) fxPt(b.x, b.y, b.z, bTop, -1, 0.95);
+      // (al fijar: la cumbre del lanzamiento rival más alto —en salto, 4,6 m, 1,35 m hacia la red— ya dentro con margen: en el móvil el
+      // balón se salía por arriba en el lanzamiento antes de que llegara la corrección)
+      if (init) { var rdx = rs.team === 0 ? -1 : 1; fxPt(rs.x + rdx * 1.35, rs.y, rz + 4.6, 0.88, -1, 0.95); }
     }
   }
   /** Con la pose objetivo (más el encuadre fino congelado del plano), ¿se sale algo? Si sí, el giro, cabeceo y lente mínimos que lo meten
@@ -3158,7 +3161,7 @@
       else { FX.tx = D.x; FX.ty = D.y; FX.tz = D.z; FX.tw = lw; FX.tp = lp; FX.tf = lf; }
       FX.cx = FX.tx; FX.cy = FX.ty; FX.cz = FX.tz; FX.cw = FX.tw; FX.cp = FX.tp; FX.cf = FX.tf;
       // (el encuadre fijo ya con el lanzamiento y el golpe dentro; tras un corte se pone de golpe, con la cámara en marcha llega con el muelle)
-      var wid = k === 'yo' ? (fxPoints(g, k, true), fxNeed(aspect())) : 0;
+      var wid = k === 'yo' || k === 'rival' ? (fxPoints(g, k, true), fxNeed(aspect())) : 0;
       if (wid === 1 && here) { FX.sT = 0.32; } else { FX.cx = FX.tx; FX.cy = FX.ty; FX.cz = FX.tz; FX.cw = FX.tw; FX.cp = FX.tp; FX.cf = FX.tf; }
       D.x = FX.cx; D.y = FX.cy; D.z = FX.cz; var cp0 = Math.cos(FX.cp);
       A.x = D.x + Math.cos(FX.cw) * cp0 * 10; A.y = D.y + Math.sin(FX.cw) * cp0 * 10; A.z = D.z + Math.sin(FX.cp) * 10; K.fovWant = FX.cf;
@@ -3179,7 +3182,8 @@
       if (!FX.rc && (Math.abs(sv.y - FX.sy) > 1.2 || Math.abs(sv.x - FX.sx) > 0.8)) { FX.rc = true; FX.why = 'recompone'; }
       if (FX.rc) {
         FX.tx = D.x; FX.ty = D.y; FX.tz = D.z; FX.tw = lw; FX.tp = lp; FX.tf = lf; FX.sT = 0.55;
-        if (FX.still > 0.35) { FX.rc = false; FX.sx = sv.x; FX.sy = sv.y; }
+        // (al pararse, el nuevo encuadre fijo también con el lanzamiento y el golpe dentro, como al empezar)
+        if (FX.still > 0.35) { FX.rc = false; FX.sx = sv.x; FX.sy = sv.y; fxPoints(g, k, true); fxNeed(aspect()); }
       }
     } else FX.rc = false;
     if (!FX.rc) {
