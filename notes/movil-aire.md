@@ -1314,3 +1314,53 @@ crear (parche «Crear jugador» `o`), ficha/rencor de club (chips `o`), look («
 `< 14` sube (rótulos de 12-13 de la barra, fichas y tira: dentro de lo permitido). Lesión: el sello «De baja ◆ Esguince…» sigue en 2 líneas
 (no cabe en una con el «?»; la franja de 1 línea queda para carrera-jugador-club-v). Faro en hoja: «Seguir» de una escena de varias frases
 cierra la hoja (hay que volver a tocar «Ver»).
+
+#### 8.6.4 Paquete carrera-jugador-club-v (24-nov-2026)
+
+Jugador, Club, selección, cesiones, traspasos y plan en vertical (html.pv). Todo en el bloque «carrera-jugador-club-v» al final de `PV_CSS`
+(`js/career-ui.js`, prefijo `PW`; con `#crBody` cuando la copia de .ph lo lleva) y dos toques de JS tras `VERT()`. PC y horizontal sin cambios.
+
+**Hecho**
+- *Componentes de .ph que la copia no traía* (están en index.html sin `#career`): `.ph-kv` en UNA columna (rótulo 12 en mayúsculas a la
+  izquierda, valor 14 a la derecha que parte en 2 líneas; antes salía «ObjetivoQuedar…», «RolRotación» pegados), `.ph-grid2` (1 columna; 2 desde
+  385 px), `.ph-dup` fuera. Arregla Club › Ficha, Contrato, traspaso-renovar/-no, cedido y todo lo que use esas clases en la Carrera vertical.
+- *«?» y sellos*: el sello de una tarjeta con «?» deja 56 px a la derecha (no pasa por debajo del círculo); el «?» que iba DENTRO del título
+  (Estado físico, Cómo entrar de la Selección) sale a la esquina de su tarjeta (`pvAfter`: `.card>h3:first-child>.cr-q` → hijo de la tarjeta, `.cr-qo`).
+- *Firma*: tarjetas a todo el ancho (2 desde 390), nombre y dato sin cortar; «Gesto antes de sacar» en su línea y rejilla 2×2 de 48 (fuera
+  «NINGU…» / «TRES BOTES» apretado). *Insignias*: UNA columna también a 390-412 (en dos, la descripción partía en 4-5 líneas de dos palabras),
+  «Cañón · Bloqueada» / descripción / barra / cifra, sin «|» (el separador es un salto de línea).
+- *Estado*: Plan y Puesto (`career-dev.js`, tarjeta flex) con sello · «?» (· ✕ si la lista está abierta) en la fila del título; «Elegir plan» /
+  «Pedir cambio» bajan a su fila bajo el texto, 48 de alto; con la lista abierta el sello parte en 2 y la ✕ va junto al «?» (antes, sola en una fila).
+- *Ropa*: «Vestuario ›» al dock (`renderLook` marca el `.acts` con `data-ph-dock` en vertical); fila colores · «67/155 · 2 nuevos» / «En playa ·
+  Tupé» · «?» (antes la cifra partía letra a letra).
+- *Compañero / Plantilla*: «Elegir» arriba a la derecha junto al nombre, fichas y frase a todo el ancho debajo; el primer jugador baja 26 px
+  para no quedar bajo el «?».
+- *Contrato / traspaso*: tira de la renovación con letra 15 / rótulo 12 que parte; la decisión ya iba arriba y Firmar / Prefiero salir (Aceptarlo /
+  Insistir) en el dock (carrera-marco-v).
+- *Cesiones*: escudo + nombre corto (y el largo debajo), datos en líneas, «Pareja Óscar, 32» como ficha sin partir y «Ir cedido» debajo a la
+  derecha (150 px). *Cedido*: el nombre empieza bajo el «?».
+- *Ficha / rencor de club* (Liga › Clubes): rejilla [‹ 44][escudo 48][nombre + «liga · año · apodo»][1r · 9 pts]; franja de rencor entera;
+  fichas que parten («Cala Fonda de Miraflor» ya no se corta). No es una `.pv-sheet`: se queda en el cuerpo con la barra y la tira (volver = ‹).
+- *Selección*: franja [bandera 36][ESPAÑA][Titular] … [?] y «Confianza 62» debajo; tabla de la clasificación con «1r partido: ESP – SRB» entero
+  (columnas de cifras a 1 %); cabeceras a 12; el bocadillo «Simular el resto» ya no pisa la línea de debajo.
+- *Vitrina* (palmarés de la selección; vale también para Vida › Vitrina): la categoría encima de su fila y los trofeos en 2 columnas (3 desde 385).
+
+**Métricas** (`…/movil2/r2-jugclub/`: `v` = 39 ids × 360/390/412, DPR 2; `h` = 39 × 568/844/915; `pc` = 39 × 1280/1024)
+
+| pasada | recortes no perm. (o) | < 12 | < 44 | solapes | tapado-pie | pisados | principal NO | despl. lateral |
+|---|---|---|---|---|---|---|---|---|
+| r2-marco/v → **v** | 16 (8) → **0 (0)** | 0 → 0 | 0 → 0 | 6 → **0** | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 |
+| r2-recortes/hfull → **h** | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | igual (sin diferencias por pantalla) |
+| r2-marco/pc → **pc** | sin diferencias por pantalla (frente a `pcbase`, solo las conocidas de §8.6.1: Estado/plan/contrato/cesiones sin la lesión heredada); a ojo, igual |
+
+`< 14` sube en V (rótulos de 12-13 de `.ph-kv`, dentro de lo permitido); «toques juntos» 615 → 569.
+
+**Pruebas** (primer plano): csscheck, careertest, devtest (237), injurytest (146), loantest (188), natltest (180), worldtest (155), badgetest (53),
+storyuitest, girotest (26): todas OK.
+
+**Pendiente**
+- carrera-*-lesion (no estaba en la lista del paquete): el sello «De baja ◆ Esguince…» sigue en 2 líneas.
+- La ficha de club no es hoja a pantalla completa (decisión: se queda en el cuerpo, con ‹; más simple y sin perder la tira de Liga).
+- Firma: la descripción breve en la tarjeta no se añadió (está en la hoja al tocar, como en horizontal). El gesto: las manchas `.seg` dejan
+  algo de aire vertical entre filas (el dibujo es más bajo que el objetivo de 48).
+- Estado sigue siendo largo (lesión, plan, puesto, ánimo, plan del entrenador, progreso): «Elegir plan» se ve en la primera pantalla a 360.

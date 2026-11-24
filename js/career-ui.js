@@ -2185,6 +2185,11 @@
       var h3 = m.querySelector('h3'); (h3 && h3.parentNode ? h3.parentNode.parentNode : m).appendChild(b);
       m.classList.add('cw-fold');
     }
+    // (carrera-jugador-club-v) el «?» que va dentro del título-sello (Estado físico, Cómo entrar…) sale a la esquina de su tarjeta
+    if (body) Array.prototype.forEach.call(body.querySelectorAll('.card>h3:first-child>.cr-q'), function (q) {
+      var cd = q.parentNode.parentNode; if (cd.querySelector(':scope>.cr-q')) return;
+      q.classList.add('cr-qo'); cd.insertBefore(q, q.parentNode.nextSibling);
+    });
     var row = subEl && !subEl.hidden && subEl.querySelector('.tb-row');
     if (row) {
       var nt = row.querySelectorAll('.tab').length;
@@ -3191,7 +3196,7 @@
         (fit ? ' <small>' + esc(hallC ? 'En pista' : 'En playa') + ' · ' + esc(lookName(X, fit.style) || '—') + '</small>' : '') + '</p>' +
         qBtn('Vestuario', 'Con los colores de tu club. Solo estética: no cambia cómo juegas. ' + (mine ? '' : (hallC ? 'Tu jugador lleva su aspecto de siempre hasta que guardes uno en el vestuario. ' : 'Llevas el aspecto de tu n.º 1 de Partido rápido hasta que guardes uno propio en el vestuario. ')) +
           'Más objetos con la fama, los logros y los premios de la Carrera, o en Fama › Tienda. Lo que ganas vale también en Partido rápido.') +
-        '<div class="acts"><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Vestuario ›</button></div></div></div>';
+        '<div class="acts"' + (VERT() ? ' data-ph-dock' : '') + '><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Vestuario ›</button></div></div></div>';   // (vertical: al dock)
     }
     h += '<p class="muted" style="margin:8px 0 0">' + sp(['Tienes ' + have + ' de ' + all.length + ' objetos', nu ? plural(nu, 'novedad sin ver', 'novedades sin ver') : ''], 'v') + '</p>' +
       '<div class="acts"><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Abrir el vestuario</button></div>' +
@@ -4786,7 +4791,106 @@
     PW + ' .cw-mentor.cw-fold>:first-child{width:36px;height:36px;flex:none}',
     PW + ' .cw-mentor.cw-fold h3{grid-column:2;margin:0;font-size:var(--pv-body);line-height:1.2;white-space:normal;overflow:visible;text-overflow:clip}',
     PW + ' .cw-mentor.cw-fold .cw-pv{grid-column:3;min-width:64px;min-height:44px;margin:0;padding:0 14px;border-radius:12px 15px 11px 16px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink);' +
-      'font:800 14px/1 var(--sp-ui);letter-spacing:.02em;text-transform:none;text-shadow:none}'
+      'font:800 14px/1 var(--sp-ui);letter-spacing:.02em;text-transform:none;text-shadow:none}',
+    // ==== (ronda 2, carrera-jugador-club-v) Jugador, Club, selección, cesiones, traspasos y plan en VERTICAL. notes/movil-aire.md §8.6.4.
+    // Componentes de .ph de index.html que la copia no trae (no llevan #career): clave/valor de UNA columna, rejilla 1 → 2 desde 390, sin el sello repetido
+    PW + ' .ph-kv{display:grid;grid-template-columns:minmax(0,1fr);margin:4px 0 10px;padding:0;overflow:hidden;background:var(--sp-ink);color:var(--sp-cream);' +
+      'border-radius:12px 14px 12px 16px/14px 12px 16px 12px;box-shadow:0 0 0 2.5px rgba(255,244,220,.2),3px 4px 0 2.5px var(--sp-ink)}',
+    PW + ' .ph-kv>*{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0;min-height:40px;margin:0;padding:9px 12px;box-sizing:border-box;border-bottom:1px solid rgba(255,244,220,.14)}',
+    PW + ' .ph-kv>:last-child{border-bottom:0}',
+    PW + ' .ph-kv>*>.k{flex:none;margin:0;font:700 12px/1.2 var(--sp-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--sp-gold);white-space:nowrap}',
+    PW + ' .ph-kv>*>.v{flex:0 1 auto;min-width:0;margin:0;font:600 14px/1.25 var(--sp-ui);font-variant-numeric:tabular-nums;text-align:right;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:normal}',
+    PW + ' .ph-kv>.w>.v{padding:0}',
+    PW + ' .ph-kv .cr-dots{display:inline-flex;gap:6px;vertical-align:middle}',
+    PW + ' .ph-kv .cr-dot{width:18px;height:18px}',
+    PW + ' .ph-grid2{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:stretch}',
+    '@media (min-width:385px){' + PW + ' .ph-grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+    PW + ' .ph-dup,' + PW + ' .ph-dup-t{display:none}',
+    // el sello de una tarjeta con «?» arriba a la derecha no pasa por debajo del «?» (partía «Minutos y salida ◆ Tranquilo» bajo el círculo)
+    PW + ' .card:has(>.cr-q)>h3:first-child{margin-right:56px}',
+    // Jugador › Estado: el «?» de Estado físico, fuera de la franja amarilla (pvAfter lo saca del h3); la fila del plan con su botón
+    PW + ' #crBody .card.inj>.cr-q.cr-qo{position:absolute;top:-24px;right:-6px}',
+    PW + ' #crBody .card.cdv-plan>p.muted{margin-bottom:6px}',
+    // Plan / pedir puesto con la lista abierta: la ✕ arriba a la derecha junto al «?» (antes, sola en su fila)
+    // (la tarjeta es flex en .ph: sello · «?» · ✕ en la fila del título; «Elegir plan» / «Pedir cambio» bajan a su fila, debajo del texto)
+    PW + ' #crBody .card:is(.cdv-plan,.cdv-pos)>h3:first-child{margin-right:0}',
+    PW + ' #crBody .card:is(.cdv-plan,.cdv-pos):has(>.acts>.cdv-x)>h3:first-child{flex:1 1 0}',   // (lista abierta: sello · «?» · ✕ en una fila; el sello parte en 2)
+    PW + ' #crBody .card:is(.cdv-plan,.cdv-pos)>.acts.cdv-ha:not(:has(>.cdv-x)){flex:1 1 100%;order:4;justify-content:flex-start;margin:4px 0 0}',
+    PW + ' #crBody .card:is(.cdv-plan,.cdv-pos)>.acts.cdv-ha:not(:has(>.cdv-x))>.sp-btn{min-height:48px}',
+    // Jugador › Firma: tarjetas planas a todo el ancho (2 desde 390), nombre en una línea y su dato; el gesto en rejilla 2×2 de 48
+    PW + ' .cr-sigp .cr-sigg{margin:6px 0 14px}',
+    PW + ' .cr-sigp .cr-sgc{width:100%;min-height:60px;box-sizing:border-box}',
+    PW + ' .cr-sigp .cr-sgc>b{white-space:normal;overflow:visible;text-overflow:clip;font-size:16px;line-height:1.1}',
+    PW + ' .cr-sigp .cr-sgc>small{white-space:normal;overflow:visible;text-overflow:clip;font-size:13px}',
+    PW + ' .cr-sigp .cr-sgg{display:block}',
+    PW + ' .cr-sigp .cr-sgg>label{display:block;margin:0 0 8px;font:700 13px/1.2 var(--sp-ui)}',
+    PW + ' .cr-sigp .cr-sgg>.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0}',
+    PW + ' .cr-sigp .cr-sgg>.seg>button{min-width:0;min-height:48px;margin:0;padding:4px 8px;white-space:normal;line-height:1.1;font-size:15px}',
+    // insignias: una columna (también a 390-412: en dos, la descripción partía en 4-5 líneas de 2 palabras); nombre + estado en la primera línea y la descripción debajo, sin «|» sueltos
+    PW + ' .bdg{grid-template-columns:minmax(0,1fr);gap:10px}',
+    PW + ' .bd{min-height:64px;padding:10px 12px;align-items:flex-start;text-align:left}',
+    PW + ' .bd>span:last-child{min-width:0;font-size:13px;line-height:1.3}',
+    PW + ' .bd strong{margin-right:6px;font-size:15px}',
+    PW + ' .bd .sep{display:block;height:0;overflow:hidden}',
+    PW + ' .card>.cr-q+.bdg{margin-top:36px}',
+    // Jugador › Ropa: «Vestuario ›» va al dock (renderLook con VERT()); la fila: colores · «67/155 · 2 nuevos» / «En pista · Tupé» · «?»
+    PW + ' .cr-lookp .cr-lkr{flex-wrap:nowrap}',
+    PW + ' .cr-lookp .cr-lkn{flex:1 1 0;min-width:0;white-space:normal}',
+    PW + ' .cr-lookp .cr-lkn>small{white-space:normal;overflow:visible;text-overflow:clip;margin-top:2px}',
+    // Club › Compañero / Plantilla: «Elegir» arriba a la derecha junto al nombre; las fichas y la frase a todo el ancho debajo
+    PW + ' .mate{position:relative;display:block;padding:12px 0}',
+    PW + ' .mate>div>.cr-mn{display:flex;align-items:center;min-height:44px;margin:0 104px 4px 0;line-height:1.15}',
+    PW + ' .mate>.sp-btn{position:absolute;top:12px;right:0;min-height:44px;margin:0}',
+    PW + ' .mate>div>.cr-mn{margin-bottom:12px}',
+    PW + ' .card>.cr-q+.mate{margin-top:26px}',
+    PW + ' .cr-matep .cr-mth{align-items:flex-start}',
+    // Club › Contrato / traspaso: la tira de la renovación sin apretar (el rol en 2 líneas, cifras centradas)
+    PW + ' .ln-st.ph-strip>*{padding:6px 4px}',
+    PW + ' .ln-st .sp-hn{font-size:15px!important;line-height:1.1}',
+    PW + ' .ln-st .sp-hl{font-size:12px;white-space:normal;line-height:1.15}',
+    PW + ' .ln-ask .ln-ak{font-size:15px;line-height:1.3}',
+    PW + ' .ln-ask .ln-ac{font-size:13px;line-height:1.3}',
+    // Club › Ofertas / cesiones: escudo + nombre corto (y el largo debajo), datos con wrap y «Ir cedido» debajo a la derecha
+    PW + ' .ln-o>.row{align-items:flex-start;flex-wrap:wrap;gap:8px 12px}',
+    PW + ' .ln-o>.row>.grow{flex:1 1 0;min-width:0}',
+    PW + ' .ln-o>.row>.acts{flex:1 0 100%;display:flex;justify-content:flex-end;margin:0}',
+    PW + ' .ln-o>.row>.acts>.sp-btn{flex:0 0 auto;width:auto;min-width:150px;max-width:none;min-height:48px}',
+    PW + ' .ln-o .ln-om .ln-l{display:block}',
+    PW + ' .ln-o .ln-om .tag{display:inline-block;margin:4px 0 0 0;white-space:nowrap}',
+    PW + ' .ln-o .ln-om .sep{display:inline}',
+    PW + ' .ln-ph .ln-why{font-size:13px}',
+    PW + ' .ln-on6>.cr-q+.row{margin-top:14px}',
+    PW + ' .ln-on6 .ln-on{padding-right:20px}',
+    // Liga › Clubes › ficha / rencor: [‹ 44][escudo 48][nombre corto + «liga · año · apodo»][1r · 9 pts]; fichas que parten (sin cortar la sede)
+    PW + ' .cw-cph .cw-chr{display:grid;grid-template-columns:44px 48px minmax(0,1fr) auto;align-items:center;gap:10px}',
+    PW + ' .cw-cph .cw-chr>:is(svg,.cw-crest,.cr-kit){width:48px!important;height:48px!important}',
+    PW + ' .cw-cph .cw-cn{font-size:clamp(17px,5vw,20px)!important;line-height:1.1;white-space:normal;overflow:visible;text-overflow:clip}',
+    PW + ' .cw-cph .cw-ck{font-size:13px;line-height:1.25;white-space:normal;overflow:visible;text-overflow:clip}',
+    PW + ' .cw-cph .cw-cs>b{font-size:24px}',
+    PW + ' .cw-cph .cw-cs>small{font-size:12px;white-space:nowrap}',
+    PW + ' .cw-cph .cw-chips{display:flex;flex-wrap:wrap;gap:6px;white-space:normal;overflow:visible}',
+    PW + ' .cw-cph .cw-chips>.chip{margin:0}',
+    PW + ' .cw-cph .cw-bond{white-space:normal;overflow:visible;text-overflow:clip}',
+    PW + ' .cw-cph .cw-nick{font-size:13px;white-space:normal;overflow:visible;text-overflow:clip}',
+    // Club › Selección: bandera de 36 en la franja; tabla con cabecera de 12 y la fila del partido entera; el bocadillo no pisa lo de debajo
+    // (franja: [bandera 36][ESPAÑA][Titular] … [?] y «Confianza 62» debajo, bajo el nombre, si no cabe en la fila)
+    PW + ' .card.nt-strip{padding:4px 10px}',
+    PW + ' .nt-strip .nt-sr{flex-wrap:wrap;row-gap:0;white-space:normal}',
+    PW + ' .nt-strip .nt-sr>:is(.cr-kit,svg){width:36px!important;height:36px!important}',
+    PW + ' .nt-strip .nt-sr>.cr-q{order:1;margin-left:auto}',
+    PW + ' .nt-strip .nt-sr>.nt-tr{order:2;flex:1 1 100%;margin:-6px 0 6px;padding-left:46px;font-size:13px}',
+    PW + ' #crBody .card:has(>.nt-foot) th{font-size:12px}',
+    PW + ' #crBody .nt-q td.club{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}',
+    PW + ' #crBody .nt-q :is(td,th):not(.club):not(.l){width:1%;white-space:nowrap}',
+    PW + ' #crBody .card.x-go>.acts:has(>[data-act="nt-simall"]){margin:10px 0 22px}',
+    // Vida › Vitrina (también el palmarés de la selección): la categoría encima de su fila y los trofeos en 2 columnas (3 desde 390)
+    PW + ' .tc-ph .tc-pg.empty{display:block;margin:0 0 12px}',
+    PW + ' .tc-ph .tc-pg.empty>h4.tc-g,' + PW + ' .tc-ph .tc-pg>h4.tc-g{position:static;height:auto;margin:0 0 6px;padding:0;background:none;font-size:13px;line-height:1.2}',
+    PW + ' .tc-ph .tc-g small{font-size:12px}',
+    PW + ' .tc-ph .tc-pr,' + PW + ' .tc-ph .tc-pg.empty .tc-pr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 8px}',
+    '@media (min-width:385px){' + PW + ' .tc-ph .tc-pr,' + PW + ' .tc-ph .tc-pg.empty .tc-pr{grid-template-columns:repeat(3,minmax(0,1fr))}}',
+    PW + ' .tc-ph .tc-pg.empty button.tc-slot{width:auto;min-height:44px;padding:2px 0 4px;justify-content:flex-start}',
+    PW + ' .tc-ph .tc-n{font-size:13px}'
   ].join('\n');
   /** El <style> de la Carrera, una vez (al cargar: también lleva la hoja final del partido de Carrera, #end.career). */
   function ensureCss() {
