@@ -279,9 +279,10 @@ Ferran: «Quiero que la IA se adapte excepto en modo Fácil» y las reglas nueva
   compatibilidad del guardado.
 - **S4_SYNC = true** (account.js): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos ya viajan con la cuenta. La semana
   sigue solo en el aparato (la jugada del día y su racha también). Antes de publicar: probarlo a mano con dos aparatos (conflicto «¿Qué Carrera de pista te quedas?»).
-- Preguntas:
-  1. Sedes: ¿Cúpula también en partidos de liga de élite? ¿Can Rebot en toda la 2ª, o el 25 % te vale?
-  2. Jefes de pista: ¿te valen los puestos (Pulpo de receptor)?
+- **Sedes y jefes: decididos** (Ferran, 24-nov: «Las sedes y jefes decídelo tú»). Se quedan como arriba: Cúpula del Far solo en finales
+  de copa y rondas internacionales de élite (no en la liga), Can Rebot en el 25 % de las jornadas en casa de la 2ª, y los puestos de
+  los jefes (Pulpo de receptor). Ya no son provisionales.
+- Pregunta:
   4. ¿Confirmas que las reglas del 16-nov siguen desplegadas tal cual?
 
 ## Señas del árbitro y Cuaderno del árbitro (js/senas.js, notes/splat.md `.sp-sena`)
@@ -370,12 +371,7 @@ Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en p
 - **Decisión provisional: el enfriamiento se salta el primer verano** (lo de la temporada que acaba se mantiene entero un verano más).
 - **Decisión provisional: la ficha de la oferta enseña el porcentaje** («Te ofrecen un 30 % menos de sueldo y un rol más bajo»).
 - **Decisión provisional: una cesión no cuenta**, y un título con el club de la cesión da cariño a ese club.
-- Preguntas:
-  1. ¿El rencor leve también te hace ofertas peores (−15 %), o solo el fuerte?
-  2. Con el ambiente apagado, ¿siguen las ofertas y los mensajes?
-  3. ¿Irte transferible o por promesa incumplida, neutro?
-  4. ¿Porcentaje en la ficha, o solo el motivo?
-  5. ¿Que se enfríe ya el primer verano?
+- **Contestado (24-nov): «El rencor ya está bien».** Las decisiones de arriba se quedan tal cual; sin preguntas.
 
 ## Árbitros con nombre (js/career-world.js, js/arbitro.js, notes/ambiente.md «Árbitros con nombre y carácter»)
 Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las líneas solo en la Carrera.
@@ -525,7 +521,8 @@ Todas tienen 28 caracteres o menos. El chat NO está construido: esto es solo pa
 
 Cómo iría (resumen de la ficha): botón de chat al final de la pastilla del online, solo con el balón muerto; rueda con las 8 (★) y
 «Más» con la lista entera; viaja solo el número de la frase; bocadillo de 2,5 s sobre el jugador; como mucho 1 frase cada 3 s y 3 por
-punto; «Silenciar a X» para ese partido. Preguntas: ¿beta solo con frases positivas (sin las †)? ¿Te vale la tecla T en el PC?
+punto; «Silenciar a X» para ese partido. En el PC, con la tecla T (Ferran, 24-nov: «La tecla T me sirve, sí»). Pregunta: ¿beta solo
+con frases positivas (sin las †)?
 
 ## «El Corte» (la gran idea del sprint; sin construir, lo decides tú)
 Cada bote a menos de 5 cm de la línea se convierte en un momento propio del juego:
@@ -567,9 +564,14 @@ Decisiones mías:
 ## Preguntas abiertas de TRASPASO.md (siguen sin respuesta)
 (Contestadas el 24-nov y quitadas de aquí: Circuito Mundial = se queda como reto, sin suavizar `DIFF_AT`; «Cerrar sesión» no borra
 el progreso del aparato, comprobado en js/account.js `signOut` —solo olvida la sesión y avisa «Tu progreso sigue en este dispositivo»—;
-tope de dibujos del 6v6 lo decido yo, abajo en «Menús».)
-4. **Repo de redirección**: la dirección vieja /voley-3d/ da 404. ¿Se hace la redirección en purupurpito.github.io?
-5. Música en ogg dentro de index.html o procedural (la moneda, contestada el 24-nov: ver «La moneda: salpis»; el 6v6 en JUGAR, ver «Menús»)
-6. Premios por nivel: ¿se quedan en 8 (había 17 propuestos)?
+tope de dibujos del 6v6 lo decido yo, abajo en «Menús»; redirección de /voley-3d/: no se hace, «la de voley-3d no la conoce nadie
+casi»; la moneda: ver «La moneda: salpis»; el 6v6 en JUGAR: ver «Menús».)
+- **Decisión (24-nov, «La música como la veas mejor»): la música sigue procedural**, hecha por js/audio.js como ahora (y como la
+  Xaranga). No pesa nada en index.html, funciona sin conexión y no hay que buscar ni licenciar ficheros ogg. No se toca nada.
+6. **Premios por nivel** (Ferran pidió verlos). Hoy son 14, no 8: los objetos del Vestuario con nivel de perfil (`lv(n)` en js/look.js;
+   cada uno también se puede comprar en la tienda). Nivel 2 Tira nasal · 4 Collar de conchas (playa) · 6 Malla larga · 8 Manguito de
+   rayas (pista) · 10 Tinte azul · 12 Calcetines de lunares (pista) · 14 Mitones (playa) · 16 Calcetines caídos (pista) · 18 Una
+   rodillera (pista) · 20 Licra de surf (playa) · 24 Gafas redondas · 28 Zapatillas neón · 32 Malla tres cuartos · 36 Zapatillas
+   bicolor. ¿Te valen, quitas o añades alguno?
 8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
 9. Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).
