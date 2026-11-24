@@ -748,10 +748,13 @@
     if (v.st === 'vote') {
       var o = v.vote, scale = Math.max(o.V, o.topV, 1), fill = Math.round(100 * o.V / scale), cut = Math.round(100 * o.cutV / scale);
       h += '<div class="card as-card as-vote"><h3>' + sep(H, ['Estrellas', 'Votación'], 'd') + (H && H.q ? H.q('Votación', 'Cuentan tu fama, tu nota media, cómo va tu club y tu media frente a las otras figuras. Entran ' + (v.six ? 'por puesto: 2 colocadores, 4 receptores, 2 opuestos y 4 centrales' : '4') + '. Si no llegas, los técnicos pueden elegirte por tus notas y tu nivel.') : '') + '</h3>';
-      h += '<p class="as-line">' + sep(H, ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), 'entran ' + o.cut], 'v') + '</p>';
-      h += '<div class="as-bar" role="img" aria-label="' + esc('Tus votos frente al corte') + '"><i style="width:' + fill + '%"></i><b style="left:' + cut + '%"></b></div>';
-      h += '<p class="as-small">' + sep(H, [num(o.votes) + ' votos', 'cierra tras la jornada ' + v.wk], 'v') + '</p>';
-      h += '<div class="acts as-acts">' + btn('as-camp', o.camp >= o.campMax ? 'Ya no puedes pedirlo más' : o.asked ? 'Ya lo has pedido esta jornada' : 'Pedir el voto (' + (o.camp + 1) + ' de ' + o.campMax + ')', 'sp-gold', o.canCamp ? 'Entrenador −1' : '', !o.canCamp) + '</div></div>';
+      // (móvil, movil-aire §5.2: votos y cierre en la línea de «Vas 11º», «Top 4» como rótulo de la raya del corte y «Pedir el voto · 2/3»
+      //  en una línea con su coste en ficha)
+      var asPh = !!(H && H.ph && H.ph());
+      h += '<p class="as-line">' + sep(H, asPh ? ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), num(o.votes) + ' votos', 'cierra tras la J' + v.wk] : ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), 'entran ' + o.cut], 'v') + '</p>';
+      h += '<div class="as-bar" role="img" aria-label="' + esc('Tus votos frente al corte') + '"><i style="width:' + fill + '%"></i><b style="left:' + cut + '%"' + (asPh ? ' data-l="Top ' + o.cut + '"' : '') + '></b></div>';
+      if (!asPh) h += '<p class="as-small">' + sep(H, [num(o.votes) + ' votos', 'cierra tras la jornada ' + v.wk], 'v') + '</p>';
+      h += '<div class="acts as-acts">' + btn('as-camp', o.camp >= o.campMax ? 'Ya no puedes pedirlo más' : o.asked ? 'Ya lo has pedido esta jornada' : asPh ? 'Pedir el voto · ' + (o.camp + 1) + '/' + o.campMax : 'Pedir el voto (' + (o.camp + 1) + ' de ' + o.campMax + ')', 'sp-gold', o.canCamp ? 'Entrenador −1' : '', !o.canCamp) + '</div></div>';
       return h;
     }
     if (v.st === 'done') {
@@ -876,6 +879,14 @@
       '@media (min-width:900px){html:not(.ph) #career .as-row{grid-template-columns:minmax(0,1fr) auto auto}html:not(.ph) #career .as-row>.acts{grid-column:2;grid-row:1;margin-top:0;flex-wrap:nowrap}html:not(.ph) #career .as-row>.as-tag{grid-column:3;grid-row:1}:root:not(.ph):not(#_):not(#_):not(#_) #career .as-row .acts.as-acts>.sp-btn{flex:0 0 auto;min-width:150px;max-width:none}}',
       // móvil (html.ph): tokens, nada por debajo de 12 px, toques de 44
       PQ + ' .as-card .as-line{font-size:var(--ph-body,15px)}',
+      // votación (movil-aire, paquete carrera-marco): raya del corte con su rótulo y «Pedir el voto · 2/3» de 48 en una línea, coste en ficha
+      PQ + ' .as-vote .as-line{font-size:var(--ph-cap,13px);margin:2px 0 4px}',
+      PQ + ' .as-vote .as-bar{margin:22px 2px 12px}',
+      PQ + ' .as-vote .as-bar>b[data-l]::after{content:attr(data-l);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);font:700 12px/1 var(--sp-ui,sans-serif);color:var(--sp-gold,#ffd23f);white-space:nowrap}',
+      PQ + ' .as-vote .acts.as-acts>.sp-btn{flex:0 0 auto;max-width:none;--sp-h:48px;min-height:48px}',
+      PQ + ' .as-vote .as-acts .sp-l{flex-direction:row;align-items:center;gap:8px;white-space:nowrap}',
+      PQ + ' .as-vote .as-acts .sp-t{white-space:nowrap}',
+      PQ + ' .as-vote .as-acts .sp-s{padding:1px 7px;border-radius:7px 10px 8px 11px;background:var(--sp-ink,#15102a);color:var(--sp-cream,#fff4dc);font-size:12px;opacity:1}',
       PQ + ' .as-small,' + PQ + ' .as-rm,' + PQ + ' .as-rk,' + PQ + ' .as-chip,' + PQ + ' .as-tag{font-size:max(12px,var(--ph-cap,12px))}',
       PQ + ' .as-rn{font-size:var(--ph-row,16px)}',
       PQ + ' .as-tot,' + PQ + ' .as-et{font-size:var(--ph-body,15px)}',

@@ -74,6 +74,23 @@
     PQ + ' button.tc-slot:hover{background:none;filter:none}',
     PQ + ' button.tc-slot:active .tc-st{transform:scale(.94)}',
     PQ + ' button.tc-slot:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold);border-radius:12px}',
+    // movil-aire (paquete carrera-marco, 24-nov-2026; notes/movil-aire.md §5.2): Faro en una franja de 56 px: cara de 32, título y UNA
+    // línea (tocar la tarjeta la enseña entera: career-ui añade .ph-open), «Vale» como × de 44 y el botón extra debajo, pequeño
+    PQ + ' .card.cw-mentor{grid-template-columns:32px minmax(0,1fr) 44px;align-items:center;gap:2px 10px;min-height:56px;max-height:none;padding:6px 6px 6px 10px;overflow:visible;cursor:pointer}',
+    PQ + ' .card.cw-mentor .cw-face{grid-column:1;grid-row:1;width:32px;height:32px}',
+    PQ + ' .card.cw-mentor>div:not(.acts){grid-column:2;grid-row:1;min-width:0}',
+    PQ + ' .card.cw-mentor .cw-who{display:none}',
+    PQ + ' .card.cw-mentor h3{display:block;margin:0;font-size:var(--ph-row);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .card.cw-mentor .cw-line{margin:1px 0 0;font-size:var(--ph-cap);line-height:1.25;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}',
+    PQ + ' .card.cw-mentor.ph-open .cw-line{display:block;-webkit-line-clamp:unset;overflow:visible}',
+    PQ + ' .card.cw-mentor .acts{display:contents}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok{grid-column:3;grid-row:1;align-self:center;flex:none;width:44px;height:44px;min-width:44px;min-height:44px;max-width:none;margin:0;padding:0;border:0;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);display:grid;place-items:center;transform:none;filter:none}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok>*{display:none}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok::after{content:"›";display:block;position:static;inset:auto;width:auto;height:auto;background:none;font:400 26px/1 var(--sp-pop);color:inherit;transform:translateY(-1px)}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok[data-last]::after{content:"×"}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    PQ + ' .card.cw-mentor .acts>:not(.cw-ok){grid-column:2/-1;grid-row:2;justify-self:start;--sp-h:44px;height:44px;min-height:44px;min-width:0;max-width:100%;margin:2px 0 0;--sp-fs:var(--ph-label)}',
     '.sp-sheet.cr-tcs .tc-sh p{margin:0 0 8px;font:600 var(--ph-body,15px)/1.35 var(--sp-ui)}',
     '.sp-sheet.cr-tcs .tc-sh p.ul{color:#7fe6dc}'
   ];
@@ -234,8 +251,8 @@
     return '<div class="card cw-mentor" role="region" aria-label="Faro, tu mentor">' + FACE +
       '<div><small class="cw-who">' + sp([esc(sc.who.nick), esc(sc.who.role)], 'd') + '</small>' +
       '<h3>' + esc(sc.title) + (n > 1 ? ' <span class="cw-n">' + (li + 1) + '/' + n + '</span>' : '') + '</h3>' +
-      '<p class="cw-line" aria-live="polite">' + esc(sc.lines[li]) + '</p></div>' +
-      '<div class="acts"><button class="cw-ok" data-act="cw-next">' + (last ? 'Vale' : 'Seguir') + '</button>' +
+      '<p class="cw-line" aria-live="polite" data-ph-ell>' + esc(sc.lines[li]) + '</p></div>' +
+      '<div class="acts"><button class="cw-ok" data-act="cw-next" aria-label="' + (last ? 'Vale' : 'Seguir') + '"' + (last ? ' data-last' : '') + '>' + (last ? 'Vale' : 'Seguir') + '</button>' +
       (go ? '<button data-act="cw-go" data-tab-go="' + esc(go[0]) + '" data-s-go="' + esc(go[1] || '') + '">' + esc(sc.actLabel || 'Ver') + '</button>'
         : last ? '' : '<button data-act="cw-skip">Saltar</button>') + '</div></div>';
   }

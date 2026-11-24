@@ -469,3 +469,31 @@ Pasada entera DPR 2 a 568/844/915 frente a «antes»: textos < 12 px 24 → **0*
 - [carrera-marco] `#crDock` no es `.sp-dock`: el secundario SIMULAR sigue con cola y el scroll sin reservar el dock (usar `.ph-notail` y `.ph-docked`).
 - [carrera-liga-vida] ancla de Legado / Temporadas en la vista fusionada (las filas de mobaudit capturan la vista desde arriba).
 - [menus] home/jugar: aplicar `.ph-sticker` a los sellos (también con `html.pv`); entreno: `.ph-bar` y rejilla.
+
+### 7.3 Paquete `carrera-marco` (24-nov-2026)
+
+Todo bajo `html.ph` (PQ / `RL` = rejilla con raíl, `NT` = secundarios sin cola, en `js/career-ui.js` junto a PQ/PS); PC sin cambios
+(métricas de las ~110 `carrera-*` a 1280x720 idénticas a una pasada de la base con el mismo comando, y firma DOM/estilos de 14 hubs igual).
+- **Marco**: raíl de 64 px y 5 apartados (`TABS_PH` sin Mensajes; ítems 44, icono 22, rótulo 12, gap `--ph-gap-min` 8: 5×44+4×8 = 252,
+  cabe a 568x320 sin desplazar); fila de arriba de `--ph-bar`: pin «‹» 44 (aria «Volver al menú»), tira `#crSub` y, a la derecha, el sobre
+  `.cr-mail` (44, `data-tab="inbox"`, contador en `.tb-b`; en Mensajes ningún apartado del raíl va marcado) y el sello de la media a 40.
+  Título «JUGADOR / CLUB» fuera con raíl. Tira: brochazo de 40 (toque 44), activa centrada (`phStrip`), desvanecido 16 + chevrón 28
+  (`.cr-ml` / `.cr-mr`). Rótulos cortos: Firma, Ropa, Jornadas, Ajustes (`SUB_PH`, `LIFE_PH`). Un punto rojo por nivel. `SP.phDedupe` en
+  cada pintado de subpestaña (con el rótulo largo y luego el corto). «?» centrado con el sello (top −20, sin giro). `.cr-body` 10 arriba,
+  14 entre tarjetas, desvanecido de 24 solo con `.sp-more`.
+- **Dock** (`#crDock`): parche de `--ph-cta-h`, ancho según el texto (máx. 62vw), 1 línea; `phFitDock()` baja la letra hasta 15 px si no
+  cabe; `small` debajo («Seguir» + club). Secundarios de 44 sin cola (parche plano del color `--sp-c`, lista `NT`). El dock es una fila de la
+  rejilla (nada se desplaza debajo), así que el cuerpo no necesita el padding de `.ph-docked`.
+- **Partido**: ticket compacto (`phKick`: «J5/14 · Sets a 21 · 8º · IA Fácil»; rival a 18 px; informe del rival como ficha de 44 dentro);
+  avisos de career-story como pastillas de 44 con › (2 líneas como mucho a 844+); baja una vez (sin la pastilla «De baja» y sin «La juega…»;
+  botón «✚ Baja»); «(½ XP)». `phDecide()` (antes de splatify): una decisión a la vez justo bajo el ticket (propuesta > selección > cesión);
+  la propuesta lleva Rechazar + Aceptar al dock (2 viñetas, consecuencias en fichas verde/roja); la selección sin jornada del club, Simular +
+  «Jugar · ESP contra ROU» al dock; selección/cesión durante la liga, franja `.ph-dec` de 56 px con su botón. Faro (`.cw-mentor`) en franja de
+  56 px (cara 32, 1 línea, tocar = frase entera `.ph-open`, «Vale» como × de 44, botón extra debajo) y en cola con propuesta o gala
+  (`phQueue`). Gala arriba en el fin de temporada; Estrellas (votación) tras el partido, «Pedir el voto · 2/3» de 48 con el coste en ficha y
+  «Top 4» en la raya del corte; Plan del entrenador con rótulo corto en el dock.
+- **Métricas** (ids del paquete, 3 tamaños): elipsis que cortan 0; toques < 44 0; solapes 0; toques juntos 146 → 145 (quedan los del sello
+  girado junto al sobre y la pestaña elegida inclinada); < 14 px sube (rótulos del raíl a 12 y datos a `--ph-cap`, como pide §3.6).
+- **Pendiente**: el raíl mide 252 de 252 a 568x320 (el brochazo sobresale 3 px: sin desvanecido); la franja `.ph-dec` corta con elipsis
+  marcada (`data-ph-ell`) la línea de la selección a 568; fin de cesión y verano de selección salen con la gala de la muestra (Faro en cola);
+  las tarjetas «Tu semana»/plan y el bloque de detalles `.cr-nd` no se tocaron; objetivo/entrenador del fin de temporada siguen en una línea.

@@ -61,9 +61,11 @@
     league: ICO('<path d="M7 4h10v4.5a5 5 0 0 1-10 0zM7 6H4v1.5A3 3 0 0 0 7 10.5M17 6h3v1.5a3 3 0 0 1-3 3M12 13.5V17M8.5 20.5h7M9.5 17h5v3.5h-5z"/>'),
     life: ICO('<path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>')
   };
-  var TABS_PH = [['match', 'Partido'], ['player', 'Jugador'], ['club', 'Club'], ['inbox', 'Mensajes'], ['league', 'Liga'], ['life', 'Vida']];
-  var LIFE_PH = [['fame', 'Fama'], ['pass', 'Camino'], ['shop', 'Tienda'], ['goals', 'Logros'], ['h:titles', 'Vitrina'], ['h:stats', 'Cifras'], ['h:opts', 'Opciones']];
-  var SUB_PH = { table: 'Tabla' };   // (rótulos más cortos en la tira del móvil)
+  // (movil-aire §3.6, 24-nov-2026: 5 apartados en el raíl fino —Partido siempre arriba— y Mensajes como sobre en la cabecera, junto al
+  //  sello de la media: 5×44 + 4×6 = 244 px caben a 568×320 sin desplazar)
+  var TABS_PH = [['match', 'Partido'], ['player', 'Jugador'], ['club', 'Club'], ['league', 'Liga'], ['life', 'Vida']];
+  var LIFE_PH = [['fame', 'Fama'], ['pass', 'Camino'], ['shop', 'Tienda'], ['goals', 'Logros'], ['h:titles', 'Vitrina'], ['h:stats', 'Cifras'], ['h:opts', 'Ajustes']];
+  var SUB_PH = { table: 'Tabla', badges: 'Firma', look: 'Ropa', cal: 'Jornadas' };   // (rótulos más cortos en la tira del móvil)
   /** Móvil: nombre corto de un club (sin el patrocinador: las 2 últimas palabras con chicha, «Voley Sanroqueño»). */
   function shortClub(k) {
     if (!k) return '';
@@ -1113,6 +1115,8 @@
   // con el sello de tu media en la esquina y, debajo, el ÚNICO contenido que se desplaza (≥ 250 px de alto a 568×320). Letra con los
   // tokens del sistema (crece con el ancho; nada por debajo de 12 px, lectura ≥ 14). Sin .ph, nada de esto se aplica.
   var PQ = Q.replace(':root', ':root.ph'), PS = Q.replace(':root', ':root.ph.ph-s');
+  var RL = PQ + ' .cr-in:has(>.cr-tabs.sp-vtabs:not([hidden]))';   // (movil-aire: la rejilla con el raíl fino de apartados)
+  var NT = ['.cr-dock>.sp-btn:not(.sp-patch)', '.st-chips .sp-btn', '.cr-tk .cr-est-b', '.cr-next .cr-go>.sp-btn:not(.sp-patch)', '.card.ph-dec>.acts>.sp-btn'];   // (manchas sin cola en el móvil)
   var PH_CSS = [
     // ---- marco
     PQ + '{padding:var(--ph-gt) var(--ph-g) var(--ph-gb);--cr-rw:clamp(86px,11.5vw,108px)}',
@@ -1396,6 +1400,122 @@
     PQ + ' .sp-heros.cr-oh>*{padding:4px 6px}',
     PQ + ' .sp-heros.cr-oh .sp-hn{font-size:var(--ph-row);white-space:normal;line-height:1.05;overflow-wrap:anywhere}',
     PQ + ' .sp-heros.cr-oh .sp-hn.n{font-size:var(--ph-num)}',
+    // ==== movil-aire, paquete carrera-marco (24-nov-2026; notes/movil-aire.md §3.5-§3.7 y §5.2). Solo html.ph (PQ); PC igual.
+    // marco: raíl fino de 64 px con 5 apartados; arriba una franja de --ph-bar: pin «‹ Menú» 44 · tira de sub-pestañas · sobre de
+    // Mensajes 44 · sello de la media reducido. RL = la rejilla cuando hay raíl (crear, elegir club y la previa siguen como estaban).
+    PQ + '{--cr-rw:64px;--cr-st:40px}',
+    RL + '{grid-template-rows:var(--ph-bar) minmax(0,1fr);gap:8px 10px}',
+    RL + ':has(>.cr-dock:not([hidden])){grid-template-rows:var(--ph-bar) minmax(0,1fr) auto}',
+    RL + '>.cr-head>.sp-back{justify-self:center;align-self:center;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none;filter:none}',
+    RL + '>.cr-head>.sp-back>:not(svg),' + RL + '>.cr-head>.sp-back>.sp-blob{display:none}',
+    RL + '>.cr-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}',
+    RL + '>.cr-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    RL + '>.cr-head>.sp-back:active{transform:scale(.92)}',
+    RL + '>.cr-head>.cr-title{display:none}',   // (fuera «JUGADOR / CLUB»: lo dicen el sello y el ticket)
+    RL + '>.cr-head>.cr-ovr{--sp-stamp:var(--cr-st);margin:0 2px 0 0;transform:rotate(-8deg)}',
+    RL + '>.cr-head>.cr-ovr .sp-sc b{font-size:16px}',
+    PQ + ' .cr-mail{grid-area:sb;justify-self:end;align-self:center;position:relative;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0 calc(var(--cr-st) + 22px) 0 0;padding:0;border:0;' +
+      'border-radius:12px 15px 11px 16px/14px 11px 16px 12px;background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);transform:rotate(-3deg);cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    PQ + ' .cr-mail svg{width:22px;height:22px;fill:none;stroke:currentColor}',
+    PQ + ' .cr-mail.on{background:var(--sp-gold);color:var(--sp-ink)}',
+    PQ + ' .cr-mail:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-gold)}',
+    PQ + ' .cr-mail:active{transform:rotate(-3deg) scale(.92)}',
+    PQ + ' .cr-mail .tb-b{position:absolute;top:-7px;right:-9px;min-width:20px;padding:1px 5px;border-radius:7px 9px 7px 8px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink);font:700 12px/1.2 var(--sp-ui);font-style:normal;text-align:center;pointer-events:none}',
+    // raíl: ítems de 44 (icono 22 + rótulo de 12 en una línea), 6 px entre ellos
+    PQ + ' #crTabs.sp-vtabs .tb-row{gap:var(--ph-gap-min);padding:0}',   // (8 = --ph-gap-min: 5×44 + 4×8 = 252, cabe a 568×320)
+    PQ + ' #crTabs.sp-vtabs .tab{height:44px;min-height:44px;padding:3px 2px 4px;gap:1px;--sp-tbs:12px}',
+    PQ + ' #crTabs.sp-vtabs .tab svg{width:22px;height:22px}',
+    PQ + ' #crTabs.sp-vtabs .tab .tb-t{font-size:12px;line-height:1.05}',
+    PQ + ' #crTabs.sp-vtabs .tab::before{inset:-3px -3px}',   // (el brochazo tiene bordes rotos: un poco más grande que el toque, cubre el rótulo)
+    // tira: 40 px de brochazo (44 de toque), relleno 0 10px; desvanecido de 16 px + chevrón fijo de 28 en el borde que esconde más
+    RL + '>.cr-sub{position:relative;margin:0 calc(var(--cr-st) + 44px + 34px) 0 0}',
+    PQ + ' #crSub.sp-tabs .tab{--sp-tbh:44px;padding:0 10px}',
+    PQ + ' #crSub .tab::before{inset:2px -2px}',
+    PQ + ' #crSub .tb-row{padding:0 2px}',
+    PQ + ' #crSub.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,#000 calc(100% - 44px),transparent calc(100% - 28px));mask:linear-gradient(to right,#000 calc(100% - 44px),transparent calc(100% - 28px))}',
+    PQ + ' #crSub.cr-ml .tb-row{-webkit-mask:linear-gradient(to right,transparent 28px,#000 44px);mask:linear-gradient(to right,transparent 28px,#000 44px)}',
+    PQ + ' #crSub.cr-ml.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,transparent 28px,#000 44px,#000 calc(100% - 44px),transparent calc(100% - 28px));mask:linear-gradient(to right,transparent 28px,#000 44px,#000 calc(100% - 44px),transparent calc(100% - 28px))}',
+    PQ + ' #crSub.cr-ml::before,' + PQ + ' #crSub.cr-mr::after{content:"‹";position:absolute;top:50%;left:0;z-index:3;width:28px;height:28px;margin-top:-14px;display:grid;place-items:center;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-cream);font:400 20px/1 var(--sp-pop);pointer-events:none}',
+    PQ + ' #crSub.cr-mr::after{content:"›";left:auto;right:0}',
+    // contenido: 10 px arriba, 14 entre tarjetas y el desvanecido de 24 px solo si queda más
+    PQ + ' .cr-body{padding:10px 8px 12px 4px;-webkit-mask-image:none;mask-image:none}',
+    PQ + ' .cr-body.sp-more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - var(--ph-fade)),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - var(--ph-fade)),transparent)}',
+    PQ + ' .card{margin:0 0 14px}',
+    PQ + ' #crBody:not([data-cv^="match"])>.card:first-child:has(>h3:first-child:not(.ph-dup)){margin-top:4px}',
+    PQ + ' .card>h3.ph-dup:first-child,' + PQ + ' .ph-dup,' + PQ + ' .ph-dup-t{display:none}',   // (SP.phDedupe: el sello que repite la sub-pestaña)
+    // «?» de ayuda: 44 px en la línea del sello (centrado con él), sin inclinar
+    PQ + ' .card>.cr-q,' + PQ + ' #crBody>.card:first-child:not(:has(>h3:first-child+.cr-q:last-child))>.cr-q{top:-20px;right:8px;transform:none}',
+    // barra de abajo (§3.7): parche de --ph-cta-h a la derecha, ancho según el texto (máx. 62vw), una línea; el secundario, 44 sin cola
+    PQ + ' .cr-dock{gap:var(--ph-btn-gap);justify-content:flex-end;align-items:center;padding:0 0 2px}',
+    PQ + ' .cr-dock .sp-patch,' + PQ + ' .cr-dock .sp-patch:is([data-act="play"],[data-act="bench"],[data-act="plan-go"]){--sp-ph:var(--ph-cta-h);--sp-pt:min(var(--ph-patch),21px);flex:0 1 auto;width:auto;min-width:0;max-width:62vw}',
+    PQ + ' .cr-dock .sp-patch .sp-t{white-space:nowrap;overflow:visible;text-overflow:clip;line-height:1.12;padding-bottom:1px}',
+    PQ + ' .cr-dock .sp-patch .sp-s{display:block;margin-top:1px;font:700 var(--ph-cap)/1.15 var(--sp-ui);letter-spacing:0;text-transform:none;white-space:nowrap}',
+    PQ + ' .cr-dock>.sp-btn:not(.sp-patch){--sp-h:var(--ph-btn-h);height:var(--ph-btn-h);min-height:var(--ph-btn-h);flex:0 1 auto;min-width:0}',
+    // secundarios sin cola (§3.7, «pastillas»): la mancha se cambia por un parche plano con borde de tinta, del mismo color (--sp-c)
+    NT.map(function (x) { return PQ + ' ' + x; }).join(',') + '{background:var(--sp-c);color:var(--sp-tc);border-radius:14px 18px 15px 19px/18px 14px 19px 15px;box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}',
+    NT.map(function (x) { return PQ + ' ' + x + '>:is(.sp-blob,.sp-drops)'; }).join(',') + '{display:none}',
+    NT.map(function (x) { return PQ + ' ' + x + ':is(.kf,:focus-visible)'; }).join(',') + '{outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold),2px 3px 0 5.5px var(--sp-ink)}',
+    NT.map(function (x) { return PQ + ' ' + x + ':active'; }).join(',') + '{transform:translate(1px,2px);box-shadow:0 0 0 2.5px var(--sp-ink),1px 1px 0 2.5px var(--sp-ink)}',
+    PQ + ' .cr-dock>.sp-btn:not(.sp-patch) .sp-l{display:flex;flex-direction:row;align-items:baseline;gap:6px;white-space:nowrap}',
+    PQ + ' .cr-dock>.sp-btn:not(.sp-patch) .sp-s{display:inline;font-size:var(--ph-cap)}',
+    PQ + ' .cr-bi{font-style:normal;margin-right:6px}',
+    // ---- hub del Partido: ticket compacto (escudos 40, rival a 18, una línea de datos) con el informe del rival dentro
+    PQ + ' .cr-next{margin:0 0 12px}',
+    PQ + ' .cr-tk{--sp-h:auto;--sp-cs:40px;margin:0 0 10px}',
+    PQ + ' .cr-tk .sp-tk-main{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:14px 18px 10px 6px}',
+    PQ + ' .cr-tk .sp-k{max-width:100%;white-space:nowrap;overflow:visible;text-overflow:clip;font-size:var(--ph-cap);line-height:1.2}',
+    PQ + ' .cr-tk .sp-t{max-width:100%;font-size:18px;line-height:1.12;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset}',
+    PQ + ' .cr-tk .cr-est-b{align-self:flex-start;flex:none;width:auto;min-width:0;max-width:100%;margin:4px 0 0;padding:0 12px;--sp-h:44px;height:44px;min-height:44px;--sp-fs:var(--ph-label)}',
+    PQ + ' .cr-tk .cr-est-b .sp-l{display:flex;flex-direction:row;align-items:center;gap:8px;white-space:nowrap}',
+    PQ + ' .cr-tk .cr-est-b .sp-chip{margin:0;font-size:var(--ph-cap)}',
+    PQ + ' .cr-tk .cr-est-b .sp-t{flex:none;overflow:visible;text-overflow:clip}',
+    PQ + ' .cr-next>.card.ph-dec{margin:4px 0 12px}',
+    // avisos: pastillas de 44 (icono + una línea + ›), sin cola; la baja una sola vez (con el aviso de «De baja» en el contenido)
+    PQ + ' .st-chips{gap:8px 10px;margin:0 0 12px}',
+    PQ + ' .st-chips .sp-btn{--sp-h:44px;height:auto;min-height:44px;padding:4px 12px}',
+    PQ + ' .st-chips .sp-btn .sp-l{display:flex;flex-direction:row;align-items:center;width:100%;min-width:0}',
+    PQ + ' .st-chips .sp-btn .sp-t{flex:1 1 auto;min-width:0;white-space:normal;overflow:hidden;line-height:1.12;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}',
+    // (≥ 700: ticket y avisos en dos columnas; si la línea de datos no cabe en la del ticket, parte en dos, nunca con puntos suspensivos)
+    '@media (min-width:700px){' + PQ + ' .cr-two{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}' + PQ + ' .cr-two .cr-tk .sp-k{display:block;white-space:normal;-webkit-line-clamp:unset;overflow:visible}}',
+    PQ + ' .st-chips .sp-btn .sp-s{display:none}',
+    PQ + ' .st-chips .sp-btn .sp-l::after{content:"›";flex:none;margin-left:8px;font:400 20px/1 var(--sp-pop)}',
+    PQ + ' #crBody:has(.bench) .st-chips .sp-btn[data-tab="player"][data-s="train"]{display:none}',
+    PQ + ' #crBody:has(.ph-dec [data-act="nt-go"]) .st-chips .sp-btn[data-tab="club"][data-s="natl"]{display:none}',   // (la selección, una vez: en la franja)
+    PQ + ' .st-side>.st-chips{margin-bottom:22px}',   // (la pastilla de 2 líneas no pisa el sello de «Tu semana»)
+    PQ + ' .bench p{margin:0}',
+    // decisión pendiente: la franja de 56 px bajo el ticket (uno a la vez; su botón a la derecha) y la propuesta, con sus botones abajo
+    PQ + ' .card.ph-dec{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h a" "p a";align-items:center;gap:2px 10px;min-height:56px;margin:0 0 12px;padding:6px 6px 6px 12px}',
+    PQ + ' .card.ph-dec>h3:first-child{grid-area:h;justify-self:start;max-width:100%;min-width:0;margin:0;padding:1px 8px 2px;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:none}',
+    PQ + ' .card.ph-dec>h3:first-child>.cr-q{display:none}',
+    PQ + ' .card.ph-dec>p{grid-area:p;min-width:0;margin:0;font-size:var(--ph-cap);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .card.ph-dec>p~p{display:none}',
+    PQ + ' .card.ph-dec>.acts{grid-area:a;display:flex;margin:0}',
+    PQ + ' .card.ph-dec>.acts>:not(:last-child){display:none}',
+    PQ + ' .card.ph-dec>.acts>.sp-btn{--sp-h:44px;height:44px;min-height:44px;flex:none;min-width:0;max-width:none}',
+    PQ + ' .cr-two:has(>:is(.ph-dec,.ph-decp)){grid-template-areas:"nx sd" "dc sd" "fa sd" "nd sd";grid-template-rows:auto auto auto 1fr}',
+    PQ + ' .cr-two>:is(.ph-dec,.ph-decp){grid-area:dc}',
+    PQ + ' #crBody[data-cv^="match"]>.card:is(.ph-dec,.ph-decp){order:-2}',
+    PQ + ' #crBody[data-cv^="match"]>.card.cdv-off:not(.ph-decp){order:-1}',
+    PQ + ' .card.ph-decp{margin:16px 0 12px}',
+    // (con una decisión o una baja, «Jugar» / «Ver la jornada» del club quedan en el contenido como manchas de 44, sin parche)
+    PQ + ' .cr-next .cr-go{justify-content:flex-start;margin:0 0 12px}',
+    PQ + ' .cr-next .cr-go>.sp-btn:not(.sp-patch){flex:0 1 auto;--sp-h:44px;height:44px;min-height:44px}',
+    PQ + ' .cr-next .cr-go>.sp-btn:not(.sp-patch) .sp-l{flex-direction:row;align-items:baseline;gap:6px;white-space:nowrap}',
+    PQ + ' .cr-dock .sp-patch:is([data-act="nt-play"],[data-act="nt-sim"]){max-width:66vw}',
+    // gala: una fila por premio (premio · nombre y club en una línea · nota); tú en dorado
+    PQ + ' #crBody .cpr-gi{min-height:48px;padding:5px 12px}',
+    PQ + ' #crBody .cpr-gw small:not(.cpr-why){flex:0 1 auto}',
+    PQ + ' #crBody .cpr-stamp{width:26px;height:26px}',
+    PQ + ' .card.cdv-off .cdv-why{margin:4px 0 8px}',
+    PQ + ' .card.cdv-off .cdv-why li:nth-child(n+3){display:none}',
+    PQ + ' .card.cdv-off :is(.cdv-cost,.cdv-cost+p.muted){display:inline-block;margin:0 8px 8px 0;padding:5px 10px;border-radius:8px 12px 9px 13px;font:700 var(--ph-cap)/1.3 var(--sp-ui);color:var(--sp-cream)}',
+    PQ + ' .card.cdv-off .cdv-cost{background:rgba(143,227,110,.16);box-shadow:inset 4px 0 0 #8fe36e}',
+    PQ + ' .card.cdv-off .cdv-cost+p.muted{background:rgba(255,138,152,.16);box-shadow:inset 4px 0 0 #ff8a98}',
+    // Estrellas (votación) justo tras el partido; gala de premios arriba del fin de temporada
+    PQ + ' #crBody[data-cv^="match"]>.card.as-card{order:-1}',
+    PQ + ' #crBody[data-cv^="match"]>.card.cpr-gala{order:-3}',
     // hoja de ligas (fuera de #career: #spSheets)
     '#spSheets .cr-lgs .cr-lgs-g{margin:10px 0 6px;font:400 var(--ph-label,14px)/1.1 var(--sp-pop);letter-spacing:.03em;color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink)}',
     '#spSheets .cr-lgs .cr-lgs-g:first-child{margin-top:0}',
@@ -1418,6 +1538,11 @@
     if (VB.Splat && VB.Splat.watch) { try { VB.Splat.watch(root); } catch (e) { } }
     if (VB.Splat && VB.Splat.info) { try { VB.Splat.info(root); } catch (e) { } }   // «?» de las explicaciones (móvil) → hoja
     root.addEventListener('click', onClick);
+    // móvil (movil-aire §5.2): Faro en una franja de una línea; tocarla enseña la frase entera (los botones van aparte)
+    body.addEventListener('click', function (e) {
+      if (!PH()) return; var t = e.target, m = t && t.closest ? t.closest('.cw-mentor') : null;
+      if (m && !t.closest('button')) m.classList.toggle('ph-open');
+    });
     root.addEventListener('input', function (e) { if (e.target && e.target.id === 'crName') form.name = e.target.value; });
     root.addEventListener('pointerdown', function () { var k = root.querySelectorAll('.kf'); for (var i = 0; i < k.length; i++) k[i].classList.remove('kf'); }, { passive: true });
     window.addEventListener('keydown', onKey, true);
@@ -1447,8 +1572,41 @@
       try { if (window.console) console.error('CareerUI.render', e); } catch (e2) { }
       renderBroken();
     }
+    try { phDecide(); } catch (e) { }
     try { splatify(); } catch (e) { }
     try { phDock(); } catch (e) { }
+  }
+  /** Móvil (movil-aire §3.7 y §5.2): decisión pendiente en Partido, una a la vez (propuesta de puesto > selección > cesión). Va justo
+   *  bajo el ticket; la propuesta (y la selección cuando no hay jornada del club por delante) lleva además sus botones a la barra de
+   *  abajo (Rechazar + Aceptar; Simular + «Jugar · ESP contra ROU»); selección y cesión, en franja de 56 px con su botón. Las demás
+   *  siguen en su sitio. Va antes de splatify: decide qué botón es el parche. Sin .ph no hace nada. */
+  function phDecide() {
+    if (!body || !PH() || !/^match/.test(body.getAttribute('data-cv') || '')) return;
+    var q = function (sel) { return body.querySelector(sel); };
+    var prop = q('.card.cdv-off:not(.cdv-done)'), ntb = q('.card [data-act="nt-play"],.card [data-act="nt-sim"]'), lnb = q('.card [data-act="ln-go"]');
+    var nt = ntb && ntb.closest('.card'), ln = lnb && lnb.closest('.card'), nx = q('.cr-next');
+    if (prop && !prop.querySelector('[data-act="dv-pos-ok"]')) prop = null;
+    var cur = prop || nt || ln, dk = prop || (nt && !nx ? nt : null), acts = null;
+    if (dk === prop && prop) acts = prop.querySelector('.acts:has(>[data-act="dv-pos-ok"])');
+    else if (dk) {   // selección sin jornada del club: «Jugar · ESP contra ROU» (o Simular, si no te pone) y Simular; «Ver torneo» se queda
+      var play = nt.querySelector('[data-act="nt-play"]'), sim = nt.querySelector('[data-act="nt-sim"]'), vs = nt.querySelector('p b'), main = play || sim;
+      acts = document.createElement('div'); acts.className = 'acts';
+      if (play && sim) acts.appendChild(sim);
+      main.className = 'pri'; main.textContent = (play ? 'Jugar' : 'Simular') + (vs ? ' · ' + vs.textContent : '');
+      main.setAttribute('aria-label', (play ? 'Jugar con la selección' : 'Simular el partido de la selección') + (vs ? ': ' + vs.textContent : ''));
+      acts.appendChild(main); nt.appendChild(acts);
+    }
+    if (acts) {
+      acts.setAttribute('data-ph-dock', '');
+      var ok = acts.querySelector('[data-act="dv-pos-ok"]'); if (ok) ok.className = 'pri';   // (Aceptar = el parche)
+      var ps = body.querySelectorAll('button.pri'); for (var i = 0; i < ps.length; i++) if (!acts.contains(ps[i])) ps[i].classList.remove('pri');
+    }
+    if (cur) {
+      cur.classList.add(cur === prop ? 'ph-decp' : 'ph-dec');
+      if (cur !== prop) { var ps2 = cur.querySelectorAll(':scope>h3,:scope>p'); for (var j = 0; j < ps2.length; j++) ps2[j].setAttribute('data-ph-ell', ''); }
+      var tk = nx && nx.querySelector(':scope>.cr-tk');   // (justo bajo el ticket, antes de la baja y de «Jugar»)
+      if (tk) tk.parentNode.insertBefore(cur, tk.nextSibling);
+    }
   }
   /** Móvil: la acción principal que vive al pie de una ficha larga (Firmar / Pedir más rol de una oferta, Saltar a la pista /
    *  Simular de la previa de la prueba, Ir al plan del entrenador) sale del desplazamiento a la barra de abajo a la derecha
@@ -1458,7 +1616,7 @@
     // (PC/tableta: «Crear y ver ofertas» también va a la barra; pegado dentro del desplazamiento tapaba los países de debajo)
     // (Partido › «Jugar partido» + «Simular» también: se iba con el desplazamiento al leer los detalles de debajo)
     // (fin de temporada: «Ver ofertas» o, sin ofertas, «Seguir en…» / «Renovar con…»; Faro y el resumen la dejaban fuera de la pantalla)
-    var src = !body ? null : PH() ? body.querySelector('.card.offer-full>.acts,.card.tp>.tp-acts,.card.x-go>.acts,.card>.acts:has(>[data-act="plan-go"]),.cr-next>.acts.cr-go,.cf .acts:has(>[data-act="create"]),' +
+    var src = !body ? null : PH() ? body.querySelector('.acts[data-ph-dock]') || body.querySelector('.card.offer-full>.acts,.card.tp>.tp-acts,.card.x-go>.acts,.card>.acts:has(>[data-act="plan-go"]),.cr-next>.acts.cr-go,.cf .acts:has(>[data-act="create"]),' +
       '#crBody[data-cv^="match"]>.card>.acts:has(>.pri:is([data-s="offers"],[data-act="stay"]))') :
       body.querySelector('.cf .acts:has(>[data-act="create"])');
     dock.innerHTML = '';
@@ -1469,6 +1627,15 @@
     src.parentNode.removeChild(src);
     dock.hidden = false;
     try { if (VB.Splat && VB.Splat.sync) VB.Splat.sync(); } catch (e) { }
+    if (PH()) { phFitDock(); try { requestAnimationFrame(phFitDock); } catch (e) { } }
+  }
+  /** Móvil (movil-aire §3.7): el rótulo del parche de la barra va en UNA línea; si no cabe en su ancho (máx. 62vw), baja la letra de
+   *  punto en punto hasta 15 px (nunca se corta ni parte en dos). */
+  function phFitDock() {
+    var p = dock && !dock.hidden && dock.querySelector('.sp-patch'), t = p && p.querySelector('.sp-t'); if (!t || !PH()) return;
+    t.style.fontSize = '';
+    var fs = parseFloat(getComputedStyle(t).fontSize) || 20, i = 0;
+    while (i++ < 10 && fs > 15 && t.scrollWidth > t.clientWidth + 1) { fs -= 1; t.style.fontSize = fs + 'px'; }
   }
   /** Móvil: tu fila de la tabla (o la próxima jornada del calendario), a la vista dentro del contenido al cambiar de pestaña. */
   function phReveal() {
@@ -1572,6 +1739,11 @@
     // career-story: lo del feed que no pide respuesta, igual (fresh['st' + id]); lo que pregunta sigue contando hasta contestar
     if (tab === 'inbox' && SUI() && !(sub.inbox === 'wall' && SUI().has('wall'))) SUI().seen(c, freshIds);
     var un = (C().unread ? C().unread(c) : 0) + (SUI() ? SUI().pending(c) : 0), offN = c.offers && c.offers.length;
+    if (PH()) {   // móvil (movil-aire §3.6): Mensajes fuera del raíl, como sobre de 44×44 con su contador junto al sello de la media
+      var ov = head.querySelector('.cr-ovr');
+      if (ov) ov.insertAdjacentHTML('beforebegin', '<button type="button" class="cr-mail' + (tab === 'inbox' ? ' on' : '') + '" data-tab="inbox" aria-label="' + esc('Mensajes' + (un ? ' (' + plural(un, 'sin leer', 'sin leer') + ')' : '')) + '"' +
+        (tab === 'inbox' ? ' aria-current="page"' : '') + '>' + TAB_IC.inbox + (un ? '<em class="tb-b" aria-hidden="true">' + (un > 99 ? '99+' : un) + '</em>' : '') + '</button>');
+    }
     // noticias de la liga (career-world.js): se marcan como vistas al abrir Liga › Noticias; las nuevas se resaltan en ese pintado
     var CW = WUI() && VB.CareerWorld, newsSeen0 = c.world ? c.world.newsSeen | 0 : 0;
     if (CW && tab === 'league' && sub.league === 'news' && CW.newsUnseen(c)) CW.markNewsSeen();
@@ -1585,11 +1757,17 @@
         (id === 'match' && !!SUI() && SUI().chips(c).length > 0) ||   // (career-story: hay avisos en Partido)
         xDot(c, id);   // (extensiones de la Carrera)
     };
-    if (ph) {   // móvil: 6 apartados con icono; el contador de Mensajes en su pastilla (fuera del rótulo)
+    if (ph) {   // móvil: 5 apartados con icono (Mensajes va en la cabecera); un solo punto rojo en el raíl (movil-aire §3.6)
+      var railDot = '';
+      TABS_PH.forEach(function (t) { if (!railDot && t[0] !== tab && !(t[0] === 'life' && tab === 'honors') && tabDot(t[0])) railDot = t[0]; });
       drawBar('tab', TABS_PH.map(function (t) {
         var id = t[0] === 'life' && !lifeOn ? 'honors' : t[0];
-        return [id, t[1], tabDot(t[0]), TAB_IC[t[0]], t[0] === 'inbox' && un ? String(un) : ''];
+        return [id, t[1], t[0] === railDot, TAB_IC[t[0]], ''];
       }), tab === 'honors' && lifeOn ? 'life' : tab);
+      if (tab === 'inbox') {   // (en Mensajes ningún apartado del raíl va marcado: lo marca el sobre de la cabecera)
+        var tbs = tabsEl.querySelectorAll('.tab.on');
+        for (var ti = 0; ti < tbs.length; ti++) { tbs[ti].classList.remove('on'); tbs[ti].setAttribute('aria-selected', 'false'); }
+      }
     } else drawBar('tab', TABS.filter(function (t) { return t[0] !== 'life' || lifeOn; }).map(function (t) {
       return [t[0], t[1] + (t[0] === 'inbox' && un ? ' (' + un + ')' : ''), tabDot(t[0])];
     }), tab);
@@ -1604,14 +1782,19 @@
       sl = LIFE_PH.filter(function (s) { var k = s[0].replace('h:', ''); return (lifeOn || s[0].indexOf('h:') === 0) && (!STORY_SUBS[k] || !!(SUI() && SUI().has(k))); });
       subCur = tab === 'honors' ? 'h:' + (sub.honors === 'seasons' ? 'titles' : sub.honors) : sub.life === 'legacy' ? 'fame' : sub.life;
     } else if (ph && sl && tab === 'player') sl = sl.filter(function (s) { return s[0] !== 'train' || sub.player === 'train' || XUI().some(function (x) { return !!xFn(x, 'state'); }); });   // (con una extensión en Jugador › Estado —plan, puesto, lesión—, Estado sale siempre)
+    var subLong = '', subShort = '';
     if (sl) {
       subEl.hidden = false;
+      var subDot = false;   // (móvil: un solo punto rojo en la tira, el de la sub-pestaña concreta)
       drawBar('sub', sl.map(function (s) {
         var dot = (s[0] === 'offers' && (offN || c.phase === 'off')) || (tab === 'player' && GROUP_OF[s[0]] && c.player.pts > 0) || (s[0] === 'news' && newsN > 0) || (s[0] === 'look' && lookNew()) ||
           (s[0] === 'fame' && ph && !!(c.life && c.life.spOffers && c.life.spOffers.length)) || xDot(c, s[0]);
-        var xs = ph && !SUB_PH[s[0]] ? xSubOwner(tab, s[0], c) : null;
-        return [s[0], (ph && (SUB_PH[s[0]] || (xs && xs.labelPh))) || s[1], dot];
+        if (ph && dot) { if (subDot) dot = false; else subDot = true; }
+        var xs = ph && !SUB_PH[s[0]] ? xSubOwner(tab, s[0], c) : null, lb = (ph && (SUB_PH[s[0]] || (xs && xs.labelPh))) || s[1];
+        if (s[0] === subCur) { subLong = s[1]; subShort = lb; }
+        return [s[0], lb, dot];
       }), subCur);
+      if (ph) phStrip();
     } else { subEl.hidden = true; }
     var h = '', hall = isHall(c), XS = sl ? xSubOwner(tab, sub[tab], c) : null;
     if (XS) { xCss(); h = String(xTry(XS.x, 'page', [c, XS.id, HLP], '') || ''); }   // sub-pestaña de una extensión
@@ -1631,6 +1814,23 @@
     } else h = renderHonors(c);
     body.innerHTML = h;
     body.setAttribute('data-cv', tab + '-' + (subsOf(tab) ? sub[tab] : ''));   // (móvil: qué pantalla es, para el CSS)
+    if (ph && subLong && VB.Splat && VB.Splat.phDedupe) {   // (movil-aire §3.6: fuera el sello que repite la sub-pestaña)
+      try { if (!VB.Splat.phDedupe(body, subLong) && subShort !== subLong) VB.Splat.phDedupe(body, subShort); } catch (e) { }
+    }
+    if (ph && VB.Splat && VB.Splat.more) { try { VB.Splat.more(body); } catch (e) { } }   // (desvanecido de abajo solo si queda más)
+  }
+  /** Móvil: tira de sub-pestañas: la elegida al centro y desvanecido + chevrón en el borde que esconde más (.cr-ml / .cr-mr). */
+  function phStrip() {
+    var row = subEl && subEl.querySelector('.tb-row'); if (!row) return;
+    var on = row.querySelector('.tab.on');
+    if (on && row.scrollWidth > row.clientWidth + 2) { try { var rr = row.getBoundingClientRect(), br = on.getBoundingClientRect(); row.scrollLeft += (br.left + br.width / 2) - (rr.left + rr.width / 2); } catch (e) { } }
+    var f = function () {
+      var x = row.scrollWidth > row.clientWidth + 2;
+      subEl.classList.toggle('cr-ml', x && row.scrollLeft > 4);
+      subEl.classList.toggle('cr-mr', x && row.scrollLeft + row.clientWidth < row.scrollWidth - 4);
+    };
+    if (!row._crM) { row._crM = 1; row.addEventListener('scroll', f, { passive: true }); }
+    f();
   }
   /** Barra de pestañas con el componente común (VB.UI.tabs). which = 'tab' (primer nivel: apartados del hub, u ofertas al elegir
    *  club) | 'sub' (sub-pestañas). items = [[id, texto ya escapado, punto?]]. Cada barra se crea una vez y luego se repinta con
@@ -1888,17 +2088,33 @@
   }
   /** SPLAT: entrada del próximo partido (brochazo turquesa .sp-ticket, no se pulsa: «Jugar partido» va debajo) con tu escudo y el
    *  del rival en pegatinas redondas. kick y title ya escapados; lines = líneas pequeñas (HTML); aria = texto plano. */
-  function ticketHTML(c, me, rv, kick, title, lines, aria, tag) {
+  function ticketHTML(c, me, rv, kick, title, lines, aria, tag, extra) {
     // career-story (P3): sello del partido (Derbi, Revancha, Televisado…) en una esquina, sin que el ticket crezca
     return '<div class="sp-ticket cr-tk' + (tag ? ' st-tagged' : '') + '" role="group" aria-label="' + esc('Próximo partido: ' + aria + (tag ? ', ' + tag : '')) + '">' + (tag ? '<i class="sp-chip st-tk-tag" aria-hidden="true">' + esc(tag) + '</i>' : '') + '<span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest">' + crest(me, 40, c) + '</span><i class="sp-vs">vs</i>' +
       '<span class="sp-crest">' + crest(rv, 40, c) + '</span></span><span class="sp-tk-main"><small class="sp-k">' + kick + '</small><b class="sp-t">' + title + '</b>' +
-      lines.map(function (l) { return l ? '<small class="sp-s">' + l + '</small>' : ''; }).join('') + '</span></span></div>';
+      lines.map(function (l) { return l ? '<small class="sp-s">' + l + '</small>' : ''; }).join('') + (extra || '') + '</span></span></div>';
+  }
+  /** Móvil (movil-aire §5.2): la línea de datos del ticket compacto, «J5/14 · Sets a 21 · 8º · IA Fácil» (sin la liga ni la pareja, que
+   *  están en la hoja de detalles). label = n.label («Circuito Regional · Jornada 5 de 14», «Copa · Semifinal»…), more = datos detrás. */
+  function phKick(label, pts, more) {
+    var parts = String(label || '').split(' · '), j = '';
+    parts.forEach(function (p) { var m = /Jornada (\d+) de (\d+)/.exec(p); if (m && !j) j = 'J' + m[1] + '/' + m[2]; });
+    return sp([esc(j || parts[parts.length - 1] || '')].concat(['Sets a ' + pts], more || []), 'v');
+  }
+  /** Móvil: con la propuesta de puesto pendiente (Aceptar/Rechazar en la barra) o la gala de premios en Partido, Faro espera (sigue en cola). */
+  function phQueue(h) { return /data-act="dv-pos-ok"|class="card cpr-gala"/.test(h); }
+  /** Fin de temporada en el móvil: Faro espera durante la gala o una decisión. */
+  function phOff(h, mc) { return mc && PH() && phQueue(h) ? h.replace(mc, '') : h; }
+  /** Botón de una baja de una extensión (lesión…) junto a «Ver la jornada»; en el móvil, «Baja» con icono. */
+  function outBtn(o) {
+    return PH() ? '<button data-act="' + esc(o.act) + '" aria-label="' + esc(o.actT || 'Ver') + '"><i class="cr-bi" aria-hidden="true">✚</i>Baja</button>'
+      : '<button data-act="' + esc(o.act) + '">' + esc(o.actT || 'Ver') + '</button>';
   }
   function renderMatch(c) {
     // Faro (career-world-ui.js): la escena va arriba del todo, también en el resumen de fin de temporada (ascenso, título…)
     // extensiones: hueco 'matchTop' encima de Faro y 'match' justo debajo (también en el resumen de fin de temporada)
     var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', xm = xSlot('match', c), h = takeTrialRes(c) + xSlot('matchTop', c) + mc;   // (prueba superada: su resultado, arriba)
-    if (c.phase === 'off') return h + xm + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
+    if (c.phase === 'off') return phOff(h + xm + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : ''), mc);
     var n = C().next(c);
     if (!n) h += xm;
     if (n) {
@@ -1906,20 +2122,21 @@
       var pm = C().posOf(c, n.me.id), pr = C().posOf(c, n.rival.id), lg = c.phase === 'league' && c.week > 0;
       var bf = null; try { bf = LIFE() && LIFE().bossFor ? LIFE().bossFor(c, n.rival.id) : null; } catch (e) { bf = null; }   // S3 C3: el jefe del circuito juega en su club
       // SPLAT: entrada en brochazo turquesa (los dos escudos en pegatina), el parche «Jugar partido» y, en una hoja, los detalles
-      var kick = sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '');
+      var jefe = bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '';
+      var kick = PH() ? phKick(n.label, C().PTS, [lg ? ordn(pr) : '', 'IA ' + esc(n.diffName || diffName(n.diff))]) + jefe : sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + jefe;
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (en .cr-two: dos columnas en el móvil apaisado)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
       h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
-        [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
-        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
+        PH() ? [] : [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
+        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '', PH() && !n.bench ? studyHTML(c) : '') +
         (n.bench
           // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
-          // (n.out: baja de una extensión —lesión…—, con su texto y quizá un botón suyo)
-          ? (n.out ? '<div class="bench"><p><b>' + esc(n.out.head || 'Esta jornada no juegas.') + '</b> ' + esc(n.out.why || '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla. ' + esc(n.out.tail || '') + '</p></div>'
+          // (n.out: baja de una extensión —lesión…—, con su texto y quizá un botón suyo; en el móvil, la baja en 2 líneas)
+          ? (n.out ? '<div class="bench"><p><b>' + esc(n.out.head || 'Esta jornada no juegas.') + '</b> ' + esc(n.out.why || '') + (PH() ? ' ' : ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla. ') + esc(n.out.tail || '') + '</p></div>'
             : '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>') +
-            '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out && n.out.act ? '<button data-act="' + esc(n.out.act) + '">' + esc(n.out.actT || 'Ver') + '</button>' : '') + '</div>'
-          : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>' + studyHTML(c)) +
+            '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out && n.out.act ? outBtn(n.out) : '') + '</div>'
+          : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">' + (PH() ? '(½ XP)' : '(mitad de XP)') + '</small></button></div>' + (PH() ? '' : studyHTML(c))) +
         (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' +
         // (la pareja, en pastillas: antes era una lista metida en un paréntesis)
         '<p class="muted">' + (function () {
@@ -1932,6 +2149,7 @@
         '</div></div>' + (side ? '</div>' : '');
       if (!PH()) h += xm;
     } else h += storySide(c);
+    if (mc && PH() && phQueue(h)) h = h.replace(mc, '');   // (Faro espera a que contestes)
     h += storyTrain(c);   // sesiones de entrenamiento antes del partido (con career-story, plegables: chip «Plan» de los avisos)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada y decisión pendiente
     var lastUn = (c.inbox || []).filter(function (m) { return !m.r; }).slice(-1)[0];
@@ -1967,7 +2185,8 @@
         : '<p class="muted">' + (ct ? 'Te ' + (ct.left - 1 === 1 ? 'queda 1 temporada' : 'quedan ' + (ct.left - 1) + ' temporadas') + ' de contrato.' : '') + '</p>') +
       // con ofertas, «Seguir» pide confirmación (dos pulsaciones en 3 s): un toque despistado ya no las rechaza todas
       '<div class="acts"><button class="' + (stayArm && nOf ? 'warn' : nOf ? '' : 'pri') + '" data-act="stay">' + (stayArm && nOf ? (device() === 'touch' ? 'Toca otra vez: rechazas ' : 'Pulsa otra vez: rechazas ') + plural(nOf, 'oferta', 'ofertas')
-        : (rn ? 'Renovar con ' : 'Seguir en ') + esc(PH() ? shortClub(k) : k.name) + (r.move ? (r.move > 0 ? ' (sube)' : ' (baja)') : '')) + '</button></div></div>';
+        : PH() ? (rn ? 'Renovar' : 'Seguir') + '<small>' + esc(shortClub(k)) + (r.move ? (r.move > 0 ? ' (sube)' : ' (baja)') : '') + '</small>'   // (móvil: «Seguir» y el club debajo, en small)
+        : (rn ? 'Renovar con ' : 'Seguir en ') + esc(k.name) + (r.move ? (r.move > 0 ? ' (sube)' : ' (baja)') : '')) + '</button></div></div>';
     return h;
   }
   /** Selector de duración del contrato (1-3 temporadas). key = id del club o 'renew'. */
@@ -2232,7 +2451,7 @@
     var h = '<div class="card"><h3>Plan del entrenador</h3><p>' + sp(['Enfoque: <b>' + esc(tk.name) + '</b>', pr, tk.fat ? 'fatiga ' + (tk.fat > 0 ? '+' : '') + tk.fat : ''], 'v') + '</p>' +
       '<p class="muted">El enfoque, las 3 sesiones de cada jornada y el entreno automático están en Partido. Cada ' + C().TRAIN_NEED + ' de progreso, +1 al atributo más bajo del grupo.' +
       (C().STYLE_TRAIN && C().STYLE_TRAIN[C().clubInfo(c, C().myClub(c)).style] ? ' Los entrenos de tu club suman +' + C().STYLE_PROG + ' por semana en ' + esc(GROUP_OF[C().STYLE_TRAIN[C().clubInfo(c, C().myClub(c)).style]]).toLowerCase() + '.' : '') + '</p>' +
-      '<div class="acts"><button class="pri" data-act="plan-go">Ir al plan del entrenador</button></div></div>';
+      '<div class="acts"><button class="pri" data-act="plan-go">' + (PH() ? 'Plan del entrenador' : 'Ir al plan del entrenador') + '</button></div></div>';
     h += '<div class="card"><h3>Progreso</h3>' + ['phys', 'def', 'atk'].map(function (g) {
       var v = c.tp && c.tp[g] | 0;
       return '<div class="pbar"><span>' + esc(GROUP_OF[g]) + '</span><span class="bar"><i style="width:' + Math.round(100 * v / C().TRAIN_NEED) + '%"></i></span><b>' + v + '</b></div>';
@@ -2402,7 +2621,7 @@
   function renderMatch6(c) {
     // Faro (career-world-ui.js), arriba del todo como en la playa; Titulares tras el resumen o el último partido
     var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', xm = xSlot('match', c), h = takeTrialRes(c) + xSlot('matchTop', c) + mc;   // (prueba superada: su resultado, arriba)
-    if (c.phase === 'off') return h + xm + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
+    if (c.phase === 'off') return phOff(h + xm + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : ''), mc);
     var n = C().next(c);
     if (!n) h += xm;
     if (n) {
@@ -2416,13 +2635,14 @@
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (como en la playa)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
-      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v'), (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
-        [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
+      var k6 = PH() ? phKick(n.label, c.points, [same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short), 'IA ' + esc(n.diffName)]) : sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v');
+      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, k6, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
+        PH() ? [] : [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
           alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
          sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(C().posOf(c, n.me.id)) : '', 'Equipo ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
-        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
+        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '', PH() && !n.bench ? studyHTML(c) : '') +
         // («Sales de inicio…» va en la hoja de detalles; el banquillo, en su nota, encima de los botones)
-        (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts + (n.bench ? '' : studyHTML(c)) +
+        (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts + (n.bench || PH() ? '' : studyHTML(c)) +
         (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
         '<p class="muted">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
@@ -2432,6 +2652,7 @@
         '</div></div>' + (side ? '</div>' : '');
       if (!PH()) h += xm;
     } else h += storySide(c);
+    if (mc && PH() && phQueue(h)) h = h.replace(mc, '');   // (Faro espera a que contestes)
     h += storyTrain(c);   // sesiones de entrenamiento antes del partido (y la pelea por el puesto)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada (por puesto) y decisión pendiente, como en la playa
     var lastUn = (c.inbox || []).filter(function (m) { return !m.r; }).slice(-1)[0];
@@ -2445,11 +2666,11 @@
   /** Titularidad (13-nov-2026): tu estado en el partido de la jornada (de inicio, banquillo o fuera) y sus botones. */
   function formTxt6(f) { return C().formText ? String(C().formText(f | 0)).toLowerCase() : ''; }
   function statusHTML6(c, n) {
-    var SIM = '<button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button>';
+    var SIM = '<button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">' + (PH() ? '(½ XP)' : '(mitad de XP)') + '</small></button>';
     var st = n.status || (n.bench ? 'out' : 'start'), rv = n.rivalIn, H6 = C().hall || {};
     if (st === 'out' && n.out) {   // baja de una extensión (lesión…): su texto y quizá un botón suyo
       return { pre: '<div class="bench"><p><b>' + esc(n.out.head || 'Esta jornada no juegas.') + '</b> ' + esc(n.out.why || '') + ' ' + esc(n.out.tail || '') + '</p></div>',
-        acts: '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out.act ? '<button data-act="' + esc(n.out.act) + '">' + esc(n.out.actT || 'Ver') + '</button>' : '') + '</div>' };
+        acts: '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out.act ? outBtn(n.out) : '') + '</div>' };
     }
     if (st === 'out') {
       return { pre: '<div class="bench"><p><b>Fuera de la convocatoria.</b> ' + esc(n.why || '') + ' Descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>',
@@ -2500,7 +2721,7 @@
     var T = studyTexts(c); if (!T) return '';
     var chip = '<i class="sp-chip ' + T.chip[1] + '">' + esc(T.chip[0]) + '</i>';
     if (PH()) return '<button type="button" class="sp-btn sp-sm sp-ink cr-est-b" data-act="est" data-shape="7" aria-label="' + esc('Informe del rival. ' + T.plain) + '">' +
-      '<span class="sp-l"><span class="sp-t">Informe del rival</span>' + chip + '</span></button>';
+      '<span class="sp-l"><span class="sp-t">Informe</span>' + chip + '</span></button>';
     return '<div class="card cr-est" role="group" aria-label="' + esc('Informe del rival. ' + T.plain) + '"><h3>Informe del rival</h3>' +
       '<p><b>Ellos:</b>' + esc(T.riv) + '</p>' + (T.srv ? '<p><b>Saque:</b>' + esc(T.srv) + '</p>' : '') +
       '<p><b>Tú:</b>' + chip + esc(T.me) + '</p></div>';
