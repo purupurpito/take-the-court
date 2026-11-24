@@ -89,6 +89,13 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
   `tools/build-pages.js` falla si `CHANGELOG[0].v !== VERSION`, si falta `pages/og.png` o si no hay exactamente un `rel="icon"`.
+- **Páginas legales (Google Play, 24-nov-2026):** `pages/privacidad.html` y `pages/borrar-cuenta.html` (es + en en `#en`) se publican
+  junto al juego. Con `STRICT_POLICY=1`, build-pages falla si faltan o si quedan huecos `Ferran Sanchís Armesto` / `help@takethecourt.com`.
+  borrar-cuenta.html repite las llamadas de `deleteAccount()` (js/account.js): si cambian `DOCS` o el borrado, cambia también la
+  página (`tools/policytest.js` las compara). Orden del borrado (24-nov-2026): entrada de 5 min como mucho (auth_time) antes de
+  borrar nada; si falla la lista o algún DELETE (partidas y sala propia), no se borra la cuenta (error 'partial'). account.js deja de
+  subir si otra pestaña quita la sesión (evento `storage` y comprobación en push()). Lo que diga el código sobre datos (netlog, online, cuenta) tiene que cuadrar con la
+  política: ver notes/playstore/privacidad.md. Ajustes › Info › «Privacidad» (`data-go="priv"`) la abre en otra pestaña.
 - Three.js: `https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js` (verificado 200; r149 es el último sin aviso de deprecación del build UMD).
   API r149: `outputEncoding`/`sRGBEncoding`, `CapsuleGeometry` disponible, `THREE.ColorManagement.legacyMode = false` (lo pone main.js:
   los hex de materiales son sRGB; **toda textura de color de canvas debe llevar `tex.encoding = THREE.sRGBEncoding`**).

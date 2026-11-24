@@ -14,6 +14,10 @@
  * PAGES_CNAME=<dominio> escribe _site/CNAME (por defecto takethecourt.com; PAGES_CNAME= vacío no lo escribe). OJO: con Pages desplegado
  * por Actions (este repo) GitHub IGNORA el archivo CNAME: el dominio se pone en Settings → Pages o con la API (bridge/README.md).
  * Se escribe igual para que el artefacto diga dónde vive y por si un día se publica desde una rama.
+ * Google Play (24-nov-2026, notes/playstore/privacidad.md): pages/privacidad.html y pages/borrar-cuenta.html se copian a _site como el
+ * resto de pages/ (https://takethecourt.com/privacidad.html y /borrar-cuenta.html). Llevan los huecos {{RESPONSABLE}} y
+ * {{CONTACTO_EMAIL}} hasta que el dueño los rellene. Por defecto el build solo AVISA si faltan o si quedan huecos {{...}};
+ * con STRICT_POLICY=1 FALLA (úsalo antes de mandar la ficha a Google Play: STRICT_POLICY=1 node tools/build-pages.js).
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -40,6 +44,16 @@ if (!C0 || C0.v !== VERSION) fail('CHANGELOG[0].v (' + (C0 && C0.v) + ') no coin
 try { const bv = JSON.parse(fs.readFileSync(path.join(ROOT, 'bridge', 'version.json'), 'utf8')).v; if (bv !== VERSION) fail('bridge/version.json dice ' + bv + ' y VB.VERSION es ' + VERSION + ': ponlas iguales'); }
 catch (e) { if (fs.existsSync(path.join(ROOT, 'bridge', 'version.json'))) fail('bridge/version.json ilegible (' + e.message + ')'); }
 if (!fs.existsSync(path.join(ROOT, 'pages', 'og.png'))) fail('falta pages/og.png (se genera con node tools/og-image.js)');
+// páginas legales de Google Play: con STRICT_POLICY=1 tienen que estar y sin huecos {{...}}; sin él, solo se avisa
+const STRICT_POLICY = process.env.STRICT_POLICY === '1';
+const POLICY_PAGES = ['privacidad.html', 'borrar-cuenta.html'];
+const policyNotes = [];
+for (const f of POLICY_PAGES) {
+  const pf = path.join(ROOT, 'pages', f);
+  if (!fs.existsSync(pf)) { if (STRICT_POLICY) fail('falta pages/' + f + ' (STRICT_POLICY=1)'); policyNotes.push('falta pages/' + f); continue; }
+  const holes = [...new Set(fs.readFileSync(pf, 'utf8').match(/\{\{[A-Z0-9_]+\}\}/g) || [])];
+  if (holes.length) { if (STRICT_POLICY) fail('pages/' + f + ' tiene huecos sin rellenar: ' + holes.join(', ') + ' (STRICT_POLICY=1)'); policyNotes.push(f + ' con ' + holes.join(', ')); }
+}
 
 let BASE = process.env.PAGES_URL || 'https://takethecourt.com/';
 const CNAME = process.env.PAGES_CNAME != null ? String(process.env.PAGES_CNAME).trim() : 'takethecourt.com';
@@ -99,4 +113,5 @@ fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest
 fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ v: VERSION }));   // (js/update.js: aviso de versión nueva en los móviles con una anterior)
 for (const f of fs.readdirSync(path.join(ROOT, 'pages'))) fs.copyFileSync(path.join(ROOT, 'pages', f), path.join(OUT, f)); // iconos y og.png
 for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (f.endsWith('.js')) fs.copyFileSync(path.join(ROOT, 'js', f), path.join(OUT, 'js', f));
+if (policyNotes.length) console.log('build-pages: aviso (páginas legales): ' + policyNotes.join('; ') + '. Con STRICT_POLICY=1 el build fallaría.');
 console.log('Pages listo en ' + OUT + ' (' + fs.readdirSync(path.join(OUT, 'js')).length + ' scripts, v' + VERSION + (SHA ? ' ' + SHA : '') + ', ' + BASE + (CNAME ? ', CNAME ' + CNAME : '') + ')');

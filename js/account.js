@@ -157,7 +157,7 @@
     return fs('PATCH', docPath(DOCS[k]), body, keep).then(function () { synced[k] = at; jset(META + '.up', synced); });
   }
   function push(keep) {
-    if (!acc) return Promise.resolve();
+    if (!acc || sesGone()) return Promise.resolve();
     var ks = Object.keys(dirty).filter(function (k) { return !(big[k] && big[k] === meta[k]); });   // (lo demasiado grande espera a su siguiente cambio)
     dirty = {}; if (!ks.length) return Promise.resolve();
     setStatus('busy');
@@ -469,18 +469,51 @@
   }
   function signOut() { acc = null; dirty = {}; jset(SES, null); jset(SES + '.out', Date.now()); setStatus('off'); }
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
+  // Borrar la cuenta (24-nov-2026, Google Play). Orden pensado para no dejar nada a medias:
+  //  1) entrada reciente: Firebase pide haber entrado hace poco (si no, CREDENTIAL_TOO_OLD_LOGIN_AGAIN). Se mira auth_time del token
+  //     ANTES de borrar nada (umbral FRESH_S); si Firebase aun así lo rechaza, ya se han borrado las partidas pero la cuenta sigue.
+  //  2) se listan las partidas; si la lista falla, no se borra nada.
+  //  3) se borran todas (las listadas y las de DOCS) y la sala propia (rooms/{uid} y su sig); 404 cuenta como borrado. Si falla
+  //     alguna, NO se borra la cuenta: error 'partial' y la sesión sigue para reintentar.
+  //  4) accounts:delete y cerrar sesión. pages/borrar-cuenta.html repite estos pasos (tools/policytest.js compara las llamadas).
+  var FRESH_S = 300;
+  function jwtTimes(t) {
+    try { var p = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); var o = JSON.parse(atob(p + '==='.slice((p.length + 3) % 4))); return { at: +o.auth_time || 0, iat: +o.iat || 0 }; } catch (e) { return null; }
+  }
+  function freshEnough(t) {
+    var j = jwtTimes(t); if (!j || !j.at) return true;   // sin auth_time legible decide Firebase
+    var now = Date.now() / 1000, age = now - j.at;
+    if (j.iat && Math.abs(now - j.iat) > 3700) age = j.iat - j.at;   // reloj del aparato desajustado: lo que dice el propio token
+    return age <= FRESH_S;
+  }
   function deleteAccount() {
     if (!acc) return Promise.resolve();
-    // todos los documentos que lista la cuenta (también los de versiones más nuevas o más viejas), y además los de DOCS
-    return readAll().catch(function () { return {}; }).then(function (remote) {
+    var fails = 0;
+    function del(path) { return fs('DELETE', path).catch(function () { fails++; }); }
+    return token().then(function (t) {
+      if (!freshEnough(t)) throw err('CREDENTIAL_TOO_OLD_LOGIN_AGAIN');
+      return readAll();   // si falla, se corta aquí sin borrar nada
+    }).then(function (remote) {
       var names = Object.keys(remote || {});
       Object.keys(DOCS).forEach(function (k) { if (names.indexOf(DOCS[k]) < 0) names.push(DOCS[k]); });
-      return Promise.all(names.map(function (n) { return fs('DELETE', docPath(n)).catch(function () { }); }));
+      var room = fs('GET', 'rooms/' + acc.uid).then(function (r) {
+        if (!r) return;   // sin sala
+        return Promise.all(['offer', 'answer'].map(function (k) { return del('rooms/' + acc.uid + '/sig/' + k); })).then(function () { return del('rooms/' + acc.uid); });
+      }, function () { fails++; });
+      return Promise.all(names.map(function (n) { return del(docPath(n)); }).concat([room]));
     })
-      .then(function () { return token(); })
+      .then(function () { if (fails) throw err('partial'); return token(); })
       .then(function (t) { return idt('accounts:delete', { idToken: t }); })
       .then(function () { signOut(); });
   }
+  // Si otra pestaña (o pages/borrar-cuenta.html) cierra la sesión o borra la cuenta, esta deja de subir: si no, con el token aún
+  // vigente (hasta 1 h) volvería a crear partidas de una cuenta borrada.
+  function sesGone() {
+    if (!acc || !LS) return false;
+    var s = jget(SES); if (s && s.uid === acc.uid) return false;
+    acc = null; dirty = {}; clearTimeout(pushT); setStatus('off'); return true;
+  }
+  window.addEventListener('storage', function (e) { if (!e || e.key === SES || e.key === SES + '.out' || e.key === null) sesGone(); });
   function errText(e) {
     var c = e && e.code || '';
     if (c === 'bad_user') return 'El usuario debe tener entre 3 y 30 letras o números (también . _ -), sin espacios. O escribe tu correo.';
@@ -492,12 +525,13 @@
     if (c === 'g_env') return 'Este navegador no deja entrar con Google aquí. Prueba con tu correo.';
     if (c === 'g_domain') return 'Esta página aún no puede entrar con Google. Usa tu correo de momento.';
     if (c === 'g_exists') return 'Ya hay una cuenta con ese correo. Entra con tu correo y contraseña.';
-    if (c === 'CREDENTIAL_TOO_OLD_LOGIN_AGAIN') return 'Por seguridad, cierra sesión, vuelve a entrar y bórrala entonces.';
+    if (c === 'CREDENTIAL_TOO_OLD_LOGIN_AGAIN') return 'Por seguridad, cierra sesión, vuelve a entrar y bórrala en los 5 minutos siguientes.';
     if (c === 'WEAK_PASSWORD') return 'La contraseña debe tener al menos 6 caracteres.';
     if (c === 'EMAIL_EXISTS') return 'Ya hay una cuenta con ese correo o usuario. Si es tuya, pulsa «Entrar».';
     if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(c)) return 'Correo, usuario o contraseña incorrectos.';
     if (c === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'Demasiados intentos. Espera un poco y vuelve a probar.';
     if (c === 'unavailable') return 'No hay conexión. Prueba otra vez en un momento.';
+    if (c === 'partial') return 'No se ha podido borrar todo. La cuenta sigue: prueba otra vez.';
     if (c === 'too_big') return 'Tu Carrera es demasiado grande para la nube';
     return 'No se ha podido completar. Prueba otra vez.';
   }
