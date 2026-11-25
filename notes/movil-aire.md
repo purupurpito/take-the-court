@@ -1728,3 +1728,20 @@ feedbacktest (120), careertest, simtest, `console.sh all` (44 escenas sin errore
 - **PC** (`pc3` frente a `pcbase`): solo lo conocido de 8.6.1/8.6.10; además, ofertas sin cesiones, Estado/lesión, Estrellas-voto y el oro
   del reto del día («gana remontando 4 puntos en un set», recortado igual) cambian con la fecha: la base pasada hoy con el mismo arnés da
   las mismas cifras (`…/movil2/pcbase-now`, `pcbase-now2`). Sin arreglos que hacer.
+
+#### 8.6.13 Release 1.24.0 (rama release-124, 25-nov-2026): lo nuevo de decisiones y de 1.23.0 en el móvil
+Pasadas `h` (568x320 / 844x390 / 915x412, DPR 2), `v` (360x740 / 390x844 / 412x915, DPR 2) y `pc` (--desktop) frente a `pcbase` (7c89e04, la fusión
+de decisiones antes de movil-aire), en el scratchpad `rel124/`. Arreglos (todo bajo `html.ph` / `html.pv` o tras `mob()`):
+- Jugar (V): DIRECTO fuera en Jugar (se pisaba con el formato 2v2 | 6v6 de la cabecera).
+- Sala de varios (V): Salir 1/3 + Empezar / Listo 2/3 en una fila. Crear sala 6v6 (H): filas de la rejilla a `max-content` (las flechas de
+  Formato + Beta y Escenario + nota se salían sobre la fila de abajo); «Beta» a 12 en V.
+- Calidad del 1r 6v6: parche de 62 (H) / 72 (V) y línea corta a mano en el móvil («Se ajusta sola · ahora, media»).
+- Jugada del día: brochazo con aire arriba y abajo (el antetítulo en tinta asomaba fuera de la pintura), hueco para la gota en V, cada dato en
+  `.sem-it` con su «|» delante (nada partido por dentro ni «|» huérfano; en PC sin estilo).
+- Primera vez (H): «Aprende a jugar» en chapa como «Primera vez». Vestuario (V < 380): papeles abreviados. Jugadores (V): pestañas con 4 px.
+- Hojas `Splat.sheet` y editor táctil: `inertBehind` también en horizontal.
+- Carrera › Vida: material que baja de línea (precios en salpis), progreso de logros por el «·»; «nueva (bronce)» a 12.
+Resultado: H y V con 0 recortes no permitidos (salvo los rótulos del HUD detrás del aviso de girar), 0 < 44, 0 < 12, 0 «girar» fuera del juego;
+PC sin diferencias de disposición (solo Sugerencia/Bug de movil-aire y ruido del 3D). Quedan: el aviso del Perfil abajo en V tapa la rejilla
+unos segundos (diseño de paneles-v, sin toques), el editor táctil zurdo a 568 (dos botones que se tocan, ya en movil-aire), y en PC el
+antetítulo del brochazo de la jugada del día y «2 contra 2, / playa» (sin tocar: el PC no cambia en esta release).
