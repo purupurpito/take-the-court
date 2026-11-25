@@ -465,7 +465,7 @@
   function showConflicts(r) {
     if (!conflicts.length) return;
     build(); pending = conflicts[0]; pendRes = { remote: false, enter: { changed: !!(r && r.changed) } }; view = 'conflict'; render();
-    lastFocus = document.activeElement; root.hidden = false;
+    lastFocus = document.activeElement; root.hidden = false; syncInert();
   }
   function signOut() { acc = null; dirty = {}; jset(SES, null); jset(SES + '.out', Date.now()); setStatus('off'); }
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
@@ -553,7 +553,7 @@
   function setStatus(s, e) { status = acc ? s : 'off'; lastErr = e ? errText(e) : ''; listeners.forEach(function (f) { try { f(status); } catch (x) { } }); refreshBtn(); if (root && !root.hidden && view === 'in') render(); }
   var toastT = 0;
   function toast(msg) {
-    if (phone() && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(esc(msg), { key: 'acc' }); return; } catch (e) { } }
+    if (mob() && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(esc(msg), { key: 'acc' }); return; } catch (e) { } }
     var t = document.getElementById('accToast');
     if (!t) { t = document.createElement('div'); t.id = 'accToast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
     t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3500);
@@ -565,7 +565,18 @@
   // pintura (.sp-btn); la ✕ es una pegatina fuera de la hoja y la fila de abajo (Entrar / Hecho) se queda pegada al borde: con poco alto
   // la hoja se desplaza por dentro sin que se vayan. Teléfono apaisado bajo: dos columnas (título y Google | formulario).
   var P = ':root:not(#_):not(#_):not(#_) ', PP = ':root.ph' + P.slice(5);   // (PP: móvil, html.ph)
+  var PV = ':root.pv' + P.slice(5);   // (ronda 2, paneles-v: móvil en vertical, html.pv)
   function phone() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** (ronda 2, paneles-v) contenido del móvil (apaisado o vertical): la disposición de phHTML, los textos de ejemplo y los avisos */
+  function mob() { return !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()); }
+  function pvOn() { return !!(VB.Splat && VB.Splat.pv && VB.Splat.pv()); }
+  /** (ronda 2, paneles-v) en vertical la cuenta es una hoja a pantalla casi completa: lo de detrás, inert (no se toca ni se lee) */
+  var unInert = null;
+  function syncInert() {
+    var on = !!(root && !root.hidden && pvOn() && VB.Splat.inertBehind);
+    if (on && !unInert) unInert = VB.Splat.inertBehind(root);
+    else if (!on && unInert) { unInert(); unInert = null; }
+  }
   var CSS = [
     '#account{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
     'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
@@ -656,6 +667,10 @@
     PP + '#account .ac-err{font-size:var(--ph-body)}',
     PP + '#account .ac-acts{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:12px;margin:4px -16px 0;padding:10px 16px 12px;bottom:0}',
     PP + '#account .ac-acts .ac-link{flex:1 1 auto;min-width:0;margin:0 auto 0 0;padding:0 2px;text-align:left;font-size:var(--ph-label);white-space:nowrap}',
+    PP + '#account .ac-acts .ac-l2{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:0;margin-right:auto}',
+    PP + '#account .ac-acts .ac-note{display:block;font:600 var(--ph-label)/1.3 var(--sp-ui);color:#ffe08a;white-space:normal}',
+    PP + '#account .ac-acts .ac-l2 .ac-link{flex:none;min-height:44px}',
+    PP + '#account .ac-sheet:has(#acHint:not([hidden])) .ac-note{display:none}',
     PP + '#account .ac-sheet .sp-btn{--sp-h:48px;--sp-fs:var(--ph-btn)}',
     PP + '#account .ac-sheet .sp-btn.pri{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px;flex:none}',
     // con sesión (y borrar): dos columnas
@@ -688,6 +703,91 @@
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acUser]{grid-column:1;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acUser{grid-column:1;grid-row:2}',
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acPass]{grid-column:2;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acPass{grid-column:2;grid-row:2}',
     ':root.ph.ph-s' + P.slice(5) + '#account .ac-or{margin-bottom:6px}',
+    // — móvil «con aire» (movil-aire §5.6, paquete paneles): al escribir se van pestañas, Google y «o con tu correo»; campos de 44 con
+    // texto de ejemplo; correo y contraseña lado a lado en todos los móviles (no solo a ≤ 345); «Novedades» (#btnVer) no asoma con la
+    // cuenta abierta; con sesión, «Sincronizar ahora» y «Cerrar sesión» de 44 juntos bajo tu tarjeta; el aviso de borrar a todo el ancho
+    PP + '#account .ac-sheet:has(#acForm input:focus) [data-kb-hide]{display:none}',
+    PP + '#account input{height:44px;margin:0 0 10px;font-size:17px}',
+    PP + '#account input::placeholder{color:rgba(21,16,42,.45);font-size:15px}',
+    PP + '#account #acForm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}',
+    PP + '#account #acForm>*{grid-column:1/-1}',
+    PP + '#account #acForm>label[for=acUser]{grid-column:1;grid-row:1}' + PP + '#account #acForm>#acUser{grid-column:1;grid-row:2}',
+    PP + '#account #acForm>label[for=acPass]{grid-column:2;grid-row:1}' + PP + '#account #acForm>#acPass{grid-column:2;grid-row:2}',
+    ':root.ph:has(#account:not([hidden])) #btnVer{visibility:hidden}',
+    PP + '#account .ac-c1 .ac-row2{display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%}',
+    PP + '#account .ac-c1 .ac-row2 .sp-btn{--sp-h:44px;min-height:44px;--sp-fs:var(--ph-label);--sp-px:16px}',
+    PP + '#account .ac-c1 .ac-row2 .sp-btn>.sp-blob .sp-f circle{display:none}',
+    PP + '#account .ac-two .ac-c2 .ac-quiet{margin-top:auto;align-self:flex-start}',
+    PP + '#account .ac-user{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:10px}',
+    PP + '#account .ac-user>span:nth-child(2){min-width:0}',
+    PP + '#account .ac-user .ac-syncb{margin-left:0}',
+    // (ronda final: «↻ Sincronizar» como píldora de 44 con su palabra, junto a Cerrar sesión; en la tarjeta del nombre partía «jugador / a7»)
+    PP + '#account .ac-c1 .ac-row2 .ac-syncb{width:auto;min-width:44px;margin:0;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;border-radius:14px 18px 13px 17px/16px 13px 18px 14px;font:700 var(--ph-label)/1 var(--sp-ui);white-space:nowrap}',
+    PP + '#account .ac-user b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}',
+    PP + '#account .ac-user .ac-sync{white-space:nowrap}',
+    PP + '#account .ac-syncb{flex:none;margin-left:auto;width:44px;height:44px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:var(--sp-kit,#ff5a2c);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer}',
+    PP + '#account .ac-syncb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    PP + '#account .ac-syncb:disabled{opacity:.5}',
+    'body #account .ac-syncb:focus-visible{outline:2.5px solid var(--sp-gold);outline-offset:3px}',
+    PP + '#account .ac-two .ac-sheet:has(.ac-del) .ac-c2{grid-column:1/-1;padding-right:0;min-height:0}',
+    PP + '#account .ac-two .ac-sheet:has(.ac-del) .ac-c1{padding-bottom:10px;max-width:min(100%,420px)}',
+    // — móvil en VERTICAL (ronda 2, paneles-v; notes/movil-aire.md §8.4 y §8.6.8): hoja a pantalla casi completa anclada abajo, velo opaco
+    // al 70 % (lo de detrás, inert: syncInert), ✕ de 44 dentro arriba a la derecha, los textos de ejemplo de horizontal, campos de 52 y la
+    // acción principal abajo a todo el ancho con la barra de gestos. Con sesión: Sincronizar principal, Cerrar sesión secundaria y «Borrar
+    // la cuenta» como enlace al final. Borrar: «No, volver» y «Sí, borrar la cuenta» apilados (primero el seguro)
+    PV + '#account{align-items:flex-end;justify-content:center;padding:calc(var(--pv-gt) + 24px) 0 0;background:rgba(10,6,24,.7)}',
+    PV + '#account .ac-wrap,' + PV + '#account .ac-wrap.ac-two{width:100%;max-width:none;height:calc(100dvh - var(--pv-gt) - 24px);max-height:none}',
+    PV + '#account .ac-sheet{display:flex;flex-direction:column;padding:18px var(--pv-g) 0;border-radius:20px 20px 0 0;background:#1b1534;box-shadow:0 -2px 0 rgba(255,244,220,.18)}',
+    PV + '#account .ac-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+    PV + '#account .ac-x{position:absolute;top:12px;right:12px;z-index:3;width:44px;--sp-h:44px;--sp-px:0}',
+    PV + '#account p{font-size:15px;line-height:1.4}',
+    PV + '#account .ac-tabs{flex:none;margin:0 56px 14px 0;gap:10px}',
+    PV + '#account .ac-tabs .sp-tab{--sp-tbh:48px;--sp-tbs:15px}',
+    PV + '#account .ac-g{flex:none;min-height:52px;margin:0 0 12px;font-size:16px}',
+    PV + '#account .ac-or{flex:none;margin:0 0 12px;font:700 13px/1 var(--sp-ui);letter-spacing:0;text-transform:none}',
+    PV + '#account #acForm{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}',
+    PV + '#account label{margin:0 0 6px 2px;font-size:13px;letter-spacing:.04em}',
+    PV + '#account input{flex:none;height:52px;margin:0 0 14px;font-size:17px}',
+    PV + '#account input::placeholder{color:rgba(21,16,42,.45);font-size:15px}',
+    PV + '#account .ac-hint{margin:-6px 0 12px 2px;font:600 13px/1.3 var(--sp-ui);color:#ffe08a}',
+    PV + '#account .ac-err{font-size:15px}',
+    PV + '#account .ac-acts{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px;margin:auto calc(-1 * var(--pv-g)) 0;padding:12px var(--pv-g) calc(var(--pv-gb) + 12px);background:linear-gradient(rgba(27,21,52,0),#1b1534 18px)}',
+    PV + '#account .ac-acts .ac-link{order:0;align-self:center;margin:0;padding:0 8px;font-size:14px;white-space:normal;text-align:center}',
+    PV + '#account .ac-acts .ac-l2{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}',
+    PV + '#account .ac-acts .ac-note{display:block;font:600 13px/1.3 var(--sp-ui);color:#ffe08a;white-space:normal}',
+    PV + '#account .ac-sheet:has(#acHint:not([hidden])) .ac-note{display:none}',
+    PV + '#account .ac-sheet .sp-btn{--sp-h:48px;--sp-fs:15px}',
+    PV + '#account .ac-acts .sp-btn{width:100%;margin:0;justify-content:center}',
+    PV + '#account .ac-acts .sp-btn.pri{order:1;--sp-h:56px;--sp-fs:18px}',
+    // con sesión
+    PV + '#account .ac-two .ac-sheet{display:flex;flex-direction:column}',
+    PV + '#account .ac-two .ac-c1{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding-bottom:12px}',
+    PV + '#account .ac-two .ac-c2{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;padding-bottom:calc(var(--pv-gb) + 8px)}',
+    PV + '#account .ac-user{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:12px;margin:0 56px 4px 0;padding:10px 14px;box-sizing:border-box}',
+    PV + '#account .ac-av{width:48px;height:48px;font-size:24px}',
+    PV + '#account .ac-user b{font-size:18px;-webkit-line-clamp:2;overflow-wrap:anywhere}',
+    PV + '#account .ac-sync{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:3px 9px;border-radius:7px 10px 7px 9px;background:rgba(21,16,42,.1);color:var(--sp-ink);font:700 13px/1.2 var(--sp-ui)}',
+    PV + '#account .ac-sync::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#1cc4b4;box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    PV + '#account .ac-sync.busy::before{background:var(--sp-gold)}' + PV + '#account .ac-sync.err::before{background:#ff6a5a}',
+    PV + '#account .ac-row2{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:100%}',
+    PV + '#account .ac-row2 .ac-syncb{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;margin:0;padding:0 16px;border:0;border-radius:16px 20px 15px 19px/18px 15px 20px 16px;background:var(--sp-kit,#ff5a2c);color:var(--sp-ink);' +
+      'box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);font:400 18px/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;cursor:pointer}',
+    PV + '#account .ac-row2 .ac-syncb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    PV + '#account .ac-row2 .ac-syncb:disabled{opacity:.55}',
+    PV + '#account .ac-row2 .sp-btn{width:100%;--sp-h:48px;margin:0 0 10px;justify-content:center}',
+    PV + '#account .ac-quiet{margin:auto 0 0;align-self:center;min-height:44px;padding:0 8px;border:0;background:none;color:#ffa3ad;font:700 14px/1.2 var(--sp-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+    PV + '#account .ac-del{margin:0 0 4px;padding:12px 14px;border-radius:12px 16px 11px 15px/14px 11px 16px 12px;background:#2a1530;box-shadow:0 0 0 3px var(--sp-danger),3px 4px 0 3px var(--sp-ink)}',
+    PV + '#account .ac-del h3{margin:0 0 6px;font:400 20px/1.1 var(--sp-pop);color:#ffb3bc;text-shadow:2px 2px 0 var(--sp-ink)}',
+    PV + '#account .ac-del p{margin:0}',
+    PV + '#account .ac-two .ac-sheet>.ac-dacts{margin-top:auto}',
+    // (ronda final) apilados: «Sí, borrar» arriba y apartado, «No, volver» (el seguro) abajo, que es donde cae el pulgar; en horizontal,
+    // el orden de PC (No a la izquierda, Sí a la derecha)
+    PV + '#account .ac-dacts [data-ac=cancel]{order:2}' + PV + '#account .ac-dacts [data-ac=delYes]{order:0;margin-bottom:14px}',
+    PV + '#account .ac-gcw{width:100%}',
+    PV + '#account .ac-gc .ac-h{--sp-hs:var(--pv-title);margin:0 56px 10px 0}',
+    PV + '#account .ac-gc .ac-acts{flex-direction:column}',
+    PV + '#account .ac-gc .ac-go{order:0;width:100%;min-height:56px;font-size:18px}',
+    ':root.pv:has(#account:not([hidden])) #btnVer{visibility:hidden}',
     '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}'
   ].join('');
   var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null;
@@ -744,31 +844,33 @@
       var cls = status === 'busy' ? ' busy' : status === 'error' ? ' err' : '';
       var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Nube · ' + ago(lastSync);   // (móvil: corto y en una línea)
       h ='<div class="ac-wrap ac-two"><div class="ac-sheet sp-panel"><div class="ac-c1"><h2 class="ac-sr" id="acTitle">Tu cuenta</h2>' +
-        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span></div>' +
-        (view === 'del' ? '' : spb('out', 'Cerrar sesión', 'sp-cream', 1) + '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div><div class="ac-c2">' +
+        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span>' +
+        '</div>' +
+        (view === 'del' ? '' : '<div class="ac-row2">' + '<button type="button" class="ac-syncb" data-ac="sync"' + (status === 'busy' ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3"/><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3"/><path d="M17.8 3v4.2h-4.2"/><path d="M6.2 21v-4.2h4.2"/></svg><span>Sincronizar</span></button>' + spb('out', 'Cerrar sesión', 'sp-cream', 1) + '</div>') + '</div><div class="ac-c2">' +
         (view === 'del'
           ? '<div class="ac-del" role="alert"><h3>¿Borrar la cuenta?</h3><p>Se borran la cuenta y todo lo guardado en ella (jugadores, Carreras, perfil, Vestuario, récord y ajustes). No se puede deshacer. Lo de este dispositivo se queda.</p></div>' +
 ''
           : '<p>Tu progreso se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
-            '<div class="ac-acts">' + spb('sync', 'Sincronizar ahora', 'sp-kit pri', 0) + '</div>') + '</div>' +
-        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('cancel', 'No, volver', 'sp-cream ac-l', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger pri', 3) + '</div>' : '') + '</div>';
+            '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div>' +
+        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('cancel', 'No, volver', 'sp-cream pri ac-l', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger', 3) + '</div>' : '') + '</div>';
     } else {
       var create = tab === 'new';
       h = '<div class="ac-wrap"><div class="ac-sheet sp-panel"><h2 class="ac-sr" id="acTitle">Cuenta: ' + (create ? 'crear cuenta' : 'entrar') + '</h2>' +
         '<div class="ac-tabs" role="tablist" data-kb-hide><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
         '<button type="button" class="ac-g" data-ac="google" data-kb-hide' + (busy ? ' disabled' : '') + '>' + GSVG + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
         '<div class="ac-or" data-kb-hide><span>o con tu correo</span></div>' +
-        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
+        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" placeholder="tu@correo.com o usuario" required>' +
         (create ? '<p class="ac-hint" id="acHint" hidden>Sin @ es un usuario: si olvidas la contraseña, no se puede recuperar. Apúntala bien.</p>' : '') +
-        '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
+        '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" placeholder="' + (create ? 'Mínimo 6 caracteres' : 'Tu contraseña') + '" required>' +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
-        '<div class="ac-acts">' + (create ? '' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
+        // (ronda 2, recortes: vuelve el aviso de la contraseña de los usuarios sin @ y «Ahora no» como enlace, a la izquierda del botón)
+        '<div class="ac-acts">' + (create ? '<span class="ac-l2"><small class="ac-note">Con usuario (sin @) no podrás recuperar la contraseña.</small><button type="button" class="ac-link" data-ac="close">Ahora no</button></span>' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
         spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
     }
     return h + '<button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy ? ' hidden' : '') + '>' + XIC + '</button></div>';
   }
   function render() {
-    var hp = view === 'gconfirm' ? gcHTML() : phone() ? phHTML() : null;
+    var hp = view === 'gconfirm' ? gcHTML() : mob() ? phHTML() : null;   // (ronda 2: la disposición del móvil también en vertical)
     var h = '<div class="ac-wrap"><div class="ac-sheet sp-panel">';
     if (hp) h = '';
     else if (view === 'conflict' && pending) {
@@ -883,12 +985,12 @@
   function focusFirst() { try { var i = root.querySelector('#acUser') || root.querySelector('[data-ac=close]'); if (i) i.focus({ preventScroll: true }); } catch (e) { } }
   function open() {
     build(); view = acc ? 'in' : 'enter'; msg = ''; render();
-    lastFocus = document.activeElement; root.hidden = false; focusFirst();
+    lastFocus = document.activeElement; root.hidden = false; syncInert(); focusFirst();
     gWarm();
   }
   function close() {
     if (!root || root.hidden) return;
-    root.hidden = true;
+    root.hidden = true; syncInert();
     try { if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); } catch (e) { }
   }
   function isOpen() { return !!(root && !root.hidden); }
@@ -920,7 +1022,7 @@
     refreshBtn(); placeBtn(); setInterval(placeBtn, 700);
   }
 
-  document.addEventListener('vb:ph', function () { if (root && !root.hidden) render(); });
+  document.addEventListener('vb:ph', function () { if (root && !root.hidden) render(); syncInert(); });
   function boot() {
     build(); initBtn();
     try { var t = sessionStorage.getItem('make-the-cut.account.toast'); if (t) { sessionStorage.removeItem('make-the-cut.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
@@ -953,8 +1055,8 @@
       o = o || {}; build(); var save = acc;
       if (v === 'in' || v === 'del') acc = { user: o.user || 'jugadora7@correo.es', kind: o.kind || 'mail', uid: 'preview', rt: 'preview' };
       view = v === 'del' ? 'del' : v === 'in' ? 'in' : v === 'gconfirm' ? 'gconfirm' : 'enter'; tab = o.tab || 'in'; msg = o.msg || ''; busy = !!o.busy; lastSync = Date.now() - 120000;
-      render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; return true;
+      render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; syncInert(); return true;
     },
-    _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; return true; }
+    _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; syncInert(); return true; }
   };
 })();

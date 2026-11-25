@@ -52,6 +52,8 @@
   stamp.setAttribute('aria-label', SEM ? 'La jugada del día' : 'Reto del día');
   stamp.setAttribute('data-ring', SEM ? 'LA JUGADA ★ DEL DÍA ★' : 'RETO DEL DÍA ★ RETO DEL DÍA ★');
   if (SEM) stamp.classList.add('mj-sem');
+  // (movil-aire §5.1: en el móvil, apaisado o vertical, el sello va de pegatina en la esquina de JUGAR —.ph-sticker— y no tapa el texto)
+  stamp.classList.add('ph-sticker'); go.classList.add('ph-stk-host');
   stamp.innerHTML = '<span class="sp-sc" id="mjStampC"></span>';
   if (bPlay) {
     cls(bPlay, 'sp-patch');
@@ -100,7 +102,7 @@
   }
   if (bCont) { cls(bCont, 'sp-ticket'); bCont.appendChild(mk('span', 'sp-tk', '')); nav.appendChild(bCont); }
   nav.appendChild(go); nav.appendChild(tape); nav.appendChild(strip);
-  var sub = $('playMainSub'); if (sub) sub.textContent = 'Partido rápido, 6 contra 6 y entrenamiento';
+  var sub = $('playMainSub'); if (sub) { sub.textContent = 'Partido rápido, 6 contra 6 y entrenamiento'; sub.setAttribute('data-ph-short', 'Rápido, 6 contra 6 y entreno'); }
   var lsub = bLook && bLook.querySelector('.mi-s'); if (lsub) lsub.textContent = 'Tu aspecto';
   S.decorate(menu);
 
@@ -148,7 +150,7 @@
     if (!H) return;
     var rv = n && n.rival, away = n && n.kind === 'league' && n.atHome === false;
     var crests = me ? '<span class="sp-crest">' + crest(me, 40, c) + '</span>' + (rv ? '<i class="sp-vs">' + (away ? 'en' : 'vs') + '</i><span class="sp-crest">' + crest(rv, 40, c) + '</span>' : '') : '<span class="sp-crest">' + S.BALL + '</span>';
-    var k = rv ? 'Próximo partido' : 'Carrera · ' + H.kind, ttl = rv ? rv.name : H.title, ln = rv ? (H.chip ? H.chip + ' · ' : '') + 'Continuar carrera' : (H.chip ? H.chip + ' · ' : '') + (H.line || '');
+    var k = rv ? 'Próximo partido' : 'Carrera · ' + H.kind, ttl = rv ? rv.name : H.title, ln = rv ? (H.chip ? H.chip + ' · ' : '') + ((S.mob ? S.mob() : S.phone()) ? 'Continuar' : 'Continuar carrera') : (H.chip ? H.chip + ' · ' : '') + (H.line || '');
     var h = '<span class="sp-tk-stub">' + crests + '</span><span class="sp-tk-main"><small class="sp-k">' + esc(k) + '</small><b class="sp-t">' + esc(ttl) + '</b><small class="sp-s">' + esc(ln) + '</small></span>' +
       '<span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>';
     var cmp = h.replace(/n\d+"/g, '"').replace(/n\d+\)/g, ')');

@@ -504,6 +504,11 @@
     h += sec('pl', 'Por jugador', tb +
       '<p class="ms-note">Escala de valoración de scouting: <b>#</b> perfecto o punto, <b>+</b> positivo, <b>!</b> en juego, <b>−</b> negativo, <b>/</b> según el fundamento (en el saque, el rival lo devuelve sin atacar; en el ataque, bloqueado) y <b>=</b> error. ' +
       'Pts y Err: puntos ganados y errores que dieron el punto al rival. Eficacia de saque = (aces + positivos + devueltos sin ataque − errores − negativos) entre saques; de ataque = (puntos − errores − bloqueados) entre ataques. Recepción Pos. = perfectas y positivas; Perf. = perfectas. Blq = ataques bloqueados; Bloq. = bloqueos punto. El número pequeño es cuántas acciones hay detrás (atenuado si son menos de 3).</p>', 'ms-plsec');
+    // Móvil (movil-aire §5.7): índice de secciones en fichas (ph-only; ui.js msRender baja a la sección al tocar) y, en el 6 contra 6, las
+    // secciones largas marcadas (.ms-long) para que el móvil las enseñe plegadas (en PC no cambia nada: el CSS es de html.ph)
+    var IX = [['fig', 'Cifras'], mom ? ['mom', 'Marcha'] : null, ['pl', 'Jugadores'], ['rot', M.size === 6 ? 'Rotaciones' : 'Fases'], ['map', 'Mapas'], ['err', 'Errores']].filter(Boolean);
+    if (M.size === 6) h = h.replace(/<section class="ms-sec" aria-labelledby="msh-(rot|map|err|pl)"/g, '<section class="ms-sec ms-long" aria-labelledby="msh-$1"');
+    h = '<nav class="ms-idx ph-only" data-nav aria-label="Secciones">' + IX.map(function (x) { return '<button type="button" data-msj="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</nav>' + h;
     return h;
   }
 

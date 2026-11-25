@@ -375,6 +375,22 @@ async function emuTests(base, NR) {
     for (let i = 0; i < 45; i++) await raw('DELETE', '/rooms/a0' + String(i).padStart(2, '0'));
     await V.close();
   }
+  // FEEDBACK (1.22.1, js/feedback.js): las opiniones de los jugadores en el mismo banco de reglas (el resto, con la cuenta admin de
+  // prueba, en tools/feedbacktest.js)
+  {
+    const docRoot = base.slice(base.indexOf('projects/'));
+    const S = v => ({ stringValue: v });
+    const fb = (id, fields, tok) => fetch(base + ':commit', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, tok ? { Authorization: 'Bearer ' + tok } : {}),
+      body: JSON.stringify({ writes: [{ update: { name: docRoot + '/feedback/' + id, fields }, updateTransforms: [{ fieldPath: 't', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } }] }) }).then(r => r.status);
+    const ok = { kind: S('sug'), text: S('Más sedes de playa'), ver: S('1.22.1'), ctx: S('{}'), uid: S(''), state: S('nuevo') };
+    check('feedback: crear sin sesión (uid \'\') → 200', await fb('FbRoomtest0000000001', ok) === 200);
+    check('feedback: crear con sesión y su uid → 200', await fb('FbRoomtest0000000002', Object.assign({}, ok, { uid: S('uidA') }), fakeToken('uidA')) === 200);
+    check('feedback: campos de más → 403', await fb('FbRoomtest0000000003', Object.assign({}, ok, { nombre: S('Ana') })) === 403);
+    check('feedback: uid de otro → 403', await fb('FbRoomtest0000000004', Object.assign({}, ok, { uid: S('uidB') }), fakeToken('uidA')) === 403);
+    const rd = await fetch(base + ':runQuery', { method: 'POST', headers: { Authorization: 'Bearer ' + fakeToken('uidA'), 'Content-Type': 'application/json' }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'feedback' }], limit: 10 } }) });
+    const rd0 = await fetch(base + '/feedback/FbRoomtest0000000001');
+    check('feedback: leer sin ser admin → 403 (con sesión y sin ella)', rd.status === 403 && rd0.status === 403, [rd.status, rd0.status]);
+  }
 }
 
 /* ---------- 1b) esquema v3: salas de varios contra el emulador ---------- */

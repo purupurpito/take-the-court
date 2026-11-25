@@ -540,7 +540,24 @@
   var GATE_TAG = { pocos: 'Pocos partidos', visto: 'Poco visto', top2: 'Fuera del top 2' };
   function shortName(n) { n = String(n || ''); var w = n.split(/\s+/).filter(Boolean); if (n.length <= 18 || w.length < 3) return n; return w.slice(-2).join(' '); }
   function curView(c) { var id = sel === 'pos' ? posCat(c) : sel; if (id !== 'oth' && (!CATS[id] || catsOf(c).indexOf(id) < 0)) { sel = 'mvp'; id = 'mvp'; } return id; }
+  /** Móvil (movil-aire §5.4): tendencia como flecha de color (la cifra, en aria-label). */
+  function trPh(d) {
+    if (d == null) return '<span class="cpr-tr" aria-hidden="true"></span>';
+    if (d === 'new') return '<span class="cpr-tr nw" aria-label="Entra">●</span>';
+    if (d > 0) return '<span class="cpr-tr up" aria-label="Sube ' + d + '">▲</span>';
+    if (d < 0) return '<span class="cpr-tr dn" aria-label="Baja ' + (-d) + '">▼</span>';
+    return '<span class="cpr-tr eq" aria-label="Igual">=</span>';
+  }
+  /** Móvil: fila de una línea (puesto · flecha · nombre · club o «Tú · …» · nota). */
+  function rowPh(c, r, st, H, R) {
+    var fav = r.me && R.mid && R.mid.s === (c.season | 0) && R.mid.fav.indexOf(st.cat) >= 0;
+    var sub = r.me ? ['Tú', fav ? 'Favorito' : '', r.gate ? GATE_TAG[r.gate].toLowerCase() : ''] : [r.rv ? 'Tu rival' : '', hE(H, shortName(r.clubName))];
+    sub = sub.filter(Boolean).join(', ');
+    return '<div class="cpr-row' + (r.me ? ' me' : '') + '" role="listitem"><span class="cpr-rk">' + (st.open ? ord(r.rk) : '') + '</span>' + (st.open ? trPh(r.d) : '<span class="cpr-tr" aria-hidden="true"></span>') +
+      '<span class="cpr-nm"><b>' + hE(H, r.n) + '</b><small data-ph-ell>' + sub + '</small></span><span class="cpr-v">' + (st.open ? f1(r.v) : '') + '</span></div>';
+  }
   function rowHTML(c, r, st, H, R) {
+    if (phOn(H)) return rowPh(c, r, st, H, R);
     var fav = r.me && R.mid && R.mid.s === (c.season | 0) && R.mid.fav.indexOf(st.cat) >= 0;
     var tags = (r.me ? '<span class="cpr-you">Tú</span>' : '') + (r.rv ? '<span class="tag r">Tu rival</span>' : '') + (fav ? '<span class="tag y">Favorito</span>' : '') +
       (r.me && r.gate ? '<span class="tag">' + GATE_TAG[r.gate] + '</span>' : '');
@@ -588,16 +605,19 @@
     var st0 = standings(c, 'mvp');
     var segs = [['mvp', 'MVP', 'MVP'], ['young', 'Joven', 'Joven'], ['pos', 'Tu puesto', 'Puesto'], ['ace', 'Saque', 'Saque'], ['oth', 'Otras', 'Otras']];
     var on = function (k) { return k === 'pos' ? id === posCat(c) : k === 'oth' ? id === 'oth' || others(c).indexOf(id) >= 0 : id === k && id !== posCat(c); };
-    h += '<div class="card cpr-head"><h3>Carrera por los premios</h3>' + (ph ? H.q('Carrera por los premios', HELP) : '<p class="muted">' + hE(H, HELP) + '</p>') +
-      '<p class="cpr-wk">' + hE(H, subLine(c, st0)) + '</p>' +
-      '<div class="seg cpr-seg" role="group" aria-label="Premio">' + segs.map(function (s) {
-        var o = on(s[0]);
-        return '<button type="button" data-act="rc-cat" data-id="' + s[0] + '" aria-pressed="' + o + '">' + (ph ? s[2] : s[1]) + '</button>';
-      }).join('') + '</div></div>';
+    var segH = '<div class="seg cpr-seg" role="group" aria-label="Premio">' + segs.map(function (s) {
+      var o = on(s[0]);
+      return '<button type="button" data-act="rc-cat" data-id="' + s[0] + '" aria-pressed="' + o + '">' + (ph ? s[2] : s[1]) + '</button>';
+    }).join('') + '</div>';
+    // móvil (movil-aire §5.4): sin la tarjeta-sello; el segmentado como fila pegada arriba con el «?» al final
+    if (ph) h += '<div class="cpr-phb">' + segH + H.q('Carrera por los premios', subLine(c, st0) + '. ' + HELP) + '</div>';
+    else h += '<div class="card cpr-head"><h3>Carrera por los premios</h3><p class="muted">' + hE(H, HELP) + '</p>' +
+      '<p class="cpr-wk">' + hE(H, subLine(c, st0)) + '</p>' + segH + '</div>';
     if (id !== 'oth') {
       var st = standings(c, id), cat = CATS[id], ttl = id === posCat(c) && id !== 'ace' && id !== 'mvp' ? 'Tu puesto: ' + cat.name : cat.name;
       var wk = c.phase === 'league' ? 'jornada ' + st.wk + ' de ' + st.W : c.phase === 'off' ? 'final' : 'liga terminada';
-      h += '<div class="card cpr-tbl"><h3>' + hE(H, ttl) + '</h3><p class="cpr-unit">' + hE(H, cat.unit + (st.open ? '' : ', favoritos') + (ph ? ' — ' + wk : '')) + '</p>' + listHTML(c, st, H) + '</div>';
+      if (ph) h += '<div class="card cpr-tbl cpr-tph"><p class="cpr-unit">' + hE(H, ttl + ': ' + cat.unit.charAt(0).toLowerCase() + cat.unit.slice(1) + (st.open ? '' : ', favoritos') + ' — ' + wk) + '</p>' + listHTML(c, st, H) + '</div>';   // (sin el sello «MVP»)
+      else h += '<div class="card cpr-tbl"><h3>' + hE(H, ttl) + '</h3><p class="cpr-unit">' + hE(H, cat.unit + (st.open ? '' : ', favoritos')) + '</p>' + listHTML(c, st, H) + '</div>';
       h += needCard(c, id, st, H);
     }
     h += othersHTML(c, H, id);
@@ -751,7 +771,32 @@
       PQ + ' .cpr-gi>.cpr-v{grid-area:v}',
       PQ + ' .cpr-gw b{font-size:var(--ph-row)}',
       PQ + ' .cpr-gw small{font-size:var(--ph-cap)}',
-      PQ + ' .cpr-stamp{font-size:var(--ph-cap);width:32px;height:32px}'
+      PQ + ' .cpr-stamp{font-size:var(--ph-cap);width:32px;height:32px}',
+      // — móvil «con aire» (movil-aire §5.4, paquete carrera-liga-vida): segmentado pegado arriba (44) con el «?» al final, sin sellos,
+      // filas de 48 en una línea (puesto · flecha · nombre · club · nota) y tu fila siempre a la vista (pegada abajo si queda fuera)
+      PQ + ' .cpr-phb{position:sticky;top:-10px;z-index:4;display:flex;align-items:center;gap:10px;margin:-10px -4px 6px;padding:6px 4px;background:var(--sp-ink);box-shadow:0 6px 10px -6px rgba(10,6,24,.9)}',
+      PQ + ' .cpr-phb>.cpr-seg{flex:1 1 auto;min-width:0;margin:0;gap:8px}',
+      PQ + ' .cpr-phb>.cpr-seg button{min-height:44px;padding:0 2px;white-space:nowrap}',
+      PQ + ' .cpr-phb>.cr-q{position:relative;top:auto;right:auto;flex:none;width:44px;height:44px;min-width:44px;margin:0;transform:none}',
+      PQ + ' .card.cpr-tph{margin:0 0 16px;padding:0;background:none;border:0;box-shadow:none}',   // (un solo marco: las filas ya son cajas)
+      Q.replace(':root', ':root.ph.ph-s') + ' .cpr-phb{padding:3px 4px}',
+      Q.replace(':root', ':root.ph.ph-s') + ' .cpr-tph .cpr-row{min-height:46px}',
+      PQ + ' .cpr-tph>.cpr-unit{margin:0 0 4px;padding:0 4px;font:700 var(--ph-cap)/1.25 var(--sp-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .cpr-tph .cpr-list{gap:4px}',
+      PQ + ' .cpr-tph .cpr-row{grid-template-columns:32px 16px minmax(0,1fr) auto;gap:0 8px;min-height:48px;padding:0 12px 0 6px;transform:none}',
+      PQ + ' .cpr-tph .cpr-row:not(.me){background:rgba(29,21,48,.84)}',   // (sin la tarjeta detrás: filas opacas sobre el pabellón)
+      PQ + ' .cpr-tph .cpr-row:not(.me):nth-child(2n){transform:none;background:rgba(47,37,96,.9)}',
+      PQ + ' .cpr-tph .cpr-row.cpr-gap{background:none!important}',
+      PQ + ' .cpr-tph>.cpr-unit{display:inline-block;max-width:100%;border-radius:8px;background:rgba(29,21,48,.84)}',
+      PQ + ' .cpr-tph .cpr-row.me{position:sticky;bottom:0;top:52px;z-index:3;transform:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 4.5px var(--sp-gold)}',
+      PQ + ' .cpr-tph .cpr-row.cpr-gap{min-height:18px;padding:0 6px}',
+      PQ + ' .cpr-tph .cpr-tr{font:400 16px/1 var(--sp-ui);text-align:center}',
+      PQ + ' .cpr-tph .cpr-tr.nw{font-size:12px}',
+      PQ + ' .cpr-tph .cpr-row.me .cpr-tr{padding:0;background:none}',
+      PQ + ' .cpr-tph .cpr-nm{flex-wrap:nowrap;align-items:baseline;gap:8px}',
+      PQ + ' .cpr-tph .cpr-nm b{flex:0 1 auto;min-width:0;max-width:62%;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}',
+      PQ + ' .cpr-tph .cpr-nm small{flex:1 1 0;min-width:0;font-size:13px}',
+      PQ + ' .cpr-tph .cpr-v{font-size:var(--ph-row)}'
     ].join('\n');
   }
 

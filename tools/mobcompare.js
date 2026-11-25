@@ -2,10 +2,12 @@
 /* TAKE THE COURT — tools/mobcompare.js (owner: ui_main)
  * Antes / después de dos pasadas de tools/mobaudit.js: hoja de contactos HTML (capturas lado a lado por pantalla × tamaño, con
  * las diferencias de las métricas) y un resumen en Markdown.
- * Uso: node tools/mobcompare.js <dir_antes> [dir_después] [--out salida.html] [--only regex] [--sizes 568x320,...] [--cols n]
+ * Uso: node tools/mobcompare.js <dir_antes> [dir_después] [salida.html | --out salida.html] [--only regex] [--sizes 568x320,...] [--cols n]
  *   - con un solo directorio: hoja de contactos de esa pasada (sin diferencias).
  *   - salida por defecto: <dir_después>/compare.html y compare.md (o <dir_antes>/contact.html con un solo directorio).
  *   - las imágenes se enlazan con rutas relativas (la hoja se abre en el navegador; nada se copia).
+ *   - (ronda 2) columnas permitidos (recortes con data-trunc), tapado-pie y pisados; en el .md, «Por pantalla»: qué pantalla × tamaño
+ *     empeora o mejora en cada métrica (para ver de un vistazo si una pasada es igual a otra, p. ej. PC frente a la base).
  *   - SHOT=ruta.png: además, captura de la hoja entera con Chrome headless (tools/cdp.js), para mirarla sin navegador.
  */
 'use strict';
@@ -15,7 +17,7 @@ for (let i = 0; i < argv.length; i++) { const a = argv[i]; if (a.startsWith('--'
 if (!pos.length) { console.error('Uso: node tools/mobcompare.js <dir_antes> [dir_después] [--out salida.html] [--only regex] [--sizes …]'); process.exit(1); }
 const B = path.resolve(pos[0]), Aft = pos[1] ? path.resolve(pos[1]) : null;
 const single = !Aft;
-const OUT = path.resolve(A.out || (single ? path.join(B, 'contact.html') : path.join(Aft, 'compare.html')));
+const OUT = path.resolve(A.out || pos[2] || (single ? path.join(B, 'contact.html') : path.join(Aft, 'compare.html')));
 const MD = OUT.replace(/\.html?$/i, '') + '.md';
 const ONLY = A.only ? new RegExp(A.only, 'i') : null;
 const load = d => { try { return JSON.parse(fs.readFileSync(path.join(d, 'metrics.json'), 'utf8')); } catch (e) { console.error('sin metrics.json en ' + d); process.exit(1); } };
@@ -27,12 +29,15 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 
 // métricas resumidas de una pantalla en un tamaño (más = peor salvo minFont)
 const KEYS = [['minFont', 'letra mín', +1], ['n12', '< 12 px', -1], ['n14', '< 14 px', -1], ['smallT', 'toques < 44', -1], ['tight', 'toques juntos', -1], ['overlap', 'solapes', -1],
-  ['covered', 'tapados', -1], ['clipped', 'recortes', -1], ['off', 'fuera', -1], ['exit', 'salida ok', +1], ['primary', 'principal ok', +1], ['chars', 'caracteres', 0], ['targets', 'objetivos', 0], ['scroll', 'con scroll', 0]];
+  ['covered', 'tapados', -1], ['rot', 'rótulos solap.', -1], ['clipped', 'recortes', -1], ['clipO', 'recortes o', -1], ['perm', 'permitidos', 0], ['foot', 'tapado-pie', -1], ['pis', 'pisados', -1], ['off', 'fuera', -1], ['exit', 'salida ok', +1], ['primary', 'principal ok', +1], ['chars', 'caracteres', 0], ['targets', 'objetivos', 0], ['scroll', 'con scroll', 0]];
+// (ronda 2) una pasada vieja (sin las métricas de sistema-v: «pie») no tenía el recorte 'o': para comparar, recortes = sin los 'o' y los 'o' aparte
+const newH = mm => !!mm && Object.values(mm.screens).some(sc => Object.values(sc.bySize || {}).some(x => x && x.foot));
+const OLDH = !newH(mb) || (!single && !newH(ma));
 function flat(m) {
   if (!m) return null;
   if (m.err && !m.fonts) return { err: m.err };
-  return { minFont: m.fonts.min, n12: m.fonts.n12, n14: m.fonts.n14, smallT: m.targets.nSmall, tight: m.targets.nTight, overlap: m.targets.nOverlap, covered: m.targets.covered.length,
-    clipped: m.nClipped, off: m.nOff, exit: m.exit ? (m.exit.ok ? 1 : 0) : null, primary: m.primary ? (m.primary.ok ? 1 : 0) : null, chars: m.density.chars, targets: m.density.targets,
+  return { minFont: m.fonts.min, n12: m.fonts.n12, n14: m.fonts.n14, smallT: m.targets.nSmall, tight: m.targets.nTight, overlap: m.targets.nOverlap, covered: m.targets.covered.length, rot: m.rot ? m.rot.n : null,
+    clipped: OLDH ? m.nClipped - (m.nClipO || 0) : m.nClipped, clipO: m.nClipO != null || m.foot ? (m.nClipO || 0) : null, perm: m.nClippedOk != null ? m.nClippedOk : null, foot: m.foot ? m.foot.n : null, pis: m.pis ? m.pis.n : null, off: m.nOff, exit: m.exit ? (m.exit.ok ? 1 : 0) : null, primary: m.primary ? (m.primary.ok ? 1 : 0) : null, chars: m.density.chars, targets: m.density.targets,
     scroll: m.nScrollNeed, err: m.err || '' };
 }
 function cell(k, dir, b, a) {
@@ -52,7 +57,8 @@ for (const id of ids) {
     if (!xb && !xa) continue;
     const fb = flat(xb), fa = single ? undefined : flat(xa);
     if (single || (xb && xa)) for (const [k] of KEYS) { if (fb && fb[k] != null && typeof fb[k] === 'number') tot.b[k] = (tot.b[k] || 0) + (k === 'minFont' ? 0 : fb[k]); if (fa && fa[k] != null && typeof fa[k] === 'number') tot.a[k] = (tot.a[k] || 0) + (k === 'minFont' ? 0 : fa[k]); }
-    const changed = !single && JSON.stringify(fb) !== JSON.stringify(fa);
+    const nk = x => { if (!x) return x; const y = Object.assign({}, x); for (const k of ['perm', 'foot', 'pis', 'rot', 'clipO']) if (!fb || !fa || fb[k] == null || fa[k] == null) delete y[k]; return y; };   // (métricas que la otra pasada no tenía: no cuentan como cambio)
+    const changed = !single && JSON.stringify(nk(fb)) !== JSON.stringify(nk(fa));
     html += '<div class="row' + (changed ? ' ch' : '') + '" data-size="' + sz + '"><div class="lab">' + sz + '</div><div class="imgs">' +
       (xb ? '<figure><img loading="lazy" src="' + esc(rel(path.join(B, xb.shot || (sz + '/' + id + '.png')))) + '"><figcaption>' + (single ? '' : 'antes') + (fb && fb.err ? ' <i class="err">' + esc(fb.err) + '</i>' : '') + '</figcaption></figure>' : '<figure class="none">—</figure>') +
       (!single ? (xa ? '<figure><img loading="lazy" src="' + esc(rel(path.join(Aft, xa.shot || (sz + '/' + id + '.png')))) + '"><figcaption>después' + (fa && fa.err ? ' <i class="err">' + esc(fa.err) + '</i>' : '') + '</figcaption></figure>' : '<figure class="none">—</figure>') : '') +
@@ -72,7 +78,7 @@ for (const id of ids) {
   else if (!sb || !sa) md.push('| ' + id + ' | ' + area + ' | ' + (sb ? '(solo antes)' : '(solo después)') + ' |  |  |  |  |  |  |  |');
   else {
     const d = (k) => { const x = a0 ? a0[k] : null, y = a1 ? a1[k] : null; return x === y ? String(x ?? '–') : (x ?? '–') + ' → **' + (y ?? '–') + '**'; };
-    md.push('| ' + id + ' | ' + area + ' | ' + ['minFont', 'n12', 'n14', 'smallT', 'overlap', 'clipped', 'off'].map(d).join(' | ') + ' | ' + (a0 && a0.exitOk ? 'ok' : 'NO') + ' → ' + (a1 && a1.exitOk ? 'ok' : 'NO') + ' |');
+    md.push('| ' + id + ' | ' + area + ' | ' + ['minFont', 'n12', 'n14', 'smallT', 'overlap', 'clipped', 'perm', 'foot', 'pis', 'off', 'rot'].map(d).join(' | ') + ' | ' + (a0 && a0.exitOk ? 'ok' : 'NO') + ' → ' + (a1 && a1.exitOk ? 'ok' : 'NO') + ' |');
   }
 }
 const totRow = KEYS.filter(k => k[0] !== 'minFont' && k[0] !== 'exit' && k[0] !== 'primary').map(([k, l]) => '<td>' + l + ': ' + (tot.b[k] || 0) + (single ? '' : ' → <b>' + (tot.a[k] || 0) + '</b>') + '</td>').join('');
@@ -94,10 +100,23 @@ function ap(){document.querySelectorAll('.sc').forEach(function(s){s.hidden=!!fa
 fa.onchange=fs.onchange=ap;if(fc)fc.onchange=ap;})();</script></body></html>`;
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, page);
+// (ronda 2) comparación por pantalla y tamaño: cada métrica que cambia, con su dirección
+const perScreen = [];
+if (!single) for (const id of ids) {
+  const sb = mb.screens[id], sa = ma.screens[id]; if (!sb || !sa) { perScreen.push('- ' + id + ': ' + (sb ? 'solo antes' : 'solo después')); continue; }
+  for (const sz of sizes) {
+    const fb = flat(sb.bySize[sz]), fa = flat(sa.bySize[sz]); if (!fb || !fa) continue;
+    const ch = [];
+    for (const [k, l, dir] of KEYS) { if (k === 'chars' || k === 'targets' || k === 'scroll') continue; if (/^(perm|foot|pis|rot|clipO)$/.test(k) && (fb[k] == null || fa[k] == null)) continue; if (fb[k] !== fa[k] && !(fb[k] == null && fa[k] == null)) ch.push(l + ' ' + (fb[k] ?? '–') + ' → ' + (fa[k] ?? '–') + (dir && fb[k] != null && fa[k] != null ? ((fa[k] - fb[k]) * dir > 0 ? ' ▼' : ' ▲') : '')); }
+    if (fb.err !== fa.err) ch.push('error «' + (fb.err || '') + '» → «' + (fa.err || '') + '»');
+    if (ch.length) perScreen.push('- ' + id + ' @' + sz + ': ' + ch.join(' · '));
+  }
+}
 const mdHead = single ? '| pantalla | área | peor | letra mín | < 12 | < 14 | toques < 44 | recortes | salida |\n|---|---|---|---|---|---|---|---|---|'
-  : '| pantalla | área | letra mín | < 12 | < 14 | toques < 44 | solapes | recortes | fuera | salida |\n|---|---|---|---|---|---|---|---|---|---|';
+  : '| pantalla | área | letra mín | < 12 | < 14 | toques < 44 | solapes | recortes | permitidos | tapado-pie | pisados | fuera | rótulos solap. | salida |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';
 const totMd = KEYS.filter(k => !/minFont|exit|primary/.test(k[0])).map(([k, l]) => '- ' + l + ': ' + (tot.b[k] || 0) + (single ? '' : ' → ' + (tot.a[k] || 0))).join('\n');
 fs.writeFileSync(MD, '# ' + (single ? 'Auditoría de móvil' : 'Auditoría de móvil: antes y después') + '\n\n' + (single ? B : B + ' → ' + Aft) + '\n\nTotales (suma de todos los tamaños' + (single ? '' : '; solo lo que está en las dos pasadas') + '):\n' + totMd +
+  (single ? '' : '\n\nPor pantalla (pantalla @tamaño: métrica antes → después; ▲ peor, ▼ mejor; solo lo que cambia):\n\n' + (perScreen.length ? perScreen.join('\n') : '(sin cambios)')) +
   '\n\nPeor tamaño de cada pantalla' + (single ? '' : ' (antes → después)') + ':\n\n' + mdHead + '\n' + md.join('\n') + '\n');
 console.log(OUT + '\n' + MD);
 if (process.env.SHOT) {

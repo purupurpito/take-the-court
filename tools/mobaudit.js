@@ -7,14 +7,26 @@
  *   objetivos tapados, recortes (elipsis, line-clamp, overflow oculto), cosas fuera del viewport, salida/acción principal
  *   dentro y pulsables (elementFromPoint), contenedores con desplazamiento y densidad (caracteres y objetivos).
  * Uso: node tools/mobaudit.js [--out dir=tools/out/mobaudit] [--only regex] [--area portada|carrera|online|partido]
- *        [--sizes 568x320,...] [--desktop] [--list] [--merge]
+ *        [--sizes 568x320,...] [--desktop] [--list] [--merge] [--probe 'cuerpo JS que devuelve algo'] [--preshot 'JS antes de cada captura']
  *   --merge: conserva las demás pantallas de <out>/metrics.json (repasar unas pocas sin repetir la pasada entera).
  *   Env: SIZES=… (igual que --sizes), DESKTOP=1 (añade 1280x720,1920x1080,1024x768 sin táctil; con --desktop solo esos si
  *   no se dan --sizes), DPR=2 (deviceScaleFactor), TOUCH=0 (sin táctil en los tamaños de móvil), GL=swiftshader.
  * Cómo se abre cada pantalla: tabla SCREENS de abajo. Cada fila = {id, area, q (query de index.html; las filas con la misma q
  *   comparten una carga de página, en orden), open (cuerpo JS async en la página; M = window.__MA, ver mobaudit-page.js
- *   helpers(); devolver false = «no se pudo abrir»), wait (ms tras abrir), exit / primary (selectores; '' = no aplica)}.
+ *   helpers(); devolver false = «no se pudo abrir»), wait (ms tras abrir), exit / primary (selectores; '' = no aplica), land (ronda 2:
+ *   en vertical se abre apaisado y se gira después: filas que esperan algo del partido en juego, que en vertical se para)}.
  *   Todas las cargas llevan &ma_clean=1 (borra localStorage antes de cargar: sin Carrera ni récord) y &uianim=0.
+ *   Estado fijado entre pantallas (movil-aire, 23-nov-2026): zurdos solo en las filas «-zurdos»; Mensajes abre Bandeja; Liga › Clubes,
+ *   la lista. Columna «rot» = rótulos no tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar). El interruptor
+ *   de fitSeg se mide por su fila (.ph-trow) y la flecha del final de un selector (.arr.end) cuenta como desactivada.
+ * Vertical (ronda 2, 24-nov-2026; --sizes 360x740,390x844,412x915): tier = html.pv sin .ph; si una carga no acaba en vertical (el
+ *   partido en juego: ctx.portraitBlock detiene la simulación) se carga apaisado y se gira. Columna «girar»: las pantallas que enseñan
+ *   el aviso #rotate («girar (partido)» = partido en juego, lo esperado; «girar» = fuera del juego, a quitar). La Carrera ya no lo pide.
+ * Ronda 2 (paquete sistema-v, notes/movil-aire.md §8.6.1): recortes «permitidos» aparte (antepasado data-trunc="name"|"preview"; columna
+ *   perm); los demás, con su texto entero al final de summary.txt; recorte 'o' (overflow oculto con un hijo de texto o una tabla que se
+ *   sale); «pie» = texto tapado por el pie (dock, barra, desvanecido) con todo desplazado al final (mobaudit-page.js footCover); «pis» =
+ *   rótulos de texto no tocables que se pisan dentro de un panel. Antes de cada pantalla de la Carrera que no es de lesión se cura la
+ *   lesión de la muestra (si no, la natl-tarjeta, las Estrellas o la propuesta de puesto salían «De baja» por la fila anterior).
  * Comparar dos pasadas: node tools/mobcompare.js <antes> <después> [salida.html].
  */
 'use strict';
@@ -34,8 +46,10 @@ for (let i = 0; i < argv.length; i++) {
 const OUT = path.resolve(A.out || path.join(CDP.ROOT, 'tools', 'out', 'mobaudit'));
 const PHONES = '568x320,667x375,740x360,844x390,915x412', DESKS = '1280x720,1920x1080,1024x768';
 const DESK = A.desktop || process.env.DESKTOP === '1';
-let sizeList = (A.sizes || process.env.SIZES || (A.desktop ? '' : PHONES)).split(',').filter(Boolean).map(s => ({ s, touch: process.env.TOUCH !== '0' }));
-if (DESK) sizeList = sizeList.concat(DESKS.split(',').map(s => ({ s, touch: false })));
+// (ronda 2) --desktop --sizes a,b: esos tamaños SIN táctil y solo ellos (antes se medían dos veces: con táctil y luego sin él)
+const DESK_ONLY = !!A.desktop && !!(A.sizes || process.env.SIZES);
+let sizeList = (A.sizes || process.env.SIZES || (A.desktop ? '' : PHONES)).split(',').filter(Boolean).map(s => ({ s, touch: !DESK_ONLY && process.env.TOUCH !== '0' }));
+if (DESK && !DESK_ONLY) sizeList = sizeList.concat(DESKS.split(',').map(s => ({ s, touch: false })));
 const DPR = +process.env.DPR || 1;
 const ONLY = A.only ? new RegExp(A.only, 'i') : null;
 const AREA = A.area || '';
@@ -47,7 +61,8 @@ const SET_TABS = ['audio', 'image', 'cam', 'game', 'a11y', 'kit', 'info'];
 const CTL_TABS = ['keyboard', 'gamepad', 'touch'];
 const LK_TABS = ['pelo', 'cabeza', 'cara', 'cuerpo', 'brazos', 'piernas', 'colores'];
 const PF_TABS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos', 'cuaderno'];
-const CR_TABS = [['match'], ['inbox'], ['player', 'phys'], ['player', 'def'], ['player', 'atk'], ['player', 'badges'], ['player', 'train'], ['player', 'look'],
+// (movil-aire §3.13) t[2] = sub-pestaña que se FIJA al abrir sin cambiar el id (Mensajes → Bandeja: si no, a 844 salía en Redes, la última vista)
+const CR_TABS = [['match'], ['inbox', '', 'box'], ['player', 'phys'], ['player', 'def'], ['player', 'atk'], ['player', 'badges'], ['player', 'train'], ['player', 'look'],
   ['club', 'info'], ['club', 'mate|team'], ['club', 'contract'], ['club', 'offers'], ['life', 'fame'], ['life', 'shop'], ['life', 'goals'], ['life', 'legacy'],
   ['league', 'table'], ['league', 'cal'], ['league', 'cups'], ['league', 'news'], ['league', 'clubs'], ['honors', 'titles'], ['honors', 'seasons'], ['honors', 'opts'],
   ['inbox', 'wall'], ['club', 'people'], ['life', 'pass'], ['honors', 'stats']];   // (Carrera con vida, 1.13.x)
@@ -62,7 +77,9 @@ const XO = (sid, m, id, k, t, s) => { const r = XR(sid, m, id, k, t, s); r.q += 
 // Estrellas en Partido: la tarjeta queda bajo la cabecera del hub; se espera a que esté y se baja hasta ella
 const XAS = r => Object.assign(r, { open: r.open.replace(/return (M\.career\([^)]*\));$/, "await $1; var e = await M.until(()=>document.querySelector('#career .as-card'),2000) && document.querySelector('#career .as-card'); if (!e) return false; e.scrollIntoView({block:'center'}); return true;") });
 const PAUSE_EXIT = '#btnResume';
-const HUD_EXIT = '#btnHudPause, #touch .vt-pause';   // (táctil: la pausa es la del overlay)
+// (ronda 2) cura la lesión de las dos Carreras de muestra (playa y pista) sin cambiar nada más; deja el modo como estaba
+const HEAL = "(function(){try{var C=VB.Career;if(!C||!C.get||!C.setMode)return 0;var m0=C.mode?C.mode():null,n=0;['beach','hall'].forEach(function(m){if(C.has&&!C.has(m))return;C.setMode(m);var c=C.get();if(!c)return;var ch=false;if(c.inj&&c.inj.cur){c.inj.cur=null;c.inj.back=0;c.inj.rust=0;ch=true;}if(c.last&&c.last.inj){delete c.last.inj;ch=true;}if(ch){C.save(c);n++;}});if(m0)C.setMode(m0);return n;}catch(e){return -1}})()";
+const HUD_EXIT = '#btnHudPause, #touch .vt-pause, #btnRotPause';   // (táctil: la pausa es la del overlay; en vertical, la «Pausa» del aviso de girar)
 
 const SCREENS = [
   // ---------------- PORTADA (menú)
@@ -77,12 +94,15 @@ const SCREENS = [
   ...CTL_TABS.map(t => ({ id: 'controles-' + t, area: 'portada', q: M0, open: `return M.panel('#btnControls','#pnCtl','#ctlTabs','${t}');`, primary: '' })),
   // disposición táctil (1.22.0, imprescindible 4.2): el editor a pantalla completa, de fábrica y con zurdos + un botón movido y más grande
   // (carga propia: el editor tapa la pantalla y las filas que comparten carga lo heredarían)
-  { id: 'controles-touch-editor', area: 'portada', q: M0 + '&ma=te', open: "if (!(await M.panel('#btnControls','#pnCtl','#ctlTabs','touch'))) return false; var b = document.querySelector('[data-tedit]'); if (!b) return false; b.click(); await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok', primary: '' },
-  { id: 'controles-touch-editor-zurdos', area: 'portada', q: M0 + '&ma=tz', open: "await M.ensureMenu(); VB.Input.closeEditor(); VB.ctx.actions.setSetting('touchMirror', true); VB.ctx.actions.setSetting('touchLayout', { hit: { x: 0.7, y: 0.55, s: 1.3 }, jump: { o: 0.6 } }); if (!VB.Input.editLayout()) return false; await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok', primary: '' },
+  { id: 'controles-touch-editor', area: 'portada', q: M0 + '&ma=te', open: "if (!(await M.panel('#btnControls','#pnCtl','#ctlTabs','touch'))) return false; var b = document.querySelector('[data-tedit]'); if (!b) return false; b.click(); await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok, .vte-back', primary: '' },
+  { id: 'controles-touch-editor-zurdos', area: 'portada', q: M0 + '&ma=tz', open: "await M.ensureMenu(); VB.Input.closeEditor(); VB.ctx.actions.setSetting('touchMirror', true); VB.ctx.actions.setSetting('touchLayout', { hit: { x: 0.7, y: 0.55, s: 1.3 }, jump: { o: 0.6 } }); if (!VB.Input.editLayout()) return false; await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok, .vte-back', primary: '' },
   ...[0, 1, 2, 3, 4, 5].map(k => ({ id: 'comojuega-' + (k + 1), area: 'portada', q: M0, open: `return M.tutStep(${k});` })),
   ...[0, 1, 2].map(k => ({ id: 'jugadores-g' + k, area: 'portada', q: M0, open: `return M.panel('#btnSquad','#pnSquad','#sqTabs','g${k}');`, primary: '' })),
   { id: 'acerca-novedades', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('news'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'acerca-creditos', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('credits'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
+  // Opiniones (1.22.1, js/feedback.js): el formulario desde Ajustes › Info (sugerencia) y el de bug ya enviado sin red (cola)
+  { id: 'opiniones-sug', area: 'portada', q: M0, open: "if (!(await M.panel('#btnSettings','#pnSet','#setTabs','info'))) return false; M.click('[data-go=\"fbsug\"]'); await M.sleep(150); return VB.UI._settings().panel === 'fb';", primary: '#fbSend' },
+  { id: 'opiniones-bug', area: 'portada', q: M0, open: "await M.ensureMenu(); if (!VB.UI.openFeedback('bug')) return false; await M.sleep(120); return VB.UI._settings().panel === 'fb';", primary: '#fbSend' },
   { id: 'aviso-colocador', area: 'portada', q: M0 + '&setnote=1', open: "await M.ensureMenu(); VB.UI.setterNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="later"]' },
   // rendimiento del 1r 6v6 (24-nov-2026): la ventana de la calidad antes del partido (Auto recomendada; Alta, Media y Baja)
   { id: 'aviso-rendimiento', area: 'portada', q: M0 + '&q6=1', open: "await M.ensureMenu(); VB.UI.perfNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="q-low"]', primary: '[data-sn="q-auto"]' },
@@ -139,7 +159,11 @@ const SCREENS = [
   ...['beach', 'hall'].flatMap(m => CR_TABS.filter(t => !(m === 'beach' && t[1] === 'cups')).map(t => {
     const sub = t[1] ? (t[1].split('|')[m === 'hall' ? 1 : 0] || t[1]) : '';
     return { id: 'carrera-' + (m === 'beach' ? 'playa' : 'pista') + '-' + t[0] + (sub ? '-' + sub : ''), area: 'carrera', q: M0 + '&ma=' + (m === 'beach' ? 'cb' : 'ch'),
-      open: `if (!M.seedCareer('${m}')) return false; return M.career('${t[0]}', '${sub}');` };
+      // league-clubs: la lista (no la última ficha abierta) · life-legacy / honors-seasons: en el móvil career-ui funde Fama+Legado y
+      // Vitrina+Temporadas (career-ui.js setSub, LIFE_PH): al abrir Legado / Temporadas, career-ui baja solo a su ancla (phAfter / phReveal,
+      // #crAnLegacy / #crAnSeasons; movil-aire §5.4), así que estas filas capturan la vista FUSIONADA ya en su ancla
+      open: `if (!M.seedCareer('${m}')) return false; ` + (sub === 'clubs' ? `if (VB.CareerWorldUI && VB.CareerWorldUI.reset) VB.CareerWorldUI.reset(); ` : '') +
+        `return M.career('${t[0]}', '${t[2] || sub}');` };
   })),
   { id: 'carrera-playa-club-ficha', area: 'carrera', q: M0 + '&ma=cb', open: "if (!M.seedCareer('beach')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
   { id: 'carrera-pista-club-ficha', area: 'carrera', q: M0 + '&ma=ch', open: "if (!M.seedCareer('hall')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
@@ -215,8 +239,8 @@ const SCREENS = [
   // árbitros con nombre (21-nov-2026): la designación en la previa larga y la ficha «Frenar a … / Dejarle» (playa y pista)
   { id: 'carrera-previa-arbitro', area: 'carrera', q: 'debug=intro&kind=long&career=1&arb=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
   { id: 'carrera-previa-arbitro-fama', area: 'carrera', q: 'debug=intro&kind=long&career=1&arb=2&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
-  { id: 'partido-frenar-playa', area: 'partido', q: 'debug=amb&k=brake', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
-  { id: 'partido-frenar-pista', area: 'partido', q: 'debug=amb&k=brake&format=6v6', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
+  { id: 'partido-frenar-playa', area: 'partido', q: 'debug=amb&k=brake', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '', land: true },
+  { id: 'partido-frenar-pista', area: 'partido', q: 'debug=amb&k=brake&format=6v6', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '', land: true },
 
   // ---------------- PARTIDO
   { id: 'hud-2v2', area: 'partido', q: 'debug=hud', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 1200, exit: HUD_EXIT, primary: '' },
@@ -242,12 +266,13 @@ const SCREENS = [
   { id: 'semana-hoja', area: 'partido', q: 'debug=semana_end', open: "return M.until(()=>VB.ctx.state==='over',8000);", wait: 1500, exit: '', primary: '#btnAgain' },
   { id: 'pausa', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} return VB.ctx.state==='paused' && !VB.UI.isPanelOpen();", wait: 500, exit: PAUSE_EXIT },
   { id: 'pausa-controles', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); if (!VB.UI.isPanelOpen()) M.click('#btnPControls'); await M.sleep(150); return VB.UI.isPanelOpen();", primary: '' },
+  { id: 'pausa-bug', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} M.click('#btnPBug'); await M.sleep(150); return VB.UI._settings().panel === 'fb';", primary: '#fbSend' },
   { id: 'pausa-ajustes', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} M.click('#btnPSettings'); await M.sleep(150); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'cambios-6v6', area: 'partido', q: 'debug=subs6menu', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'cambios-6v6-elegido', area: 'partido', q: 'debug=subs6menu&pick=1', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'final-resumen', area: 'partido', q: 'debug=over', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); return M.click('#endTabs [data-tab=\"sum\"]') || true;", wait: 600 },
   { id: 'final-nivel', area: 'partido', q: 'debug=over&pflv=60', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); M.click('#endTabs [data-tab=\"sum\"]'); var r=document.querySelector('#endSum .rc-prof'); if (r) r.scrollIntoView({block:'nearest'}); return !!r;", wait: 600 },   // subida de nivel del perfil con premio (el nombre más largo de los de nivel alto, 24-nov)
-  { id: 'final-primero', area: 'partido', q: 'debug=over&first=1', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); M.click('#endTabs [data-tab=\"sum\"]'); var r=document.querySelector('#endSum .rc-first'); if (r) r.scrollIntoView({block:'nearest'}); return !!r;", wait: 600 },   // «Y ahora» tras el primer partido (1.22.0)
+  { id: 'final-primero', area: 'partido', q: 'debug=over&first=1', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); M.click('#endTabs [data-tab=\"sum\"]'); var r=document.querySelector('#end .rc-first'); if (r) r.scrollIntoView({block:'nearest'}); return !!r;", wait: 600 },   // «Y ahora» tras el primer partido (1.22.0)
   { id: 'final-stats', area: 'partido', q: 'debug=over', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(300); return M.click('#endTabs [data-tab=\"stats\"]');", wait: 500 },
   { id: 'final-jugadas', area: 'partido', q: 'debug=best&tab=plays', open: "await M.until(()=>VB.ctx.state==='over',8000); await M.sleep(600); M.click('#endTabs [data-tab=\"plays\"]'); return VB.ctx.state==='over';", wait: 600 },
   { id: 'final-reto', area: 'partido', q: 'debug=reto_end', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
@@ -301,7 +326,16 @@ async function main() {
         await page.setSize(prof.sizes[0], prof.touch, DPR);
         page.errors.length = 0;
         await page.navigate('ma_clean=1&uianim=0&' + g.q);
-        const ready = await waitReady(page);
+        let ready = await waitReady(page);
+        // (ronda 2) en vertical el partido en juego no arranca (ctx.portraitBlock detiene la simulación y la carga no acaba): se carga
+        // apaisado y se gira, como quien gira el móvil con el partido empezado; así sale el aviso de girar
+        const [pw0, ph0] = prof.sizes[0].split('x').map(Number);
+        if (!ready && ph0 > pw0) {
+          process.stderr.write('  (vertical) ' + g.q + ': no cargó en vertical; se carga apaisado y se gira\n');
+          await page.setSize(ph0 + 'x' + pw0, prof.touch, DPR); page.errors.length = 0;
+          await page.navigate('ma_clean=1&uianim=0&' + g.q);
+          ready = await waitReady(page);
+        }
         if (!ready) process.stderr.write('  (aviso) la página no dijo «lista» para ' + g.q + '\n');
         for (const sz of prof.sizes) {
           await page.setSize(sz, prof.touch, DPR); await sleep(350);
@@ -310,16 +344,33 @@ async function main() {
             let ok = false, err = '';
             // el scrollAll de la medida anterior no debe dejar la siguiente pantalla (o talla) ya desplazada
             try { await page.evalJs('(' + PG.resetScroll.toString() + ')()'); await sleep(80); } catch (e) { }
+            // (movil-aire §3.13) zurdos solo en las filas «-zurdos»: hud-2v2-peloteo heredaba el espejo de hud-2v2-zurdos (misma carga)
+            if (!/zurdos/.test(s.id)) { try { await page.evalJs("try{if(VB.ctx&&VB.ctx.settings&&VB.ctx.settings.touchMirror===true)VB.ctx.actions.setSetting('touchMirror',false)}catch(e){}"); } catch (e) { } }
+            // (ronda 2) la lesión de la muestra (filas «-lesion» y «-partido-baja») no pasa a las demás pantallas de la Carrera de la misma carga
+            if (s.area === 'carrera' && !/lesion|partido-baja/.test(s.id)) { try { await page.evalJs(HEAL); } catch (e) { } }
+            // (ronda 2) land: en vertical el partido en juego se para (portraitBlock) y lo que espera la fila no llega: se abre apaisado y se gira
+            const [lw, lh] = sz.split('x').map(Number), landNow = !!s.land && lh > lw;
+            if (landNow) { await page.setSize(lh + 'x' + lw, prof.touch, DPR); await sleep(350); }
             try {
               const r = await withTimeout(page.evalJs('(async()=>{const M=window.__MA;' + s.open + '})()', true), s.openMs || 20000, s.id);   // (openMs: filas que tardan en abrir, p. ej. la ficha de una disputa)
               ok = r !== false && r !== null && r !== 0;
               if (!ok) err = 'no se pudo abrir';
             } catch (e) { err = 'no se pudo abrir: ' + String(e.message || e).split('\n')[0].slice(0, 160); }
             await sleep(s.wait || 220);
+            if (landNow) { await page.setSize(sz, prof.touch, DPR); await sleep(450); }
+            // (ronda 2, sistema-v: la Carrera ya no pide girar —fuera crPortrait de ui.js—; el aviso #rotate se mide tal cual: columna «girar»)
             const file = path.join(OUT, sz, s.id + '.png');
+            // (ronda 2) --probe 'expr JS': se evalúa tras abrir cada pantalla y se imprime (depurar sin otro arnés)
+            if (A.probe) { try { console.log('probe ' + s.id + ' @' + sz + ': ' + JSON.stringify(await page.evalJs('(()=>{' + A.probe + '})()'))); } catch (e) { console.log('probe ' + s.id + ': ' + e.message); } }
+            // (ronda 2, menus-v) las entradas de la portada y de las páginas del menú (mjIn, pgIn, fadeUp: deslizan 36 px) se terminan antes
+            // de medir: si no, el primer tamaño de cada carga medía JUGAR a media entrada («fuera» con x < 0)
+            try { await page.evalJs("try{document.getAnimations().forEach(function(a){var n=a.animationName||'';if(/^(mjIn|pgIn|pgBack|fadeUp)$/.test(n))a.finish()})}catch(e){}"); } catch (e) { }
             let m = null;
             try { m = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id); }
             catch (e) { err = err || ('medida: ' + String(e.message || e).slice(0, 160)); }
+            // (ronda 2, carrera-flujo-v) --preshot 'JS': se evalúa justo antes de la captura (p. ej. llevar el contenido arriba: la medida
+            // puede desplazar y la captura sale a media lista); no cambia las métricas
+            if (A.preshot) { try { await page.evalJs('(()=>{' + A.preshot + '})()'); await sleep(120); } catch (e) { } }
             try { await page.shot(file); } catch (e) { }
             // (móvil, spec §6.1.5) cada zona desplazable al final y otra medida: salida y principal siguen dentro y pulsables
             if (m && !m.err && !err) {
@@ -330,10 +381,14 @@ async function main() {
                   const m2 = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id);
                   m.afterScroll = { n: nS, exit: m2.exit, primary: m2.primary };
                 }
+                // (ronda 2) tapado por el pie: lo que, con todo al final, sigue debajo del dock, la barra o el desvanecido
+                m.foot = await withTimeout(page.evalJs('(' + PG.footCover.toString() + ')()'), 20000, 'pie ' + s.id);
               } catch (e) { }
             }
             if (!m) m = { err: err || 'sin métricas' };
-            if (m.tier) m.tierOk = m.tier.ph === !DESKS.split(',').includes(sz);
+            // (ronda 2) tier por orientación: escritorio sin .ph ni .pv; móvil apaisado .ph; móvil en vertical (táctil, ancho <= 500) .pv y sin .ph
+            if (m.tier) { const [tw, th] = sz.split('x').map(Number), desk = DESKS.split(',').includes(sz), port = th > tw;
+              m.tierOk = desk ? (!m.tier.ph && !m.tier.pv) : port ? (prof.touch && tw <= 500 ? m.tier.pv && !m.tier.ph : !m.tier.ph) : m.tier.ph; }
             if (err) { m.err = err; nFail++; process.stderr.write('  ✗ ' + s.id + ' @' + sz + ': ' + err + '\n'); }
             if (page.errors.length) { m.jsErrors = page.errors.slice(0, 5); page.errors.length = 0; }
             m.shot = path.relative(OUT, file).replace(/\\/g, '/');
@@ -359,24 +414,43 @@ async function main() {
     const scrOk = Object.values(bs).every(x => !x.afterScroll || ((!x.afterScroll.exit || x.afterScroll.exit.ok || !(x.exit && x.exit.ok)) && (!x.afterScroll.primary || x.afterScroll.primary.ok || !(x.primary && x.primary.ok))));
     const ell = Math.max(0, ...Object.values(bs).map(x => x.nEllBad || 0)), tabs = Math.max(0, ...Object.values(bs).map(x => (x.tabOver || []).length));
     const hscr = Object.values(bs).some(x => x.hscroll);
+    // (ronda 2) aviso de girar en algún tamaño: «girar (partido)» = en juego, lo esperado; «girar» = fuera del juego, a quitar
+    const rotate = Object.values(bs).some(x => x.rotate) ? (Object.values(bs).every(x => !x.rotate || x.rotateGame) ? 'girar (partido)' : 'girar') : '';
+    const rot = Math.max(0, ...Object.values(bs).map(x => x.rot ? x.rot.n : 0));   // (movil-aire: rótulos no tocables que se solapan)
+    // (ronda 2) recortes permitidos (data-trunc), tapado por el pie y rótulos de texto pisados: el máximo de los tamaños
+    const perm = Math.max(0, ...Object.values(bs).map(x => x.nClippedOk || 0)), foot = Math.max(0, ...Object.values(bs).map(x => x.foot ? x.foot.n : 0)), pis = Math.max(0, ...Object.values(bs).map(x => x.pis ? x.pis.n : 0));
     sc.summary = { worst, score: ws, minFont: minF === 99 ? null : minF, n12: m.fonts ? m.fonts.n12 : null, n14: m.fonts ? m.fonts.n14 : null, smallT: m.targets ? m.targets.nSmall : null,
-      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
+      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, rot, perm, foot, pis, rotate, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
     rows.push([id, sc.area, sc.summary]);
   }
   fs.writeFileSync(path.join(OUT, 'metrics.json'), JSON.stringify(metrics, null, 1));
-  const head = 'pantalla'.padEnd(36) + ' área     peor       letraMin  <12  <14  toq<44 solap enorme recort fuera salida princ tier despl elip pest';
+  const head = 'pantalla'.padEnd(36) + ' área     peor       letraMin  <12  <14  toq<44 solap enorme recort fuera salida princ tier despl elip pest  rot perm  pie  pis';
   const lines = [head, '-'.repeat(head.length)];
   for (const [id, area, s] of rows) {
     lines.push(id.padEnd(36) + ' ' + area.padEnd(8) + ' ' + String(s.worst || '-').padEnd(10) + ' ' + String(s.minFont == null ? '-' : s.minFont).padStart(8) + ' ' + String(s.n12 ?? '-').padStart(4) + ' ' + String(s.n14 ?? '-').padStart(4) + ' ' +
       String(s.smallT ?? '-').padStart(6) + ' ' + String(s.overlap ?? '-').padStart(5) + ' ' + String(s.huge ?? '-').padStart(6) + ' ' + String(s.clipped ?? '-').padStart(6) + ' ' + String(s.off ?? '-').padStart(5) + ' ' + (s.exitOk ? '  ok  ' : '  NO  ') + (s.primOk ? ' ok  ' : ' NO  ') +
-      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
+      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + String(s.rot ?? '-').padStart(5) + String(s.perm ?? '-').padStart(5) + String(s.foot ?? '-').padStart(5) + String(s.pis ?? '-').padStart(5) + (s.rotate ? '  [' + s.rotate + ']' : '') + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
   }
-  lines.push('', 'tier = html.ph en los tamaños de móvil y sin él en 1280x720 / 1920x1080 / 1024x768 · despl = tras llevar cada zona al final, la salida y la principal',
-    'siguen dentro y pulsables · elip = elipsis que cortan información (salvo .sp-lrow .sp-s y [data-ph-ell]) · pest = filas de pestañas que no caben sin desvanecido.',
+  lines.push('', 'tier = html.ph en los tamaños de móvil apaisados, html.pv (sin .ph) en los verticales y sin ninguno en 1280x720 / 1920x1080 / 1024x768 · despl = tras llevar cada zona al final, la salida y la principal',
+    'siguen dentro y pulsables · elip = elipsis que cortan información (salvo .sp-lrow .sp-s y [data-ph-ell]) · pest = filas de pestañas que no caben sin desvanecido ·',
+    'rot = rótulos NO tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar) · recort = recortes NO permitidos (elipsis, line-clamp,',
+    'overflow, o = hijo de texto o tabla que se sale de su caja) · perm = recortes permitidos (data-trunc="name"|"preview") · pie = texto tapado por el',
+    'dock / la barra / el desvanecido con todo desplazado al final · pis = rótulos de texto no tocables que se pisan en un panel · [girar] = enseña #rotate.',
     'En metrics.json además: fonts.read14 / btn15 / tab13 (lectura < 14, rótulos < 15, pestañas < 13), reach (principal abajo a la derecha, aviso), hscroll.');
-  const txt = lines.join('\n');
+  // (ronda 2) recortes NO permitidos con su texto entero (todos los tamaños), tapado por el pie y pisados: para los paquetes siguientes
+  const det = ['', 'Recortes no permitidos (texto entero), tapado por el pie y pisados, por pantalla y tamaño:'];
+  for (const id of Object.keys(metrics.screens)) {
+    const bs = metrics.screens[id].bySize;
+    for (const sz of Object.keys(bs)) {
+      const x = bs[sz]; if (!x || !x.fonts) continue;
+      for (const c of (x.clipped || [])) det.push('  ' + id + ' @' + sz + ' [' + c.kind + '] ' + c.s + ' «' + (c.full || c.t) + '»');
+      for (const c of ((x.foot && x.foot.list) || [])) det.push('  ' + id + ' @' + sz + ' [pie:' + c.why + '] ' + c.s + ' «' + c.t + '» bajo ' + c.by);
+      for (const c of ((x.pis && x.pis.list) || [])) det.push('  ' + id + ' @' + sz + ' [pis] «' + c.at + '» / «' + c.bt + '»');
+    }
+  }
+  const txt = lines.concat(det).join('\n');
   fs.writeFileSync(path.join(OUT, 'summary.txt'), txt + '\n');
-  console.log(txt);
+  console.log(lines.join('\n'));
   console.log('\n' + rows.length + ' pantallas × ' + sizeList.length + ' tamaños en ' + metrics.seconds + ' s; fallos al abrir: ' + nFail + '\n→ ' + OUT);
   return 0;
 }

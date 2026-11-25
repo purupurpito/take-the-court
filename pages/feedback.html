@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Buzón de opiniones</title>
+<!-- TAKE THE COURT — feedback.html (owner: ui_main). Visor de las sugerencias y los bugs que mandan los jugadores (js/feedback.js,
+     1.22.1, 23-nov-2026; notes/feedback.md). Como netlogs.html: usa la sesión de la cuenta guardada en ESTE navegador (la del juego,
+     mismo origen) y solo funciona con la cuenta de Ferran: las reglas de feedback/{id} solo dejan leer y cambiar a esa cuenta
+     (admin() en firebase/firestore.rules). Lista lo más nuevo primero, filtra por tipo y estado, cambia el estado y la nota (lo único
+     que las reglas dejan cambiar) y descarga todo en JSON para pasárselo a Claude. tools/build-pages.js la copia junto al juego. -->
+<style>
+:root{--bg:#14102a;--card:#211b40;--ink:#f3eefc;--mut:#a59cc4;--line:#3a3166;--ok:#4fd1a5;--warn:#ffb238;--bad:#ff6a5c;--acc:#ff6a2e;--gold:#ffcb3d}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f3fb;--card:#fff;--ink:#1b1534;--mut:#62597f;--line:#d9d2ea;--gold:#9a6b00}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}
+p.sub{margin:0 0 16px;color:var(--mut)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:36px}
+button:hover{border-color:var(--acc)}
+button:disabled{opacity:.5;cursor:default}
+select,input,textarea{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+label.f{display:inline-flex;align-items:center;gap:6px;color:var(--mut)}
+#msg{color:var(--mut)}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.sum b{display:block;font-size:20px}
+.sum span{color:var(--mut);font-size:12px}
+.it{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.it .hd{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;color:var(--mut);font-size:12.5px;margin-bottom:6px}
+.chip{display:inline-block;border-radius:6px;padding:1px 8px;font-weight:700;font-size:12px}
+.k-bug{background:rgba(255,106,92,.18);color:var(--bad)}
+.k-sug{background:rgba(79,209,165,.18);color:var(--ok)}
+.s-nuevo{color:var(--gold)}.s-visto{color:var(--ink)}.s-hecho{color:var(--ok)}.s-descartado{color:var(--mut)}
+.txt{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;margin:2px 0 8px}
+.ctx{color:var(--mut);font-size:12.5px;overflow-wrap:anywhere}
+.ctx code{background:rgba(127,127,127,.15);border-radius:4px;padding:1px 5px}
+.ed{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.ed input{flex:1 1 240px;min-width:0}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+details summary{cursor:pointer;color:var(--mut);font-size:12.5px;margin-top:4px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(127,127,127,.1);border-radius:8px;padding:8px;margin:6px 0 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Buzón de opiniones</h1>
+  <p class="sub">Sugerencias y bugs que mandan los jugadores desde el juego. Solo con la cuenta del administrador, y con la sesión abierta en el juego en este mismo sitio.</p>
+  <div class="bar">
+    <button id="load">Cargar</button>
+    <label class="f">Tipo <select id="fk"><option value="">Todos</option><option value="bug">Bugs</option><option value="sug">Sugerencias</option></select></label>
+    <label class="f">Estado <select id="fs"><option value="">Todos</option><option value="nuevo">Nuevos</option><option value="visto">Vistos</option><option value="hecho">Hechos</option><option value="descartado">Descartados</option></select></label>
+    <button id="dl" disabled>Descargar todo (JSON)</button>
+    <span id="msg" role="status"></span>
+  </div>
+  <div class="sum" id="sum"></div>
+  <div id="list"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'AIzaSyC59o9QtpUvjWT4g3ouOXinghASTuXZSes';
+  var FS = 'https://firestore.googleapis.com/v1/projects/make-the-cut-vb/databases/(default)/documents';
+  var STATES = ['nuevo', 'visto', 'hecho', 'descartado'], WHERE = { partido: 'Partido', carrera: 'Carrera', online: 'Online', menus: 'Menús', otro: 'Otro' };
+  var rows = [], $ = function (id) { return document.getElementById(id); };
+  function msg(t) { $('msg').textContent = t; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function token() {
+    var acc = null; try { acc = JSON.parse(localStorage.getItem('make-the-cut.account') || 'null'); } catch (e) { }
+    if (!acc || !acc.rt) return Promise.reject(new Error('No hay ninguna cuenta abierta en este navegador. Entra en el juego con tu cuenta y vuelve.'));
+    if (acc.it && acc.ie > Date.now() + 60e3) return Promise.resolve(acc.it);
+    return fetch('https://securetoken.googleapis.com/v1/token?key=' + KEY, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(acc.rt) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (!j.id_token) throw new Error('La sesión ha caducado: entra otra vez en el juego.'); return j.id_token; });
+  }
+  function val(f) { return f == null ? null : f.stringValue != null ? f.stringValue : f.timestampValue != null ? f.timestampValue : f.integerValue != null ? +f.integerValue : f.booleanValue != null ? f.booleanValue : null; }
+  function row(doc) {
+    var f = doc.fields || {}, o = { id: String(doc.name || '').split('/').pop() };
+    ['kind', 'text', 'where', 'ver', 'ctx', 'uid', 't', 'state', 'note'].forEach(function (k) { var v = val(f[k]); if (v != null) o[k] = v; });
+    // ctx lo escribe cualquiera (crear no pide cuenta): se normaliza aquí y el resto del visor solo ve objetos y listas de verdad
+    var obj = null; try { obj = JSON.parse(o.ctx || '{}'); } catch (e) { obj = null; }
+    o.ctxObj = obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : null;
+    o.errs = o.ctxObj && Array.isArray(o.ctxObj.errs) ? o.ctxObj.errs.filter(function (e) { return e && typeof e === 'object' && !Array.isArray(e); }) : [];
+    ['kind', 'text', 'where', 'ver', 'uid', 'state', 'note'].forEach(function (k) { if (o[k] != null) o[k] = String(o[k]); });
+    return o;
+  }
+  function ctxTxt(c, errs) {
+    if (!c) return '';
+    var e = c.env || {}, L = [];
+    if (e.br || e.os) L.push(esc((e.br || '?') + ' en ' + (e.os || '?')) + (e.mob ? ' (móvil)' : ''));
+    if (e.win || e.scr) L.push('ventana ' + esc(e.win || '') + (e.scr ? ' · pantalla ' + esc(e.scr) : ''));
+    if (c.q && (c.q.set || c.q.now)) L.push('calidad ' + esc(c.q.set || '') + (c.q.now ? ' (' + esc(c.q.now) + ')' : ''));
+    if (c.lang) L.push(esc(c.lang));
+    if (c.screen) L.push('en <code>' + esc(c.screen) + '</code>');
+    if (c.mode) L.push('<code>' + esc(c.mode) + '</code>');
+    if (errs && errs.length) L.push('<b class="bad">' + esc(String(errs.length)) + ' error' + (errs.length > 1 ? 'es' : '') + '</b>');
+    return L.join(' · ');
+  }
+  function when(t) { return t ? new Date(t).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''; }
+  function shown() {
+    var k = $('fk').value, s = $('fs').value;
+    return rows.filter(function (r) { return (!k || r.kind === k) && (!s || (r.state || 'nuevo') === s); });
+  }
+  function render() {
+    var L = shown(), n = function (p) { return rows.filter(p).length; };
+    $('sum').innerHTML = '<div><b>' + rows.length + '</b><span>en total</span></div><div><b>' + n(function (r) { return r.kind === 'bug'; }) + '</b><span>bugs</span></div>'
+      + '<div><b>' + n(function (r) { return r.kind === 'sug'; }) + '</b><span>sugerencias</span></div><div><b>' + n(function (r) { return (r.state || 'nuevo') === 'nuevo'; }) + '</b><span>sin mirar</span></div>'
+      + '<div><b>' + n(function (r) { return r.state === 'hecho'; }) + '</b><span>hechos</span></div>';
+    $('list').innerHTML = L.length ? '' : '<p class="sub">' + (rows.length ? 'Nada con estos filtros.' : '') + '</p>';
+    L.forEach(function (r) {
+      var d = document.createElement('div'); d.className = 'it';
+      try { card(d, r); } catch (e) {   // (un mensaje raro no se lleva por delante a los demás ni el botón de descargar)
+        d.innerHTML = '<div class="hd"><span class="chip k-bug">Ilegible</span><span>' + esc(r.id) + '</span></div><div class="ctx">No se puede mostrar este mensaje: ' + esc(e && e.message || e) + '</div>';
+      }
+      $('list').appendChild(d);
+    });
+    $('dl').disabled = !rows.length;
+  }
+  function card(d, r) {
+    var st = r.state || 'nuevo';
+    d.innerHTML = '<div class="hd"><span class="chip k-' + esc(r.kind) + '">' + (r.kind === 'bug' ? 'Bug' : 'Sugerencia') + '</span>'
+      + (r.where ? '<span>' + esc(WHERE[r.where] || r.where) + '</span>' : '') + '<span>' + esc(when(r.t)) + '</span><span>v' + esc(r.ver || '?') + '</span>'
+      + '<span>' + (r.uid ? 'cuenta ' + esc(r.uid.slice(0, 8)) + '…' : 'sin cuenta') + '</span><span class="s-' + esc(st) + '">' + esc(st) + '</span></div>'
+      + '<div class="txt">' + esc(r.text) + '</div><div class="ctx">' + ctxTxt(r.ctxObj, r.errs) + '</div>'
+      + (r.errs.length ? '<details><summary>Errores</summary><pre>' + esc(r.errs.map(function (e) { return '[' + e.k + ' ' + e.t + ' s' + (e.n ? ' ×' + e.n : '') + '] ' + e.m + (e.s ? '  (' + e.s + ')' : ''); }).join('\n')) + '</pre></details>' : '')
+      + '<details><summary>Contexto completo</summary><pre>' + esc(JSON.stringify(r.ctxObj || r.ctx, null, 1)) + '</pre></details>'
+      + '<div class="ed"><select aria-label="Estado">' + STATES.map(function (s) { return '<option value="' + s + '"' + (s === st ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>'
+      + '<input type="text" maxlength="1000" placeholder="Nota (solo la ves tú)" aria-label="Nota" value="' + esc(r.note || '') + '"><button type="button">Guardar</button><span class="sv"></span></div>';
+    var sel = d.querySelector('select'), inp = d.querySelector('input'), b = d.querySelector('button'), sv = d.querySelector('.sv');
+    b.onclick = function () { save(r, sel.value, inp.value, b, sv); };
+  }
+  function save(r, state, note, b, sv) {
+    b.disabled = true; sv.textContent = 'Guardando…'; sv.className = 'sv';
+    var fields = { state: { stringValue: state }, note: { stringValue: String(note || '').slice(0, 1000) } };
+    token().then(function (t) {
+      return fetch(FS + '/feedback/' + encodeURIComponent(r.id) + '?updateMask.fieldPaths=state&updateMask.fieldPaths=note&currentDocument.exists=true',
+        { method: 'PATCH', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: fields }) });
+    }).then(function (res) {
+      if (!res.ok) throw new Error(res.status === 403 ? 'Sin permiso (¿la cuenta del administrador?)' : 'Error ' + res.status);
+      r.state = state; r.note = fields.note.stringValue; sv.textContent = 'Guardado'; sv.className = 'sv ok';
+      setTimeout(render, 600);
+    }).catch(function (e) { sv.textContent = e.message || String(e); sv.className = 'sv bad'; }).then(function () { b.disabled = false; });
+  }
+  function load() {
+    msg('Cargando…');
+    token().then(function (t) {
+      return fetch(FS + ':runQuery', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'feedback' }], orderBy: [{ field: { fieldPath: 't' }, direction: 'DESCENDING' }], limit: 1000 } }) });
+    }).then(function (r) {
+      if (r.status === 403) throw new Error('Esta página solo funciona con la cuenta del administrador (o las reglas de feedback aún no están desplegadas).');
+      if (!r.ok) throw new Error('Error ' + r.status + ' al leer.');
+      return r.json();
+    }).then(function (L) {
+      rows = (L || []).filter(function (x) { return x.document; }).map(function (x) { return row(x.document); });
+      msg(rows.length ? rows.length + ' mensajes' : 'Aún no ha llegado nada.');
+      render();
+    }).catch(function (e) { msg(e.message || String(e)); });
+  }
+  $('load').onclick = load;
+  $('fk').onchange = $('fs').onchange = render;
+  $('dl').onclick = function () {
+    var out = rows.map(function (r) { var o = Object.assign({}, r); o.ctx = r.ctxObj || r.ctx; delete o.ctxObj; delete o.errs; return o; });
+    var txt = JSON.stringify({ juego: 'Take the Court', bajado: new Date().toISOString(), n: out.length, opiniones: out }, null, 1);
+    var a = document.createElement('a'), u = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+    a.href = u; a.download = 'opiniones-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+    msg('Descargado (' + Math.round(txt.length / 1024) + ' KB)');
+  };
+  load();
+})();
+</script>
+</body>
+</html>

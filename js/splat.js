@@ -18,6 +18,12 @@
  * Móvil (18-nov-2026, notes/splat.md «Móvil»): .PHONE_MQ · .phone() (html.ph) · evento «vb:ph» · .more(el) · .reveal(el, o) ·
  *      .fitSeg(root) · .sheet(o) / .closeTop() / .sheetOpen() / .sheetEl() · .modal(el) · .info(root) · .tbl(el) · .shorten(root) ·
  *      .toast(html, o) · .kbd() (solo, al cargar).
+ * Móvil «con aire» (23-nov-2026, notes/movil-aire.md §3 y §7): .toastClear() · .phDedupe(container, label) · .phBar(bar) · .pv() (html.pv,
+ *      vertical táctil) · la fila entera de un interruptor de fitSeg (.ph-trow) · sin «Cerrar» al pie de una hoja sin acciones en el móvil.
+ * Ronda 2 (24-nov-2026, notes/movil-aire.md §8.2, §8.3 y §8.6.1): .mob() (html.ph o html.pv: QUÉ SE DICE; phone()/pv(): DÓNDE VA) ·
+ *      ?pv=1|0 · vb:tier y vb:ph con {ph, pv, mob, s, w, flip} (vb:ph también al girar) · .cutWords(texto, n) (data-trunc="preview") ·
+ *      .more() en el móvil: desvanecido solo con algo debajo y hueco abajo de --ph-fade/--pv-fade · hojas y .modal(el, {sheet}) en vertical:
+ *      .pv-sheet + velo .pv-veil + lo de detrás inert (.inertBehind(keep)).
  */
 (function () {
   'use strict';
@@ -212,22 +218,39 @@
     };
   }
   function phone() { return RT.classList.contains('ph'); }
+  // html.pv (movil-aire §3.12 y §8.2): vertical TÁCTIL de móvil (puntero grueso, ancho ≤ 500 y más alto que ancho). Nunca en PC (ratón).
+  // ?pv=1 / ?pv=0 lo fuerzan para pruebas, como ?ph= (con ?pv=1 se quita .ph salvo que ?ph=1 lo pida). El <script> del <head> hace lo mismo.
+  var mqCoarse = null; try { mqCoarse = matchMedia('(pointer:coarse)'); } catch (e) { }
+  function pvTier() {
+    var q = /[?&]pv=([01])/.exec(location.search), on = q ? q[1] === '1' : !!(mqCoarse && mqCoarse.matches) && innerWidth <= 500 && innerHeight > innerWidth;
+    if (on && q && !/[?&]ph=1/.test(location.search) && RT.classList.contains('ph')) { RT.classList.remove('ph'); RT.classList.remove('ph-s'); RT.classList.remove('ph-w'); }
+    if (RT.classList.contains('pv') !== on) RT.classList.toggle('pv', on);
+    return on;
+  }
+  function pv() { return RT.classList.contains('pv'); }
+  /** mob() (ronda 2, §8.2): móvil en cualquier orientación (html.ph o html.pv). Decide QUÉ SE DICE (textos cortos escritos a mano, nombres
+   *  cortos de club, apartados fundidos, una sola salida en las hojas); DÓNDE VA lo deciden phone() (apaisado) y pv() (vertical).
+   *  En horizontal mob() == phone(); en PC, false. */
+  function mob() { var c = RT.classList; return c.contains('ph') || c.contains('pv'); }
   var phPrev = null, phRaf = 0;
-  // Dos avisos en document, ambos con detail {ph, s, w, flip}:
-  //  · «vb:tier» cuando cambia CUALQUIERA de las tres clases (ph, ph-s, ph-w). A 667×375 la barra del navegador sube y baja innerHeight
+  // Dos avisos en document, ambos con detail {ph, pv, mob, s, w, flip}:
+  //  · «vb:tier» cuando cambia CUALQUIERA de las clases (ph, ph-s, ph-w, pv). A 667×375 la barra del navegador sube y baja innerHeight
   //    por encima y por debajo de 345: las variantes .ph-s que monta el JS (endRecap, Controles…) se rehacen con este. Barato e idempotente.
-  //  · «vb:ph» solo cuando entra o sale el tier (ph). Lo escuchan pantallas que se repintan enteras (cuenta, sala online, Carrera): si
-  //    saltara con ph-s, la barra del navegador les borraría lo que estás escribiendo.
-  function tierKey() { var c = RT.classList; return (c.contains('ph') ? 'p' : '') + (c.contains('ph-s') ? 's' : '') + (c.contains('ph-w') ? 'w' : ''); }
+  //  · «vb:ph» cuando cambia mob() O pv: entrar o salir del móvil, o girarlo (apaisado ↔ vertical). Lo escuchan pantallas que se repintan
+  //    enteras (cuenta, sala online, Carrera, aviso de instalar, los phHooks): si saltara con ph-s, la barra del navegador les borraría lo
+  //    que estás escribiendo. (flip = true en vb:ph; en vb:tier dice si va a saltar vb:ph.)
+  function tierKey() { var c = RT.classList; return (c.contains('ph') ? 'p' : '') + (c.contains('ph-s') ? 's' : '') + (c.contains('ph-w') ? 'w' : '') + (c.contains('pv') ? 'v' : ''); }
+  function keyMob(k) { return k.indexOf('p') >= 0 || k.indexOf('v') >= 0; }
   function tier() {
     phRaf = 0;
     try { window.__phTier(); } catch (e) { }
+    pvTier();
     var k = tierKey();
     if (phPrev === null) { phPrev = k; return; }
     if (k === phPrev) return;
-    var flip = (phPrev.charAt(0) === 'p') !== (k.charAt(0) === 'p'), c = RT.classList;
+    var flip = keyMob(phPrev) !== keyMob(k) || (phPrev.indexOf('v') >= 0) !== (k.indexOf('v') >= 0), c = RT.classList;
     phPrev = k;
-    var d = { ph: c.contains('ph'), s: c.contains('ph-s'), w: c.contains('ph-w'), flip: flip };
+    var d = { ph: c.contains('ph'), pv: c.contains('pv'), mob: mob(), s: c.contains('ph-s'), w: c.contains('ph-w'), flip: flip };
     try { doc.dispatchEvent(new CustomEvent('vb:tier', { detail: d })); } catch (e) { }
     if (flip) try { doc.dispatchEvent(new CustomEvent('vb:ph', { detail: d })); } catch (e) { }
   }
@@ -253,7 +276,12 @@
     var q = 0;
     var f = function () {
       var sh = el.scrollHeight, ch = el.clientHeight, sw = el.scrollWidth, cw = el.clientWidth, y = ch > 0 && sh - ch > 8, x = cw > 0 && sw - cw > 8;
-      tog(el, 'sp-more', y && el.scrollTop + ch < sh - 8);
+      // (ronda 2, §8.3) en el móvil: desvanecido en cuanto hay algo debajo (scrollHeight > clientHeight + 2) y la zona reserva abajo el alto
+      // del desvanecido (--ph-fade / --pv-fade) para que lo último nunca se quede debajo de él. En PC, como siempre.
+      var m = mob() && !el.classList.contains('tb-row'), end = 8;   // (las filas de pestañas, como siempre: el brochazo asoma 2-3 px)
+      if (m) { y = ch > 0 && sh > ch + 2; end = 2; }
+      morePad(el, m && y);
+      tog(el, 'sp-more', y && el.scrollTop + ch < el.scrollHeight - end);
       tog(el, 'sp-less', y && el.scrollTop > 8);
       tog(el, 'sp-more-x', x && el.scrollLeft + cw < sw - 8);
     };
@@ -264,6 +292,17 @@
     try { if (typeof MutationObserver !== 'undefined') new MutationObserver(soon).observe(el, { childList: true, subtree: true }); } catch (e) { }
     f();
     return el;
+  }
+  /** Hueco abajo del alto del desvanecido (solo en el móvil y con algo que desplazar): padding-bottom en línea = max(el suyo, fade). */
+  function fadeH() { var v = parseFloat(getComputedStyle(RT).getPropertyValue(pv() ? '--pv-fade' : '--ph-fade')); return v > 0 ? v : 24; }
+  function morePad(el, on) {
+    if (!on) { if (el._spPad) { el.style.paddingBottom = el._spPad.was; el._spPad = null; } return; }
+    var fh = fadeH();
+    if (el._spPad && el._spPad.fh === fh) return;
+    if (el._spPad) { el.style.paddingBottom = el._spPad.was; el._spPad = null; }
+    var was = el.style.paddingBottom, pb = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+    el._spPad = { was: was, fh: fh };
+    if (pb < fh) el.style.paddingBottom = fh + 'px';
   }
   function scrollParent(el, axis) {
     for (var p = el.parentElement; p && p !== doc.body; p = p.parentElement) {
@@ -305,7 +344,8 @@
     var f = s.getAttribute('data-ph-ctl');
     if (f === 'seg' || f === 'select' || f === 'toggle') return f;
     if (L.length === 2 && YESNO.test(L[0].textContent.trim()) && YESNO.test(L[1].textContent.trim())) return 'toggle';
-    if (L.length >= 4) return 'select';
+    if (L.length >= (pv() ? 5 : 4)) return 'select';   // (ronda 2, paneles-v: en vertical el segmentado va en su fila a todo el ancho y caben 4)
+    if (pv() && L.length <= 3) return 'seg';   // (ronda 2, paneles-v: en vertical el segmentado de 2-3 va en su fila a todo el ancho)
     // 2-3 opciones con texto: segmentado si cabe en su sitio (el ancho del padre, sin desbordar)
     var p = s.parentElement;
     if (p && s.offsetWidth && (s.scrollWidth > s.clientWidth + 1 || s.getBoundingClientRect().right > p.getBoundingClientRect().right + 1)) return 'select';
@@ -335,7 +375,31 @@
     else j = (i + 1) % n;   // tocar el valor: la siguiente (con vuelta)
     if (j !== i && L[j]) L[j].click();
   }
+  /** Fila del interruptor (movil-aire §3.3): en el móvil la fila entera (.opt o [data-ph-trow]) es el objetivo y lleva .ph-trow (se ve al
+   *  pulsarla). Las filas de Ajustes / Controles ya son <button class="opt"> y ui.js pasa al siguiente valor con su clic: ahí solo la clase.
+   *  En otra fila ([data-ph-trow], no botón), tocar fuera de un control (la «i», un enlace, un botón) cambia el interruptor. */
+  var TROW_SKIP = 'button,a,input,select,textarea,label,.sp-info,.sp-q,.sp-toggle,.seg,[role=button],[data-d]';
+  function segRow(s, on) {
+    var row = s._phRow || (s.parentElement && s.parentElement.closest('.opt,[data-ph-trow]'));
+    if (!row) return;
+    if (on && !s._phRow) {
+      s._phRow = row; row.classList.add('ph-trow');
+      if (row.tagName !== 'BUTTON') {
+        s._phRowFn = function (e) {
+          var t = e.target, c = t && t.closest ? t.closest(TROW_SKIP) : null;
+          if (!t || (c && c !== row && row.contains(c)) || !s._phx || s._phx._m !== 'toggle') return;
+          segGo(s, 'toggle', e); press(s._phx);
+        };
+        row.addEventListener('click', s._phRowFn);
+      }
+    } else if (!on && s._phRow) {
+      row.classList.remove('ph-trow');
+      if (s._phRowFn) row.removeEventListener('click', s._phRowFn);
+      s._phRowFn = null; s._phRow = null;
+    }
+  }
   function segUnfit(s) {
+    segRow(s, false);
     if (s._phx) { if (s._phx.parentNode) s._phx.parentNode.removeChild(s._phx); s._phx = null; }
     if (s._phMo) { s._phMo.disconnect(); s._phMo = null; }
     s.classList.remove('ph-hid');
@@ -353,9 +417,9 @@
     for (var i = 0; i < S.length; i++) {
       var s = S[i];
       if (s.classList.contains('ph-proxy')) continue;
-      if (!phone()) { segUnfit(s); continue; }
+      if (!mob()) { segUnfit(s); continue; }   // (ronda 2, paneles-v: también en vertical)
       var L = segSpans(s); if (!L.length) continue;
-      var was = s._phx ? s._phx._m : null;
+      var was = s._phx && s._phx._pv === pv() ? s._phx._m : null;   // (al girar se vuelve a decidir: en vertical hay más ancho)
       if (s._phx) s.classList.remove('ph-hid');   // medir el original a la vista
       var m = s.getAttribute('data-ph-ctl') || was || segMode(s, L);
       if (m === 'seg') { segUnfit(s); continue; }
@@ -371,12 +435,14 @@
             return function (e) { var a = e.target.closest ? e.target.closest('[data-d]') : null; segGo(s0, a ? +a.getAttribute('data-d') : 0, e); if (a && !a.classList.contains('end')) press(a); };
           }(s));
         }
-        x._m = m;
+        x._m = m; x._pv = pv();
         s.parentNode.insertBefore(x, s.nextSibling);
         s._phx = x;
         if (typeof MutationObserver !== 'undefined') { s._phMo = new MutationObserver(segPaint.bind(null, s)); s._phMo.observe(s, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked'] }); }
       }
+      s._phx._pv = pv();
       s.classList.add('ph-hid');
+      if (m === 'toggle') segRow(s, true); else segRow(s, false);
       segPaint(s);
     }
     return S.length;
@@ -400,7 +466,7 @@
     if (shCur) shCur.close(true);
     var h = sheetHost(), opener = doc.activeElement, id = 'spSh' + (++shN);
     h.innerHTML = '';
-    var cat = mk('div', 'sp-catch'), p = mk('div', 'sp-panel sp-sheet' + (o.tone === 'paper' ? ' sp-paper' : o.tone === 'danger' ? ' sp-sh-danger' : '') + (o.cls ? ' ' + o.cls : ''));
+    var V = pv(), cat = mk('div', 'sp-catch' + (V ? ' pv-veil' : '')), p = mk('div', 'sp-panel sp-sheet' + (V ? ' pv-sheet' : '') + (o.tone === 'paper' ? ' sp-paper' : o.tone === 'danger' ? ' sp-sh-danger' : '') + (o.cls ? ' ' + o.cls : ''));
     p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true'); p.setAttribute('data-nav', '');
     var hd = mk('div', 'sp-sh-h');
     if (o.title) { var t = mk('h3', 'sp-sh-t'); t.id = id + 't'; t.textContent = o.title; hd.appendChild(t); p.setAttribute('aria-labelledby', t.id); }
@@ -411,7 +477,8 @@
     p.appendChild(body);
     // o.dock === false: sin barra de acciones (la hoja ya lleva sus botones dentro; solo la ✕ cierra: antes salían dos «cerrar»)
     var acts = o.dock === false ? [] : (o.actions || []).slice(), dock = mk('div', 'sp-dock');
-    if (!acts.length && o.dock !== false) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
+    // (móvil, movil-aire §3.8: un solo cierre, la ✕ de 44 de arriba; en PC sigue el «Cerrar» crema del pie)
+    if (!acts.length && o.dock !== false && !mob()) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
     acts.sort(function (a, b) { return (a.primary ? 1 : 0) - (b.primary ? 1 : 0); });   // la principal, la última (abajo a la derecha)
     var first = null;
     acts.forEach(function (a, i) {
@@ -425,6 +492,7 @@
     h.appendChild(cat); h.appendChild(p);
     h.classList.toggle('sp-rm', reduced());
     h.hidden = false; RT.classList.add('sp-sh-on');   // (los avisos cortos bajan para no tapar la ✕)
+    var unInert = V ? inertBehind(h) : null;   // (vertical: lo de detrás, cabecera y pestañas incluidas, no se toca ni se enfoca)
     decorate(p); more(body);
     var api = {
       el: p, body: body, open: true,
@@ -432,6 +500,7 @@
         if (!api.open) return; api.open = false;
         if (shCur === api) shCur = null;
         h.hidden = true; h.innerHTML = ''; RT.classList.remove('sp-sh-on');
+        if (unInert) { unInert(); unInert = null; }
         if (o.onClose) { try { o.onClose(silent); } catch (e) { } }
         if (opener && opener.focus && doc.contains(opener) && !opener.closest('[hidden]')) { try { opener.focus({ preventScroll: true }); } catch (e) { } }
       }
@@ -454,12 +523,29 @@
     if (k === 'Escape' || (k === 'Backspace' && !typing)) { e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); if (!e.repeat) closeTop(); }
   }, true);
   /** Aviso modal: pone un .sp-catch (tinte del 20 %, se traga los toques) justo debajo de el, sin mover nada. Devuelve release(). */
-  function modal(el) {
+  //  (ronda 2, §8.2) En vertical (html.pv): el tinte es el velo .pv-veil (rgba(10,6,24,.7), tapa también la cabecera), lo de detrás queda
+  //  inert y, con o.sheet (selector del panel dentro de el, o true = el mismo), ese panel pasa a hoja inferior .pv-sheet mientras está abierto.
+  function modal(el, o) {
     el = $el(el); if (!el || !el.parentNode) return function () { };
-    var z = parseInt(getComputedStyle(el).zIndex, 10), c = mk('div', 'sp-catch sp-catch-m');
+    o = o || {};
+    var V = pv(), z = parseInt(getComputedStyle(el).zIndex, 10), c = mk('div', 'sp-catch sp-catch-m' + (V ? ' pv-veil' : ''));
     c.style.zIndex = String(isFinite(z) ? z - 1 : 0);
     el.parentNode.insertBefore(c, el);
-    return function () { if (c.parentNode) c.parentNode.removeChild(c); };
+    var sh = V && o.sheet ? (o.sheet === true ? el : el.querySelector(o.sheet)) : null; if (sh) sh.classList.add('pv-sheet');
+    var un = V ? inertBehind(el, c) : null;
+    return function () { if (c.parentNode) c.parentNode.removeChild(c); if (sh) sh.classList.remove('pv-sheet'); if (un) un(); };
+  }
+  /** inertBehind(keep, …): pone inert a los hermanos de keep (y de cada antepasado hasta #app / body) salvo keep, los demás que se pasen y
+   *  el carril de avisos, hasta #app (o body); devuelve la función que lo deshace (solo los que puso). Para hojas y avisos modales en vertical. */
+  function inertBehind(keep) {
+    var keepL = Array.prototype.slice.call(arguments).filter(Boolean), done = [], top = layerHost();
+    for (var n = keep; n && n !== top && n !== doc.body && n.parentNode; n = n.parentNode) {
+      for (var s = n.parentNode.firstElementChild; s; s = s.nextElementSibling) {
+        if (s === n || keepL.indexOf(s) >= 0 || s.id === 'spToasts' || s.id === 'spSheets' || s.tagName === 'SCRIPT' || s.tagName === 'STYLE' || s.hasAttribute('inert')) continue;
+        s.setAttribute('inert', ''); done.push(s);
+      }
+    }
+    return function () { for (var i = 0; i < done.length; i++) done[i].removeAttribute('inert'); done = []; };
   }
 
   // ---------------------------------------------------------------- explicaciones de segundo nivel: .sp-q («?» → hoja) y .sp-info («i» → en la fila)
@@ -511,7 +597,7 @@
     w = $el(w); if (!w) return;
     if (!w._spT) { w._spT = 1; phHooks.push(function () { if (doc.contains(w)) tbl(w); }); }
     var t = w.querySelector('table'); if (!t) return;
-    var cols = (w.getAttribute('data-ph-cols') || '').split(',').filter(function (s) { return s !== ''; }).map(Number), ph = phone() && cols.length > 0;
+    var cols = (w.getAttribute('data-ph-cols') || '').split(',').filter(function (s) { return s !== ''; }).map(Number), ph = mob() && cols.length > 0;   // (ronda 2: columnas del móvil también en vertical)
     var C = t.querySelectorAll('th,td');
     for (var i = 0; i < C.length; i++) tog(C[i], 'ph-hide', ph && cols.indexOf(cellCol(C[i])) < 0);
     var all = w.querySelector(':scope > .sp-tbl-all');
@@ -534,7 +620,7 @@
    *  .ph, vuelve el largo. Lo llaman decorate() y el cambio de tier. Para rótulos que el código reescribe, mejor una rama con phone(). */
   function shorten(root, tabs) {
     root = $el(root) || doc;
-    var L = root.querySelectorAll ? root.querySelectorAll('[data-ph-short]') : [], ph = phone();
+    var L = root.querySelectorAll ? root.querySelectorAll('[data-ph-short]') : [], ph = mob();   // (ronda 2: texto corto = contenido, también en vertical)
     for (var i = 0; i < L.length; i++) {
       var e = L[i], s = e.getAttribute('data-ph-short'), lg = e.getAttribute('data-ph-long');
       if (!tabs && ph && e.closest('[data-ph-tabs]')) continue;   // (las pestañas las acorta ui.js fitTabs solo si no caben)
@@ -568,6 +654,59 @@
     if (o.key) toastKeys[o.key] = api;
     var ms = o.ms == null ? 3500 : +o.ms; if (ms > 0) tm = setTimeout(api.close, ms);
     return api;
+  }
+
+  /** toastClear(): en el móvil, quita los avisos cortos que queden (ui.js lo llama al abrir o cerrar un panel y al cambiar de página del
+   *  menú: un aviso de una pantalla no se queda encima de la siguiente). En PC no hace nada (se van solos como siempre). */
+  function toastClear(force) {
+    if (!force && !mob()) return 0;
+    var lane = doc.getElementById('spToasts'), n = 0; if (!lane) return 0;
+    for (var k in toastKeys) if (toastKeys.hasOwnProperty(k)) { toastKeys[k].close(); n++; }
+    while (lane.firstChild) { lane.removeChild(lane.firstChild); n++; }
+    return n;
+  }
+
+  // ---------------------------------------------------------------- componentes «con aire» (movil-aire §3.5, §3.6)
+  function normT(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+  /** phDedupe(container, label): en html.ph, el primer sello de tarjeta (.card>h3:first-child, h3.sp-stamp o .cr-ovr) cuyo rótulo repite
+   *  la subpestaña activa (label) se esconde: entero (.ph-dup) si no lleva nada más, o solo el rótulo (.ph-dup-t) si lleva un dato o un «?».
+   *  Solo pone clases (el CSS las esconde en .ph): sin .ph no cambia nada. Devuelve el sello tocado o null. Llamar tras pintar. */
+  function phDedupe(c, label) {
+    c = $el(c); if (!c || !c.querySelectorAll || !label) return null;
+    var want = normT(label); if (!want) return null;
+    var L = c.querySelectorAll('.card>h3:first-child,.card>h3.sp-stamp,.cr-ovr');
+    for (var i = 0; i < L.length; i++) {
+      var h = L[i], own = '', tn = null;
+      for (var n = h.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) { own += n.nodeValue; if (!tn) tn = n; }
+      if (!tn && h.firstElementChild && !h.firstElementChild.classList.contains('ph-dup-t')) own = h.firstElementChild.textContent;
+      var sp = h.querySelector(':scope>.ph-dup-t'); if (sp) own = sp.textContent;
+      if (normT(own) !== want) continue;
+      var extra = [].some.call(h.children, function (x) { return x !== sp && !x.classList.contains('ph-dup-t') && (x.textContent.trim() || x.matches('.sp-q,button')); });
+      if (!extra) { h.classList.add('ph-dup'); return h; }
+      if (!sp && tn) { sp = mk('span', 'ph-dup-t'); h.insertBefore(sp, tn); sp.appendChild(tn); }
+      return h;
+    }
+    return null;
+  }
+  /** phBar(bar): cabecera compacta .ph-bar: el «‹» (.ph-bk o el .sp-back de siempre) se queda con su texto como aria-label (el CSS lo
+   *  esconde en .ph y quita el bocadillo). Idempotente. */
+  function phBar(bar) {
+    bar = $el(bar); if (!bar || !bar.querySelector) return bar;
+    var b = bar.querySelector(':scope>.ph-bk,:scope>.sp-back');
+    if (b && !b.hasAttribute('aria-label')) { var t = b.textContent.replace(/[‹<]/g, '').trim(); if (t) b.setAttribute('aria-label', t); }
+    return bar;
+  }
+
+  /** cutWords(texto, n) (ronda 2, §8.3): corta por PALABRA (nunca a mitad) a n caracteres como mucho y añade «…» si ha cortado. Solo para
+   *  vistas previas (mensajes): quien lo usa marca el nodo con data-trunc="preview" y abre el texto entero al tocar. Sin palabra que quepa
+   *  entera, la primera (nunca media). Quita la puntuación suelta del final antes de los puntos suspensivos. */
+  function cutWords(t, n) {
+    t = String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); n = n | 0;
+    if (n <= 0 || t.length <= n) return t;
+    var cut = t.slice(0, n + 1), sp = cut.lastIndexOf(' ');
+    var out = sp > 0 ? cut.slice(0, sp) : t.split(' ')[0];
+    out = out.replace(/[\s,;:.\-–—(«"']+$/, '');
+    return out + '…';
   }
 
   // ---------------------------------------------------------------- teclado del móvil
@@ -606,6 +745,10 @@
     // móvil (notes/splat.md «Móvil»)
     PHONE_MQ: PHONE_MQ, phone: phone, more: more, reveal: reveal, fitSeg: fitSeg, sheet: sheet, sheetOpen: sheetOpen, sheetEl: sheetEl,
     closeTop: closeTop, modal: modal, info: info, infoToggle: infoToggle, tbl: tbl, shorten: shorten, toast: toast, kbd: kbd,
+    // móvil «con aire» (notes/movil-aire.md §3 y §7)
+    toastClear: toastClear, phDedupe: phDedupe, phBar: phBar, pv: pv,
+    // ronda 2 (notes/movil-aire.md §8.2, §8.3 y §8.6.1): móvil en cualquier orientación, corte por palabra, velo/inert de las hojas en vertical
+    mob: mob, cutWords: cutWords, inertBehind: inertBehind,
     /** Pruebas: simula el teclado del móvil (on, alto en px) sin visualViewport. */
     _kb: function (on, hgt) { kbApply(on, on ? (hgt || 160) : 0); return kbOn; }
   };

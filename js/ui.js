@@ -718,7 +718,7 @@
     if (!(banT > 0) || !el.banner.classList.contains('show')) return null;
     if (banRect) return banRect;
     var r = null, kids = [el.banner.firstChild, el.bn2, el.bn3];
-    if (sn.host === 'ban' && el.sena && !el.sena.hidden) kids.push(el.sena);   // (la pegatina sobresale de la cinta)
+    if (sn.host === 'ban' && el.sena && !el.sena.hidden && el.sena.parentNode !== (el.pbug && el.pbug.parentNode)) kids.push(el.sena);   // (la pegatina sobresale de la cinta; en el móvil va bajo el marcador)
     for (var i = 0; i < kids.length; i++) {
       var k = kids[i]; if (!k || k.hidden) continue;
       var q = k.getBoundingClientRect(); if (!q.width) continue;
@@ -767,6 +767,11 @@
   function senaShow(s, where, nueva, sr) {
     var S = VB.Senas, it = s && S && S.BY ? S.BY[s.id] : null;
     var host = where === 'ban' ? el.banner && el.banner.firstChild : el.pbug;
+    // (movil-aire §5.7, móvil: un solo rótulo grande arriba a la vez; la pegatina de la pestaña va BAJO el marcador, en la columna de la
+    //  izquierda —hija de .sb-bw, junto a #pbug: sale y se aparta con él por CSS—, no colgada a la derecha de la pestaña)
+    if (where !== 'ban' && el.pbug && phHud()) host = el.pbug.parentNode;
+    // (ronda 2, partido-v: con la cinta tampoco va en la franja central de arriba: bajo el marcador, a la izquierda; sale con la cinta por CSS)
+    if (where === 'ban' && el.pbug && phHud()) host = el.pbug.parentNode;
     if (!el.sena || !it || !host) return false;
     if (sn.host === 'bug' && where === 'ban' && el.pbug) el.pbug.classList.remove('sn-on');
     if (el.sena.parentNode !== host) host.appendChild(el.sena);
@@ -836,7 +841,9 @@
       h += '<button type="button" tabindex="-1" class="amc-b ' + ((k === 'protest') !== br ? 'p' : 'd') + '" data-k="' + k + '">' + key + escT(o[i].label || (k === 'protest' ? 'Protestar' : 'Dejarlo')) + '</button>';
     }
     el.ambChR.innerHTML = h;
-    el.ambChS.textContent = cpuTxt(e.sub || '¿Protestas la decisión?');
+    // (ronda 2, partido-v: en el móvil, la frase entera y natural, no «Iker va a por el 1r»)
+    var amS = cpuTxt(e.sub || '¿Protestas la decisión?'); if (phMob()) amS = amS.replace(/ va a por el 1r$/, ' va a protestar al árbitro');
+    el.ambChS.textContent = amS;
     el.ambChS.hidden = !!e.sub && e.sub === amb.lastSay;   // (el compañero ya lo dice en su bocadillo: sin repetirlo)
     amb.ch = { id: e.id, dur: e.dur > 0 ? e.dur : 2.4, def: e.def || 'drop' }; amb.chT = 0; amb.chEnd = 0;
     el.ambChBar.style.transform = 'scaleX(1)';
@@ -1377,6 +1384,7 @@
       t = [{ nm: (cs && cs.me) || 'TÚ', sm: cs && cs.meName ? cs.meName : p6 ? 'N.º ' + p6.num + ', ' + r6 : '', tr: null, pos: '' },
         { nm: (cs && cs.rival) || 'CPU', sm: cs && cs.rivalName ? cs.rivalName : six ? 'Equipo rival' : 'Pareja rival', tr: null, pos: '' }];
     }
+    var icd = el.intro.querySelector('.in-card'); if (icd) icd.classList.toggle('in-cr', !!(g && g.career));   // (movil-aire: previa de la Carrera, solo CSS de .ph)
     var bl = el.intro.querySelectorAll('.in-t');
     for (var i = 0; i < 2 && i < bl.length; i++) {
       var B = bl[i], d = t[i] || {};
@@ -1395,7 +1403,9 @@
     }
     // beat B: dos datos como mucho (se reserva su hueco desde el principio: la tarjeta no salta al entrar)
     var b = plan && plan.b && plan.b.length ? plan.b : null;
-    if (el.introLT) { el.introLT.innerHTML = b ? '<span>' + sepHTML(b, 'v') + '</span>' : ''; el.introLT.hidden = !b; }
+    // (móvil, movil-aire §5.5: una píldora por dato, que parten de línea con flex-wrap; la del árbitro, en corto)
+    var bph = b && phMob();
+    if (el.introLT) { el.introLT.innerHTML = !b ? '' : bph ? b.map(function (x) { return '<span>' + sepHTML([typeof x === 'string' ? x.replace(/, te sacó (amarilla|roja) en la (J\d+)$/, ' ($1 en la $2)') : x], 'v') + '</span>'; }).join('') : '<span>' + sepHTML(b, 'v') + '</span>'; el.introLT.classList.toggle('lt-ph', !!bph); el.introLT.hidden = !b; }
     // beat C: lo que está en juego (con el jefe, su pista debajo)
     var c = plan && plan.c, sk = el.introStake;
     if (sk) {
@@ -1435,6 +1445,7 @@
     el.intro.style.setProperty('--in-dur', (dr ? 2.5 : introUI.dur) + 's');
     var d = device();
     el.introHint.innerHTML = d === 'touch' ? 'Toca para empezar ya' : d === 'gamepad' ? padKey('a') + 'para empezar ya' : 'Pulsa cualquier tecla para empezar ya';
+    introUI.hint = el.introHint.innerHTML; introUI.hold = false;
     el.intro.className = ''; void el.intro.offsetWidth; el.intro.className = 'show' + (dr ? ' drill' : '');
     el.app.classList.add('intro-on'); el.app.classList.remove('hud-in');
     hideBanner(); clearPrompt();
@@ -1452,6 +1463,16 @@
   function introTick(rdt) {
     // B5: beats B y C al cruzar su instante (tiempo de la previa = dur − ctx.introLeft); suena ui('beat', i) con i = 1 (B) o 2 (C)
     var pl = introUI.plan;
+    // (ronda 2, movil-aire §8.2 patrón 9) móvil en vertical durante la previa (main.js ctx.pvIntro): se ve entera (los beats B y C a la vez),
+    // la cuenta atrás se para (barra quieta: #intro.pvh) y el chip de abajo dice «Gira el móvil para empezar» con el móvil girando
+    var hold = !!(introUI.on && ctx.pvIntro);
+    if (hold !== !!introUI.hold) {
+      introUI.hold = hold; el.intro.classList.toggle('pvh', hold);
+      if (hold) {
+        if (pl && pl.beats) { for (var bi = 1; bi < pl.beats.length; bi++) el.intro.classList.add(pl.beats[bi].id === 'C' ? 'b3' : 'b2'); introUI.bi = pl.beats.length; }
+        el.introHint.innerHTML = '<i class="in-rot" aria-hidden="true"></i><span>Gira el móvil para empezar</span>';
+      } else el.introHint.innerHTML = introUI.hint || 'Toca para empezar ya';
+    }
     if (introUI.on && pl && ctx.introLeft > 0 && introUI.bi < pl.beats.length && introUI.dur - ctx.introLeft >= pl.beats[introUI.bi].at) {
       var bt = pl.beats[introUI.bi];
       el.intro.classList.add(bt.id === 'C' ? 'b3' : 'b2');
@@ -2967,8 +2988,55 @@
     prC[2] = (yT + promptH > hy - 4) || hitTouch(TB, xT, yT, wd, promptH) ? 9 : overlapAt(xT, yT) + 0.05; // arriba: solo si gana (tapa algo de vista sobre la jugada)
     promptW = w0; _prX[0] = xR; _prX[1] = xL; _prX[2] = xT;
   }
+  /** Móvil (html.ph; movil-aire §5.7): ¿es un teléfono? (la clase la pone splat.js; sin ella, PC y tableta igual que siempre). */
+  function phHud() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** (ronda 2, movil-aire §8.2) ¿móvil en cualquier orientación? (html.ph o html.pv): decide QUÉ SE DICE (textos cortos, una sola salida);
+   *  la disposición (dónde va cada cosa) sigue con phHud() / VB.Splat.phone() en horizontal. En PC, false. */
+  function phMob() { return !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()); }
+  /** (ronda 2, carrera-flujo-v) móvil en vertical (html.pv): solo disposición de las hojas de la Carrera. */
+  function phPv() { return !!(VB.Splat && VB.Splat.pv && VB.Splat.pv()); }
+  /** Móvil táctil (movil-aire §5.7): los avisos del saque («Espera el silbato» y «SACAR flotante · SALTAR potente», en UNA línea) van en la
+   *  franja de abajo, en el hueco entre el joystick y los botones (encima del sacador, que está de espaldas abajo), nunca arriba junto a la
+   *  seña o la cinta. Busca, de abajo arriba, la franja donde cabe el aviso sin pisar un botón (touchBoxes) y lo centra en su hueco. Clase
+   *  .phb (CSS: una línea). Devuelve false (el aviso vuelve a su sitio de siempre) si no es un teléfono táctil, no es del saque o no cabe. */
+  var phbNo = '';
+  function phStrip() {
+    var ok = phHud() && el.app.classList.contains('is-touch') && /^(wait|serve)\|/.test(promptCur || ''), cl = el.prompt.classList;
+    if (ok && phbNo === promptCur + '|' + ctx.width + 'x' + ctx.height) ok = false;   // (ya se probó y no cabía: no se reintenta en cada frame)
+    if (!ok) { if (cl.contains('phb')) { cl.remove('phb'); promptW = 0; } return false; }
+    if (!cl.contains('phb')) { cl.add('phb'); promptW = 0; }
+    if (prKonly) setKonly(false);
+    if (!promptW) { promptW = (el.prompt.offsetWidth || 180) * hudScale; promptH = (el.prompt.offsetHeight || 36) * hudScale; }
+    var W = ctx.width, H = ctx.height, TB = touchBoxes() || [], wd = promptW, ht = promptH, m = 12;
+    var gb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ph-gb')) || 8;
+    for (var y = H - gb - ht - 14; y > H * 0.42; y -= 8) {
+      // huecos libres de la fila [y, y + ht] entre los márgenes: se quitan las cajas de los botones que la cruzan
+      var segs = [[m, W - m]];
+      for (var i = 0; i < TB.length; i++) {
+        var o = TB[i]; if (!(y < o.b && y + ht > o.t)) continue;
+        var nx = [];
+        for (var j = 0; j < segs.length; j++) { var s = segs[j]; if (o.r <= s[0] || o.l >= s[1]) { nx.push(s); continue; } if (o.l > s[0]) nx.push([s[0], o.l]); if (o.r < s[1]) nx.push([o.r, s[1]]); }
+        segs = nx;
+      }
+      var best = null;
+      for (var k = 0; k < segs.length; k++) if (segs[k][1] - segs[k][0] >= wd && (!best || segs[k][1] - segs[k][0] > best[1] - best[0])) best = segs[k];
+      if (best) {
+        // centrado en el hueco, pero sin alejarse del centro de la pantalla más de lo que el hueco obliga
+        var x = Math.max(best[0], Math.min(best[1] - wd, W * 0.5 - wd * 0.5));
+        if (!anchorOn) { anchorOn = true; el.prompt.classList.add('anch'); }
+        if (prThru) { prThru = false; el.prompt.classList.remove('thru'); }
+        prX = x; prY = y;
+        el.prompt.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)';
+        prLast.x = x; prLast.y = y; prLast.w = wd; prLast.h = ht;
+        return true;
+      }
+    }
+    phbNo = promptCur + '|' + W + 'x' + H; cl.remove('phb'); promptW = 0;
+    return false;
+  }
   function placePrompt(g, p) {
     var cam = ctx.camera, W = ctx.width, H = ctx.height;
+    if (phStrip()) return;
     if (!cam || !p || !VB.toThree || !ctx.THREE) return anchorBottom();
     if (!_pv) { _pv = new ctx.THREE.Vector3(); _ph = new ctx.THREE.Vector3(); }
     VB.toThree(p.x, p.y, (p.z || 0) + 1.15, _pv); _pv.project(cam);
@@ -3109,6 +3177,8 @@
     }
   }
   function isOut(node) { return !!(node && node._outT); }
+  // (ronda 2, movil-aire §8.2: fuera el aviso de girar de la Carrera —crPortrait—; la Carrera entera se ve en vertical. El partido en juego
+  //  sigue pidiendo girar con ctx.portraitBlock)
   function syncScreens(g) {
     var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (ctx.replay ? 'R' : '') + (panel || '');
     if (key === shown) return;
@@ -3133,6 +3203,9 @@
     // Así ya está pintado y el primer frame del partido baja a < 35 ms.
     el.hud.hidden = false; el.hud.classList.toggle('warm', s === 'menu');
     el.rotate.hidden = !ctx.portraitBlock;
+    // (ronda 2, movil-aire §8.2) en vertical, el aviso de girar lleva una salida: «Pausa» (la pausa sí se ve en vertical). Los botones del
+    // banquillo (#benchBar) no asoman encima del aviso (CSS)
+    var rp = $('btnRotPause'); if (rp) rp.hidden = !(ctx.portraitBlock && s === 'playing');
     // la viñeta no se suma al velo de las hojas (pausa, final, paneles)
     el.veil.classList.toggle('under', (s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.endHold && !endGate && !ctx.replay && !el.end.classList.contains('dock')) || !!panel));
     if (s === 'menu') { hideBanner(); renderMenu(); }
@@ -3253,7 +3326,11 @@
     if (el.menu && el.menu.classList.contains('has-now-mj') !== tk) el.menu.classList.toggle('has-now-mj', tk);
     var flat = show || nw || sgOn;
     if (el.btnPlay.classList.contains('primary') === flat) el.btnPlay.classList.toggle('primary', !flat);
-    if (el.playMainSub && el.playMainSub.hidden === flat) el.playMainSub.hidden = !flat;
+    // (movil-aire §5.1: en el móvil, al revés que en PC: la línea pequeña de JUGAR sale cuando JUGAR es lo primero —el sello ya no la tapa—
+    // y se quita cuando hay un billete encima, que baja JUGAR a 52 px)
+    // (ronda 2, menus-v: en vertical sobra alto, la línea corta sale siempre —el sello va de pegatina encima y no la tapa—)
+    var subOn = phPv() ? true : phHud() ? !flat : flat;   // (disposición: depende de si el sello tapa la línea)
+    if (el.playMainSub && el.playMainSub.hidden === subOn) el.playMainSub.hidden = !subOn;
     var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
     if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
     if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(mainF, kbNow());
@@ -3334,7 +3411,8 @@
   var SQ_IC = { 'Físico': 'phys', 'Defensa': 'def', 'Ataque': 'atk' };
   function sqItems() {
     var G = (VB.Prog && VB.Prog.GROUPS) || [], it = G.map(function (g, i) { return { id: 'g' + i, label: g[0], icon: TAB_IC[SQ_IC[g[0]]] || '' }; });
-    if (VB.Badges) it.push({ id: 'bd', label: 'Insignias', icon: TAB_IC.badge });
+    // (ronda 2, menus-v: en vertical las 4 pestañas van en columnas de ~77 px con icono encima: «Insig.» escrito a mano, el entero en aria)
+    if (VB.Badges) it.push({ id: 'bd', label: phPv() ? 'Insig<span class="sr">nias</span><span aria-hidden="true">.</span>' : 'Insignias', icon: TAB_IC.badge });
     return it;
   }
   function renderSquad(upKey) {
@@ -3355,7 +3433,7 @@
     if (sqTabs) {
       var items = sqItems(), a0 = d.a[sqSel];
       if (VB.Badges && a0) items.forEach(function (it) { if (it.id === 'bd') it.badge = VB.Badges.equipped(a0).length + '/' + VB.Badges.slots(a0); });
-      var key = JSON.stringify(items.map(function (it) { return it.id + it.badge; }));
+      var key = JSON.stringify(items.map(function (it) { return it.id + it.badge + it.label; }));
       if (sqTabs._k !== key) { sqTabs._k = key; sqTabs.refresh(items); }
     }
     var tab = sqTabs ? sqTabs.get() : 'g0', a = d.a[sqSel], i = sqSel, nd = P.need(a.lvl);
@@ -3506,6 +3584,9 @@
     // E6: en un ejercicio no hay marcador; «Reiniciar ejercicio» y «Salir al entrenamiento»
     var dr = !!(g && g.drill && !g.demo);
     el.pause.classList.toggle('drill', dr);
+    // (movil-aire §5.7, móvil: Sugerencia y Bug en un solo botón, «Opinar», que abre el panel con las dos pestañas; el de Bug lo esconde el CSS)
+    var sgB = $('btnPSug'), sgT = sgB && sgB.querySelector('.sp-t');
+    if (sgT) { var ph0 = phMob(); sgT.textContent = ph0 ? 'Opinar' : 'Sugerencia'; if (ph0) sgB.setAttribute('aria-label', 'Opinar: sugerencia o bug'); else sgB.removeAttribute('aria-label'); }
     var tr = !dr && isTrial();
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : tr ? 'Reiniciar prueba' : 'Reiniciar partido';
     el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : tr ? 'Abandonar la prueba' : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
@@ -3671,7 +3752,7 @@
         '<strong aria-hidden="true"><i data-cu="' + best.pts + '" class="mvp-pts">' + best.pts + '</i></strong>' + cell(best.kills) + cell(best.blocks) + cell(best.aces) + '</div>';
       nMv++;
     }
-    el.endMvp.innerHTML = nMv ? '<span class="mvp-h" aria-hidden="true">MVP</span><div class="mvp-cols" aria-hidden="true"><span></span><span></span><span>Ataque</span><span>Bloqueo</span><span>Saque</span></div>' + mv : '';
+    el.endMvp.innerHTML = nMv ? '<span class="mvp-h" aria-hidden="true">MVP</span><div class="mvp-cols" aria-hidden="true"><span></span><span></span>' + [['Ataque', 'Ata.'], ['Bloqueo', 'Bloq.'], ['Saque', 'Saq.']].map(function (t) { return '<span><span class="ph-no">' + t[0] + '</span><span class="ph-only">' + t[1] + '</span></span>'; }).join('') + '</div>' + mv : '';   // (ronda 2: en el móvil, rótulos cortos que no se pisan)
     el.endMvp.classList.toggle('two', nMv > 1);
     // B6: el Vestuario de Partido rápido (récord, Entrenamiento, retos y nivel de perfil) se concede ya, sin aviso, para enseñarlo en
     // el Resumen (el aviso del menú, lkCheckNew, ya no lo repite). En la Carrera lo concede VB.Career.matchDone
@@ -3764,13 +3845,28 @@
   // su desvanecido la recortaba); en el resto, otra vez en su sitio, delante del acta. CSS: index.html «(carrera, 18-nov-2026)».
   // Lo llaman el final del partido y «vb:tier» (la barra del navegador cruza 345 de alto con el final abierto).
   function placeMStats() {
+    try { endSplit(); } catch (e) { console.error('[VB][ERROR] endSplit: ' + e); }
+    try { endTools(); } catch (e) { console.error('[VB][ERROR] endTools: ' + e); }
     if (!el.btnMStats) return;
     var msHome = $('endStatsTab') && $('endStatsTab').querySelector('.end-ms'), msBody = el.end && el.end.querySelector('.end-body');
     // (en .end-body dentro de su propio [data-nav] (display:contents): si no, el teclado y el mando no llegaban a él)
     var msPh = msBody && msBody.querySelector('.end-ms-ph');
     if (msBody && !msPh) { msPh = document.createElement('span'); msPh.className = 'end-ms-ph'; msPh.setAttribute('data-nav', ''); msPh.setAttribute('data-sp-row', ''); msBody.appendChild(msPh); }
-    var msTo = document.documentElement.classList.contains('ph-s') ? msPh : msHome;
+    var msTo = document.documentElement.classList.contains('ph-s') && !phHud() ? msPh : msHome;   // (movil-aire §5.7: en el móvil, al pie de Cifras)
     if (msTo && el.btnMStats.parentNode !== msTo) msTo.insertBefore(el.btnMStats, msTo === msHome ? msHome.firstChild : null);
+    var mT = el.btnMStats.querySelector('.sp-t');   // (movil-aire §5.7: en el móvil, «Ver todo ›» al pie de Cifras)
+    if (mT) { var ph1 = phHud(); mT.textContent = ph1 ? 'Ver todo ›' : 'Estadística del partido'; if (ph1) el.btnMStats.setAttribute('aria-label', 'Estadística del partido'); else el.btnMStats.removeAttribute('aria-label'); }
+  }
+  /** (ronda 2, carrera-flujo-v) «Ver tabla» de la hoja de la Carrera en vertical: la clasificación entera en una hoja (VB.Splat.sheet). */
+  function endTableSheet() {
+    var d = recapD, t = d && d.table, SP = VB.Splat; if (!t || !t.rows || !SP || !SP.sheet) return;
+    var C0 = VB.Career, c0 = null; try { c0 = C0 && C0.get ? C0.get() : null; } catch (e) { c0 = null; }
+    var nm = function (id) { var k = null; try { k = c0 && C0.club ? C0.club(c0, id) : null; } catch (e) { k = null; } return (k && k.name) || (t.shortOf && t.shortOf(id)) || String(id); };
+    var ord = function (n) { n = n | 0; return n + (n === 1 || n === 3 ? 'r' : 'º'); };
+    var nd = document.createElement('div'); nd.className = 'rc-tbsh';
+    nd.innerHTML = '<table><thead><tr><th scope="col">#</th><th scope="col" class="l">Club</th><th scope="col"><abbr title="Partidos jugados">PJ</abbr></th><th scope="col"><abbr title="Puntos">Pts</abbr></th></tr></thead><tbody>' +
+      t.rows.map(function (r, i) { return '<tr' + (r.id === t.myId ? ' class="me"' : '') + '><td>' + ord(r.pos | 0 || i + 1) + '</td><td class="l">' + escT(nm(r.id)) + '</td><td>' + (r.pj | 0) + '</td><td>' + (r.pts | 0) + '</td></tr>'; }).join('') + '</tbody></table>';
+    SP.sheet({ title: 'Clasificación', node: nd, cls: 'rc-tbs' });
   }
   function endRecap(e, g, sum, x) {
     recapM = null; recapD = null; endRcSnd = null;
@@ -3782,10 +3878,13 @@
     recapM = M; recapD = d;
     var cs = d.career;
     // antetítulo y título: los de la Carrera (competición y «Gana el …») y del reto del día; Partido rápido, los de showEnd
-    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
+    el.end.classList.toggle('crs', !!cs);   // (movil-aire, carrera-flujo: hoja de un partido de Carrera; solo la usa el CSS de html.ph)
+    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); crKick(M.kicker); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
     else if (d.sit) {   // «La jugada del día ◆ 24 nov | Set único a 25»
       setSep(el.endKicker, [{ h: nw('La jugada del día') }, { h: nw(escT(d.sit.dayLbl || '')) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
-      el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 11);
+      // (movil-aire §5.7, móvil: «¡SALVADA!» sin el resultado, que ya está en el marcador y en los sets)
+      var stt = phMob() ? String(M.title).replace(/\s+\d+\s*[-–]\s*\d+\s*$/, '') : M.title;
+      el.endTitle.textContent = stt; el.endTitle.classList.toggle('long', String(stt).length > 11);
     }
     else if (d.reto) {
       var dn = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
@@ -3793,6 +3892,7 @@
       setSep(el.endKicker, [{ h: nw('Reto del día') }, { h: nw(escT(venueName())) + '<span class="ph-hide">' + SEP_V + nw('Nivel ' + escT(dn || '')) + SEP_V + nw('Sets a ' + ((g && g.points) || 25)) + '</span>' }], 'd');
     }
     el.endSum.innerHTML = watch ? '' : rcHTML(M, d);
+    if (!el.endSum._tb) { el.endSum._tb = 1; el.endSum.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-rc="tbl"]') : null; if (b) { uiSound('click'); endTableSheet(); } }); }
     endSeal(!watch && d.reto && retoEnd && retoEnd.day ? retoEnd.day : null);   // (SPLAT: reto del día → sello dorado junto al título)
     renderPlays(watch ? 0 : d.plays | 0);
     if (!watch) endButtons(M);
@@ -3800,8 +3900,84 @@
     if (ctx.net) { onlineEndButtons(); onlineEndRec(); }
     var tabs = watch ? ['stats'] : M.tabs, q = ctx.debug && ctx.params.tab;
     endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
+    try { endTools(); } catch (er2) { console.error('[VB][ERROR] endTools: ' + er2); }
     // sonidos de la entrada escalonada (a los 700 ms la flecha de la tabla, a los 800 ms el desbloqueo): al verse la hoja (syncScreens)
     endRcSnd = { rank: M.table && M.table.move ? M.table.move.d | 0 : 0, unl: !!M.unlocks };
+  }
+  /** Móvil bajo (.ph-s, movil-aire §5.5): en la hoja de un partido de Carrera (#end.crs) el bloque secundario (objetivos de la prueba o del
+   *  juvenil, «Tu partido») pasa a la columna izquierda, bajo los sets (.end-side, área «lm»), y el panel derecho queda para el progreso, el
+   *  MVP y la clasificación. Cada nodo deja un marcador para volver a su sitio si cambia el tamaño. Lo llaman placeMStats (final y vb:tier)
+   *  y main.js tras pintar sus bloques. Sin .ph-s, todo en su sitio de siempre (PC igual). */
+  function endSplit() {
+    var en = el.end; if (!en) return;
+    var sh = en.querySelector('.sp-sheet'); if (!sh) return;
+    var side = sh.querySelector(':scope>.end-side');
+    // (ronda final: apagado. Con .end-tl —el ojo de «Ver celebración» y «Opciones» en la columna izquierda— «Tu partido» y los objetivos
+    // quedaban debajo del ojo a 568; ahora se quedan en la hoja de la derecha y la columna izquierda es solo marcador, sets y el ojo)
+    var on = false && document.documentElement.classList.contains('ph-s') && en.classList.contains('crs');
+    var back = function () {
+      if (!side) return;
+      Array.prototype.slice.call(side.children).forEach(function (n) {
+        var mk = en.querySelector('i.es-mk[data-es="' + n.getAttribute('data-es-id') + '"]');
+        if (mk && mk.parentNode) mk.parentNode.replaceChild(n, mk); else if (n.parentNode) n.parentNode.removeChild(n);
+      });
+    };
+    back();
+    Array.prototype.slice.call(en.querySelectorAll('i.es-mk')).forEach(function (m) { if (m.parentNode) m.parentNode.removeChild(m); });
+    if (!on) { if (side) side.hidden = true; return; }
+    if (!side) { side = document.createElement('div'); side.className = 'end-side ph-only'; sh.appendChild(side); }
+    var L = [], q = function (s) { var n = en.querySelector(s); if (n && !side.contains(n)) L.push(n); };
+    q('#endSum > #endRt'); q('#endSum .end-trial .et-goals'); q('#endSum .pro-et .et-goals');
+    L.forEach(function (n, i) {
+      var id = 'es' + i, mk = document.createElement('i'); mk.className = 'es-mk'; mk.hidden = true; mk.setAttribute('data-es', id);
+      n.setAttribute('data-es-id', id); n.parentNode.replaceChild(mk, n); side.appendChild(n);
+    });
+    side.hidden = !L.length;
+  }
+  /** Móvil (html.ph, movil-aire §5.7): «Ver celebración» y «Cambiar opciones» (en la situación de la semana, también «Enviar») salen de la
+   *  hoja y de la fila de abajo a la columna izquierda, bajo los sets, como botones de 44 (.end-tl, área «tl»), igual en las 3 pestañas; tras
+   *  el primer partido, ahí van también las fichas de «Y ahora» (la hoja de la derecha empieza arriba) y «Cambiar opciones» se queda abajo
+   *  junto a «Menú». Abajo queda «Más difícil · Menú · Revancha». Cada nodo deja un marcador para volver a su sitio (PC o al salir del
+   *  móvil). Lo llaman endRecap (tras pintar) y placeMStats (final y vb:tier). */
+  function endTools() {
+    var en = el.end; if (!en) return;
+    var sh = en.querySelector('.sp-sheet'); if (!sh) return;
+    var tl = sh.querySelector(':scope>.end-tl');
+    if (tl) Array.prototype.slice.call(tl.children).forEach(function (n) {
+      var mk = en.querySelector('i.tl-mk[data-tl="' + n.getAttribute('data-tl-id') + '"]');
+      if (mk && mk.parentNode) mk.parentNode.replaceChild(n, mk); else if (n.parentNode) n.parentNode.removeChild(n);
+    });
+    Array.prototype.slice.call(en.querySelectorAll('i.tl-mk')).forEach(function (m) { if (m.parentNode) m.parentNode.removeChild(m); });
+    en.classList.remove('ph-tl', 'ph-tl1');
+    if (!phHud() || ctx.net) { if (tl) tl.hidden = true; return; }
+    if (!tl) { tl = document.createElement('div'); tl.className = 'end-tl ph-only'; tl.setAttribute('data-nav', ''); tl.setAttribute('data-sp-row', ''); sh.appendChild(tl); }
+    var first0 = en.querySelector('#endSum > .rc-first'), first = document.documentElement.classList.contains('ph-s') ? null : first0, L = [];
+    if (first) L.push(first);
+    // (tras el primer partido, fuera «Más difícil»: «Cambiar opciones» vuelve a la fila de abajo, junto a «Menú»)
+    if (first0 && el.btnAgainAlt && el.btnAgainAlt.getAttribute('data-act') !== 'share') el.btnAgainAlt.hidden = true;
+    var pk = sh.querySelector(':scope>.end-peek'); if (pk) L.push(pk);
+    if (el.btnAgainAlt && el.btnAgainAlt.getAttribute('data-act') === 'share') L.push(el.btnAgainAlt);
+    if (el.btnEndOpts && !first0) L.push(el.btnEndOpts);
+    L.forEach(function (n, i) {
+      var id = 'tl' + i, mk = document.createElement('i'); mk.className = 'tl-mk'; mk.hidden = true; mk.setAttribute('data-tl', id);
+      n.setAttribute('data-tl-id', id); n.parentNode.replaceChild(mk, n); tl.appendChild(n);
+    });
+    // (568×320: «Cambiar opciones» → «Opciones», con el ::after de data-short como los rótulos cortos de la fila de abajo)
+    if (el.btnEndOpts && el.btnEndOpts.getAttribute('data-act') === 'opts') { if (document.documentElement.classList.contains('ph-s') || first0) el.btnEndOpts.setAttribute('data-short', 'Opciones'); else el.btnEndOpts.removeAttribute('data-short'); }
+    tl.hidden = false; en.classList.add('ph-tl'); en.classList.toggle('ph-tl1', !!first0);
+  }
+  /** Móvil (movil-aire §5.5, hoja de partido de la Carrera): antetítulo corto de una línea («Regional · J3/14», «Continental · Clasif. 2º»,
+   *  «Prueba · Voley Valencia») en un .ph-only al final de #endKicker; el CSS de .ph esconde el largo. En PC no se ve (ph-only). */
+  function crKick(parts) {
+    var k = el.endKicker; if (!k) return;
+    var t = (Array.isArray(parts) ? parts : [parts]).map(function (p) { return String(p && typeof p === 'object' ? p.h || '' : p || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); }).filter(Boolean).join(' · ');
+    var s = t.replace(/Partidillo de prueba/, 'Prueba').replace(/Partido de las Estrellas/, 'Estrellas').replace(/Circuito (Regional|Nacional|Internacional|Mundial)/g, '$1')
+      .replace(/Jornada (\d+) de (\d+)/g, 'J$1/$2').replace(/Jornada (\d+)(:[^·]*)?/g, 'J$1').replace(/[Cc]lasificación, (\d+)º partido/, 'Clasif. $1º')
+      .replace(/[Gg]rupo ([A-D]), (\d+)ª jornada/, 'Grupo $1 · J$2').replace(/\s+/g, ' ').trim();
+    var cm = s.split(', '); if (cm.length > 1) s = cm[0].split(' ')[0] + ' · ' + cm.slice(1).join(' · ');
+    var o = k.querySelector('.ek-s'); if (o) o.parentNode.removeChild(o);
+    k.classList.toggle('ek-on', !!s && s !== t);
+    if (s && s !== t) k.insertAdjacentHTML('beforeend', '<span class="ph-only ek-s" aria-hidden="true">' + escT(s) + '</span>');
   }
   /** SPLAT: hoja final del reto del día → sello dorado (.sp-stamp, decorativo) junto al título con la medalla de hoy (la mejor del
    *  día); el detalle sigue en el bloque «Reto del día» del Resumen. Sin reto, escondido. */
@@ -3917,6 +4093,16 @@
       var b = ev.target && ev.target.closest ? ev.target.closest('button[data-set]') : null; if (!b) return;
       msSet(+b.getAttribute('data-set'), ev.detail === 0 || kbNow());
     });
+    // (movil-aire §5.7, móvil) índice de secciones (.ms-idx, ph-only) y secciones plegadas (.ph-fold): tocar abre y baja hasta ella
+    $('msBody').addEventListener('click', function (ev) {
+      var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
+      var j = t.closest('button[data-msj]'), hd = !j && t.closest('.ph-fold>.ms-h');
+      if (hd) { hd.parentNode.classList.toggle('open'); uiSound('click'); return; }
+      if (!j) return;
+      var sc = $('msh-' + j.getAttribute('data-msj')); sc = sc && sc.parentNode; if (!sc) return;
+      sc.classList.add('open'); uiSound('click');
+      try { sc.scrollIntoView({ block: 'start', behavior: rm() ? 'auto' : 'smooth' }); } catch (e) { sc.scrollIntoView(); }
+    });
     return true;
   }
   /** Nombres de los equipos: [para títulos y pestañas], [dentro de una frase]. */
@@ -3950,6 +4136,8 @@
     try { html = M.html(msModel(ms.set), ms.team, { names: ms.nm.names, inl: ms.nm.inl, pnames: ms.nm.pn, sep: sepHTML, you: 'Tú' }); }
     catch (er) { console.error('[VB][ERROR] MatchStats.html: ' + er); html = '<p class="ms-empty">No se ha podido calcular la estadística.</p>'; }
     $('msBody').innerHTML = html;
+    // (movil-aire §5.7, móvil: las secciones largas del 6 contra 6, plegadas; se abren al tocar su título o su ficha del índice)
+    if (phMob()) Array.prototype.forEach.call($('msBody').querySelectorAll('.ms-sec.ms-long'), function (sc) { sc.classList.add('ph-fold'); });
     if (VB.Splat && VB.Splat.info) VB.Splat.info($('msBody'));   // «i» de «Cifras clave» en el móvil (un escuchador por raíz)
   }
   function msSet(s, kb) {
@@ -3989,7 +4177,7 @@
       actaOk = ACTA_ALLOW.indexOf(h) >= 0; actaVis();
     }, function () { actaOk = false; actaVis(); });
   }
-  function actaVis() { if (el.btnActa && !actaOk) el.btnActa.hidden = true; }
+  function actaVis() { if (el.btnActa && !actaOk) el.btnActa.hidden = true; fbVis(); }
   function actaLbl(t) {
     var b = el.btnActa; if (!b) return;
     var sp = b.querySelector('.sp-t') || b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;   // (SPLAT: el rótulo, no el icono)
@@ -4048,7 +4236,8 @@
   /** Pestañas de la hoja: ids de M.tabs; una sola (o sin recap.js) = sin barra. */
   function endPanes(tabs, cur, noBar, labels) {
     // (móvil: si la tira no cabe, fitTabs pone los rótulos cortos; «Jugadas (3)» → «Jugadas»)
-    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
+    // (ronda 2: en el móvil la pestaña se llama «Cifras» en las dos orientaciones —antes «Cifras» en horizontal y «Estadísticas» en vertical—)
+    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: t === 'stats' && phMob() ? 'Cifras' : L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
     var bar = !noBar && items.length > 1;
     if (el.endTabs) {
       el.endTabs.hidden = !bar;
@@ -4075,6 +4264,24 @@
     var pn = endTab === 'sum' ? el.endSum : endTab === 'stats' ? el.endStatsTab : el.endPlays;
     if (!pn || pn.hidden || el.end.hidden) return;
     var m = pn.scrollHeight - pn.clientHeight - pn.scrollTop > 6;
+    // (ronda 2, §8.3; móvil en las dos orientaciones) el desvanecido solo si de verdad queda algo debajo, y se vuelve a medir cuando el
+    // contenido cambia de tamaño (las letras y las fichas del MVP llegan tarde: se quedaba puesto con la hoja sin desplazamiento y tapaba
+    // «3 de bloqueo · 2 aces» a 844)
+    if (phMob()) {
+      m = pn.scrollHeight > pn.clientHeight + 2 && pn.scrollTop + pn.clientHeight < pn.scrollHeight - 2;
+      // (lo que entra animado desborda unos píxeles un momento sin cambiar de tamaño —el ResizeObserver no lo ve—: con el desvanecido
+      // puesto, otra medida a los 400 ms, hasta 3 seguidas)
+      if (!pn._emTm) pn._emN = 0;
+      if (m && ++pn._emN <= 3) { clearTimeout(pn._emT); pn._emT = setTimeout(function () { pn._emTm = true; try { endMore(); } finally { pn._emTm = false; } }, 400); }
+      if (!pn._emRO && typeof ResizeObserver !== 'undefined') {
+        var again = function () { if (pn._emQ) return; pn._emQ = requestAnimationFrame(function () { pn._emQ = 0; endMore(); }); };
+        try {
+          pn._emRO = new ResizeObserver(again); pn._emRO.observe(pn);
+          var obs = function () { for (var c = pn.firstElementChild; c; c = c.nextElementSibling) pn._emRO.observe(c); };
+          obs(); new MutationObserver(function () { obs(); again(); }).observe(pn, { childList: true });
+        } catch (e) { }
+      }
+    }
     if (pn.classList.contains('more') !== m) pn.classList.toggle('more', m);
   }
   /** Botones del modelo (principal + resto) sobre los cuatro de siempre: again/next → #btnAgain; againAlt; opts/retos → #btnEndOpts; menu. */
@@ -4088,8 +4295,8 @@
     if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
     el.btnMenu.hidden = !has.menu; if (has.menu) el.btnMenu.textContent = has.menu.label;
     el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt || has.share ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
-    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : has.share ? 'Enviar' : '');
-    if (el.btnEndOpts) { if (o && o.id === 'group') el.btnEndOpts.setAttribute('data-short', 'Grupo'); else el.btnEndOpts.removeAttribute('data-short'); }   // (móvil: rótulos cortos de la situación)
+    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : has.share ? 'Compartir' : '');   // (ronda 2: «Compartir», no «Enviar»)
+    if (el.btnEndOpts) { if (o && o.id === 'group') el.btnEndOpts.setAttribute('data-short', 'El grupo'); else el.btnEndOpts.removeAttribute('data-short'); }   // (móvil: rótulos cortos de la situación)
     endOptsPill(has.againAlt && o && o.id === 'opts' ? o.label : '');
   }
   /** «Jugar ya» (1.22.0, informe 4.3): al acabar el PRIMER partido (récord de 0 a 1), una fila al final del Resumen con lo que hasta
@@ -4212,7 +4419,13 @@
     var T = ['Bronce', 'Plata', 'Oro'], best = Math.max(day.best | 0, day.medal | 0), mh = '';
     for (var k = 1; k <= 3; k++) mh += '<span class="ge-m' + (best >= k ? ' on' : '') + (day.newMedal && day.medal === k ? ' new' : '') + '">' + medalSVG(best >= k ? k : 0, best >= k ? '' : 'off') + T[k - 1] + '</span>';
     var line = day.newMedal && day.medal ? '¡Medalla de ' + RC_MED[day.medal] + ' en el reto del día!' : day.prev && day.medal <= day.prev ? 'Hoy ya tenías ' + RC_MED[day.prev] : 'Sin medalla: gana un set para el bronce';
-    return '<div class="rc-meds">' + mh + '</div><span class="rc-l">' + escT(line) + '</span>' + (day.xp ? '<span class="rc-x">+' + (day.xp | 0) + ' de experiencia (a cada jugador)</span>' : '');
+    // (movil-aire §5.7, móvil: la medalla y la experiencia en una línea, «¡Plata! +55 XP», sin «(a cada jugador)»)
+    if (phHud()) {
+      var ln = day.newMedal && day.medal ? '¡' + T[day.medal - 1] + '!' : line;
+      return '<div class="rc-meds">' + mh + '</div><span class="rc-l rc-dl">' + escT(ln) + (day.xp ? ' <b class="nw">+' + (day.xp | 0) + ' XP</b>' : '') + '</span>';
+    }
+    // (ronda 2, partido-v: en vertical, la frase entera y «+115 de experiencia» en su línea, sin «(a cada jugador)»)
+    return '<div class="rc-meds">' + mh + '</div><span class="rc-l">' + escT(line) + '</span>' + (day.xp ? '<span class="rc-x">+' + (day.xp | 0) + ' de experiencia' + (phPv() ? '' : ' (a cada jugador)') + '</span>' : '');
   }
   /** HTML del Resumen: bloques del modelo en su orden, cada uno con su etiqueta a la izquierda y entrada escalonada (--i). */
   function rcHTML(M, d) {
@@ -4233,13 +4446,14 @@
           if (M.mvp) {
             // (cada dato entero en su línea: «7 aces» no se parte; nbsp dentro de cada uno; la raya va pegada al dato que la sigue, .rc-pd)
             var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []).map(function (p) { return typeof p === 'string' ? p.replace(/ /g, '\u00a0') : p; });
-            blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v').replace(/(<span class="sep[^"]*"><span class="sr">, <\/span><\/span>)([^<]*)/g, '<span class="rc-pd">$1$2</span>') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+            if (phMob()) blk('rc-mvp rc-mvph', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small class="rc-mch">' + parts.map(function (t) { return '<span>' + escT(String(t)) + '</span>'; }).join('') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+            else blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v').replace(/(<span class="sep[^"]*"><span class="sr">, <\/span><\/span>)([^<]*)/g, '<span class="rc-pd">$1$2</span>') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
           } else blk('rc-mvp rv', H.mvp, '<span class="rc-l">' + escT(M.mvpRival.t) + '</span>' + (cs && M.nota ? '<em class="rc-nota">Nota ' + escT(M.nota) + '</em>' : ''));
           break;
         case 'xp':
           var xh = '';
           M.xp.forEach(function (r) {
-            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(document.documentElement.classList.contains('ph') ? String(r.name || '').split(' ')[0] : r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
+            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(phMob() ? String(r.name || '').split(' ')[0] : r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
               (r.bar != null ? '<i class="rc-bar" aria-hidden="true"><i style="--w:' + Math.round(r.bar * 100) + '%"></i></i>' : '') + (r.lvlUp ? '<span class="lv">' + escT(r.lvlT) + '</span>' : '') + '</span>';
           });
           blk('rc-xp', H.xp, xh + (M.badges.length ? rcBadges(M.badges) : ''));
@@ -4255,6 +4469,8 @@
             var mvT = r.me && M.table.move && M.table.move.txt ? M.table.move : null;
             tb += '<span class="rc-tr' + (r.me ? ' me' : '') + '"><em>' + escT(r.posT) + '</em>' + (mvT ? '<i class="mv ' + (mvT.d > 0 ? 'up' : mvT.d < 0 ? 'dn' : 'eq') + '">' + escT(mvT.txt) + '</i>' : '<i class="mv"></i>') + '<b>' + escT(r.short) + '</b><span>' + r.pts + '</span></span>';
           });
+          // (ronda 2, carrera-flujo-v: en vertical, «Ver tabla» abre la clasificación entera en una hoja; aquí, tu fila ±1)
+          if (cs && phPv() && d.table && d.table.rows && d.table.rows.length > 3) tb += '<button type="button" class="rc-tball" data-rc="tbl">Ver tabla</button>';
           blk('rc-tb', H.table, tb);
           break;
         case 'cup': blk('rc-cup', H.cup, '<span class="rc-l">' + escT(M.cup) + '</span>'); break;
@@ -4265,11 +4481,11 @@
         case 'inj': blk('rc-inj', H.inj, '<span class="rc-l"><b>' + escT(M.inj.t) + '</b></span><span class="rc-l">' + sepHTML(M.inj.parts, 'v') + '</span>'); break;
         case 'retos':
           var rp = M.retos.pills.map(function (p) { return '<span class="rc-pill' + (p.nw ? ' nw' : '') + '">' + medalSVG(p.lvl) + escT(p.t) + '</span>'; }).join('');
-          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + ' (a cada jugador)</span>' : ''));
+          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + (phMob() ? '' : ' (a cada jugador)') + '</span>' : ''));
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
-        case 'sit': blk('rc-sit', H.sit || 'Jugada del día', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
+        case 'sit': blk('rc-sit', H.sit || 'Jugada del día', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + (phMob() ? escT(t).replace(/(\d+-\d+)/g, '<span style="white-space:nowrap">$1</span>') : escT(t)) + '</span>'; }).join('')); break;   // (el resultado «17-15» no se parte)
       }
     });
     return h;
@@ -4541,9 +4757,20 @@
     if (api.el.classList.contains('sp-vtabs') !== (ph && phm === 'rail')) api.el.classList.toggle('sp-vtabs', ph && phm === 'rail');
     if (api.el.classList.contains('sp-tabs-strip') !== (ph && phm === 'strip')) api.el.classList.toggle('sp-tabs-strip', ph && phm === 'strip');
     if (phm && !ph && S && S.shorten) S.shorten(api.el, true);   // (vuelven los rótulos largos)
+    // (ronda 2, carrera-marco-v) vertical (html.pv): "rail" → barra inferior de apartados (.pv-tbar) y "strip" → tira de arriba (.pv-tstrip);
+    // nunca solo-icono. Sin .pv se quitan (PC y apaisado como antes)
+    var pvm = !!phm && !ph && document.documentElement.classList.contains('pv');
+    if (api.el.classList.contains('pv-tbar') !== (pvm && phm === 'rail')) api.el.classList.toggle('pv-tbar', pvm && phm === 'rail');
+    if (api.el.classList.contains('pv-tstrip') !== (pvm && phm === 'strip')) api.el.classList.toggle('pv-tstrip', pvm && phm === 'strip');
     if (api.el.offsetParent === null) return;
     var row = api.el.querySelector('.tb-row'); if (!row) return;
     api.el.classList.remove('tabs-ic');
+    if (pvm) {
+      if (S && S.more) S.more(row);
+      var onv = row.querySelector('.tab.on');
+      if (onv && phm === 'strip' && row.scrollWidth > row.clientWidth + 2) { try { var rr = row.getBoundingClientRect(), br = onv.getBoundingClientRect(); row.scrollLeft += (br.left + br.width / 2) - (rr.left + rr.width / 2); } catch (e) { } }
+      return;
+    }
     if (ph) {
       var on = row.querySelector('.tab.on');
       if (phm === 'strip' && S && S.shorten) {
@@ -4572,7 +4799,15 @@
     }
     return false;
   }
-  document.addEventListener('vb:ph', function () { fitAllTabs(); });   // (móvil: al entrar o salir del tier, columna / tira / barra)
+  document.addEventListener('vb:ph', function () {
+    fitAllTabs(); heroDirty = true; if (panel === 'tut' && !el.panel.hidden) tutGo(tut.i);
+    // (ronda 2, menus-v: al girar, la línea corta de JUGAR, las pestañas de Jugadores y el desplazamiento de Partido rápido de vertical)
+    try { if (ctx.state === 'menu' && mpage === 'main') syncHero(); if (panel === 'squad' && !el.panel.hidden) renderSquad(); } catch (e) { }
+    try { if (ctx.state === 'menu' && mpage === 'prof') pfRender(true); } catch (e) { }   // (ronda 2, paneles-v: Perfil, fichas y pestañas de vertical)
+    // (ronda 2, paneles-v: Ajustes rehace sus textos y controles al girar —interruptor / segmentado / selector según el ancho—)
+    try { if (panel === 'set' && !el.panel.hidden) { renderOpts(); setTab(setTabs ? setTabs.get() : 'audio'); } } catch (e) { }
+    if (mpage === 'quick' && phPv() && VB.Splat && VB.Splat.more) { var qo = document.querySelector('#mpQuick .sp-opts'); if (qo) VB.Splat.more(qo); }
+  });   // (móvil: al entrar o salir del tier, columna / tira / barra)
   // (vb:tier: también al cruzar 345 de alto (.ph-s) o 800 de ancho (.ph-w); p. ej. la barra del navegador a 667×375. Solo lo que monta
   // el JS distinto en .ph-s, sin repintar pantallas enteras)
   document.addEventListener('vb:tier', function () {
@@ -4619,6 +4854,7 @@
   }
   function setPage(p, anim) {
     var was = mpage;
+    if (p !== was) toastsOff();
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
     if (was === 'prof' && p !== 'prof') pfLeave();   // Perfil: lo nuevo de la pestaña a la vista queda visto
     if (was === 'online' && p !== 'online' && VB.NetLobby) { try { VB.NetLobby.leave(); } catch (e) { console.error('[VB][ERROR] NetLobby.leave: ' + e); } }   // (sale de la sala que hubiera)
@@ -4635,6 +4871,8 @@
     var spf = !!(n && n.hasAttribute('data-sp-full')); if (el.menu.classList.contains('sp-full') !== spf) el.menu.classList.toggle('sp-full', spf);
     if (anim && n) { n.classList.remove('pg-in', 'pg-back'); void n.offsetWidth; n.classList.add(anim === 'back' ? 'pg-back' : 'pg-in'); }
     if (p === 'quick') renderOpts();
+    // (ronda 2, menus-v: en vertical la lista de opciones se desplaza sobre ¡A JUGAR! fijo abajo; degradado y flecha mientras queda algo)
+    if (p === 'quick' && phPv() && VB.Splat && VB.Splat.more) { var qo = document.querySelector('#mpQuick .sp-opts'); if (qo) VB.Splat.more(qo); }
     if (ctx && ctx.state === 'menu') renderMenu();   // pistas de teclado/mando de esta página
     if (p === 'play') plFmtSync();
     if (p === 'play' && VB.CareerUI && VB.CareerUI.syncMenu) try { VB.CareerUI.syncMenu(); } catch (e) { }
@@ -4688,6 +4926,8 @@
     wristL: 'Muñequera (izq.)', wristR: 'Muñequera (dcha.)', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
     'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura', 'c:pad': 'Rodilleras'
   };
+  // (móvil, movil-aire §5.6: la fila es «Etiqueta · Valor» en una línea; los rótulos largos, en corto para que el valor no se corte)
+  var LK_LABEL_PH = { hair: 'Color', hair2: '2º color', hairFx: 'Efecto', armL: 'Manguito izq.', armR: 'Manguito dcho.', wristL: 'Muñequera izq.', wristR: 'Muñequera dcha.', 'c:acc': 'Complem.' };
   // valor '' de cada ranura (siempre disponible); las zapatillas '' solo existen en la playa (descalzo). Manda sobre VB.Look.name:
   // «Nada» a secas no decía qué faltaba (U9)
   var LK_NONE = {
@@ -4882,7 +5122,8 @@
     if (!t) { el.lkNote.classList.remove('on'); lkNT = 0; return; }
     lkNT = t.length > 40 ? 3.4 : 2.6;
     // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast)
-    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.lkNote.classList.remove('on'); el.lkNote.textContent = t; lkNoteApi = VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
+    if (VB.Splat && VB.Splat.mob && VB.Splat.mob() && VB.Splat.toast) { el.lkNote.classList.remove('on');   // (ronda 2, paneles-v: también en vertical)
+      el.lkNote.textContent = t; lkNoteApi = VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
     el.lkNote.textContent = t; restartAnim(el.lkNote, 'on');
   }
   /** Lo ganado fuera de la Carrera (récord y Entrenamiento): VB.Look.checkGlobal y aviso «Nuevo en tu vestuario». */
@@ -4958,6 +5199,8 @@
     var locked = lkLocked(o), lt = locked ? lkLockText(o) : '', label = LK_LABEL[slot], n = ops.length;
     var isNew = false; for (var k = 0; k < ops.length && !isNew; k++) if (ops[k].cat && U[ops[k].v]) isNew = true;
     var col = lkIsCol(slot), hp = lkHelpOf(slot, o, locked, lt);
+    // (móvil, movil-aire §5.6: «Pinta: Calcetines» en la fila Calcetines repite el título: fuera)
+    if (hp.k === 'use' && phMob() && hp.t.toLowerCase() === ('Pinta: ' + label).toLowerCase()) hp = { t: '', k: '' };
     var sw = o.hex >= 0 ? '<i class="lk-sw" style="background:' + hx(o.hex) + '"></i>' : col ? '<i class="lk-sw auto"></i>' : '';
     var help = hp.t ? (hp.k === 'lock' ? LK_LOCK : hp.k === 'warn' ? LK_EYE : '') + escT(hp.t) : '';
     // la estrella solo desde rareza 1 (lo común no lleva: antes todo llevaba «★», U9)
@@ -4969,7 +5212,7 @@
     return '<button type="button" class="mi lk-r sp-btn sp-ink sp-calm' + (locked ? ' lock' : '') + (isNew ? ' new sp-dot' : '') + (col ? ' col' : '') + (hp.k === 'dim' ? ' dim' : '') +
       (hp.t ? ' has-h h-' + hp.k : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
       // (rótulo con «▦ n»: cuántas opciones hay y que al tocar la fila se abre la rejilla de miniaturas; antes no se veía que la hubiera)
-      '<span class="mi-l"><span class="lk-k">' + escT(label) + '<span class="lk-cnt" aria-hidden="true">' + LK_GRID_IC + n + '</span></span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
+      '<span class="mi-l"><span class="lk-k">' + escT(LK_LABEL_PH[slot] && phMob() ? LK_LABEL_PH[slot] : label) + '<span class="lk-cnt" aria-hidden="true">' + LK_GRID_IC + n + '</span></span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
       (help ? '<small class="mi-h">' + help + '</small>' : '') + '</span>' +
       '<span class="mi-v sp-select"><span class="arr" data-d="-1" aria-hidden="true">' + LK_ARR_L + '</span><span class="arr" data-d="1" aria-hidden="true">' + LK_ARR_R + '</span></span></button>';
   }
@@ -5074,8 +5317,10 @@
       var gd = lk.grid ? rc(el.lkGrid) : null;
       T = hd ? hd.bottom + 6 : 0;
       B = lk.tryFull ? H - 10 : gd ? gd.top - 6 : top ? top.top - 6 : H * 0.5;   // («Probar»: la lista se aparta, toda la altura)
-      if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
-      if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
+      // (ronda 2, paneles-v: en vertical táctil —html.pv— el giro y las acciones van en UNA fila bajo el muñeco: el hueco acaba encima)
+      var rowF = phPv() && foot && foot.width > foot.height * 1.3, rowR = phPv() && rot && rot.width > rot.height * 1.3;
+      if (rowF) B = Math.min(B, foot.top - 6); else if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
+      if (rowR) B = Math.min(B, rot.top - 6); else if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
       // WP6 (ronda 1): por debajo del hueco (jugador y sede, pestañas, lista o rejilla) el muñeco no se pinta: de cerca, el cuerpo corría
       // por detrás de las fichas y las pestañas («sin pegatinas que se pisen»); queda un busto arriba (doll.js preview.pass)
       clip = (H - (B + 4)) / H; clipT = T > 8 ? (T - 4) / H : 0;
@@ -5860,12 +6105,20 @@
   //  PANELES: tutorial, controles, ajustes
   // =====================================================================
   // (UI-18: el antetítulo da contexto, nunca repite el título ni las pestañas)
-  var PANELS = { tut: ['pnTut', '', 'Cómo se juega'], ctl: ['pnCtl', '', 'Controles'], set: ['pnSet', '', 'Ajustes'], first: ['pnFirst', '', 'Primer partido'], squad: ['pnSquad', '', 'Jugadores'], about: ['pnAbout', '', 'Acerca de'] };
+  var PANELS = { tut: ['pnTut', '', 'Cómo se juega'], ctl: ['pnCtl', '', 'Controles'], set: ['pnSet', '', 'Ajustes'], first: ['pnFirst', '', 'Primer partido'], squad: ['pnSquad', '', 'Jugadores'], about: ['pnAbout', '', 'Acerca de'], fb: ['pnFb', '', 'Tu sugerencia'] };
   // E3/E7: UNA sola pila de vuelta entre paneles. openPanel(name, {from, tab}) abierto con otro panel delante (Ajustes › Controles,
   // Ajustes › Info › Créditos) apila el de delante; «Volver» / Esc / B / «Entendido» vuelven a él, en la misma pestaña y con el
   // foco en la fila que lo abrió. openPanel(name, 'menu' | 'paused') (forma antigua) empieza una pila nueva.
   var pstack = [];
-  var SP_PN = /^(tut|ctl|set|first|squad|about)$/;   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
+  var SP_PN = /^(tut|ctl|set|first|squad|about|fb)$/;
+  var PH_BAR = /^(tut|first|squad|about|fb|set|ctl)$/;   // (set y ctl: paquete paneles, sin título y con las pestañas en la franja)
+  /** Rótulo corto de la cabecera compacta (Cómo se juega: «Paso 1/6»); solo se ve con html.ph. */
+  function pnPh() {
+    var pp = document.getElementById('pnPh'); if (pp) return pp;
+    var ptt = el.panel && el.panel.querySelector('.pn-head .pn-tt'); if (!ptt) return null;
+    pp = document.createElement('span'); pp.id = 'pnPh'; pp.className = 'pn-ph'; pp.setAttribute('aria-hidden', 'true'); ptt.appendChild(pp);
+    return pp;
+  }   // (movil-aire: paneles con la cabecera compacta del móvil; Ajustes y Controles, en su paquete)   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
   var firstAsked = false;
   /** JUGAR desde el menú: la primera vez (sin partidos ni tutorial) ofrece ver el tutorial o jugar ya. */
   function play() {
@@ -5943,8 +6196,12 @@
     };
     if (!wipeRun(2, f) && !wp.cb) f();
   }
+  /** (móvil, movil-aire §3.10) los avisos cortos de una pantalla no se quedan encima de la siguiente: al abrir o cerrar un panel y al
+   *  cambiar de página del menú (VB.Splat.toastClear; en PC no hace nada). */
+  function toastsOff() { try { if (VB.Splat && VB.Splat.toastClear) VB.Splat.toastClear(); } catch (e) { } }
   function openPanel(name, from) {
     if (!PANELS[name]) return;
+    if (panel !== name) toastsOff();
     if (name === 'set') wipeNote = '';   // (aviso de «Carrera borrada»: solo hasta cerrar Ajustes)
     var o = from && typeof from === 'object' ? from : null;
     if (capCancel) capCancel();
@@ -5957,22 +6214,31 @@
     if (!panel || !o || !o.back) panelFrom = (o ? o.from : from) || (panel ? panelFrom : ctx.state);
     panel = name;
     for (var k in PANELS) $(PANELS[k][0]).hidden = k !== name;
-    el.pnKick.textContent = PANELS[name][1]; el.pnKick.hidden = !PANELS[name][1]; el.pnTitle.textContent = PANELS[name][2];
+    el.pnKick.textContent = PANELS[name][1]; el.pnKick.hidden = !PANELS[name][1]; el.pnTitle.textContent = name === 'mstats' && phMob() ? 'Estadística' : PANELS[name][2];   // (móvil: título corto, movil-aire §5.7)
     if (name === 'tut') { tutGo(0); }
     if (name === 'ctl') { ctlView = o && o.tab && CTL_IDS[o.tab] ? o.tab : device(); renderCtl(); }
     if (name === 'set') { renderOpts(); if (o && o.tab && setTabs) setTabs.set(o.tab, 'api'); setTab(setTabs ? setTabs.get() : 'audio'); }
     if (name === 'squad') renderSquad();
     if (name === 'about') { if (abTabs && o && o.tab) abTabs.set(o.tab, 'api'); renderAbout(); }
+    if (name === 'fb') fbMount(o && o.back);
     var tb = name === 'set' ? setTabs : name === 'squad' ? sqTabs : name === 'ctl' ? ctlTabs : name === 'about' ? abTabs : null;
     if (tb) { tb.hint(); if (ctx.params.tab && !openPanel._t) { openPanel._t = 1; tb.set(ctx.params.tab, 'api'); } }
     var psh = el.panel.querySelector('.sheet');
     psh.classList.toggle('first', name === 'first');
+    // (movil-aire §5.7: panel abierto desde la pausa; solo lo usa el CSS de html.ph —Ajustes con 4 pestañas, Controles con Táctil y «Otros mandos ›»)
+    psh.classList.toggle('ph-pz', panelFrom === 'paused'); if (name !== 'ctl') psh.classList.remove('ph-allc');
     psh.classList.toggle('ms', name === 'mstats');
     psh.classList.remove('wide');
     psh.classList.toggle('tabbed', !!tb);
     // SPLAT · PANELES (notes/splat.md): Cómo se juega, Controles, Ajustes, Primer partido, Jugadores y Acerca de con el sistema
     // (#panel.sp-pn: sin velo, columna a la izquierda y el contenido en una hoja .sp-panel con su propio desplazamiento)
     el.panel.classList.toggle('sp-pn', SP_PN.test(name)); el.panel.setAttribute('data-pn', name);
+    // movil-aire §3.5: cabecera compacta (.ph-bar, solo cambia algo con html.ph) en Cómo se juega, Jugadores, Acerca de, Opiniones y Primer partido
+    var phd = el.panel.querySelector('.pn-head');
+    if (phd) {
+      phd.classList.toggle('ph-bar', PH_BAR.test(name));
+      pnPh();
+    }
     psh.scrollTop = 0;
     var sc = el.panel.querySelectorAll('.sp-scroll'); for (var si = 0; si < sc.length; si++) sc[si].scrollTop = 0;
     shown = '';
@@ -5984,6 +6250,7 @@
   }
   function closePanel() {
     if (!panel) return false;
+    toastsOff();
     if (capCancel) capCancel();
     if (pstack.length) {   // abierto desde otro panel: vuelve a él (misma pestaña, foco en la fila que lo abrió)
       var pv = pstack.pop();
@@ -5997,7 +6264,7 @@
     shown = ''; syncScreens(ctx.game);
     // en pausa, el foco vuelve al botón que abrió el panel (antes caía en «Seguir jugando»)
     focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? (tutFirst && nowOn && el.btnNow ? el.btnNow : el.btnTut) : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
-      : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
+      : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : was === 'fb' ? $(fb.kind === 'bug' ? 'btnPBug' : 'btnPSug') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
     if (was === 'mstats' && el.btnMStats && kbNow()) setTimeout(function () { if (!panel && document.activeElement === el.btnMStats) focusEl(el.btnMStats, true); }, 45);
     return true;
   }
@@ -6043,6 +6310,7 @@
     if (!el.abBody) return;
     var tab = abTabs ? abTabs.get() : 'news';
     el.abBody.innerHTML = tab === 'credits' ? aboutCreditsHTML() : aboutNewsHTML();
+    el.abBody.classList.toggle('ab-cr', tab === 'credits');   // (móvil: Créditos en filas clave/valor, sin tarjeta por fila)
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
   }
   /** Abre Acerca de en una pestaña ('news' | 'credits'); desde Ajustes se apila (Volver regresa a Ajustes › Info). */
@@ -6206,20 +6474,26 @@
       var R = ctlRows(ctlView);
       if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button>' +
         // 1.22.0 (imprescindible 4.2): editor de disposición (VB.Input.editLayout): mover, tamaño y opacidad por botón, zurdos y restablecer
-        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>Disposición de botones<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
-      if (ctlView === 'touch' && VB.Splat && VB.Splat.phone && VB.Splat.phone()) {
+        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>' + (phMob() ? 'Editar disposición' : 'Disposición de botones') + '<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
+      if (ctlView === 'touch' && VB.Splat && VB.Splat.mob && VB.Splat.mob()) {   // (ronda 2, paneles-v: también en vertical, en tarjetas)
         // V-TOUCHCTL (móvil): Táctil con las mismas filas que Teclado / Mando: rótulo dorado + UNA línea de ayuda a la izquierda
         // (primera frase del paréntesis; «i» con helpFit si no cabe) y los botones a la derecha. En PC sigue la <dl>.
         h += '<div class="ctl ctl-t">';
         for (var j = 0; j < R.length; j++) {
           var keys = R[j][0], d = R[j][1], si = d.indexOf('<small>'), tt = si < 0 ? d : d.slice(0, si), help = '';
-          if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').split(';')[0].trim();
+          // (ronda 2, recortes: la ayuda ENTERA, no solo la primera frase: Colocar vuelve a decir lo del 3r toque y lo del suelo)
+          if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').trim();
           var jh = '<small>' + joyHalf() + '</small>';
           if (keys.indexOf(jh) >= 0) { keys = keys.replace(jh, ''); help = 'Joystick: ' + joyHalf() + (help ? '; ' + help : ''); }
+          // (movil-aire §5.6: un título que es una frase entera, «Al colocar: sin dirección…», se queda en «Al colocar» y el resto va a la ayuda)
+          var tc = tt.replace(/<[^>]*>/g, '').trim(), ci = tc.indexOf(':');
+          if (tc.length > 24 && ci > 0 && ci < 20 && tt.indexOf('<') < 0) { help = tc.slice(ci + 1).trim() + (help ? '; ' + help : ''); tt = tc.slice(0, ci); }
           if (help) help = help.charAt(0).toUpperCase() + help.slice(1);
-          h += '<div><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
+          h += '<div' + (help.length > 40 ? ' class="ctl-w"' : '') + '><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
         }
         h += '</div>';
+        // (movil-aire §5.7: en la pausa de un teléfono táctil solo se ve la pestaña Táctil; Teclado y Mando, tras «Otros mandos ›»)
+        if (panelFrom === 'paused' && el.app.classList.contains('is-touch')) h += '<div class="ph-allc-row ph-only"><button type="button" class="ph-allc-b" data-allc="1">Otros mandos ›</button></div>';
       } else {
         h += '<dl class="ctl">';
         for (var j2 = 0; j2 < R.length; j2++) h += '<div><dt>' + R[j2][0] + '</dt><dd>' + R[j2][1] + '</dd></div>';
@@ -6227,6 +6501,8 @@
       }
     }
     el.ctlGrid.innerHTML = h;
+    var allc = el.ctlGrid.querySelector('[data-allc]');
+    if (allc) allc.addEventListener('click', function () { uiSound('click'); var sh = el.panel.querySelector('.sheet'); if (sh) sh.classList.add('ph-allc'); if (allc.parentNode) allc.parentNode.removeChild(allc); if (ctlTabs) ctlTabs.focus(true); });
     if (!capturing && el.ctlMsg && ctlMsgFor !== ctlView) ctlMsgSet('');
     renderOpts();
     var note = el.pnCtl.querySelector('.ctl-note');
@@ -6330,15 +6606,17 @@
   function setTab(id) {
     var gs = el.optList ? el.optList.querySelectorAll('.opt-g[data-tab]') : [];
     for (var i = 0; i < gs.length; i++) gs[i].hidden = gs[i].getAttribute('data-tab') !== id;
+    // (ronda 2, paneles-v: en vertical las 7 pestañas son solo icono y el nombre del apartado va de título; #pnSec es .pv-only)
+    var sec = document.getElementById('pnSec'); if (sec) { var lb = ''; for (var j = 0; j < SET_TABS.length; j++) if (SET_TABS[j][0] === id) lb = SET_TABS[j][1]; sec.textContent = lb; }
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); phPanel(); }
   }
   /** Móvil (notes/ui_main.md «Móvil (v-next)»): en Ajustes, segmentados según el número de opciones (VB.Splat.fitSeg: interruptor,
    *  segmentado o selector) y ayudas de una línea con «i» (VB.Splat.helpFit); en Jugadores, las ayudas de los atributos. Sin html.ph
    *  no cambia nada (fitSeg quita sus controles). */
   function phPanel() {
-    var S = VB.Splat; if (!S || !S.fitSeg || !S.phone || !S.phone() || el.panel.hidden) return;   // (fitSeg y helpFit se deshacen solos con vb:ph)
+    var S = VB.Splat; if (!S || !S.fitSeg || !S.mob || !S.mob() || el.panel.hidden) return;   // (fitSeg y helpFit se deshacen solos con vb:ph; ronda 2: también en vertical, helpFit sigue solo apaisado)
     if (panel === 'set') {
-      S.fitSeg(el.optList); if (S.helpFit) S.helpFit(el.optList, '.opt');
+      S.fitSeg(el.optList); phNow(); if (S.helpFit) S.helpFit(el.optList, '.opt');
       // V-KIT: tira de muestras desplazable de lado (desvanecido si queda algo a la derecha) y la elegida a la vista
       var ks = el.optList.querySelectorAll('.opt-kit .seg.kit');
       for (var k = 0; k < ks.length; k++) {
@@ -6353,6 +6631,21 @@
     }
     if (panel === 'squad' && S.helpFit) S.helpFit(el.sqBody, '.sq-r');
     if (panel === 'ctl' && S.helpFit && el.ctlGrid.querySelector('.ctl-t')) S.helpFit(el.ctlGrid, '.ctl-t>div');   // V-TOUCHCTL
+  }
+  /** (móvil, movil-aire §5.6) Calidad y Resolución en Auto: el «(ahora …)» de la ayuda pasa debajo del valor del selector (data-now de
+   *  .mv-val, lo pinta el CSS) y la ayuda se queda en una línea. Sin html.ph, la ayuda entera de siempre (renderOpts). */
+  function phNow() {
+    var ph0 = !!(VB.Splat && VB.Splat.mob && VB.Splat.mob());
+    [['quality', el.qualNote], ['resScale', el.resNote]].forEach(function (p) {
+      var row = el.optList && el.optList.querySelector('[data-opt="' + p[0] + '"]'), sm = p[1]; if (!row || !sm) return;
+      var mv = row.querySelector('.ph-proxy .mv-val'), ph = ph0 && !!mv, m = /^(.*?)\s*\(ahora:? ([^)]*)\)\s*$/.exec(sm.textContent);
+      if (m) {   // (renderOpts acaba de poner el texto entero)
+        if (ph) { sm.textContent = sm._phs = m[1].replace(/^Auto:? */, '').replace(/^./, function (c) { return c.toUpperCase(); }); sm.setAttribute('data-ph-now', m[2]); }
+        else sm.removeAttribute('data-ph-now');
+      } else if (!ph || sm.textContent !== sm._phs) sm.removeAttribute('data-ph-now');
+      var now = ph ? sm.getAttribute('data-ph-now') : null;
+      if (mv) { if (now) mv.setAttribute('data-now', now); else mv.removeAttribute('data-now'); }
+    });
   }
   /** Crea las barras de pestañas de los paneles (una vez, en init). */
   function buildTabs() {
@@ -6535,11 +6828,48 @@
     else if (g === 'news' || g === 'credits') openAbout(g);
     else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
     else if (g === 'priv') openPrivacy();
+    else if (g === 'fbsug' || g === 'fbbug') openFb(g === 'fbbug' ? 'bug' : 'sug');           // 1.22.1: sugerencia / bug (se apila Ajustes)
+    else if (g === 'fbview' && actaOk && VB.Feedback) { try { window.open(VB.Feedback.viewerUrl(), '_blank'); } catch (e) { } }   // visor (solo Ferran)
   }
   /** Google Play (24-nov-2026): «Privacidad» abre la política (pages/privacidad.html) en otra pestaña. En Pages (window.__vbBuild, lo pone
    *  tools/build-pages.js) está al lado de index.html; en local (file://, Artifact) se abre la publicada en takethecourt.com. */
   function privacyUrl() { return window.__vbBuild ? 'privacidad.html' : 'https://takethecourt.com/privacidad.html'; }
   function openPrivacy() { try { window.open(privacyUrl(), '_blank', 'noopener'); } catch (e) { } }
+  // ---------- Opiniones (1.22.1, js/feedback.js, notes/feedback.md): sugerencias y bugs ----------
+  // openFb(kind) abre el panel 'fb' (#pnFb) con el tipo ya elegido; desde Ajustes se apila (Volver regresa a Ajustes › Info) y desde la
+  // pausa vuelve al botón que lo abrió. fbWhere() = texto corto de dónde estaba el jugador (va en el contexto, sin datos personales).
+  var fb = { kind: 'sug', screen: '', mode: '', where: '' };
+  function fbWhere() {
+    var g = ctx.game, st = ctx.state, out = [], CU = VB.CareerUI;
+    if (st === 'menu') out.push('menú' + (mpage && mpage !== 'main' ? ' > ' + mpage : '') + (panel ? ' > ' + panel + (panel === 'set' && setTabs ? ':' + setTabs.get() : '') : ''));
+    else out.push(st === 'paused' ? 'pausa' : String(st || ''));
+    if (CU && CU.isOpen && safe(CU.isOpen)) out.push('carrera abierta');
+    var mode = '';
+    if (g && !g.demo && st !== 'menu') {
+      mode = (g.career ? 'carrera' : ctx.net ? 'online' : g.drill ? 'entreno ' + (g.drill.kind || '') : g.sit ? 'semana' : g.retoOpts ? 'reto' : 'partido rápido') + ' ' + (g.size === 6 ? '6v6' : '2v2');
+      try { mode += ', set ' + (g.setNo | 0) + ' ' + (g.score[0] | 0) + '-' + (g.score[1] | 0); } catch (e) { }
+    }
+    var guess = st === 'menu' ? '' : g && g.career ? 'carrera' : ctx.net ? 'online' : g && !g.demo ? 'partido' : '';
+    return { screen: out.join(', '), mode: mode, where: guess };
+  }
+  function openFb(kind, from) {
+    if (!VB.Feedback || !$('pnFb')) return false;
+    var w = fbWhere();
+    fb.kind = kind === 'bug' ? 'bug' : 'sug'; fb.screen = w.screen; fb.mode = w.mode; fb.where = w.where;
+    openPanel('fb', { from: from || (panel ? panelFrom : ctx.state) });
+    return panel === 'fb';
+  }
+  function fbMount(back) {
+    if (!VB.Feedback) return;
+    if (!back) VB.Feedback.mount($('pnFb'), { kind: fb.kind, where: fb.where, screen: fb.screen, mode: fb.mode,
+      back: function () { if (panel === 'fb') { closePanel(); } },
+      focus: function (b, kb) { focusEl(b, kb); }, sound: function (n) { uiK(n, n === 'error' ? null : 'click'); },
+      kb: function () { return kbNow() || ctx.inputDevice === 'gamepad'; },
+      onKind: function (k) { fb.kind = k; el.pnTitle.textContent = VB.Feedback.title(); fitSheet(el.panel); checkMore(el.panel); phPanel(); } });
+    el.pnTitle.textContent = VB.Feedback.title();
+  }
+  /** Fila «Buzón de opiniones» de Ajustes › Info: solo con la cuenta de Ferran (misma huella que el acta). */
+  function fbVis() { var r = el.panel && el.panel.querySelector('[data-go="fbview"]'); if (r) r.hidden = !actaOk; }
   /** Nombre de la sede (arena.js: ajuste `arena` o ?map=): Palau del Mar / Platja Llarga. */
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }
   /** Pone el nombre de la sede en los textos fijos del HTML (antetítulo del menú, tarjeta de presentación, cortinilla,
@@ -6781,6 +7111,7 @@
     if (snd) { snd.classList.toggle('muted', !!ctx.settings.muted); var mb = snd.querySelector('[data-mute]'); if (mb) mb.setAttribute('aria-checked', ctx.settings.muted ? 'true' : 'false'); }
     var q = ctx.quality && ctx.quality.level, qn = { high: 'alta', medium: 'media', low: 'baja' }[q] || '';
     el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto se ajusta sola a tu aparato' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
+    if (VB.Splat && VB.Splat.phone && VB.Splat.phone()) phNow();   // (móvil: el «ahora» bajo el valor)
     // menú: dificultad
     var di = optIndex('difficulty');
     if (el.diffVal.textContent !== OPT.difficulty.labels[di]) {
@@ -7077,6 +7408,30 @@
     { step: 'Paso 6 de 6', title: 'Reglas y faltas', faults: true,
       text: function () { return ''; }, rule: '' }
   ];
+  // movil-aire §5.1 (Cómo se juega en el móvil): 2-3 viñetas cortas por paso (≤ 90 caracteres a la vista) y el texto entero de PC en la
+  // hoja «Más detalle» (VB.Splat.sheet). Solo con html.ph (tutGo); en PC, el texto de siempre.
+  var TUT_PH = [
+    function (g) { return ['Con ' + g.move + ' te mueves por el fondo.', g.serve + ' saca flotante; ' + g.jump + ', saque en salto.', 'Mueve la <b>diana</b> con ' + g.aim + ' y pulsa ' + g.serve + ' al bajar el balón: va exacto.']; },
+    function (g) { return ['Sale un <b>círculo</b> donde cae el balón: ve hasta él.', 'Pulsa ' + g.hit + ' cuando se cierre: <b>recepción</b> a tu pareja.', 'Tú solo te colocas y golpeas: el toque lo elige el juego.']; },
+    function (g) {
+      var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;
+      return [oneMode() ? 'Tu pareja (la IA) coloca; si el 1r toque es suyo, colocas tú.' : 'El control pasa a tu pareja: ponte bajo el balón.',
+        'Pulsa ' + both + ': <b>colocación</b>. Sin dirección, va alta a la 4.', '<b>3 toques</b> por equipo; nadie toca dos veces seguidas.'];
+    },
+    function (g) { return ['Bajo la colocación: ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' arriba: <b>remate</b>.', 'En el aire, mueve la <b>diana</b> con ' + g.aim + ': en el momento justo, va exacta.', 'Sin saltar, el 3r toque pasa en globo (<b>balón libre</b>).']; },
+    function (g) {
+      var a = oneMode() ? ['Sube a la red frente al atacante para bloquear tú.', 'Pulsa ' + g.jump + ' cuando golpea: si te da en las manos, <b>bloqueo</b>.']
+        : ['Cuando la CPU coloca, tu pareja bloquea y tú defiendes.', 'Para bloquear tú: ' + g.sw + ', ve a la red y ' + g.jump + ' al golpe.'];
+      return a.concat([tutBeach() ? 'En la playa el <b>bloqueo cuenta como toque</b>.' : 'El <b>bloqueo no cuenta como toque</b>.']);
+    }
+  ];
+  /** Hoja «Más detalle» del paso i (móvil): el texto largo de PC y la regla, tal cual. */
+  function tutMore() {
+    var S = TUT[tut.i], g = G(), rl = tutBeach() && S.ruleBeach ? S.ruleBeach : S.rule, SP = VB.Splat;
+    if (!SP || !SP.sheet || S.faults) return;
+    if (rl && tutBeach()) rl = rl.replace('<b>8 segundos</b>', '<b>5 segundos</b>');
+    SP.sheet({ title: S.title, cls: 'tut-sheet', html: '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '') });
+  }
   var FAULTS = '<ul class="faults">' +
     '<li><b>Fuera</b>El balón cae fuera de las líneas: punto para el rival de quien lo tocó por última vez.</li>' +
     '<li><b>Antena</b>El balón toca la antena o cruza por fuera de ella.</li>' +
@@ -7110,7 +7465,11 @@
     var S = TUT[i], g = G(), rl = tutBeach() && S.ruleBeach ? S.ruleBeach : S.rule;
     if (rl && tutBeach()) rl = rl.replace('<b>8 segundos</b>', '<b>5 segundos</b>'); // en la playa, 5 s para sacar (sim C.SERVE_CLOCK_BEACH)
     el.tutStep.textContent = S.step; el.tutTitle.innerHTML = coachHTML(escT(S.title)); // «1r toque» en pastilla
-    el.tutText.innerHTML = S.faults ? faultsHtml() : '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '');
+    var tph = !S.faults && TUT_PH[i] && phMob();
+    var tmb = document.getElementById('btnTutMore'); if (tmb) tmb.hidden = !tph;
+    el.tutText.innerHTML = S.faults ? faultsHtml() : tph ? '<ul class="tut-ph">' + TUT_PH[i](g).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'
+      : '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '');
+    var pph = pnPh(); if (pph) pph.textContent = 'Paso ' + (i + 1) + '/' + TUT.length;
     restartAnim(el.tutBody, 'tut-anim');
     el.tutFig.hidden = !!S.faults;
     el.tutBody.style.gridTemplateColumns = S.faults ? '1fr' : '';
@@ -7261,7 +7620,7 @@
       if (nx && m < 3) aria += '. ' + nx;
       h += '<button class="mi gy-d sp-btn sp-wide sp-calm ' + (GY_COL[d.id] || 'sp-ink') + '" data-shape="' + (k++) + '" data-drill="' + d.id + '" aria-label="' + escT(aria + '. ' + d.help) + '">' +
         '<span class="sp-medal t' + m + '">' + medalSVG(m) + '</span><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s" data-ph-ell' + (GY_SHORT[d.id] ? ' data-ph-short="' + escT(GY_SHORT[d.id]) + '"' : '') + '>' + escT(d.help) + '</small>' + (r && r.n && m < 3 ? spBar(fr) : '') + '</span>' +
-        '<span class="gy-rec"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
+        '<span class="gy-rec' + (r && r.n ? '' : ' gy-new') + '"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
     });
     if (el.gymList._h !== h) { el.gymList._h = h; el.gymList.innerHTML = h; gymHov = null; if (VB.Splat) VB.Splat.decorate(el.gymList); }
     if (el.gymFoot && Gm) setSep(el.gymFoot, [{ h: 'Medallas: <b>' + Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
@@ -7316,7 +7675,7 @@
       case 'streak': return 'racha de ' + n;
       case 'clean': return 'sin ceder set';
       case 'tidy': return n === 0 ? 'sin errores' : '≤' + n + (n === 1 ? ' error' : ' errores');
-      case 'comeback': return 'remonta ' + n;
+      case 'comeback': return 'remonta ' + n + ' puntos en un set';
       case 'rally': return 'jugada de ' + n + ' toques';
       case 'mastery': return '≥' + n + ' fintas o colocados';
     }
@@ -7353,21 +7712,21 @@
     var R = VB.Retos, h, foot = '';
     if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
     else if (rtTab === 'semana') {   // la situación de la semana (js/semana-ui.js pinta; aquí solo se monta)
-      try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
+      try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap, semVw) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
       if (!h) h = '<p class="rt-none">La jugada del día no está disponible.</p>';
     } else if (rtTab === 'maestria') {
       var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
       h = '';
       // SPLAT: grupo = pegatina pequeña de tinta; reto = pegatina del color de su grupo (dorada con el oro) con la medalla en pegatina
       // redonda, el progreso en texto y la barra de pintura hasta la siguiente medalla
-      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'];
+      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'], rtPh = phMob();
       (R.GROUPS || []).forEach(function (G, gi) {
         h += '<p class="rt-grp"><i class="sp-chip sp-ink">' + escT(G.name) + '</i></p>';
         R.LIST.forEach(function (b) {
           if (b.grp !== G.id) return;
           var pg = R.progress(b.id) || { lvl: 0, txt: '', frac: 0 }, lvl = pg.lvl | 0;
           h += '<button class="mi rt-r sp-btn sp-wide sp-calm ' + (lvl >= 3 ? 'sp-gold' : GC[gi % GC.length]) + (U[b.id] ? ' new sp-dot' : '') + '" data-shape="' + (k++) + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
-            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + escT(pg.txt) + '</small>' +
+            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + (rtPh ? rtWhatPh(pg.txt) + escT(rtTxtPh(pg.txt)) : escT(pg.txt)) + '</small>' +
             (lvl < 3 && (lvl || pg.frac > 0) ? spBar(pg.frac) : '') + (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
         });
       });
@@ -7391,7 +7750,7 @@
         });
         var med = (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ', ' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') : '');
         h = '<div class="rt-day sp-ticket sp-noshine" data-shape="1"><span class="sp-stamp rt-stamp" aria-hidden="true" data-ring="RETO DEL DÍA ★ RETO DEL DÍA ★"><span class="sp-sc">' +
-          (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + '<b>Hoy</b></span></span>' +
+          (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + (dl ? '<b class="ph-no">Hoy</b><b class="ph-only rt-sd">' + escT(dl) + '</b>' : '<b>Hoy</b>') + '</span></span>' +
           '<div class="rt-dm"><p class="rt-k">' + sepHTML(['Reto del día', dl], 'd') + '</p><p class="rt-map">' + escT(dd.mapName || '') + '</p><p class="rt-bits">' + bits + '</p></div></div>' +
           '<div class="rt-tiers">' + th + '</div>' +
           '<button class="mi primary rt-go sp-patch" data-reto="day"><span class="sp-l"><span class="sp-t">' + (m >= 3 ? 'Jugar otra vez' : '¡A jugar!') + '</span><small class="sp-s rt-med">' + escT(med) + '</small></span></button>';
@@ -7403,6 +7762,16 @@
     if (el.rtFoot) el.rtFoot.innerHTML = foot;
     // Maestría a la vista: lo nuevo queda visto (el punto sale esta vez y la siguiente ya no; la franja se rehace)
     if (R && rtTab === 'maestria' && R.markSeen) { try { if (R.unseen().length) { R.markSeen(R.unseen()); rtStrip = ''; } } catch (e) { } }
+  }
+  /** (móvil, movil-aire §5.6) «Aces en un partido: récord 0, bronce con 2» → «récord 0 · bronce 2» (lo de antes de «:» ya lo dice el nombre). */
+  /** (ronda 2, recortes) Lo que mide la medalla («Aces en un partido»), que la ronda 1 quitó: en el móvil va en su propia línea, encima. */
+  function rtWhatPh(t) {
+    t = String(t || ''); var i = t.indexOf(': ');
+    return i > 0 && i < 60 ? '<span class="rt-what">' + escT(t.slice(0, i)) + '</span>' : '';
+  }
+  function rtTxtPh(t) {
+    t = String(t || ''); var i = t.indexOf(': '); if (i > 0 && i < 60) t = t.slice(i + 2);
+    return t.replace(/, (bronce|plata|oro) con /g, ' · $1 ').replace(/, /g, ' · ');
   }
   /** Al reto del día (el de HOY: si ha cambiado el día, el nuevo), bajo la cortinilla. mini = previa mini («Otra vez»). */
   function goReto(mini) {
@@ -7430,7 +7799,7 @@
   // (ni récord); decisión provisional: nivel y atributos iguales para todos, notes/pendientes-ferran.md). goSemana gasta el intento AL EMPEZAR (VB.Semana.begin) y arranca el
   // partido en el marcador de la semana; la pausa avisa de que reiniciar o salir lo gasta; la hoja final ofrece «Otro intento»,
   // «Compartir» (enlace con el mapa del grupo) y «Ver el grupo» (Retos › Semana). ?sem=… (enlace de un amigo) lo lee semAuto.
-  var semMap = 'S', semEnd = null;
+  var semMap = 'S', semEnd = null, semVw = 'map';   // (semVw: móvil, columna derecha de Semana con el mapa o la lista del grupo)
   function semToast(t) { try { if (VB.Splat && VB.Splat.toast) VB.Splat.toast(escT(t), { key: 'sem' }); } catch (e) { } }
   function goSemana(mini) {
     var M = VB.Semana; if (!M) return;
@@ -7565,7 +7934,8 @@
     b.innerHTML = '<span class="pf-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="tr" cx="18" cy="18" r="15"/><circle class="ar" cx="18" cy="18" r="15" pathLength="100" stroke-dasharray="' +
       (fr * 100).toFixed(1) + ' 100"/></svg><small>Nv</small><b>' + lv.lvl + '</b></span>' +
       (S.vit.length ? '<span class="pf-vi" aria-hidden="true">' + S.vit.map(function (it) { return '<i class="pf-ic t' + pfTier(it) + '">' + pfIcon(it) + '</i>'; }).join('') + '</span>' : '') +
-      '<span class="pf-al">Álbum ' + S.have + '/' + S.total + '</span>' + (S.un ? '<i class="pf-dot" aria-hidden="true"></i>' : '');
+      '<span class="pf-al">Álbum ' + S.have + '/' + S.total + '</span>' + (S.un ? '<i class="pf-dot" aria-hidden="true"></i>' : '') +
+      '<i class="pf-n ph-only pv-no" aria-hidden="true">' + S.have + '</i>';   // (móvil, movil-aire §5.1: el álbum como círculo con su contador)
     b.setAttribute('aria-label', 'Perfil: nivel ' + lv.lvl + ', álbum ' + S.have + ' de ' + S.total + (S.un ? '. Hay novedades' : ''));
   }
   // ---- avisos (#pfNote): de 2,6 a 3,4 s cada uno, como mucho 3 en cola (si hay más, un resumen) ----
@@ -7580,7 +7950,8 @@
     if (!t) { el.pfNote.classList.remove('on'); pf.noteT = 0; return; }
     pf.noteT = t.length > 34 ? 3.4 : 2.6;
     // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast); #pfNote se queda con el texto para el lector
-    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.pfNote.classList.remove('on'); el.pfNote.textContent = t; VB.Splat.toast(escT(t), { key: 'pfnote', ms: pf.noteT * 1000 }); return; }
+    if (VB.Splat && VB.Splat.mob && VB.Splat.mob() && VB.Splat.toast) { el.pfNote.classList.remove('on');   // (ronda 2, paneles-v: también en vertical, una cola arriba)
+      el.pfNote.textContent = t; VB.Splat.toast(escT(t), { key: 'pfnote', ms: pf.noteT * 1000 }); return; }
     el.pfNote.textContent = t; restartAnim(el.pfNote, 'on');
   }
   /** Al entrar en el menú: VB.Profile.check() (insignias, logros, hitos, nivel y premios de nivel) y sus avisos. Los hitos que sellan
@@ -7630,7 +8001,7 @@
   }
   function pfTabItems(alb) {
     // (móvil: la columna de pestañas es estrecha; «Cuaderno del árbitro» en dos líneas se salía de su mancha → el rótulo corto)
-    var ph = !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone));
+    var ph = !!(VB.Splat && VB.Splat.mob && safe(VB.Splat.mob));   // (ronda 2, paneles-v: también en vertical, pestañas en rejilla 4×2)
     return alb.tabs.map(function (tb) { return { id: tb.id, label: escT(ph && tb.short ? tb.short : tb.label), short: tb.short ? escT(tb.short) : '', badge: tb.have + '/' + tb.total, cls: tb.items.some(function (i) { return i.isNew; }) ? 'lk-new' : '' }; });
   }
   /** Pinta la página entera: cabecera, tarjeta de nivel, vitrina, pestañas, rejilla y pie (keep: conserva el foco en el mismo hueco). */
@@ -7654,7 +8025,7 @@
     var m = st.m | 0, w = st.w | 0;
     var ch = '<div class="pf-lv"><b class="pf-n"><small>Nv</small>' + lv.lvl + '</b><div class="pf-bx"><i class="pf-bar" aria-hidden="true"><i style="--w:' + pc + '%"></i></i>' +
       '<span class="pf-xp">' + (lv.next ? lv.into + ' / ' + lv.next + ' XP' : lv.total + ' XP') + '</span></div></div>' +
-      '<p class="pf-nx">' + escT(nx) + '</p><p class="pf-st">' + sepHTML([m + (m === 1 ? ' partido' : ' partidos'), w + (w === 1 ? ' victoria' : ' victorias'), (st.ven | 0) + ' de ' + (st.venAll | 0) + ' sedes'], 'v') + '</p>';
+      '<p class="pf-nx">' + escT(nx) + '</p><p class="pf-st">' + sepHTML([m + (m === 1 ? ' partido' : ' partidos'), w + (w === 1 ? ' victoria' : ' victorias'), (st.ven | 0) + ' de ' + (st.venAll | 0) + ' sedes'], phPv() ? 'c' : 'v') + '</p>';   // (ronda 2, paneles-v: en vertical, fichas que no parten)
     if (el.pfCard._h !== ch) {
       el.pfCard._h = ch; el.pfCard.innerHTML = ch; el.pfCard.setAttribute('aria-label', 'Perfil nivel ' + lv.lvl + '. ' + nx);
       if (VB.Splat) { el.pfCard.classList.remove('sp-dec'); VB.Splat.decorate(el.pfCard); }   // (SPLAT: el brochazo crema se rehace tras innerHTML)
@@ -7679,7 +8050,16 @@
     else if (pf.tabs) { pf.tabs.items = pfTabItems(alb); if (pf.tabs.get() !== pf.tab) pf.tabs.cur = pf.tab; pf.tabs.refresh(); }
     // rejilla
     var tb = alb.tabs.filter(function (t) { return t.id === pf.tab; })[0], gh = '';
-    tb.items.forEach(function (it) {
+    // (móvil, movil-aire §5.6: Insignias y Entreno, UNA baldosa por prueba con sus tres puntos bronce / plata / oro; se elige el nivel más
+    //  alto conseguido o, si no hay ninguno, el bronce. En PC, una baldosa por nivel como siempre)
+    var grp = /^(insignias|entreno)$/.test(pf.tab) && !!(VB.Splat && VB.Splat.mob && safe(VB.Splat.mob)) ? pfGroup(tb.items) : null;   // (también en vertical)
+    if (grp) grp.forEach(function (g) {
+      var it = g.best, pin = g.L.some(function (x) { return pf.pins.indexOf(x.aid) >= 0; }), nw = g.L.some(function (x) { return x.isNew; }), hv = g.L.filter(function (x) { return x.have; });
+      var dots = '<span class="pf-td" aria-hidden="true">' + g.L.map(function (x) { return '<i class="t' + (x.tier | 0) + (x.have ? ' on' : '') + '"></i>'; }).join('') + '</span>';
+      gh += '<button type="button" class="pf-s pf-g ' + (hv.length ? 'on' : 'off') + ' t' + (hv.length ? pfTier(it) : 0) + (nw ? ' new' : '') + (pin ? ' pin' : '') + '" data-aid="' + escT(it.aid) + '" aria-label="' +
+        escT(g.name + (hv.length ? ': ' + hv.map(function (x) { return PF_TIER_N[x.tier | 0] || ''; }).join(', ') + (pin ? '. En la vitrina' : '') : '. Por conseguir') + (nw ? '. Nuevo' : '')) + '"><span class="pf-si">' + (hv.length ? pfIcon(it) : PF_LOCK) + '</span><span class="pf-sn">' + escT(g.name) + '</span>' + dots + '</button>';
+    });
+    else tb.items.forEach(function (it) {
       var pin = pf.pins.indexOf(it.aid) >= 0;
       gh += '<button type="button" class="pf-s ' + (it.have ? 'on' : 'off') + ' t' + pfTier(it) + (it.isNew ? ' new' : '') + (pin ? ' pin' : '') + '" data-aid="' + escT(it.aid) + '" aria-label="' +
         escT(it.name + (it.have ? (pin ? '. En la vitrina' : '') : '. Por conseguir') + (it.isNew ? '. Nuevo' : '')) + '"><span class="pf-si">' + (it.have ? pfIcon(it) : PF_LOCK) + '</span><span class="pf-sn">' + escT(it.name) + '</span></button>';
@@ -7689,12 +8069,28 @@
     if (keep && fb) focusEl(fb, kb);
     pfFootSync();
   }
+  var PF_TIER_N = ['', 'bronce', 'plata', 'oro'];
+  /** (móvil) Agrupa los niveles de una misma prueba («bd:canon:1..3», «gym:x:1..3») en {name, best, L}. */
+  function pfGroup(items) {
+    var out = [], by = {};
+    items.forEach(function (it) {
+      var k = String(it.aid).replace(/:\d+$/, ''), g = by[k];
+      if (!g) { g = by[k] = { name: String(it.name).replace(/\s*\((bronce|plata|oro)\)\s*$/i, ''), L: [], best: null }; out.push(g); }
+      g.L.push(it);
+    });
+    out.forEach(function (g) { var hv = g.L.filter(function (x) { return x.have; }); g.best = hv.length ? hv[hv.length - 1] : g.L[0]; });
+    return out;
+  }
   /** Pie: de dónde salió el hueco enfocado (o cómo se gana) y el botón de la vitrina. */
   function pfFootSync() {
     if (!el.pfFoot) return;
     var P = VB.Profile, it = pf.sel && pf.map ? pf.map[pf.sel] : null, t = it && P && P.footText ? safe(function () { return P.footText(it); }) || '' : '';
     if (!it) t = pf.alb ? 'Elige un hueco para ver de dónde sale' : '';
     if (el.pfFoot.textContent !== t) el.pfFoot.textContent = t;
+    if (el.pfFoot.classList.contains('pf-empty') !== !it) el.pfFoot.classList.toggle('pf-empty', !it);   // (móvil: «Elige un hueco…» = texto vacío, sin caja)
+    var cu = el.pfGrid ? el.pfGrid.querySelectorAll('.pf-s.pf-cur') : [];   // (móvil: la baldosa descrita, marcada)
+    for (var ci = 0; ci < cu.length; ci++) if (!it || cu[ci].getAttribute('data-aid') !== it.aid) cu[ci].classList.remove('pf-cur');
+    var cb = it && el.pfGrid ? el.pfGrid.querySelector('[data-aid="' + it.aid + '"]') : null; if (cb) cb.classList.add('pf-cur');
     var rule = !!(it && it.rule && it.have);   // Cuaderno del árbitro: fecha + línea de reglamento, en dos líneas
     if (el.pfFoot.classList.contains('pf-rule') !== rule) el.pfFoot.classList.toggle('pf-rule', rule);
     var ro = P ? !!safe(P.readOnly) : true, can = !!(it && it.have) && !ro;
@@ -7883,7 +8279,7 @@
     else rec += '<span>Récord: <b>' + best + '</b></span>';
     if (res.newMedal && res.medal) rec += '<span class="new">¡Medalla de ' + MEDAL_N[res.medal].toLowerCase() + '!</span>';
     if (res.xp > 0) rec += '<span><b>+' + res.xp + ' de experiencia</b> (a cada jugador)</span>';
-    if (res.medal < 3 && M[res.medal] < 99) rec += '<span>' + MEDAL_N[res.medal + 1] + ': ' + M[res.medal] + ' puntos</span>';
+    if (res.medal < 3 && M[res.medal] < 99) rec += '<span class="ge-nx">' + MEDAL_N[res.medal + 1] + ': ' + M[res.medal] + ' puntos</span>';   // (móvil: fuera, las medallas ya lo dicen)
     if (cdr) rec = careerDrillRec(cdr, total, res.medal);
     el.geRec.innerHTML = rec;
     var nx = Gm && Gm.nextOf && !cdr ? Gm.nextOf(id) : null;
@@ -8223,7 +8619,9 @@
         var kk = function (x) { return d === 'touch' ? '' : ' ' + x; };
         var f = $('bbFast'); f.innerHTML = '×3' + kk(gl.jump); f.classList.toggle('on', !!B.fast); f.setAttribute('aria-pressed', B.fast ? 'true' : 'false');
         f.setAttribute('aria-label', B.fast ? 'Velocidad normal' : 'Ver a ×3');
-        $('bbIn').innerHTML = 'Saltar hasta que entres' + kk(gl.hit); $('bbEnd').innerHTML = 'Saltar al final' + kk(gl.sw);
+        // (móvil, movil-aire §5.5: una barra de 44 con rótulos cortos; .ph-no / .ph-only, en PC el largo)
+        $('bbIn').innerHTML = '<span class="ph-no">Saltar hasta que entres</span><span class="ph-only" aria-hidden="true">Saltar hasta entrar</span>' + kk(gl.hit); $('bbIn').setAttribute('aria-label', 'Saltar hasta que entres');
+        $('bbEnd').innerHTML = '<span class="ph-no">Saltar al final</span><span class="ph-only" aria-hidden="true">⏭ Final</span>' + kk(gl.sw); $('bbEnd').setAttribute('aria-label', 'Saltar al final');
       }
     }
     if (subUI.veil.hidden === ff) subUI.veil.hidden = !ff;
@@ -8274,7 +8672,7 @@
       var st = subUI.stat[p.id] || {}, P = stats && stats.p && stats.p[p.id];
       var cls = 'sb-p' + (subUI.pick === p ? ' sel' : '') + (q && (q.out === p || q.inn === p) ? ' q' : '');
       var lab = (onC ? 'Zona ' + zone + ', ' : '') + 'dorsal ' + p.num + (p.name ? ' ' + p.name : '') + ', ' + (ROLE_AB[p.role] || '') + (me ? ', tú' : '');
-      return '<button type="button" class="' + cls + '" data-pid="' + p.id + '" data-on="' + (onC ? 1 : 0) + '"' + (can ? '' : ' disabled') + ' aria-label="' + escT(lab) + '">' +
+      return '<button type="button" class="' + cls + '" data-pid="' + p.id + '" data-on="' + (onC ? 1 : 0) + '"' + (onC ? ' data-z="' + zone + '"' : '') + (can ? '' : ' disabled') + ' aria-label="' + escT(lab) + '">' +
         '<span class="sb-z">' + (onC ? 'Z' + zone : '') + '</span><b>' + p.num + (me ? '<em>Tú</em>' : '') + '</b>' + (p.name ? '<span class="sb-nm">' + escT(subShort(p.name)) + '</span>' : '') + '<span class="sb-r">' + (ROLE_AB[p.role] || '') + '</span>' +
         '<span class="sb-st">' + ((P && P.pts) | 0) + ' pts | ' + (st.err | 0) + ' err' + (inf.state === 'out' ? ' | fuera' : inf.state === 'in' ? ' | entró' : '') + '</span><span></span>' +
         '<i class="sb-f"><u style="width:' + Math.round(100 * Math.min(1, p.tired || 0)) + '%"></u></i></button>';
@@ -8283,6 +8681,8 @@
     var B = S.benchOf(g, 0); for (var i = 0; i < B.length; i++) hb += row(B[i], false, 0);
     $('sbOn').innerHTML = hon; $('sbBench').innerHTML = hb;
     var m = subUI.msg || (q ? 'Cambio pedido: entra el ' + q.inn.num + ' por el ' + q.out.num + ' al acabar la jugada' : 'Quedan ' + S.subsLeft(g, 0) + ' de ' + (S.SUB_MAX || 6) + ' cambios en este set. Toca quién sale y luego quién entra');
+    // (movil-aire §5.7, móvil: la ayuda corta, en la cabecera: «6/6 cambios · sale → entra»)
+    if (phHud() && !subUI.msg && !q) m = S.subsLeft(g, 0) + '/' + (S.SUB_MAX || 6) + ' cambios · toca quién sale → quién entra';
     $('sbMsg').textContent = m;
     $('sbCancel').hidden = !q;
     if (focusSel) { var f = subUI.pn.querySelector(focusSel); if (f && !f.disabled) focusEl(f, kbNow() || ctx.inputDevice === 'gamepad'); }
@@ -8344,6 +8744,8 @@
     r.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML;
     r.addEventListener('click', function (e) {
       e.stopPropagation();
+      var m = e.target && e.target.closest ? e.target.closest('[data-snm]') : null;
+      if (m) { r.classList.add('sn-x'); m.setAttribute('aria-expanded', 'true'); click(); return; }
       var b = e.target && e.target.closest ? e.target.closest('[data-sn]') : null;
       if (!b || performance.now() - sn.t0 < 400) return;   // (los primeros 400 ms no cuentan: el toque o el botón que lo abrió)
       snClose(b.getAttribute('data-sn'));
@@ -8369,11 +8771,14 @@
     sn.shown = true; sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
     sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
     var gl = GLYPH[device()] || GLYPH.keyboard;
-    sn.root.querySelector('.sn-t').innerHTML = 'En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.';
+    // (movil-aire §5.1: en el móvil, dos frases y «Más» abre el resto; en PC, el texto entero de siempre)
+    sn.root.classList.remove('sn-x');
+    sn.root.querySelector('.sn-t').innerHTML = '<span class="ph-only sn-sh">En la colocación en salto puedes llevar la diana, como en el remate. Si no la tocas, todo sigue como ahora. ' +
+      '<button type="button" class="sn-more" data-snm aria-expanded="false">Más</button></span><span class="sn-lg">En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.</span>';
     sn.root.hidden = false; sn.root.classList.remove('in');
     // móvil: tinte del 20 % detrás mientras está abierto (VB.Splat.modal); en PC, como siempre
     if (sn.rel) { sn.rel(); sn.rel = null; }
-    if (VB.Splat && VB.Splat.modal && VB.Splat.phone && VB.Splat.phone()) sn.rel = VB.Splat.modal(sn.root);
+    if (VB.Splat && VB.Splat.modal && phMob()) sn.rel = VB.Splat.modal(sn.root, { sheet: '.sn-sheet' });   // (vertical: hoja inferior .pv-sheet con velo)
     requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
     snFocus(sn.root.querySelector('[data-sn="on"]'), device() !== 'touch');
     uiSound('open');
@@ -8502,6 +8907,10 @@
     _profEnd: function () { return profEnd; },
     /** B6: hoja final de un partido de Carrera (main.js, tras VB.Career.matchDone). x = {tbl, myId, short, pos, next, bar, ses}. */
     endCareer: endCareer,
+    /** Móvil (movil-aire): antetítulo corto de la hoja de un partido de Carrera (main.js: extensiones y prueba, tras poner el suyo). */
+    crKick: crKick,
+    /** Móvil (movil-aire): reparte la hoja de Carrera en .ph-s (main.js, tras sus bloques: «Tu partido», prueba, extensiones). */
+    endSplit: function () { try { endSplit(); } catch (e) { console.error('[VB][ERROR] endSplit: ' + e); } },
     /** S3-C1: cortinilla de VB.Replay (false si ya hay una en marcha) y fin de las jugadas vistas desde la hoja (foco al «Ver»). */
     replayWipe: replayWipe, replayDone: replayDone,
     /** Pruebas (B6): último modelo de la hoja, sus datos y la pestaña abierta. */
@@ -8538,6 +8947,10 @@
     openSubs: function (pick) { try { return openSubs(!!pick); } catch (e) { console.error('[VB][ERROR] UI.openSubs: ' + e); return false; } },
     /** E7: abre Acerca de ('news' | 'credits'). */
     openAbout: function (tab) { openAbout(tab, panel ? panelFrom : ctx.state); },
+    /** 1.22.1: abre el formulario de opiniones ('sug' | 'bug'). true si se ha abierto. */
+    openFeedback: function (kind) { return openFb(kind); },
+    /** Pruebas (1.22.1): {kind, screen, mode, where} de la última apertura y si se ve la fila del visor. */
+    _fb: function () { var r = el.panel && el.panel.querySelector('[data-go="fbview"]'); return { kind: fb.kind, screen: fb.screen, mode: fb.mode, where: fb.where, viewer: !!(r && !r.hidden), admin: actaOk }; },
     /** Pruebas (E7): {seen, returning, auto: 'off' | 'waiting' | 'shown'}. */
     _about: function () { return { seen: seenGet(), returning: wasReturning, auto: aboutAuto }; },
     /** «Jugar ya» (1.22.0): tiempo hasta el primer punto en este aparato {ms, m, via, d} (ver FP_KEY) o null si aún no hay. Sin analítica. */
@@ -8696,6 +9109,13 @@
         var i = +b.getAttribute('data-i'), k = b.getAttribute('data-up');
         if (VB.Prog.bump(i, k, 1)) { uiSound('click'); renderSquad(i + ':' + k); } else uiSound2('optHover');
       });
+      // (movil-aire §5.1: en el móvil la fila del atributo va en una línea; tocar el nombre o la barra abre la descripción en la fila)
+      if (el.sqBody) el.sqBody.addEventListener('click', function (ev) {
+        if (!VB.Splat || !VB.Splat.phone || !VB.Splat.phone()) return;
+        var t = ev.target && ev.target.closest ? ev.target : null, r = t && t.closest('.sq-r');
+        if (!r || t.closest('button')) return;
+        var on = r.getAttribute('aria-expanded') !== 'true'; r.setAttribute('aria-expanded', on ? 'true' : 'false'); click();
+      });
       if (el.sqBody) {
         // insignias: equipar / quitar (ratón, táctil, teclado y mando: son botones de [data-nav]) y detalle al enfocar o señalar
         el.sqBody.addEventListener('click', function (ev) {
@@ -8712,6 +9132,8 @@
       on(el.btnResume, function () { ctx.actions.resume(); });
       on(el.btnPControls, function () { openPanel('ctl', 'paused'); });
       on(el.btnPSettings, function () { openPanel('set', 'paused'); });
+      if ($('btnPSug')) on($('btnPSug'), function () { openFb('sug', 'paused'); });   // 1.22.1: opiniones desde la pausa
+      if ($('btnPBug')) on($('btnPBug'), function () { openFb('bug', 'paused'); });
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
         if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart();
@@ -8764,6 +9186,7 @@
         else if (b.getAttribute('data-sem') === 'go') { if (b.getAttribute('aria-disabled') === 'true') { uiSound('back'); semToast('Hoy ya no quedan intentos. Mañana, otra jugada'); } else { uiSound('start'); goSemana(false); } }
         else if (b.getAttribute('data-sem') === 'share') { click(); semShare(); }
         else if (b.hasAttribute('data-semmap')) { var mm = b.getAttribute('data-semmap') === 'A' ? 'A' : 'S'; if (mm !== semMap) { semMap = mm; click(); renderRetos(); var nb = el.rtBody.querySelector('[data-semmap="' + mm + '"]'); if (nb) focusEl(nb, kbNow()); } }
+        else if (b.hasAttribute('data-semvw')) { var vv = b.getAttribute('data-semvw') === 'list' ? 'list' : 'map'; if (vv !== semVw) { semVw = vv; click(); renderRetos(); var nv = el.rtBody.querySelector('[data-semvw="' + vv + '"]'); if (nv) focusEl(nv, kbNow()); } }
         else if (b.hasAttribute('data-rt')) click();
       });
       // tocar/clic durante la tarjeta de presentación la salta (UI-14; main.js la quita en el frame siguiente)
@@ -8791,7 +9214,9 @@
       for (var h = 0; h < hb.length; h++) hb[h].addEventListener('pointerenter', function (ev) { if (ev.pointerType === 'mouse') { if (this.classList.contains('opt')) uiSound2('optHover'); else hoverSound(); } });
       el.btnTutPrev.addEventListener('click', function () { click(); tutGo(tut.i - 1); });
       el.btnTutNext.addEventListener('click', tutNext);
+      var tmb0 = document.getElementById('btnTutMore'); if (tmb0) tmb0.addEventListener('click', function () { click(); tutMore(); });
       on(el.btnHudPause, function () { ctx.actions.pause(); });
+      if ($('btnRotPause')) on($('btnRotPause'), function () { if (ctx.state === 'playing') ctx.actions.pause(); });   // (vertical: salida del aviso de girar)
       on(el.btnHudMute, function () { ctx.actions.toggleMute(); });
       // opciones: clic en un valor concreto o en la fila (siguiente valor). E3: delegado en el panel (Ajustes y las filas que
       // pinta renderCtl en Controles), más «Restablecer», las teclas reasignables y las filas que abren otro panel

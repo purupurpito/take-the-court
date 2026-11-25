@@ -562,6 +562,9 @@
   var P = ':root:not(#_):not(#_):not(#_) ';
   var PP = ':root.ph' + P.slice(5), PW = ':root.ph.ph-w' + P.slice(5);   // (móvil: html.ph; ancho ≥ 800: html.ph-w)
   function ph() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** (ronda 2, menus-v) móvil en vertical (html.pv): la maqueta de PC con su CSS de vertical (index.html, bloque menus-v); los avisos van
+   *  al carril de arriba como en el móvil apaisado y «Este navegador no puede» lleva Copiar enlace y Volver. */
+  function pvv() { return !!(VB.Splat && VB.Splat.pv && VB.Splat.pv()); }
   var CSS = [
     '#menu.sp-full #mpOnline{--sp-colw:clamp(360px,54vw,780px);padding-bottom:calc(var(--sp-pad) + 36px + var(--sbm))}',
     '#mpOnline .ol-body{display:flex;flex-direction:column;gap:var(--sp-gap,12px);flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;',
@@ -878,6 +881,73 @@
     PP + '#mpOnline .ol-ctas{width:min(100%,600px);justify-content:flex-end;margin:var(--ph-s3) 0 0;padding:0}',
     PP + '#mpOnline .ol-ctas .sp-btn{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px;width:auto;flex:none}',
     PP + '#mpOnline .ol-ctas .sp-s{display:none}',
+    // movil-aire §5.1 (paquete menús, 24-nov-2026): lista con CÓDIGO / CREAR SALA en una columna de 150 a la derecha también a 568; sala de 56 en
+    // una fila (sede 36 · nombre · «Platja Llarga · 1 set a 21» · ENTRAR 44); las no disponibles, oscuras al 55 %; «Juegas como» = ficha de 44
+    PP + '#mpOnline .ol-body[data-v="list"]{display:grid;grid-template-columns:minmax(0,1fr) 150px;grid-template-rows:minmax(0,1fr);column-gap:12px}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-rooms{grid-column:1;grid-row:1}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock{grid-column:2;grid-row:1;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:14px;padding:4px 4px 4px 2px}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act{width:100%;flex:none;--sp-px:10px}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-new{--sp-h:56px;--sp-fs:var(--ph-btn);--sp-px:10px}',
+    PP + '#mpOnline .ol-fx{--sp-h:56px;--sp-cs:36px}',
+    PP + '#mpOnline .ol-fx .sp-tk-main{gap:2px;padding:4px 8px 4px 4px}',
+    PP + '#mpOnline .ol-fx .fx-line{gap:6px}',
+    PP + '#mpOnline .ol-fx:not(.fx-prev) :is(.fx-vs,.fx-slot:not(.in)){display:none}',
+    PP + '#mpOnline .ol-fx .fx-name{font-size:var(--ph-row);line-height:1.1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:none}',
+    PP + '#mpOnline .ol-fx .fx-chips{gap:0;overflow:hidden;white-space:nowrap}',
+    PP + '#mpOnline .ol-fx .fx-chips i{background:none;padding:0;border-radius:0;font-size:var(--ph-label);font-weight:600;line-height:1.2;color:inherit;opacity:.88}',
+    PP + '#mpOnline .ol-fx .fx-chips i:nth-child(n+3){display:none}',
+    PP + '#mpOnline .ol-fx .fx-chips i+i::before{content:"·";margin:0 6px}',
+    PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:11em}',
+    PP + '#mpOnline .ol-fx .fx-go{min-height:44px;padding:0 10px 0 12px}',
+    PP + '#mpOnline .ol-fx.fx-off{--sp-c:var(--sp-ink2);--sp-d:var(--sp-ink2);--sp-tc:var(--sp-cream);color:var(--sp-cream)}' + PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.55}',
+    // (ronda final: lo no disponible se sigue leyendo —.8—; «+ Crear sala» en una línea también a 568)
+    PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.82}',
+    // (ronda 2, recortes: la sala no disponible, atenuada pero LEGIBLE —el nombre iba en tinta sobre tinta—, con su estado «Llena» /
+    //  «Otra versión» a la derecha, y vuelve la chapa «Igualado» —3.ª ficha— que la ronda 1 escondía)
+    PP + '#mpOnline .ol-fx.fx-off .fx-name{color:var(--sp-cream)}',
+    PP + '#mpOnline .ol-fx.fx-off .fx-end .fx-st{display:inline-flex;color:var(--sp-cream);font-size:var(--ph-cap)}',
+    PP + '#mpOnline .ol-fx .fx-chips i:nth-child(3){display:inline}',
+    // (las fichas parten de línea si no caben —la sala crece—: ni la sede ni «Con sus atributos» se cortan)
+    PP + '#mpOnline .ol-rooms .ol-fx:not(.fx-prev){--sp-h:auto;min-height:56px}',
+    // (en fichas con fondo y sin «·»: al partir de línea no queda un separador huérfano delante; el nombre, con aire arriba)
+    PP + '#mpOnline .ol-fx .fx-chips{flex-wrap:wrap;gap:3px 6px;white-space:normal;overflow:visible}',
+    PP + '#mpOnline .ol-fx .fx-chips i{white-space:nowrap;padding:1px 7px;border-radius:6px;background:rgba(21,16,42,.12)}',
+    ':root.ph:not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-fx .fx-chips i+i::before{content:none}',
+    PP + '#mpOnline .ol-fx.fx-off .fx-chips i{background:rgba(255,244,220,.1)}',
+    PP + '#mpOnline .ol-rooms .ol-fx:not(.fx-prev) .sp-tk-main{padding-top:8px;padding-bottom:8px}',
+    PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:none;overflow:visible;text-overflow:clip}',
+
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act .sp-t{white-space:nowrap}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-new{--sp-fs:var(--ph-label);--sp-px:8px}',
+    PP + '#mpOnline .mk-prev .fx-chips i+i::before{content:none}' + PW + '#mpOnline .mk-go .sp-patch .sp-t{font-size:22px;white-space:nowrap}',
+    PP + '#mpOnline .ol-who{height:44px;min-height:44px;padding:0 12px 0 14px}',
+    PP + '#mpOnline .ol-who small{display:none}',
+    PP + '#mpOnline .ol-who b{display:block;max-width:9.5em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-label)}',
+    // Crear sala: rejilla de 2 de selectores (rótulo encima, ‹ valor › debajo; 72 de alto, 64 en .ph-s): a 568 se ven 5; vista previa fuera
+    // hasta 800 y de 260 desde 800
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-sels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start}',
+    PP + '#menu #mpOnline .ol-sel{width:100%;min-height:72px;grid-template-columns:minmax(0,1fr);grid-template-areas:"l" "v";justify-items:stretch;padding:6px 6px 4px;gap:2px 0}',
+    PP + '#menu #mpOnline .ol-sel .mi-l{justify-self:center;align-items:center;text-align:center}',
+    PP + '#menu #mpOnline .ol-sel .mi-v{width:100%;justify-content:space-between}',
+    PP + '#menu #mpOnline .ol-sel .mv-val{width:auto;flex:1 1 auto;min-width:0}',
+    PP + '#menu #mpOnline .ol-sel .mv-val b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PP + '#menu #mpOnline .ol-sel:is(.kf,.ol-on,:focus) .ol-hint{display:none}',
+    ':root.ph.ph-s' + P.slice(5) + '#menu #mpOnline .ol-sel{min-height:58px;padding:2px 6px 1px;gap:0}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="create"] .mk-sels{gap:10px 12px;padding-top:2px}',
+    ':root.ph.ph-s' + P.slice(5) + '#menu #mpOnline .ol-sel .mi-l{line-height:1.05}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .mk-go .sp-patch{--sp-ph:var(--ph-cta-h)}',
+    '@media (min-width:720px){',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-prev{display:none}',
+    '}',
+    PW + '#mpOnline .ol-body[data-v="create"]{grid-template-columns:minmax(0,1fr) 260px}',
+    PW + '#mpOnline .ol-body[data-v="create"] .mk-prev{display:block}',
+    // Cómo funciona: a 844+ los puntos de la página en 2 columnas; «Siguiente» de 52. Avisos: el botón dentro de la hoja. Sala: reglas en una fila
+    PW + '#mpOnline .ol-hpp{columns:2;column-gap:24px}',
+    PW + '#mpOnline .hp-pt{break-inside:avoid}',
+    PP + '#mpOnline .hp-go .ol-act.ol-new{--sp-h:52px}',
+    PP + '#mpOnline .ol-card{width:min(100%,var(--ph-fw))}',
+    PP + '#mpOnline .ol-card .ol-ctas{width:auto;display:flex;justify-content:flex-end;margin:14px 0 0}',
+    PP + '#mpOnline .ol-card .ol-ctas .sp-btn{--sp-h:48px;--sp-fs:var(--ph-btn)}',
+    PP + '#mpOnline .ol-rules{flex-wrap:nowrap;gap:8px}',
+    PP + '#mpOnline .ol-rules i{font-size:var(--ph-label);white-space:nowrap}',
     // vertical (teléfono de pie): columna a todo lo ancho, cabecera arriba y el lobby abajo; barra en dos filas
     '@media (max-aspect-ratio:5/4){',
     '#mpOnline .ol-act{--sp-h:48px;--sp-fs:14px}',
@@ -1017,7 +1087,7 @@
       '<span class="fx-line"><b class="fx-name" title="' + esc(r.name) + '">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
       (r.multi ? '<span class="fx-slot fx-cnt' + (full ? ' in' : '') + '" aria-hidden="true">' + nIn + '/' + (r.cap | 0) + '</span></span>'
         : '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>') +
-      '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(vn) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
+      '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(String(vn).replace(/^(Poliesportiu|Polideportivo|Pabellón|Pavelló)\s+/, '')) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
       '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
       (off || o.prev ? '' : '<span class="fx-go">Entrar' + GO_IC + '</span>') + '</span></span>' + (beta ? '<i class="sp-chip ol-beta" aria-hidden="true">Beta</i>' : '') + '</' + tag + '>';
   }
@@ -1132,7 +1202,7 @@
     nb.classList.add('kf'); sound('optHover');
     return true;
   }
-  function note() { if (ph()) return '';   // (móvil: el aviso va al carril de avisos de arriba, VB.Splat.toast: ver render)
+  function note() { if (ph() || pvv()) return '';   // (móvil: el aviso va al carril de avisos de arriba, VB.Splat.toast: ver render)
     return L.msg ? '<p class="ol-note' + (L.msgBad ? ' bad' : '') + '" role="status">' + esc(L.msg) + '</p>' : ''; }
   /* ---------------- móvil (html.ph; spec «Online», notes/splat.md «Móvil») ----------------
    * La misma página con otra disposición: en la cabecera, tras «Online», tu nombre en una chapa crema (lista) o en qué paso estás; una
@@ -1157,14 +1227,17 @@
   function viewPH() {
     var v = L.view, h = '';
     if (v === 'noacc') {
-      h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p></div>' +
-        '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', '', '', { color: 'sp-kit', shape: 0 }) + '</div>';
+      // (movil-aire §5.1: el botón dentro de la hoja, bajo el texto; una sola pieza centrada)
+      h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p>' +
+        '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', '', '', { color: 'sp-kit', shape: 0 }) + '</div></div>';
     } else if (v === 'off') {
       h = '<div class="ol-card sp-panel"><h3>El online aún no está activado</h3><p>Todavía no se puede jugar online desde el servidor. Vuelve a probar dentro de un rato.</p>' +
-        '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span></div>' +
-        '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div>';
+        '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span>' +
+        '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div></div>';
     } else if (v === 'nortc') {
-      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Ábrelo en Chrome o Safari actualizados (en el iPhone, sin el modo Aislamiento).</p></div>';
+      // (con «Copiar enlace»: para abrir el juego en el otro navegador sin teclear la dirección)
+      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p>' +
+        '<div class="ol-ctas" data-nav>' + row('copylink', 'Copiar enlace', '', '', { color: 'sp-gold', shape: 1 }) + '</div></div>';
     } else if (v === 'help') {
       var pg = Math.max(0, Math.min(hpPages() - 1, L.hpPage | 0)), last = pg >= hpPages() - 1, dots = '';
       for (var d = 0; d < hpPages(); d++) dots += '<i' + (d === pg ? ' class="on"' : '') + '></i>';
@@ -1236,10 +1309,12 @@
       h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p></div>' +
         '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', 'Entrar o crear una cuenta', '', { color: 'sp-kit', shape: 0 }) + '</div>';
     } else if (v === 'off') {
-      h = '<div class="ol-card sp-panel"><h3>El online aún no está activado en el servidor</h3><p>Todavía no se puede jugar online. Vuelve a probar dentro de un rato.</p></div>' +
+      h = '<div class="ol-card sp-panel"><h3>El online aún no está activado en el servidor</h3><p>Todavía no se puede jugar online. Vuelve a probar dentro de un rato.</p>' +
+        (pvv() ? '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span>' : '') + '</div>' +   // (ronda final: en vertical, como en horizontal)
         '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div>';
     } else if (v === 'nortc') {
-      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p></div>';
+      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p></div>' +
+        (pvv() ? '<div class="ol-ctas" data-nav>' + row('copylink', 'Copiar enlace', 'Para abrirlo en otro navegador', '', { color: 'sp-gold', shape: 1 }) + row('goback', 'Volver', '', '', { color: 'sp-ink', shape: 2 }) + '</div>' : '');
     } else if (v === 'help') {
       h = helpHTML() + '<div class="ol-bar ol-bar2 hp-go" data-nav><button class="ol-act ol-new sp-btn sp-gold sp-wide" data-shape="2" data-a="helpOk"><span class="sp-t">Entendido</span></button></div>';
     } else if (v === 'list') {
@@ -1327,9 +1402,9 @@
   function render(force) {
     if (!L.host || !L.on) return;
     var body = L.host.querySelector('.ol-body'); if (!body) return;
-    var PH = ph(), hr = L.host.querySelector('.ol-hr'), h = PH ? viewPH() : viewHTML(), hh = PH ? headHTML() : '', all = h + '\u0002' + hh;
+    var PH = ph(), TO = PH || pvv(), hr = L.host.querySelector('.ol-hr'), h = PH ? viewPH() : viewHTML(), hh = PH ? headHTML() : '', all = h + '\u0002' + hh;
     // (móvil: el aviso, una vez, al carril de arriba; la misma frase no se repite hasta que se borra)
-    if (PH && L.msg && L.msg !== L.toasted && VB.Splat && VB.Splat.toast) { try { L.toastApi = VB.Splat.toast(esc(L.msg), { key: 'ol', ms: 6500, cls: L.msgBad ? 'ol-tbad' : '' }); } catch (e) { } }
+    if (TO && L.msg && L.msg !== L.toasted && VB.Splat && VB.Splat.toast) { try { L.toastApi = VB.Splat.toast(esc(L.msg), { key: 'ol', ms: 6500, cls: L.msgBad ? 'ol-tbad' : '' }); } catch (e) { } }
     if (!L.msg && L.toastApi) { L.toastApi.close(); L.toastApi = null; }   // (aviso resuelto o vista nueva: fuera)
     L.toasted = L.msg;
     if (!force && all === lastH) return;
@@ -1337,7 +1412,7 @@
     lastH = all; body.innerHTML = h; body.setAttribute('data-v', L.view);
     if (hr && hr.innerHTML !== hh) hr.innerHTML = hh;
     if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(body); if (hr) VB.Splat.decorate(hr); } catch (e) { } }   // (SPLAT: manchas, brochazos y parche)
-    if (PH && VB.Splat && VB.Splat.more) { var sc = body.querySelectorAll('.ol-scroll'); for (var i = 0; i < sc.length; i++) { try { VB.Splat.more(sc[i]); } catch (e) { } } }
+    if (TO && VB.Splat && VB.Splat.more) { var sc = body.querySelectorAll('.ol-scroll'); for (var i = 0; i < sc.length; i++) { try { VB.Splat.more(sc[i]); } catch (e) { } } }
     var inp = body.querySelector('#olIn');
     if (inp) { bindInput(inp); setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { } }, 20); return; }
     if (key) { var b = findKey(L.host, key) || first(); if (b) { try { b.focus({ preventScroll: !kf }); } catch (e) { } if (kf) b.classList.add('kf'); } }
@@ -1428,12 +1503,19 @@
     else if (a === 'kick') mKick();
     else if (a === 'unpick') { L.pick = ''; render(); focusA('leave'); }
     else if (a === 'pick') mPick(b.getAttribute('data-id'));
+    else if (a === 'copylink') copyLink();
+    else if (a === 'goback') { var gb = document.getElementById('btnOnlineBack'); if (gb) gb.click(); }   // (vertical, «Este navegador no puede»: Volver abajo)
+  }
+  /** Móvil, sin WebRTC: copia la dirección del juego para abrirla en otro navegador. */
+  function copyLink() {
+    var url = shareSite(), done = function () { if (VB.Splat && VB.Splat.toast) VB.Splat.toast('Enlace copiado: ábrelo en Chrome o Safari', { key: 'olc' }); };
+    try { navigator.clipboard.writeText(url).then(done, done); } catch (e) { done(); }
   }
   function copyCode() {
     var c = L.room && L.room.code; if (!c) return;
     var done = function () {
       L.fail = '';
-      if (ph() && VB.Splat && VB.Splat.toast) { VB.Splat.toast('Código copiado: <b>' + esc(c) + '</b>', { key: 'olc' }); return; }   // (móvil: aviso de arriba)
+      if ((ph() || pvv()) && VB.Splat && VB.Splat.toast) { VB.Splat.toast('Código copiado: <b>' + esc(c) + '</b>', { key: 'olc' }); return; }   // (móvil: aviso de arriba)
       var s = L.host.querySelector('.ol-st'); if (s) s.textContent = 'Código copiado: ' + c;
     };
     try { navigator.clipboard.writeText(c).then(done, done); } catch (e) { done(); }

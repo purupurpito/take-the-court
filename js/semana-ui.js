@@ -76,7 +76,7 @@
     return t;
   }
   function flame(n) { return '<span class="sem-fl" aria-hidden="true"><b>' + (n | 0) + '</b></span>'; }
-  function tabHTML(mode) {
+  function tabHTML(mode, vw) {
     var M = S(); if (!M) return '<p class="rt-none">La jugada del día no está disponible.</p>';
     mode = mode === 'A' ? 'A' : 'S';
     var st = M.state(), sit = st.sit, a = sit.score[0], b = sit.score[1];
@@ -106,7 +106,13 @@
       (st.best ? '<button class="sp-btn sp-sm sp-ink sem-share" data-sem="share" data-shape="1" aria-label="Compartir tu resultado" title="Compartir"><span class="sp-ic">' + SHARE_IC + '</span><span class="sp-t sem-st">Compartir</span></button>' : '') + '</div></div>';
     // columna derecha: el mapa del grupo
     var list = groupList(st);
-    h += '<div class="sem-r"><div class="sem-gh"><b>Mapa del grupo</b><span class="sem-seg" role="radiogroup" aria-label="Qué enseña el mapa">' +
+    // (móvil, movil-aire §5.6: con lista del grupo, la columna derecha enseña UNA cosa a toda la altura, el mapa o la lista, con un
+    //  segmento «Mapa | Grupo (3)» de 44; .ph-only: en PC no sale y se ven las dos como siempre)
+    var vwOn = list.length > 0, isList = vwOn && vw === 'list';
+    if (vwOn) h += '<div class="sem-r sem-vwh" data-vw="' + (isList ? 'list' : 'map') + '"><span class="sem-vw ph-only pv-no" role="radiogroup" aria-label="Qué enseña la columna">' +
+      '<button type="button" role="radio" data-semvw="map" aria-checked="' + !isList + '"' + (isList ? '' : ' class="on"') + '>Mapa</button>' +
+      '<button type="button" role="radio" data-semvw="list" aria-checked="' + isList + '"' + (isList ? ' class="on"' : '') + '>Grupo (' + list.length + ')</button></span>';
+    h += (vwOn ? '' : '<div class="sem-r">') + '<div class="sem-gh"><b>Mapa del grupo</b><span class="sem-seg" role="radiogroup" aria-label="Qué enseña el mapa">' +
       '<button type="button" role="radio" data-semmap="S" aria-checked="' + (mode === 'S') + '"' + (mode === 'S' ? ' class="on"' : '') + '>Saque</button>' +
       '<button type="button" role="radio" data-semmap="A" aria-checked="' + (mode === 'A') + '"' + (mode === 'A' ? ' class="on"' : '') + '>Ataque</button></span></div>' +
       mapSVG(list, mode, st.me);

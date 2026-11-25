@@ -74,6 +74,26 @@
     PQ + ' button.tc-slot:hover{background:none;filter:none}',
     PQ + ' button.tc-slot:active .tc-st{transform:scale(.94)}',
     PQ + ' button.tc-slot:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold);border-radius:12px}',
+    // movil-aire (paquete carrera-marco, 24-nov-2026; notes/movil-aire.md §5.2): Faro en una franja de 56 px: cara de 32, título y UNA
+    // línea (tocar la tarjeta la enseña entera: career-ui añade .ph-open), «Vale» como × de 44 y el botón extra debajo, pequeño
+    PQ + ' .card.cw-mentor{grid-template-columns:32px minmax(0,1fr) 44px;align-items:center;gap:2px 10px;min-height:56px;max-height:none;padding:6px 6px 6px 10px;overflow:visible;cursor:pointer}',
+    PQ + ' .card.cw-mentor .cw-face{grid-column:1;grid-row:1;width:32px;height:32px}',
+    PQ + ' .card.cw-mentor>div:not(.acts){grid-column:2;grid-row:1;min-width:0}',
+    PQ + ' .card.cw-mentor .cw-who{display:none}',
+    PQ + ' .card.cw-mentor h3{display:block;margin:0;font-size:var(--ph-row);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    // (ronda 2, recortes: la primera oración entera —sin «…»— y «Ver más»; al tocar, la frase entera)
+    PQ + ' .card.cw-mentor .cw-line{margin:1px 0 0;font-size:var(--ph-cap);line-height:1.25;display:block;overflow:visible}',
+    PQ + ' .card.cw-mentor:not(.ph-open) .cw-rest{display:none}',
+    PQ + ' .card.cw-mentor .cw-more{display:inline;font-weight:800;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;color:var(--sp-teal-d)}',
+    PQ + ' .card.cw-mentor.ph-open .cw-more{display:none}',
+    PQ + ' .card.cw-mentor .acts{display:contents}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok{grid-column:3;grid-row:1;align-self:center;flex:none;width:44px;height:44px;min-width:44px;min-height:44px;max-width:none;margin:0;padding:0;border:0;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);display:grid;place-items:center;transform:none;filter:none}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok>*{display:none}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok::after{content:"›";display:block;position:static;inset:auto;width:auto;height:auto;background:none;font:400 26px/1 var(--sp-pop);color:inherit;transform:translateY(-1px)}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok[data-last]::after{content:"×"}',
+    PQ + ' .card.cw-mentor .acts>.cw-ok:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    PQ + ' .card.cw-mentor .acts>:not(.cw-ok){grid-column:2/-1;grid-row:2;justify-self:start;--sp-h:44px;height:44px;min-height:44px;min-width:0;max-width:100%;margin:2px 0 0;--sp-fs:var(--ph-label)}',
     '.sp-sheet.cr-tcs .tc-sh p{margin:0 0 8px;font:600 var(--ph-body,15px)/1.35 var(--sp-ui)}',
     '.sp-sheet.cr-tcs .tc-sh p.ul{color:#7fe6dc}'
   ];
@@ -85,6 +105,7 @@
     Q + ' .cw-mentor .cw-n{color:rgba(21,16,42,.6);font:700 12px var(--sp-ui)}',
     Q + ' .cw-mentor .cw-line{color:var(--sp-ink);font:600 clamp(14px,2.2vh,16px)/1.35 var(--sp-ui)}',
     Q + ' .cw-mentor .acts{justify-content:flex-end;margin-top:8px}',
+    Q + ' .cw-mentor .cw-more{display:none}',
     '@media (min-aspect-ratio:5/4){' + Q + ' .cw-mentor .acts{margin:0 0 6px}}',   // (REV-11: «Vale» a la derecha; los 6 px, para la cola del bocadillo)
     Q + ' .cw-mentor .acts>.sp-btn{flex:0 0 auto;min-width:120px}',
     // recortes de noticias (papel crema, cada uno un poco torcido) y filas de clubes (pegatinas de tinta clara)
@@ -223,6 +244,14 @@
   function css() { if (typeof document === 'undefined' || document.getElementById('careerWorldCss')) return; var s = document.createElement('style'); s.id = 'careerWorldCss'; s.textContent = CSS; document.head.appendChild(s); }
 
   // ---------------------------------------------------------------- Partido: escena de Faro
+  /** (ronda 2, recortes) Frase de Faro: en el móvil, la primera oración entera (nunca cortada a media palabra) y el resto tras un toque
+   *  (career-ui añade .ph-open a la tarjeta) con «Ver más» al lado; en PC, la frase tal cual. */
+  function lineHTML(t) {
+    t = String(t || ''); var mob = !!(VB.Splat && VB.Splat.mob && VB.Splat.mob());
+    var m = mob ? /^(.{12,}?[.!?…])\s+(\S[\s\S]*)$/.exec(t) : null;
+    if (!m) return esc(t);
+    return '<span class="cw-l1">' + esc(m[1]) + '</span><span class="cw-rest"> ' + esc(m[2]) + '</span> <span class="cw-more" aria-hidden="true">Ver más</span>';
+  }
   /** Tarjeta del mentor (o '' si no hay escena o están apagadas). La frase actual vive aquí (li); solo «Vale» llama a mentorDone. */
   function mentorCard(c, h0) {
     H = h0; css();
@@ -234,8 +263,8 @@
     return '<div class="card cw-mentor" role="region" aria-label="Faro, tu mentor">' + FACE +
       '<div><small class="cw-who">' + sp([esc(sc.who.nick), esc(sc.who.role)], 'd') + '</small>' +
       '<h3>' + esc(sc.title) + (n > 1 ? ' <span class="cw-n">' + (li + 1) + '/' + n + '</span>' : '') + '</h3>' +
-      '<p class="cw-line" aria-live="polite">' + esc(sc.lines[li]) + '</p></div>' +
-      '<div class="acts"><button class="cw-ok" data-act="cw-next">' + (last ? 'Vale' : 'Seguir') + '</button>' +
+      '<p class="cw-line" aria-live="polite" data-ph-ell>' + lineHTML(sc.lines[li]) + '</p></div>' +
+      '<div class="acts"><button class="cw-ok" data-act="cw-next" aria-label="' + (last ? 'Vale' : 'Seguir') + '"' + (last ? ' data-last' : '') + '>' + (last ? 'Vale' : 'Seguir') + '</button>' +
       (go ? '<button data-act="cw-go" data-tab-go="' + esc(go[0]) + '" data-s-go="' + esc(go[1] || '') + '">' + esc(sc.actLabel || 'Ver') + '</button>'
         : last ? '' : '<button data-act="cw-skip">Saltar</button>') + '</div></div>';
   }
@@ -259,11 +288,19 @@
     if (H.crest) { var k = C().club ? C().club(c, r.id) : null; if (k) return H.crest(k, 22, { c: c }); }
     return H.kitSw && r.kit ? H.kitSw(r.kit).replace('cr-kit', 'cr-kit kit-mini') : '';
   }
+  /** Titular ya escapado. Móvil (ronda 2, carrera-liga-vida-v): los clubes de la noticia con su nombre corto (sin el patrocinador; el largo
+   *  sigue en la ficha y en el aria-label) y los marcadores «21-16» sin partir. PC: el texto de siempre. */
+  function newsT(c, x) {
+    var t = String(x.t || '');
+    if (!(H && H.ph && H.ph() && H.shortClub)) return esc(t);
+    (x.c || []).forEach(function (id) { var k = C().club ? C().club(c, id) : null, s = k && k.name ? H.shortClub(k) : ''; if (s && s !== k.name) t = t.split(k.name).join(s); });
+    return esc(t).replace(/\b(\d{1,2}-\d{1,2})\b/g, '<span class="nw">$1</span>');
+  }
   /** Una noticia: botón que abre la ficha de su primer club (si existe) o texto suelto. fresh: sin ver hasta este pintado. */
   function newsItem(c, x, fresh) {
     var id = x.c && x.c.length ? x.c[0] : -1, k = id >= 0 ? C().club(c, id) : null;
     var cls = 'cw-nb' + (x.me === 1 ? ' me' : x.me === 2 ? ' rv' : '') + (fresh ? ' fresh' : '');
-    var inner = '<small>' + esc(W().newsWhen(x)) + (x.me === 2 && /^rival/.test(x.k) ? '<span class="cw-mk">Tu rival</span>' : '') + '</small><b>' + esc(x.t) + '</b>';
+    var inner = '<small>' + esc(W().newsWhen(x)) + (x.me === 2 && /^rival/.test(x.k) ? '<span class="cw-mk">Tu rival</span>' : '') + '</small><b>' + newsT(c, x) + '</b>';
     return k ? '<button class="' + cls + '" data-act="cw-club" data-id="' + k.id + '" aria-label="' + esc(x.t) + '. Ver la ficha de ' + esc(k.name) + '">' + inner + '</button>'
       : '<div class="' + cls + '">' + inner + '</div>';
   }
@@ -280,6 +317,8 @@
     H = h0; css(); var w = W(); if (!w || !c) return '';
     var l = w.news(c), s0 = seen0 != null ? seen0 | 0 : (c.world ? c.world.newsSeen | 0 : 0), me = C().myClub(c), ML = me && (w.lgOf ? w.lgOf(c, me) : C().league(me.lvl));
     if (!l.length) return '<div class="card"><h3>Noticias</h3><p class="muted">Aún no hay noticias. Llegan al cerrar cada jornada: resultados, rachas, líderes y tu rival.</p></div>';
+    // móvil (movil-aire §5.4): sin sello (lo dice la pestaña) y sin la nota del pie; la lista empieza arriba
+    if (H && H.ph && H.ph()) return '<div class="card cw-newsph"><div class="cw-list">' + l.map(function (x) { return newsItem(c, x, x.id > s0); }).join('') + '</div></div>';
     return '<div class="card"><h3>' + sp(['Noticias', ML ? esc(ML.name) : ''], 'd') + '</h3><div class="cw-list">' + l.map(function (x) { return newsItem(c, x, x.id > s0); }).join('') + '</div>' +
       '<p class="muted" style="margin-top:8px">Toca una noticia para ver la ficha del club. Se guardan las ' + (w.NEWS_MAX || 60) + ' últimas.</p></div>';
   }
@@ -294,6 +333,16 @@
     H = h0; css(); var w = W(); if (!w || !c) return '';
     if (sel != null) { var card = w.clubCard(c, sel); if (card) return cardHTML(c, card); sel = null; }
     var L = lgBy(c, lvl), rows = w.clubRows(c, lvl); if (!L) return '';
+    if (H.ph && H.ph() && sw != null) {   // móvil (movil-aire §5.4): «Liga · 8» dentro del selector y filas de 48 en una línea
+      var sw1 = String(sw).replace(/(<button class="cr-lgp-v"[^>]*>)([^<]*)(<\/button>)/, '$1$2 <small class="cr-lgp-n">· ' + rows.length + '</small>$3');
+      return '<div class="card">' + sw1 + '<div class="cw-list">' + rows.map(function (r) {
+        var k = C().club ? C().club(c, r.id) : null, nm = k && H.shortClub ? H.shortClub(k) : r.name;
+        var al = r.name + (r.mine ? ', tu club' : r.rival ? ', juega tu rival' : '') + (r.pj ? ', ' + ordn(r.pos) : '') + ', media ' + r.ovr + (r.vs ? ', tú ' + r.vs.g + '-' + r.vs.p : '');
+        return '<button class="cw-row cw-rph' + (r.mine ? ' me' : r.rival ? ' rv' : '') + '" data-act="cw-club" data-id="' + r.id + '" aria-label="' + esc(al) + '">' + (k && H.crest ? H.crest(k, 28, { c: c }) : kitMini(c, r)) +
+          // (ronda 2, recortes: vuelve la marca de la fila —«Tu club» / «Rival»— que la ronda 1 quitó; solo quedaba el borde de color)
+          '<b class="cw-rnm" data-trunc="name">' + esc(nm) + '</b>' + (r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Rival</span>' : '') + '<span class="cw-rs">' + (r.pj ? ordn(r.pos) + ' · ' : '') + r.ovr + '</span><span class="cw-go" aria-hidden="true">›</span></button>';
+      }).join('') + '</div></div>';
+    }
     return '<div class="card">' + (sw != null ? sw : lgSw(lvl)) + '<h3>' + sp([esc(L.name), plural(rows.length, 'club', 'clubes')], 'd') + '</h3><div class="cw-list">' + rows.map(function (r) {
       var vs = r.vs ? { h: 'Tú ' + r.vs.g + '-' + r.vs.p, c: 'dv' + (r.vs.g > r.vs.p ? ' g' : r.vs.g < r.vs.p ? ' r' : '') } : '';
       var mk = r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Tu rival juega aquí</span>' : '';
@@ -312,6 +361,17 @@
   function cardHTML(c, k) {
     var lo = k.lore || {}, h = '', hall = isH(c), KT = hall ? KIND_T6 : KIND_T;
     // 1) cabecera
+    if (H.ph && H.ph() && H.shortClub) {   // móvil (movil-aire §5.3): «‹» de 44, escudo 56, nombre corto, «liga · año · apodo» en una línea,
+      // «Esta temporada» en la cabecera y el rencor o el cariño como franja de una línea bajo el nombre; las fichas en una fila
+      var b0 = k.bond && k.bond.t ? k.bond : null;
+      h += '<div class="card cw-card cw-cph"><div class="row cw-chr"><button class="cw-back cw-bk" data-act="cw-list" aria-label="Volver a Clubes">‹</button>' + (H.crest ? H.crest(k, 56, { c: c }) : '') +
+        '<div class="grow" style="min-width:0"><p class="bigname cw-cn">' + esc(H.shortClub(k)) + '</p><p class="cw-ck">' + sp([esc(k.league), lo.founded ? String(lo.founded) : '', esc(lo.nick)], 'v') + '</p></div>' +
+        (k.pj ? '<p class="cw-cs" aria-label="' + esc('Esta temporada: ' + ordn(k.pos) + ', ' + plural(k.pts, 'punto', 'puntos')) + '"><b>' + ordn(k.pos) + '</b><small>' + plural(k.pts, 'pt', 'pts') + '</small></p>' : '') + '</div>' +
+        (b0 ? '<p class="cw-bond ' + (b0.t > 0 ? 'g' : 'r') + '"><b>' + (b0.t > 0 ? 'Te tienen cariño' : 'Te guardan rencor') + '</b>' + (b0.txt ? ' · ' + esc(b0.txt.charAt(0).toLowerCase() + b0.txt.slice(1)) + (b0.s ? ' (T' + b0.s + ')' : '') : '') + '</p>' : '') +
+        '<p class="muted cw-chips">' + sp([k.mine ? { h: 'Tu club', c: 'dv g' } : k.rival ? { h: 'Tu rival juega aquí', c: 'dv r' } : '', { h: stars(k.stars) }, 'Media ' + k.ovr, esc(k.style), esc(k.beach || k.city)], 'c') + '</p>' +
+        '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i>' + (k.name !== H.shortClub(k) ? ' · ' + esc(k.name) : '') + '</p></div>';
+      if (k.form.length) h += '<div class="card"><h3>Esta temporada</h3><p class="cw-form" aria-label="Últimos ' + k.form.length + ': ' + k.form.map(function (f) { return f ? 'victoria' : 'derrota'; }).join(', ') + '">' + k.form.map(function (f) { return '<i class="' + (f ? 'w' : 'l') + '"></i>'; }).join('') + '<small>Últimos ' + k.form.length + '</small></p></div>';
+    } else {
     h += '<div class="card cw-card"><button class="cw-back" data-act="cw-list">‹ Clubes</button><div class="row" style="margin-top:8px">' + (H.crest ? H.crest(k, 72, { c: c }) : H.kitSw ? H.kitSw(k.kit, true) : '') +
       '<div class="grow" style="min-width:0"><small class="cw-kick">' + sp([esc(k.league), 'Fundado en ' + lo.founded], 'd') + '</small><p class="bigname" style="font-size:21px">' + esc(k.name) + '</p>' +
       '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i></p></div></div>' +
@@ -320,6 +380,7 @@
     // 2) esta temporada
     h += '<div class="card"><h3>Esta temporada</h3>' + (k.pj ? '<p class="cw-big">' + sp([ordn(k.pos), plural(k.pts, 'punto', 'puntos')], 'd') + '</p>' : '<p class="muted">Aún sin jugar en ' + esc(k.league) + '.</p>') +
       (k.form.length ? '<p class="cw-form" aria-label="Últimos ' + k.form.length + ': ' + k.form.map(function (f) { return f ? 'victoria' : 'derrota'; }).join(', ') + '">' + k.form.map(function (f) { return '<i class="' + (f ? 'w' : 'l') + '"></i>'; }).join('') + '<small>Últimos ' + k.form.length + '</small></p>' : '') + '</div>';
+    }
     // 3) palmarés: el de tu carrera (anales y tus trofeos «contigo») y lo de antes, inventado
     var old = [lo.oldLg ? plural(lo.oldLg, 'título', 'títulos') : '', lo.oldCup ? (hall ? plural(lo.oldCup, 'copa', 'copas') : plural(lo.oldCup, 'open', 'opens')) : ''].filter(function (x) { return x; });
     h += '<div class="card"><h3>Palmarés</h3>' + (k.titles.length ? '<ul class="cw-tl">' + k.titles.map(function (t) {
@@ -424,16 +485,18 @@
   }
   function seasonsTxt(won) { var a = won.map(function (x) { return x.season; }); return W() && W()._andList ? W()._andList(a.map(String)) : a.join(', '); }
   var tcSlots = [];   // (móvil: los huecos pintados, para la hoja de cw-tc)
-  function slotHTML(s, du) {
+  /** Móvil: nombre corto de un trofeo para la Vitrina (el entero, en la hoja al tocarlo). */
+  function tcShort(n) { return String(n || '').replace(/^Ascenso (a la|al|a) /i, '↑ '); }
+  function slotHTML(s, du, short) {
     var got = s.won.length > 0, n = s.won.length, ts = s.won.map(function (x) { return 'T' + x.season; }).join(', ');
     var line = got ? sp([n > 1 ? '×' + n : '', ts, du ? esc(du(s.won)) : ''], 'v') : '<small>' + esc(s.need) + '</small>';
     var ul = !got && s.unlock ? '<small class="tc-ul">Desbloquea: ' + esc(s.unlock.name) + '</small>' : '';
     var al = s.name + ': ' + (got ? 'ganado ' + (n === 1 ? '1 vez, temporada ' : n + ' veces, temporadas ') + seasonsTxt(s.won) : 'sin ganar' + (s.need ? '. ' + s.need : '')) + (ul ? '. Desbloquea: ' + s.unlock.name : '');
     // SPLAT: el trofeo en un sello dorado (ganado) o en su hueco de trazo discontinuo (por ganar)
-    var ph = typeof document !== 'undefined' && document.documentElement.classList.contains('ph'), tag = ph ? 'button' : 'div';
+    var ph = !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()), tag = ph ? 'button' : 'div';   // (ronda 2: móvil en las dos orientaciones; el detalle, al tocar)
     if (ph) tcSlots.push({ s: s, du: du });
     return '<' + tag + ' class="tc-slot ' + (got ? 'got' : 'empty') + '"' + (ph ? ' type="button" data-act="cw-tc" data-id="' + (tcSlots.length - 1) + '"' : ' role="img"') + ' aria-label="' + esc(al) + '"><span class="tc-st">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' + (n > 1 ? '<i class="tc-x">×' + n + '</i>' : '') + '</span>' +
-      '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</' + tag + '>';
+      '<b class="tc-n">' + esc(short ? tcShort(s.name) : s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</' + tag + '>';
   }
   /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por bloque y Premios; pista: Liga, Copa,
    *  Internacional, Ascenso y Premios) y «Otros títulos» si algo no casa. Bloques .tc-grid de 3 huecos dentro de .tc-gs, que se reparten el
@@ -450,6 +513,13 @@
     // continuación caía en otra columna (1280: bajo «Continental») y se leía como de otro grupo
     groups.forEach(function (g) { parts.push({ g: g, s: by[g] }); });
     parts.forEach(function (p) { var b = blocks[blocks.length - 1]; if (p.s.length <= 3 && b && b.n + p.s.length <= 3) { b.p.push(p); b.n += p.s.length; } else blocks.push({ p: [p], n: p.s.length }); });
+    if (H.ph && H.ph()) {   // móvil (movil-aire §5.4): un bloque por categoría (rótulo pegado arriba con «1/3»); las que están vacías, en una línea
+      return '<div class="card tc tc-ph" aria-label="' + esc('Vitrina: ' + tc.got + ' de ' + tc.total) + '">' + parts.map(function (p) {
+        var got = p.s.filter(function (s) { return s.won.length > 0; }).length;
+        return '<div class="tc-pg' + (got ? '' : ' empty') + '"><h4 class="tc-g">' + (p.g ? esc(p.g) : 'Otros') + ' <small>' + got + '/' + p.s.length + '</small></h4><div class="tc-pr">' +
+          p.s.map(function (s) { return slotHTML(s, du, 1); }).join('') + '</div></div>';
+      }).join('') + '</div>';
+    }
     return '<div class="card tc"><h3>Vitrina <span class="muted">(' + tc.got + ' de ' + tc.total + ')</span></h3><div class="tc-gs">' + blocks.map(function (b) {
       var hs = b.p.map(function (p) {
         var cl = 'tc-g' + (p.s.length > 1 ? ' s' + Math.min(3, p.s.length) : '');

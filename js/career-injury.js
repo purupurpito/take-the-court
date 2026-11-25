@@ -408,14 +408,20 @@
     var I = peek(c), cur = curOf(c), nt = note; note = '';
     var noteP = '<p class="note" role="status" aria-live="polite">' + esc(nt) + '</p>';
     if (cur) {
-      var C0 = CAT[cur.id], off = c.phase === 'off', done = cur.tot - cur.left;
-      var h = '<div class="card inj inj-out"><h3>' + sepD('De baja', esc(C0.name)) + qB(HLP, 'Lesiones', HELP) + '</h3>' + doll(C0.z);
+      var C0 = CAT[cur.id], off = c.phase === 'off', done = cur.tot - cur.left, ph = isPh(HLP);
+      // (móvil, movil-aire §5.3: el muñeco de 40 px dentro del sello, la barra y «Vuelves en 3» en una fila y la rehabilitación tras «?»)
+      var h = ph ? '<div class="card inj inj-out inj-ph"><h3>' + doll(C0.z) + sepD('De baja', esc(C0.name)) + qB(HLP, 'Lesiones', HELP + (off ? '' : ' Rehabilitación: ' + cur.reh + ' de ' + REH_N + ' descansos.')) + '</h3>'
+        : '<div class="card inj inj-out"><h3>' + sepD('De baja', esc(C0.name)) + qB(HLP, 'Lesiones', HELP) + '</h3>' + doll(C0.z);
       if (off) {
         h += '<p><b>Se cura en verano.</b> Las vacaciones hacen su trabajo: empiezas la próxima temporada sano.</p>';
+      } else if (ph) {
+        h += '<div class="pbar inj-pb"><span><b>Vuelves en ' + plural(cur.left, 'partido', 'partidos') + '</b></span><span class="bar"><i style="width:' + Math.round(100 * done / cur.tot) + '%"></i></span><b>' + done + '/' + cur.tot + '</b></div>';
       } else {
         h += '<p><b>Vuelves en ' + plural(cur.left, 'partido', 'partidos') + '</b> (' + (cur.left === 1 ? 'una semana' : 'unas ' + cur.left + ' semanas') + ').</p>' +
           '<div class="pbar"><span>Recuperación</span><span class="bar"><i style="width:' + Math.round(100 * done / cur.tot) + '%"></i></span><b>' + done + ' de ' + cur.tot + '</b></div>' +
           '<p class="muted">Rehabilitación: ' + cur.reh + ' de ' + REH_N + ' descansos. Cada ' + REH_N + ', un partido menos.</p>';
+      }
+      if (!off) {
         var ok1 = canEarly(cur), cost = intCost(c), money = +c.money || 0;
         if (ask === 'early' && ok1) {
           h += '<p class="inj-ask"><b>¿Volver ya?</b> Irás tocado (−2) 2 partidos y con riesgo de recaída.</p>' +
@@ -443,10 +449,20 @@
       : 'Vas bien. Lo normal es una lesión leve cada temporada o dos.') + '</p>';
     else s += '<p class="muted">Sin lesiones nuevas. Vuelve a encenderlas cuando quieras.</p>';
     s += tagLine(I);
-    s += '<div class="inj-opt"><span class="inj-lbl">Lesiones</span><div class="seg" role="group" aria-label="Lesiones">' +
+    if (!isPh(HLP)) s += '<div class="inj-opt"><span class="inj-lbl">Lesiones</span><div class="seg" role="group" aria-label="Lesiones">' +
       '<button data-act="inj-opt-1" aria-pressed="' + (on ? 'true' : 'false') + '">Sí</button><button data-act="inj-opt-0" aria-pressed="' + (on ? 'false' : 'true') + '">No</button></div></div>';
     s += '<p class="muted inj-sum">' + (cn ? plural(cn, 'lesión', 'lesiones') + ' en la Carrera' + (hl ? '. La última: ' + esc(lastTxt(hl)) + '.' : '.') : 'Ninguna lesión en la Carrera.') + '</p>';
     return s + noteP + '</div>';
+  }
+  function isPh(HLP) { return !!(HLP && typeof HLP.ph === 'function' && HLP.ph()); }
+  /** Móvil (movil-aire §5.3): el interruptor «Lesiones Sí/No» va en Vida › Ajustes (en PC sigue en Jugador › Estado). */
+  function uiOpts(c, HLP) {
+    if (!c || !c.player || c.phase === 'pick' || !isPh(HLP)) return '';
+    var on = peek(c).on !== 0;
+    // (movil-aire §5.4: una fila de la tarjeta de Ajustes de career-ui —.cr-opts—, como Dificultad y Cuánta vida)
+    return '<div class="cr-orow inj-optc"><span class="cr-ol">Lesiones</span><div class="seg" role="group" aria-label="Lesiones">' +
+      '<button data-act="inj-opt-1" aria-pressed="' + (on ? 'true' : 'false') + '">Sí</button><button data-act="inj-opt-0" aria-pressed="' + (on ? 'false' : 'true') + '">No</button></div>' +
+      '<p class="cr-oh">' + (on ? 'Tras cada partido hay un riesgo pequeño de lesión.' : 'Sin lesiones nuevas.') + '</p></div>';
   }
   /** Línea en la tarjeta del último partido (c.last.inj / injBack). '' si no hay nada. */
   function uiLast(c) {
@@ -485,6 +501,9 @@
       PQ + ' .inj .pbar span,' + PQ + ' .inj .pbar b,' + PQ + ' .inj .inj-lbl{font-size:var(--ph-label)}',
       PQ + ' .inj .acts{display:grid;grid-template-columns:1fr 1fr;gap:var(--ph-hit-gap)}',
       PQ + ' .inj .acts>*{min-height:44px;max-width:none;min-width:0}',
+      // (ronda final: la frase de debajo, a más distancia que la cola de los botones-mancha, que la pisaba; «Vuelves en 3» con la letra de la fila)
+      PQ + ' .inj .acts+p.muted{margin-top:16px}',
+      PQ + ' .inj .inj-pb>span:first-child b{font:700 var(--ph-row)/1.15 var(--sp-ui);letter-spacing:0;text-transform:none}',
       PQ + ' .card.inj{margin-top:var(--ph-s3,12px)}',
       PQ + ' .inj .inj-doll{width:clamp(52px,7.5vw,68px)}',
       PQ + ' .inj .sp-btn .sp-s{font-size:var(--ph-cap)}',
@@ -552,6 +571,7 @@
   var U = {
     id: ID, prefix: PRE,
     state: function (c, HLP) { return uiState(c, HLP); },
+    opts: function (c, HLP) { return uiOpts(c, HLP); },
     last: function (c) { return uiLast(c); },
     act: function (a) { return act(a); },
     css: css

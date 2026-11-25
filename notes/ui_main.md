@@ -2137,3 +2137,14 @@ Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fl
 - 6v6: `REPLAY6 = true`. players.js no rehace los rigs al enlazar la sombra R (`g.replay && REP.g === g`): `syncRigs(R)` pone a los 12 de
   la jugada (cambios y líbero incluidos) y, al volver, `syncRigs(g)` a los del vivo. recap.js ya no quita «Jugadas» en el 6v6. Avance
   rápido a un tercio de pasos por frame (`K6.PREP_DIV`). mobaudit: `aviso-repeticion` y `repeticion-6v6`.
+
+## Sugerencias y bugs (1.22.1, 23-nov-2026, rama feedback; detalle en notes/feedback.md)
+- **ui.js**: panel `fb` en `PANELS`/`SP_PN` (`#pnFb`, lo pinta `VB.Feedback.mount`); `openFb(kind, from)` desde las filas `data-go="fbsug"` /
+  `"fbbug"` de Ajustes › Info (se apila) y desde `#btnPSug` / `#btnPBug` de la pausa (vuelve con el foco al botón); `fbWhere()` = dónde
+  estaba (menú/página/panel, pausa, modo y marcador) y la suposición de «¿Dónde pasó?»; fila `data-go="fbview"` (visor) solo con
+  `actaOk` (`fbVis()` desde `actaVis()`). API: `VB.UI.openFeedback(kind)`, `VB.UI._fb()` (pruebas).
+- **index.html**: filas de Info, `#pnFb`, fila `.p-row.p-fb` de la pausa y bloque CSS «SPLAT · OPINIONES» (después de «fin SPLAT ·
+  PANELES»; en el móvil la fila de la pausa va en la columna del marcador, fila 4, y se esconde con `:has` si hay `.p-warn` visible,
+  que se queda en las filas 3-4 como antes; en PC la fila va a la izquierda, a su tamaño y 24 px más abajo).
+- **main.js**: el `touchend` que anula el doble toque deja en paz el `textarea`.
+- **Pruebas**: `node tools/feedbacktest.js`; filas `opiniones-sug`, `opiniones-bug` y `pausa-bug` de tools/mobaudit.js.

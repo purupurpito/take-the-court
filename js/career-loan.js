@@ -565,6 +565,22 @@
   /** Respuesta pendiente del club a tu petición. */
   function uiAsk(c, H) {
     var l = ensure(c), q = l.ask; if (!q) return '';
+    var ph = !!(H.ph && H.ph());
+    if (q.k === 'renew' && ph) {   // móvil: la propuesta arriba en una tira con lo que cambia en verde / rojo; sin sello
+      var ct = c.contract || {}, R = ROLE_LV(), dR = R.indexOf(q.role) - R.indexOf(ct.role), dS = (q.salary | 0) - (ct.salary | 0);
+      var cl = function (d) { return d > 0 ? ' ln-up' : d < 0 ? ' ln-dn' : ''; };
+      return '<div class="card new x-go ln-ask"><p class="ln-ak"><b>Renovación:</b> no te vende, te ofrece un rol más.</p>' +
+        '<div class="sp-heros sp-sm ph-strip ln-st"><div class="sp-hero' + cl(dR) + '"><span class="sp-hn">' + H.esc(q.role) + '</span><span class="sp-hl">Rol' + (dR > 0 ? ' ▲' : dR < 0 ? ' ▼' : '') + '</span></div>' +
+        '<div class="sp-hero"><span class="sp-hn">' + (q.years | 0) + '</span><span class="sp-hl">' + (q.years === 1 ? 'Temporada' : 'Temporadas') + '</span></div>' +
+        '<div class="sp-hero' + cl(dS) + '"><span class="sp-hn">' + H.esc(eur(q.salary)) + '</span><span class="sp-hl">Al mes' + (dS ? ' (' + (dS > 0 ? '+' : '−') + H.esc(eur(Math.abs(dS))) + ')' : '') + '</span></div></div>' +
+        '<div class="acts">' + btn('ln-ans', 'Firmar', { cls: 'pri', a: 'sign' }) + btn('ln-ans', 'Prefiero salir', { a: 'leave' }) + '</div>' +
+        '<p class="muted ln-ac">Prefiero salir: lista de transferibles (−8 de confianza).</p></div>';
+    }
+    if (q.k === 'no' && ph) {   // móvil: el mensaje del club en una franja y la consecuencia de Insistir en pequeño
+      return '<div class="card new x-go ln-ask"><p class="ln-ak"><b>El club dice que no:</b> no estás en venta.</p>' +
+        '<div class="acts">' + btn('ln-ans', 'Aceptarlo', { cls: 'pri', a: 'ok' }) + btn('ln-ans', 'Insistir', { a: 'insist' }) + '</div>' +
+        '<p class="muted ln-ac">' + H.sp(['Aceptarlo: +2 de confianza', 'Insistir: transferible y −12'], 'v') + '</p></div>';
+    }
     if (q.k === 'renew') {
       return '<div class="card new x-go"><h3>' + H.sp(['El club contesta', 'Renovar'], 'd') + '</h3><p>No te vende: te ofrece renovar con un rol más.</p><div class="fact">' +
         fact(H, 'Rol', H.esc(q.role)) + fact(H, 'Años', plural(q.years, 'temporada', 'temporadas')) + fact(H, 'Sueldo', H.esc(eur(q.salary)) + ' al mes') + '</div>' +
@@ -584,6 +600,13 @@
   /** Club › Contrato mientras estás cedido. */
   function uiOn(c, H) {
     var l = ensure(c), on = l.on, k = club(c, on.club), hk = club(c, on.home.club), g = grade(c, on) || { n: 0, avg: null, out: 0, letter: 'D' };
+    if (H.ph && H.ph()) {   // móvil (movil-aire §5.3): sello «Cedido» a secas, las 4 cifras en una tira y «Vuelves a…» en una línea con «?»
+      return '<div class="card x-top ln-on6"><h3>Cedido</h3>' + help(H, 'Cesión', LOAN_HELP + ' No recibes ofertas mientras estás cedido.') + '<div class="row">' + (H.crest ? H.crest(k, 44) : '') +
+        '<div class="grow" style="min-width:0"><p class="bigname ln-on">' + H.esc(k ? k.name : on.name) + '</p><p class="muted ln-om">' +
+        H.sp([on.len === 'season' ? 'Toda la temporada' : 'Hasta el final', H.esc('Vuelves a ' + (hk ? (H.shortClub ? H.shortClub(hk) : hk.name) : on.home.name))], 'v') + '</p></div></div>' +
+        '<div class="sp-heros sp-sm ph-strip ln-st">' + [[g.n, 'Partidos'], [dec(g.avg), 'Nota'], [g.out, 'Sin jugar'], [g.n >= 2 ? g.letter : '—', 'Vas para']].map(function (x) {
+          return '<div class="sp-hero"><span class="sp-hn">' + x[0] + '</span><span class="sp-hl">' + x[1] + '</span></div>'; }).join('') + '</div><p class="muted ln-om">No recibes ofertas mientras estás cedido.</p>' + logLine(c, H) + '</div>';
+    }
     var h = '<div class="card x-top"><h3>' + H.sp(['Cedido', H.esc(on.name)], 'd') + '</h3><div class="row">' + (H.crest ? H.crest(k, 48) : '') +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:18px">' + H.esc(k ? k.name : on.name) + '</p><p class="muted" style="margin:2px 0 0">' +
       H.sp([on.len === 'season' ? 'Toda la temporada' : 'Hasta final de temporada', H.esc('Vuelves a ' + (hk ? hk.name : on.home.name))], 'v') + '</p></div></div>' +
@@ -594,7 +617,24 @@
   /** Club › Ofertas: las cesiones para elegir (antes de la tarjeta de ofertas). */
   function uiOffers(c, H) {
     var l = ensure(c); if (!l.opts.length) return '';
-    var mid = l.optAt === 'mid', inj = injOut(c), h = '<div class="card new"><h3>' + H.sp(['Cesiones', mid ? 'Hasta final de temporada' : 'Toda la temporada que viene'], 'd') + '</h3>' + help(H, 'Cesiones', LOAN_HELP);
+    var mid = l.optAt === 'mid', inj = injOut(c), ph = !!(H.ph && H.ph());
+    if (ph) {   // móvil (movil-aire §5.3): el bloqueo como ficha roja arriba, ofertas de una fila con «Ir cedido» a la derecha y las condiciones en una tira
+      var hp = '<div class="card new ln-ph"><h3>' + H.sp(['Cesiones', mid ? 'Hasta el final' : 'Temporada que viene'], 'd') + '</h3>' + help(H, 'Cesiones', LOAN_HELP + ' ' + (mid ? 'Caducan al jugar o simular el siguiente partido.' : 'Caducan al empezar la temporada.')) +
+        (inj ? '<p class="ln-why"><span class="tag r">Estás de baja</span> No puedes irte cedido hasta que te recuperes.</p>' : '') +
+        '<p class="ln-cond">' + H.sp(['Titular', 'Tu sueldo', mid ? 'Hasta final de temporada' : 'Una temporada', mid ? 'Caducan al jugar' : 'Caducan en verano'], 'c') + '</p>';
+      l.opts.forEach(function (o, i) {
+        var k = club(c, o.club); if (!k) return;
+        var tg = hall(c) ? (o.depth && o.depth.start ? '<span class="tag g">De inicio</span>' : '<span class="tag y">Pelearás el sitio</span>') : o.mateP ? '<span class="tag">Pareja ' + H.esc(String(o.mateP.name).split(' ')[0]) + ', ' + o.mate + '</span>' : '';
+        // (ronda 2, recortes: nombre corto del club y el largo debajo; los datos en 2 líneas; «Ir cedido» debajo a la derecha)
+        var kn = H.shortClub ? H.shortClub(k) : k.name;
+        hp += '<div class="offer-x ln-o"><div class="row">' + (H.crest ? H.crest(k, 40) : '') + '<div class="grow" style="min-width:0"><p class="bigname ln-on">' + H.esc(kn) + '</p>' +
+          (kn !== k.name ? '<p class="muted ln-ol">' + H.esc(k.name) + '</p>' : '') +
+          '<p class="muted ln-om"><span class="ln-l">' + H.sp([H.esc(lgName(c, o)), 'Media ' + o.ovr], 'v') + '</span><span class="ln-l">' + H.esc(eur(o.salary)) + '/mes ' + tg + '</span></p></div>' +
+          '<div class="acts">' + btn('ln-take', 'Ir cedido', { i: i, off: inj, title: inj ? 'Estás de baja' : '' }) + '</div></div></div>';
+      });
+      return hp + '<div class="acts ln-pass">' + btn('ln-pass', 'No, gracias') + '</div></div>';
+    }
+    var h = '<div class="card new"><h3>' + H.sp(['Cesiones', mid ? 'Hasta final de temporada' : 'Toda la temporada que viene'], 'd') + '</h3>' + help(H, 'Cesiones', LOAN_HELP);
     l.opts.forEach(function (o, i) {
       var k = club(c, o.club); if (!k) return;
       h += '<div class="offer-x" style="padding:8px 0;border-top:1px solid var(--sep)"><div class="row">' + (H.crest ? H.crest(k, 40) : '') + '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:18px">' +
@@ -620,7 +660,7 @@
     var l = ensure(c), r = c.review || {}, x = r.loan, h = '';
     if (x) {
       var tg = x.grade === 'A' ? 'g' : x.grade === 'D' ? 'r' : x.grade === 'B' ? 'y' : '';
-      h += '<div class="card new"><h3>' + H.sp(['Fin de la cesión', 'Nota ' + x.grade], 'd') + '</h3><p>' + H.esc('Vuelves a ' + x.homeName + '. ' + GRADE_TXT[x.grade]) + '</p><div class="fact">' +
+      h += '<div class="card new ln-end"><h3>' + H.sp(['Fin de la cesión', 'Nota ' + x.grade], 'd') + '</h3><p>' + H.esc('Vuelves a ' + x.homeName + '. ' + GRADE_TXT[x.grade]) + '</p><div class="fact">' +
         fact(H, 'Partidos', x.n | 0) + fact(H, 'Nota media', dec(x.nota)) + fact(H, 'Confianza', (x.coach > 0 ? '+' : x.coach < 0 ? '−' : '±') + Math.abs(x.coach | 0)) + '</div>' +
         '<p><span class="tag ' + tg + '">' + H.esc('Cesión en ' + x.name + ': ' + x.grade) + '</span>' + (x.promo ? '<span class="tag g">Vuelves como titular</span>' : '') +
         (x.move > 0 ? '<span class="tag g">' + H.esc(x.name + ' asciende') + '</span>' : x.move < 0 ? '<span class="tag r">' + H.esc(x.name + ' desciende') + '</span>' : '') + '</p></div>';
