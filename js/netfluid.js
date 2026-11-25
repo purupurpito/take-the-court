@@ -1066,6 +1066,7 @@
     if (!F.loc[rm]) this._simPose(T1);
     var li = this._in;
     li.move = inp && inp.move ? inp.move : NOIN.move;
+    li.aim = inp && inp.aim ? inp.aim : null;   // (controles PC: el punto del ratón; la entrada no viaja)
     li.hit = !!(this.edges & 1); li.jump = !!(this.edges & 2); li.jset = !!(this.edges & 4); li.skip = !!(this.edges & 16);
     li.ai = !!((inp && inp.ai) || this.away);
     this.edges = 0; this.edgesAt = -1;

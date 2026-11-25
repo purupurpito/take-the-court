@@ -66,6 +66,12 @@
     EV_LATE: 30                          // tics: un evento de sonido que llega más tarde que esto respecto a su pintado sale ya
   };
   var NOIN = { move: [0, 0], hit: false, jump: false, jset: false, skip: false, ai: false };
+  /** Controles PC: copia del punto del ratón (input.aim) en un array propio de o (main.js reutiliza el suyo) o null. */
+  function cpAim(a, o) {
+    if (!a || !(a.length > 1)) return null;
+    var A = o._aimA || (o._aimA = [0, 0]); A[0] = +a[0]; A[1] = +a[1];
+    return A;
+  }
   var T_BUNDLE = 5, T_POSE = 6;          // tipos de paquete 'in' (nibble bajo; el alto, la época)
   var ACTS = ['', 'pass', 'set', 'spike', 'free', 'serve', 'block', 'swing', 'jump', 'toss', 'dive'];
   var SHOTS = ['', 'tip', 'roll', 'jset', 'body', 'float', 'jump', 'dive', 'tool', 'stuff', 'soft', 'feint', 'dig', 'hard', 'quick', 'power', 'kill', 'shank', 'over'];
@@ -465,10 +471,10 @@
     var g = this.g, n = g.hum.length, i, ins = this._ins;
     for (i = 0; i < n; i++) {
       var o = ins[i] || (ins[i] = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false, skip: false, chal: false, tmo: false, ai: false });
-      o.move[0] = o.move[1] = 0; o.hit = o.jump = o.jset = o.switchPlayer = o.skip = o.chal = o.tmo = false; o.ai = false;
+      o.move[0] = o.move[1] = 0; o.hit = o.jump = o.jset = o.switchPlayer = o.skip = o.chal = o.tmo = false; o.ai = false; o.aim = null;
     }
     var me = ins[0];
-    if (inp) { if (inp.move) { me.move[0] = +inp.move[0] || 0; me.move[1] = +inp.move[1] || 0; } me.hit = !!inp.hit; me.jump = !!inp.jump; me.jset = !!inp.jset; me.switchPlayer = !!inp.switchPlayer; }
+    if (inp) { if (inp.move) { me.move[0] = +inp.move[0] || 0; me.move[1] = +inp.move[1] || 0; } me.hit = !!inp.hit; me.jump = !!inp.jump; me.jset = !!inp.jset; me.switchPlayer = !!inp.switchPlayer; me.aim = cpAim(inp.aim, me); }
     me.skip = !!(this.edgesNow & 1) || !!(inp && inp.skip); me.chal = !!(this.edgesNow & 2) || !!(inp && inp.chal); me.tmo = !!(this.edgesNow & 4) || !!(inp && inp.tmo); me.ai = this.away;
     for (i = 0; i < this.peers.length; i++) {
       var pe = this.peers[i], s = pe.seat; if (s <= 0 || s >= n) continue;
@@ -513,7 +519,7 @@
     F.T = T;
     this._hostPoses(T);
     var ins = this._hostIns(inp);
-    if (!redo) { var ri = this.inRing[T % 64] || (this.inRing[T % 64] = { T: -1, inp: { move: [0, 0] } }); ri.T = T; ri.inp.move[0] = ins[0].move[0]; ri.inp.move[1] = ins[0].move[1]; ri.inp.hit = ins[0].hit; ri.inp.jump = ins[0].jump; ri.inp.jset = ins[0].jset; ri.inp.switchPlayer = ins[0].switchPlayer; }
+    if (!redo) { var ri = this.inRing[T % 64] || (this.inRing[T % 64] = { T: -1, inp: { move: [0, 0] } }); ri.T = T; ri.inp.move[0] = ins[0].move[0]; ri.inp.move[1] = ins[0].move[1]; ri.inp.hit = ins[0].hit; ri.inp.jump = ins[0].jump; ri.inp.jset = ins[0].jset; ri.inp.switchPlayer = ins[0].switchPlayer; ri.inp.aim = cpAim(ins[0].aim, ri.inp); }
     var near = !this.hold ? this._rescueNear() : null;
     if (near) S.copyGame(this.gs, g);
     S.step(g, STEP, ins);
@@ -632,7 +638,7 @@
       if (first) { this.edges = 0; first = false; }
     }
   };
-  SP._moveOnly = function (inp) { if (!inp) return null; var o = this._mo || (this._mo = { move: [0, 0] }); o.move = inp.move || NOIN.move; return o; };
+  SP._moveOnly = function (inp) { if (!inp) return null; var o = this._mo || (this._mo = { move: [0, 0] }); o.move = inp.move || NOIN.move; o.aim = inp.aim || null; return o; };
 
   /* ================= INVITADO ================= */
   SP._guestCtl = function (pe, c, now) {
@@ -802,6 +808,7 @@
     var me = this._gin || (this._gin = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false });
     me.move[0] = inp && inp.move ? +inp.move[0] || 0 : 0; me.move[1] = inp && inp.move ? +inp.move[1] || 0 : 0;
     me.hit = !!(inp && inp.hit); me.jump = !!(inp && inp.jump); me.jset = !!(inp && inp.jset); me.switchPlayer = !!(inp && inp.switchPlayer);
+    me.aim = cpAim(inp && inp.aim, me);
     ins[s] = me;
     var ss0 = g.serveState, mode0 = g.mode, mineSrv = g.server === g.hum[s].p;
     S.step(g, STEP, ins);

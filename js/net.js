@@ -88,10 +88,20 @@
     return F ? F.shown(s) : s;
   }
   function q16(v) { v = +v || 0; v = v > 1 ? 1 : v < -1 ? -1 : v; return Math.round(v * 32767); }
+  /* Controles PC (25-nov-2026): el punto del ratón (input.aim = [x, y] m, mundo canónico) viaja en los bits altos de la misma palabra de
+   * botones (anillo B de 32 bits): bit 24 = hay punto, bits 8-15 = ax (int8, pasos de 0,1 m), bits 16-23 = ay (int8, pasos de 0,05 m).
+   * Así todas las copias de ternas (x, y, b) lo llevan solas, y la predicción del rival (b & ~EDGE) conserva su último punto. */
+  var AIM_F = 1 << 24;
+  function qAim(v, k) { v = Math.round((+v || 0) * k); return v > 127 ? 127 : v < -127 ? -127 : v; }
+  function aimBits(inp) {
+    var a = inp && inp.aim;
+    if (!a || !(a.length > 1) || a[0] !== a[0] || a[1] !== a[1]) return 0;
+    return AIM_F | ((qAim(a[0], 10) & 255) << 8) | ((qAim(a[1], 20) & 255) << 16);
+  }
   function bitsOf(inp) {
     if (!inp) return 0;
     return (inp.hit ? B.hit : 0) | (inp.jump ? B.jump : 0) | (inp.jset ? B.jset : 0) | (inp.chal ? B.chal : 0) |
-      (inp.skip ? B.skip : 0) | (inp.tmo ? B.tmo : 0) | (inp.ai ? B.ai : 0) | (inp.switchPlayer ? 128 : 0);   // (128: «¡Pídela!»; solo lo lee Precisa-N)
+      (inp.skip ? B.skip : 0) | (inp.tmo ? B.tmo : 0) | (inp.ai ? B.ai : 0) | (inp.switchPlayer ? 128 : 0) | aimBits(inp);   // (128: «¡Pídela!»; solo lo lee Precisa-N)
   }
   /** Entrada cuantizada → objeto de entrada de la sim (out se reutiliza). */
   function decode(x, y, b, out) {
@@ -99,11 +109,13 @@
     out.move[0] = x / 32767; out.move[1] = y / 32767;
     out.hit = !!(b & B.hit); out.jump = !!(b & B.jump); out.jset = !!(b & B.jset); out.chal = !!(b & B.chal);
     out.skip = !!(b & B.skip); out.tmo = !!(b & B.tmo); out.ai = !!(b & B.ai); out.switchPlayer = !!(b & 128);   // (bit 7: el 1 contra 1 nunca lo pone)
+    if (b & AIM_F) { var aa = out._aimA || (out._aimA = [0, 0]); aa[0] = ((b << 16) >> 24) / 10; aa[1] = ((b << 8) >> 24) / 20; out.aim = aa; }
+    else out.aim = null;
     return out;
   }
 
   /* ---------- Historial de entradas de un hueco (anillo con etiqueta de tic) ---------- */
-  function Ring() { this.X = new Int16Array(RING); this.Y = new Int16Array(RING); this.B = new Uint8Array(RING); this.T = new Int32Array(RING).fill(-1); }
+  function Ring() { this.X = new Int16Array(RING); this.Y = new Int16Array(RING); this.B = new Uint32Array(RING); this.T = new Int32Array(RING).fill(-1); }
   Ring.prototype.has = function (t) { return t >= 0 && this.T[t & RM] === t; };
   Ring.prototype.put = function (t, x, y, b) { var i = t & RM; this.T[i] = t; this.X[i] = x; this.Y[i] = y; this.B[i] = b; };
   Ring.prototype.dec = function (t, out) { var i = t & RM; return decode(this.X[i], this.Y[i], this.B[i], out); };
@@ -113,18 +125,33 @@
   /* ---------- Paquete de entradas: [1, u32 primer tic, u8 n, n × (i16 x, i16 y, u8 bits), u32 ack, u32 tic del emisor] ---------- */
   // (fase 3: el primer byte lleva además la «época» de la sesión en los 4 bits altos: 1 | época << 4. Una revancha sobre el mismo
   //  enlace es la época siguiente y así un paquete del partido anterior que llegue tarde no se cuela; la época 0 es el byte 1 de siempre)
+  // (controles PC: si alguna entrada del paquete lleva el punto del ratón sale como TIPO 5, con entradas de 7 B: i16 x, i16 y, u8 bits,
+  //  i8 ax, i8 ay (-128 = sin punto). Sin punto, el TIPO 1 de siempre, byte a byte: teclado, mando y táctil mandan lo mismo que antes)
+  function anyAim(R, first, n) { for (var k = 0; k < n; k++) if (R.B[(first + k) & RM] & AIM_F) return true; return false; }
+  function putIn(dv, o, x, y, b, w) {
+    dv.setInt16(o, x); dv.setInt16(o + 2, y); dv.setUint8(o + 4, b & 255);
+    if (w === 7) { var on = (b & AIM_F) !== 0; dv.setInt8(o + 5, on ? (b << 16) >> 24 : -128); dv.setInt8(o + 6, on ? (b << 8) >> 24 : -128); }
+  }
+  function getIn(dv, o, w, L) {
+    var b = dv.getUint8(o + 4);
+    if (w === 7) { var ax = dv.getInt8(o + 5), ay = dv.getInt8(o + 6); if (ax !== -128 && ay !== -128) b = (b | AIM_F | ((ax & 255) << 8) | ((ay & 255) << 16)) >>> 0; }
+    L.push(dv.getInt16(o), dv.getInt16(o + 2), b);
+  }
   function packInputs(ring, first, n, ack, tick, ep) {
-    var buf = new Uint8Array(14 + n * 5), dv = new DataView(buf.buffer), o = 6;
-    buf[0] = 1 | ((ep & 15) << 4); dv.setUint32(1, first); buf[5] = n;
-    for (var k = 0; k < n; k++) { var i = (first + k) & RM; dv.setInt16(o, ring.X[i]); dv.setInt16(o + 2, ring.Y[i]); buf[o + 4] = ring.B[i]; o += 5; }
+    var w = anyAim(ring, first, n) ? 7 : 5;
+    var buf = new Uint8Array(14 + n * w), dv = new DataView(buf.buffer), o = 6;
+    buf[0] = (w === 7 ? 5 : 1) | ((ep & 15) << 4); dv.setUint32(1, first); buf[5] = n;
+    for (var k = 0; k < n; k++) { var i = (first + k) & RM; putIn(dv, o, ring.X[i], ring.Y[i], ring.B[i], w); o += w; }
     dv.setUint32(o, ack); dv.setUint32(o + 4, tick >>> 0);
     return buf;
   }
   function unpackInputs(buf) {
-    if (!buf || !buf.length || (buf[0] & 15) !== 1) return null;
+    var ty = buf && buf.length ? buf[0] & 15 : 0;
+    if (ty !== 1 && ty !== 5) return null;
+    var w = ty === 5 ? 7 : 5;
     var u = buf instanceof Uint8Array ? buf : new Uint8Array(buf), dv = new DataView(u.buffer, u.byteOffset, u.byteLength), n = u[5], o = 6, L = [];
-    if (u.length < 14 + n * 5) return null;
-    for (var k = 0; k < n; k++) { L.push(dv.getInt16(o), dv.getInt16(o + 2), u[o + 4]); o += 5; }
+    if (u.length < 14 + n * w) return null;
+    for (var k = 0; k < n; k++) { getIn(dv, o, w, L); o += w; }
     return { first: dv.getUint32(1), n: n, v: L, ack: dv.getUint32(o), tick: dv.getUint32(o + 4), ep: u[0] >> 4 };
   }
 
@@ -562,7 +589,7 @@
         while (this.theirs.has(this.rHave)) this.rHave++;
       }
       var mv = inp && inp.move ? inp.move : null, mx = mv ? q16(mv[0]) : 0, my = mv ? q16(mv[1]) : 0;
-      var lvl = (inp && inp.ai) || this.away ? B.ai : 0;
+      var lvl = ((inp && inp.ai) || this.away ? B.ai : 0) | aimBits(inp);   // (+ el punto del ratón, controles PC)
       while (this.localTick < target && budget-- > 0) {
         if (this.localTick - this.rHave >= MAXPRED) { stalled = true; break; }
         var st = this.localTick + this.delay;
@@ -750,20 +777,22 @@
   /** Paquete de varios: bl = [{s, first, n, st (tic de esa plaza), ring}]. */
   function packN(from, tick, acks, bl, ep) {
     var na = acks.length, size = 8 + 4 * na, k, j;
-    for (k = 0; k < bl.length; k++) size += 10 + 5 * bl[k].n;
+    var w = 5; for (k = 0; k < bl.length; k++) if (anyAim(bl[k].ring, bl[k].first, bl[k].n)) w = 7;   // (controles PC: TIPO 6 con el punto del ratón)
+    for (k = 0; k < bl.length; k++) size += 10 + w * bl[k].n;
     var buf = new Uint8Array(size), dv = new DataView(buf.buffer), o = 8;
-    buf[0] = 2 | ((ep & 15) << 4); buf[1] = from & 255; buf[2] = bl.length; dv.setUint32(3, tick >>> 0); buf[7] = na;
+    buf[0] = (w === 7 ? 6 : 2) | ((ep & 15) << 4); buf[1] = from & 255; buf[2] = bl.length; dv.setUint32(3, tick >>> 0); buf[7] = na;
     for (k = 0; k < na; k++) { dv.setUint32(o, acks[k] >>> 0); o += 4; }
     for (k = 0; k < bl.length; k++) {
       var b = bl[k], R = b.ring;
       buf[o] = b.s; dv.setUint32(o + 1, b.first >>> 0); dv.setUint32(o + 5, Math.max(0, b.st) >>> 0); buf[o + 9] = b.n; o += 10;
-      for (j = 0; j < b.n; j++) { var i = (b.first + j) & RM; dv.setInt16(o, R.X[i]); dv.setInt16(o + 2, R.Y[i]); buf[o + 4] = R.B[i]; o += 5; }
+      for (j = 0; j < b.n; j++) { var i = (b.first + j) & RM; putIn(dv, o, R.X[i], R.Y[i], R.B[i], w); o += w; }
     }
     return buf;
   }
   function unpackN(buf) {
-    if (!buf || !buf.length || (buf[0] & 15) !== 2) return null;
-    var u = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    var ty = buf && buf.length ? buf[0] & 15 : 0;
+    if (ty !== 2 && ty !== 6) return null;
+    var u = buf instanceof Uint8Array ? buf : new Uint8Array(buf), w = ty === 6 ? 7 : 5;
     if (u.length < 8) return null;
     var dv = new DataView(u.buffer, u.byteOffset, u.byteLength), nb = u[2], na = u[7], o = 8, k, j;
     if (u.length < 8 + 4 * na) return null;
@@ -772,8 +801,8 @@
     for (k = 0; k < nb; k++) {
       if (u.length < o + 10) return null;
       var s = u[o], first = dv.getUint32(o + 1), st = dv.getUint32(o + 5), n = u[o + 9], v = []; o += 10;
-      if (u.length < o + 5 * n) return null;
-      for (j = 0; j < n; j++) { v.push(dv.getInt16(o), dv.getInt16(o + 2), u[o + 4]); o += 5; }
+      if (u.length < o + w * n) return null;
+      for (j = 0; j < n; j++) { getIn(dv, o, w, v); o += w; }
       bl.push({ s: s, first: first, st: st, n: n, v: v });
     }
     return { from: u[1] & 15, gen: u[1] >> 4, tick: dv.getUint32(3), acks: acks, bl: bl, ep: u[0] >> 4 };
@@ -978,7 +1007,7 @@
     if (!this.opts || !data) return;
     var u = data instanceof Uint8Array ? data : new Uint8Array(data); if (!u.length) return;
     var ty = u[0] & 15, from, k;
-    if (ty === 1) {   // tipo 1 (2 plazas: el paquete del 1 contra 1): es de la otra plaza
+    if (ty === 1 || ty === 5) {   // tipo 1 (2 plazas: el paquete del 1 contra 1; 5 = con el punto del ratón): es de la otra plaza
       if (this.n !== 2) return;
       var p1 = unpackInputs(u); if (!p1 || p1.ep !== (this.epoch & 15)) return;
       from = 1 - this.slot;
@@ -1319,7 +1348,7 @@
     if (depth > this.stats.maxDepth) this.stats.maxDepth = depth;
     this.stats.depth = depth;
     var Q = this._pq;
-    if (!Q || Q.n !== n) Q = this._pq = { n: n, X: new Int16Array(n), Y: new Int16Array(n), B: new Uint8Array(n), UX: new Int16Array(PQ_W * n), UY: new Int16Array(PQ_W * n), UB: new Uint8Array(PQ_W * n), T: -1, C: 0 };
+    if (!Q || Q.n !== n) Q = this._pq = { n: n, X: new Int16Array(n), Y: new Int16Array(n), B: new Uint32Array(n), UX: new Int16Array(PQ_W * n), UY: new Int16Array(PQ_W * n), UB: new Uint32Array(PQ_W * n), T: -1, C: 0 };
     if (depth <= 0) { S.copyGame(gp, this.gc); Q.T = -1; this.stats.resim = 0; return; }
     for (s = 0; s < n; s++) {   // predicción de cada plaza remota: su última entrada conocida, botones a falso
       if (s === me && !this.spect) continue;   // (espectador: la mía también es remota)
@@ -1489,7 +1518,7 @@
       if (this.host) { for (s = 1; s < this.n; s++) if (this.aiHeld[s] || this.gone[s]) this._fab(s); }
       else if (this.solo) { for (s = 0; s < this.n; s++) if (s !== this.slot) this._fab(s); }
       var mv = inp && inp.move ? inp.move : null, mx = mv ? q16(mv[0]) : 0, my = mv ? q16(mv[1]) : 0;
-      var lvl = (inp && inp.ai) || this.away ? B.ai : 0;
+      var lvl = ((inp && inp.ai) || this.away ? B.ai : 0) | aimBits(inp);   // (+ el punto del ratón, controles PC)
       var minR = 1e9; for (s = 0; s < this.n; s++) if ((s !== this.slot || this.spect) && this.rHave[s] < minR) minR = this.rHave[s];
       while (this.localTick < target && budget-- > 0) {
         if (this.localTick - minR >= this.maxPred) { stalled = true; break; }
@@ -1725,7 +1754,7 @@
     var r = mulberry(seed * 7919 + 13 + slot * 104729), w = {}, team = slot, sd = 1;
     var gauss = function () { return (r() + r() + r() + r() - 2) * 1.732; };
     var stamp = -9, lead = 0, jlead = 0, ex = 0, ey = 0, presses = 0, serveWait = 0, react = 0, aimv = [0, 0], useAim = false, blockT = -1, blockSeen = -9;
-    return function (g) {
+    var fn = function (g) {
       var inp = { move: [0, 0], hit: false, jump: false, jset: false, skip: false };
       if (!g || !g.online) return inp;
       var hs = g.hum && g.hum[slot];
@@ -1785,11 +1814,28 @@
         return inp;
       } finally { S.useSlot(g, 0); }
     };
+    if (!(bo && bo.aimPt)) return fn;
+    // (pruebas de los controles PC, bo.aimPt: además apunta con el «ratón», input.aim = un punto del mundo canónico elegido en cada toque
+    //  con su propio azar: en el campo rival, o en el propio si le toca colocar. Ya cuantizado como lo deja main.js)
+    var ar = mulberry(seed * 31 + 7 + slot * 1013), apx = 0, apy = 0, ast = -99;
+    return function (g) {
+      var inp = fn(g);
+      if (!g || !g.online) return inp;
+      var hs2 = g.hum && g.hum[slot], tm = fixT >= 0 ? fixT : hs2 && (hs2.team === 0 || hs2.team === 1) ? hs2.team : slot, sdd = S.side(tm);
+      if (g.lastTouchT !== ast) {
+        ast = g.lastTouchT;
+        var own = g.mode === 'rally' && g.touchTeam === tm && g.touches === 1;
+        apx = own ? sdd * (1 + 2.5 * ar()) : -sdd * (1.5 + 6.5 * ar()); apy = (ar() * 2 - 1) * 3.6;
+        apx = Math.round(apx * 10) / 10; apy = Math.round(apy * 20) / 20;
+      }
+      inp.aim = [apx, apy];
+      return inp;
+    };
   }
 
   VB.Net = {
     Session: Session, SessionN: SessionN, packN: packN, unpackN: unpackN, adaptDelay: adaptDelay, SEAT_AI_MS: SEAT_AI_MS, MAXPRED_N: MAXPRED_N, SEND_HZ: SEND_HZ, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT, Shaper: Shaper,
-    decode: decode, q16: q16, bitsOf: bitsOf, packInputs: packInputs, unpackInputs: unpackInputs, mulberry: mulberry,
+    decode: decode, q16: q16, bitsOf: bitsOf, aimBits: aimBits, AIM_F: AIM_F, packInputs: packInputs, unpackInputs: unpackInputs, mulberry: mulberry,
     PROTO: PROTO, BITS: B, cleanName: cleanName, CONNECT_MS: CONNECT_MS, STEP: STEP, STEP_MS: STEP_MS, MAXPRED: MAXPRED, HASH_EVERY: HASH_EVERY, WAIT_AI_MS: WAIT_AI_MS, GONE_MS: GONE_MS
   };
 })();

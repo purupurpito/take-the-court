@@ -70,7 +70,21 @@
   var STEP = 1 / 120;
   var CAP = K.LOG_CAP;
   var mv = new Float64Array(CAP * 2), fl = new Uint8Array(CAP);
-  var mv2 = null, fl2 = null;   // dual: Float64Array(CAP * 2 * ns) [x0, y0, x1, y1, …] y Uint16Array(CAP * ns) (se crean en el primer partido online)
+  var mv2 = null, fl2 = null;
+  // controles PC (25-nov-2026): el punto del ratón de cada paso (input.aim, ya cuantizado: ax = x·10, ay = y·20; -128 = sin punto), dos
+  // Int8 por paso (y por plaza en el online). Sin él, la repetición de un saque con ratón no cuadraría
+  var am = new Int8Array(CAP * 2).fill(-128), am2 = null;
+  function aimQ(q, arr, o) {
+    var a = q && q.aim;
+    if (a && a.length > 1 && a[0] === a[0] && a[1] === a[1]) {
+      var x = Math.round(a[0] * 10), y = Math.round(a[1] * 20);
+      arr[o] = x > 127 ? 127 : x < -127 ? -127 : x; arr[o + 1] = y > 127 ? 127 : y < -127 ? -127 : y;
+    } else { arr[o] = -128; arr[o + 1] = -128; }
+  }
+  function aimUn(arr, o, q) {
+    if (arr && arr[o] !== -128 && arr[o + 1] !== -128) { var A = q._aimA || (q._aimA = [0, 0]); A[0] = arr[o] / 10; A[1] = arr[o + 1] / 20; q.aim = A; }
+    else q.aim = null;
+  }   // dual: Float64Array(CAP * 2 * ns) [x0, y0, x1, y1, …] y Uint16Array(CAP * ns) (se crean en el primer partido online)
 
   function mkMeta() {
     return { team: 0, how: '', move: '', highlight: 0, savedSetPoint: false, digs: 0, rallyHits: 0, who: { num: 0, team: 0 },
@@ -84,7 +98,7 @@
   /** Clip: tramo repetible. own = entradas propias (mejores jugadas) o del anillo (el último punto). Pasos = cuenta absoluta de pasos
    *  en vivo desde reset (k0 = paso de la foto g; start = inicio visible; pt = paso del punto; hashStep = paso de hashPt; end = fin). */
   function mkClip(own) {
-    return { ok: false, own: own, g: null, mv: own ? new Float64Array(K.CLIP_CAP * 2) : null, fl: own ? new Uint8Array(K.CLIP_CAP) : null, mv2: null, fl2: null,
+    return { ok: false, own: own, g: null, mv: own ? new Float64Array(K.CLIP_CAP * 2) : null, fl: own ? new Uint8Array(K.CLIP_CAP) : null, am: own ? new Int8Array(K.CLIP_CAP * 2) : null, mv2: null, fl2: null, am2: null,
       k0: 0, start: 0, slowFrom: 0, slowTo: 0, pt: 0, hashStep: 0, hashPt: 0, end: 0, ptT: 0, score: 0, serial: 0, auto: false, offer: false,
       fx: 0, fy: 0, fz: 0, meta: mkMeta() };
   }
@@ -178,12 +192,14 @@
         var q = simIn && simIn[h], qm = q && q.move;
         mv2[2 * ns * i + 2 * h] = qm ? +qm[0] || 0 : 0; mv2[2 * ns * i + 2 * h + 1] = qm ? +qm[1] || 0 : 0;
         fl2[ns * i + h] = q ? bits2(q) : F_NULL;
+        aimQ(q, am2, 2 * ns * i + 2 * h);
       }
     } else if (simIn) {
       var m = simIn.move;
       mv[2 * i] = m ? +m[0] || 0 : 0; mv[2 * i + 1] = m ? +m[1] || 0 : 0;
       fl[i] = (simIn.hit ? F_HIT : 0) | (simIn.jump ? F_JUMP : 0) | (simIn.jset ? F_JSET : 0) | (simIn.switchPlayer ? F_SW : 0);
-    } else { mv[2 * i] = 0; mv[2 * i + 1] = 0; fl[i] = F_NULL; }
+      aimQ(simIn, am, 2 * i);
+    } else { mv[2 * i] = 0; mv[2 * i + 1] = 0; fl[i] = F_NULL; am[2 * i] = am[2 * i + 1] = -128; }
     RP.step++; RP.tLast = g.time;
     // GOLPEAR en la pausa del punto (Sim.skipHold recorta g.timer fuera de step): no hay repetición automática de ese punto
     if ((g.mode === 'point' || g.mode === 'over') && g.timer < RP.timerLast - 1.5 * STEP) RP.skipSeen = true;
@@ -288,13 +304,13 @@
     S().copyGame(slot.g, c.g);
     if (RP.dual) {
       var ns = RP.ns;
-      if (!slot.mv2 || slot.mv2.length < K.CLIP_CAP * 2 * ns) { slot.mv2 = new Float64Array(K.CLIP_CAP * 2 * ns); slot.fl2 = new Uint16Array(K.CLIP_CAP * ns); }
+      if (!slot.mv2 || slot.mv2.length < K.CLIP_CAP * 2 * ns) { slot.mv2 = new Float64Array(K.CLIP_CAP * 2 * ns); slot.fl2 = new Uint16Array(K.CLIP_CAP * ns); slot.am2 = new Int8Array(K.CLIP_CAP * 2 * ns); }
       for (var k2 = c.k0; k2 < c.end; k2++) {
         var a2 = k2 % CAP, b2 = k2 - c.k0;
-        for (var j2 = 0; j2 < 2 * ns; j2++) slot.mv2[2 * ns * b2 + j2] = mv2[2 * ns * a2 + j2];
+        for (var j2 = 0; j2 < 2 * ns; j2++) { slot.mv2[2 * ns * b2 + j2] = mv2[2 * ns * a2 + j2]; slot.am2[2 * ns * b2 + j2] = am2[2 * ns * a2 + j2]; }
         for (j2 = 0; j2 < ns; j2++) slot.fl2[ns * b2 + j2] = fl2[ns * a2 + j2];
       }
-    } else for (var k = c.k0; k < c.end; k++) { var a = k % CAP, b = k - c.k0; slot.mv[2 * b] = mv[2 * a]; slot.mv[2 * b + 1] = mv[2 * a + 1]; slot.fl[b] = fl[a]; }
+    } else for (var k = c.k0; k < c.end; k++) { var a = k % CAP, b = k - c.k0; slot.mv[2 * b] = mv[2 * a]; slot.mv[2 * b + 1] = mv[2 * a + 1]; slot.fl[b] = fl[a]; slot.am[2 * b] = am[2 * a]; slot.am[2 * b + 1] = am[2 * a + 1]; }
     copyClip(slot, c);
     sortBest();
   }
@@ -341,7 +357,7 @@
     if (RP.seat >= RP.ns) RP.seat = 0;
     RPME.team = RP.vs; RPME.seat = RP.seat;
     while (IN2.length < RP.ns) IN2.push(mkIn2());
-    if (RP.dual && (!mv2 || mv2.length < CAP * 2 * RP.ns)) { mv2 = new Float64Array(CAP * 2 * RP.ns); fl2 = new Uint16Array(CAP * RP.ns); }
+    if (RP.dual && (!mv2 || mv2.length < CAP * 2 * RP.ns)) { mv2 = new Float64Array(CAP * 2 * RP.ns); fl2 = new Uint16Array(CAP * RP.ns); am2 = new Int8Array(CAP * 2 * RP.ns).fill(-128); }
     last.ok = false; last.g = null;
     for (var i = 0; i < K.BEST_N; i++) best[i].ok = false;
     ordN = 0;
@@ -490,13 +506,14 @@
   /** Avanza G un paso con la entrada grabada k del clip c (eventos a EVT). */
   function stepG(G, c, k) {
     if (RP.dual) { stepG2(G, c, k); return; }
-    var a, f, Ms = c.own ? c.mv : mv, Fs = c.own ? c.fl : fl;
+    var a, f, Ms = c.own ? c.mv : mv, Fs = c.own ? c.fl : fl, As = c.own ? c.am : am;
     a = c.own ? k - c.k0 : k % CAP;
     f = Fs[a];
     var inp = null;
     if (!(f & F_NULL)) {
       IN.move[0] = Ms[2 * a]; IN.move[1] = Ms[2 * a + 1];
       IN.hit = (f & F_HIT) !== 0; IN.jump = (f & F_JUMP) !== 0; IN.jset = (f & F_JSET) !== 0; IN.switchPlayer = (f & F_SW) !== 0;
+      aimUn(As, 2 * a, IN);
       inp = IN;
     }
     var Sm = S();
@@ -506,12 +523,12 @@
   /** Online: avanza G un paso con las entradas grabadas de cada plaza (las mismas que tuvo la partida confirmada). */
   var IN2v = [];   // (las RP.ns primeras de IN2: step mira ins.length)
   function stepG2(G, c, k) {
-    var Ms = c.own ? c.mv2 : mv2, Fs = c.own ? c.fl2 : fl2, a = c.own ? k - c.k0 : k % CAP, null2 = true, ns = RP.ns;
+    var Ms = c.own ? c.mv2 : mv2, Fs = c.own ? c.fl2 : fl2, As = c.own ? c.am2 : am2, a = c.own ? k - c.k0 : k % CAP, null2 = true, ns = RP.ns;
     if (IN2v.length !== ns) { IN2v.length = 0; for (var j = 0; j < ns; j++) IN2v.push(IN2[j]); }
     for (var h = 0; h < ns; h++) {
       var f = Fs[ns * a + h], q = IN2v[h];
       if (!(f & F_NULL)) null2 = false;
-      q.move[0] = Ms[2 * ns * a + 2 * h]; q.move[1] = Ms[2 * ns * a + 2 * h + 1]; unbits2(f & ~F_NULL, q);
+      q.move[0] = Ms[2 * ns * a + 2 * h]; q.move[1] = Ms[2 * ns * a + 2 * h + 1]; unbits2(f & ~F_NULL, q); aimUn(As, 2 * ns * a + 2 * h, q);
     }
     var Sm = S();
     Sm.step(G, STEP, null2 ? null : IN2v);

@@ -241,7 +241,7 @@ function runMatch(cfg) {
   cfg.opts = cfg.opts || { online: true, seed: 5000 + cfg.seed, venue: cfg.venue || 'hall', bestOf: 1, points: 21, humans: [{}, {}], present: true, stats: true };
   const S = [], bots = [], P = [];
   for (let i = 0; i < n; i++) {
-    if (i < np) { S.push(AD.make(V[i], i, M, cfg, log)); bots.push(V[i].Net.bot(AD.slotOf(i), cfg.seed + i, cfg.prof || 'bueno')); P.push(null); }
+    if (i < np) { S.push(AD.make(V[i], i, M, cfg, log)); bots.push(V[i].Net.bot(AD.slotOf(i), cfg.seed + i, cfg.prof || 'bueno', cfg.botOpts)); P.push(null); }   // (cfg.botOpts: p. ej. {aimPt: true}, tools/netaimtest.js)
     else { S.push(null); bots.push(null); P.push(new Probe(i, M, { size: cfg.probeSize, to: Array.from({ length: n }, (_, j) => j).filter(j => j >= np && j !== i) })); }   // (a las demás sondas: las sesiones no leen sus enlaces)
   }
   // relojes de cada máquina (performance.now de cada página) y siguiente frame

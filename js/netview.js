@@ -274,6 +274,8 @@
   function inputToWorld(inp, slot) {
     var o = {}, k, m = teamOf(slot) === 1; for (k in inp) o[k] = inp[k];
     o.move = inp.move ? (m ? [-inp.move[0], -inp.move[1]] : [inp.move[0], inp.move[1]]) : [0, 0];
+    // (controles PC: el punto del ratón también sale de la cámara de la vista: se gira igual que move)
+    o.aim = inp.aim && inp.aim.length > 1 ? (m ? [-inp.aim[0], -inp.aim[1]] : [inp.aim[0], inp.aim[1]]) : null;
     return o;
   }
 
