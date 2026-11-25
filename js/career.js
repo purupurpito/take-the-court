@@ -2544,7 +2544,24 @@
     ['Dinamika Kazan', 'Kaban Kazan', 'DIK', 'KAB'], ['Rezovia', 'Wisłok Rzeszów', 'RES', 'WIS'],
     ['Rur Power Düren', 'Rurwelle Düren', 'RUR', 'RWD'], ['Netzspringer KW', 'Dahme Volley KW', 'NSP', 'DVK'],
     ['Peelpower Meijel', 'Voley Meijel', 'PPW', 'MEI'], ['Edmonton Golden Pandas', 'Edmonton Pumas', 'EGP', 'EPU'],
-    ['Hwaseong Altissimo', 'Hwaseong Seohae', 'HAL', 'HSH'], ['Omaha Hypernovas', 'Omaha Quasars', 'OMA', 'OQS']
+    ['Hwaseong Altissimo', 'Hwaseong Seohae', 'HAL', 'HSH'], ['Omaha Hypernovas', 'Omaha Quasars', 'OMA', 'OQS'],
+    // segunda tanda (25-nov-2026): apodos de clubes famosos, nombres a una letra y traducciones del nombre real
+    ['Ciclón de Boedo', 'Vóley Boedo', 'CIC', 'VBO'], ['Fortín Liniers', 'Vóley Versalles', 'FOR', 'VVE'],
+    ['Lobo Platense', 'Diagonales La Plata', 'LOB', 'DLP'], ['Pincha Platense', 'Catedral La Plata', 'PIN', 'CTL'],
+    ['Laranjeiras Tricolor', 'Vôlei Corcovado', 'LTR', 'COV'], ['Dikéfalos Salónica', 'Torre Blanca Salónica', 'DKS', 'TBS'],
+    ['Prosfyges Nea Smirni', 'Voley Nea Smirni', 'MNS', 'VNS'], ['Crno-Beli Beograd', 'Voley Dorćol', 'CBB', 'DOR'],
+    ['Ferroviario Lajkovac', 'Voley Lajkovac', 'FER', 'LAJ'], ['Câinii Bucarest', 'Voley Tei', 'CAI', 'TEI'],
+    ['Arsenalistas Braga', 'Vólei Bracara', 'ARS', 'BRC'], ['Conquistadores Guimarães', 'Vólei Guimarães', 'GUI', 'VGU'],
+    ['Tigres Espinho', 'Vólei Paramos', 'TIG', 'PRM'], ['Íntimos Lima', 'Vóley La Victoria', 'INT', 'VLV'],
+    ['Cremas Lima', 'Vóley Barranco', 'CRE', 'BRN'], ['Gemelos Comas', 'Vóley Comas', 'GEM', 'COM'],
+    ['Sin Par Lima', 'Vóley Surco', 'SPL', 'SUR'], ['Narenji Tehran', 'Darband Tehran', 'NRT', 'DAR'],
+    ['Parovoz Novosibirsk', 'Volei Novosibirsk', 'PAR', 'NSK'], ['Dolmabahçe Voleybol', 'Çırağan Voleybol', 'DOL', 'CIR'],
+    ['Fragola Kagoshima', 'Sakurajima Kagoshima', 'FRA', 'SKR'], ['Thundra Hiroshima', 'Raijin Hiroshima', 'THU', 'RAI'],
+    ['Sprinx Saga', 'Izumi Saga', 'SPX', 'IZU'], ['Marvelia Osaka', 'Dotonbori Osaka', 'MRV', 'DOT'],
+    ['Rêveurs Tochigi', 'Kinugawa Tochigi', 'RVT', 'KIN'], ['Vierzehn Mie', 'Ise Mie', 'VZM', 'ISE'],
+    ['Québec Rouge-Doré', 'Québec Flambeaux', 'QRD', 'QFL'], ['Langley Espartanos', 'Langley Cedros', 'LAN', 'LCE'],
+    ['Winnipeg Bisontes', 'Winnipeg Pradera', 'WPG', 'WPR'], ['Leones de Praga', 'Voley Vyšehrad', 'LEO', 'VYS'],
+    ['Fieras Brno', 'Voley Špilberk', 'FIE', 'SPI'], ['Falke Wien', 'Voley Prater', 'FAL', 'PRT']
   ];
   var LG_REN = [['PlusPlus Liga 2', 'Liga Bursztynowa 2', 'PP2', 'LB2'], ['PlusPlus Liga', 'Liga Bursztynowa', 'PPL', 'LBU']];
   function endsWith(s, x) { return typeof s === 'string' && s.length >= x.length && s.slice(s.length - x.length) === x; }
