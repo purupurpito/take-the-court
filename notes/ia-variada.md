@@ -76,10 +76,37 @@ Experto sigue igual de duro: las diferencias de puntos están dentro del ruido d
   0,37 (mismo ancho), la demo pide un set cerrado (no dos) y los topes del highlight 28 % / 6 %. simtest vuelve a TODO OK
   (notes/pendientes-ferran.md, «Imprescindibles 1.22.0», 4.8.5).
 
-## Lo que no se hizo
+## «Te leen»: la IA se adapta a lo que repites (24-nov-2026, rama decisiones)
 
-- La «versión ligera del bloqueo que se corre tras 4 remates seguidos al mismo carril» (fuera de la Carrera) del plan del informe: la
-  reacción a lo que repite el jugador sigue siendo solo «Te tienen estudiado» (Carrera). Queda para otro sprint (cambiaría el bloqueo de la
-  IA contra el humano y movería otra vez las huellas).
+Decisión de Ferran: «Quiero que la IA se adapte excepto en modo Fácil». Es la «versión ligera del bloqueo que se corre» del informe.
+
+- **Racha** (sim.js `rdEv`, desde `emit` de cada `hit`): `g.aiMem.rd[t] = [carril, n]` = remates seguidos del **humano** del equipo t
+  por el mismo carril, desde un ala (|y| ≥ 1,2 m × cs) y con la regla de carril de «Te tienen estudiado» (`laneOf`). Un remate suyo
+  por el otro carril, por el centro o desde el centro la rompe; dejadas, colocaciones y los remates de su compañero IA no cuentan.
+  Se vacía con el partido (`aiMemReset`); el challenge no la deshace (el remate existió).
+- **Reacción** (ai.js `readShift` / `readLean` / `readLean6`): con `RD.n` = 3 seguidos, la CPU rival corre el bloqueador y se echa la
+  defensa hacia ese carril con las MISMAS constantes de «Te tienen estudiado» (`BLK_SHIFT` 0,3 m × (0,5 + 0,5·bloqueo), `DEF_LEAN`
+  0,08 m, `DEF_LEAN6` 0,15 m): `RD.part` = 0,6 de la fuerza a la 3ª, entera desde la 4ª (`RD.full`). × `RD.k` según la dificultad
+  (`g.difficulty`): Fácil 0 (nunca), Normal 0,7, Difícil 0,85, Experto 1. Solo si el ataque que viene es de un humano (2v2 `g.jobs`,
+  6v6 el plan de colocación) y desde un ala, y nunca para mover a un humano. Si «Te tienen estudiado» ya cierra ese carril no se suman
+  (se queda la mayor); en el carril contrario, sí.
+- **Aviso** `read` (al llegar a 3): «Te han leído: te tapan la diagonal / la línea» (ui.js, como el de «Cambian el plan»).
+- **Modos**: Partido rápido 2v2/6v6/playa, Carrera (con o sin `g.scout`), online Precisa (los dos lados simulan lo mismo; con
+  `g.difficulty` 'normal' del online). **No** en Entrenamiento, demo ni Fluida (allí cada máquina solo simula los toques de su equipo y
+  los del rival llegan por mensajes, sin pasar por `emit`: la racha se queda a 0 y no hay nada que desincronizar; no se ha tocado
+  netfluid.js, que es de la sesión del online).
+- **Azar**: nunca gasta `g.rng`; la racha son números planos en `g.aiMem` (copyGame la copia; studytest §8 comprueba la resim de la
+  repetición y que `AI.pos` no gasta azar con ni sin racha). Cambian las huellas con humano (bots de simtest/fingerprint6) porque el
+  bloqueo y la defensa cambian de sitio; las de CPU contra CPU no (sin humano no hay racha).
+- **Pruebas**: `tools/studytest.js` §8 (racha, signos y tamaños, Fácil/demo/Fluida/compañero/centro nada, junto a `g.scout`, sin azar,
+  resim idéntica y estadística). §3, §5 y §7 miden «Te tienen estudiado» solo (`g.aiMem.rd = null` en esas partidas).
+- **Medido** (studytest §8, bot «bueno» que remata siempre en diagonal, 20 partidos de playa y 10 de pista por casilla): playa Normal,
+  remates en diagonal que son punto 16,7 % → 12,0 % (×0,72); pista Normal ×0,69; Experto: playa ×1,11 y pista ×0,90 (ruido: con 60 y
+  40 partidos más de playa Experto, ×0,97 y ×1,0), con más bloqueos (410 → 439, 199 → 237) y los mismos puntos. Con la defensa 2v2 ×1
+  (sin `RDX.lean` 2,5) el efecto en la playa Normal no se veía (15,1 % → 15,2 % en racha, 60 partidos). El bot que alterna no la activa.
+- **Experto no se ablanda** (variedadtest): en la pasada normal el 6v6 medio Experto dio 64,2 % con la lectura y 67,5 % sin ella; con el
+  triple de partido, 66,4 % y 66,5 % (sin memoria, 65,9 %): era ruido de la muestra. Las casillas 6v6 Experto con bot juegan ahora 9 ×
+  SECS (antes 3 ×). `VAR_NORD=1` juega «ahora» sin la lectura y `VAR_RDX='{"blk6":0}'` prueba otros multiplicadores.
+- Cambiar la fuerza: `RD` en js/sim.js (umbral, fuerza a la 3ª, × por dificultad) y `RDX` en js/ai.js (× sobre las distancias).
 
 Cambiar la fuerza: `MEM` en js/ai.js (`VAR_MEM='{"tol":0.4}' node tools/variedadtest.js` prueba otros valores sin tocar el código).

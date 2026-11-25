@@ -60,6 +60,39 @@
     return d * side(t) * DEF_LEAN6 * g.scout.mk;
   }
 
+  /* «Te leen» (24-nov-2026; sim.js RD / rdEv, notes/ia-variada.md): con la racha de remates del humano rival por el mismo carril
+   * (g.aiMem.rd), la CPU del equipo t corre el bloqueo y la defensa hacia ese carril con las mismas constantes que «Te tienen estudiado»
+   * (BLK_SHIFT, DEF_LEAN, DEF_LEAN6), × la fuerza de la racha (RD.part a la 3ª, 1 desde RD.full) × RD.k de la dificultad (Fácil 0).
+   * Solo si el ataque que viene es de un humano y desde un ala. Si «Te tienen estudiado» ya cierra ese mismo carril, la lectura solo
+   * añade lo que le falte hasta su fuerza (no se suman: como mucho, la mayor de las dos). Puro, sin g.rng. */
+  /** ¿El ataque que viene del equipo opp es de un humano? 2v2: g.jobs[opp]; 6v6: el atacante del plan de colocación vigente. */
+  function humAttack(g, opp) {
+    var a = null;
+    if (g.rot) { var pl = g.setPlan && g.setPlan[opp]; if (pl && pl.t === g.lastTouchT) a = pl.to; }
+    else a = g.jobs && g.jobs[opp];
+    return !!a && S.isHuman(g, a);
+  }
+  /** Lado y fuerza firmados (+ línea / − diagonal respecto al golpe) de la lectura del equipo t, ya sin lo que cubre g.scout (0 si nada). */
+  function readSide(g, t) {
+    var M = g.aiMem, R = M && M.rd && M.rd[1 - t]; if (!R || R[1] < S.RD.n) return 0;
+    var cs = g.cs || 1, y = g.pr3.y, k = S.rdK(g, t);
+    if (!(k > 0) || Math.abs(y) < 1.2 * cs || !humAttack(g, 1 - t)) return 0;
+    var d = R[0] === 1 ? -sgnS(y) : sgnS(y), m = k * (R[1] >= S.RD.full ? 1 : S.RD.part), ds = studySide(g, t);
+    if (ds === d) m = Math.max(0, m - g.scout.mk);
+    return d * m;
+  }
+  // RDX: × sobre las constantes de «Te tienen estudiado» (blk bloqueo, lean defensor 2v2, lean6 zagueros 6v6); calibrado en studytest §8
+  // (defensor 2v2 ×2,5: con ×1 el defensor apenas se movía 6 cm en Normal y la diagonal repetida hacía el mismo punto; con ×2,5, en racha,
+  //  15,8 % → 12,6 % en la playa Normal, 40 partidos. En Experto la defensa ya llega a casi todo y no se mide diferencia en los puntos:
+  //  solo más bloqueos. Pista 6v6 con ×1: ×0,7 en Normal)
+  var RDX = { blk: 1, lean: 2.5, blk6: 1, lean6: 1 };
+  /** m que el bloqueador del equipo t se corre por la lectura (0 sin racha). */
+  function readShift(g, t) { var d = readSide(g, t); return d ? d * BLK_SHIFT * (g.rot ? RDX.blk6 : RDX.blk) * (0.5 + 0.5 * (g.prof[t].block || 0)) * (g.cs || 1) : 0; }
+  /** m (mundo) que el defensor 2v2 se echa hacia el carril leído. */
+  function readLean(g, t) { var d = readSide(g, t); return d ? d * DEF_LEAN * RDX.lean * (g.cs || 1) : 0; }
+  /** Zagueros 6v6 (coordenadas locales de defPos). */
+  function readLean6(g, t) { var d = readSide(g, t); return d ? d * side(t) * DEF_LEAN6 * RDX.lean6 : 0; }
+
   // Zonas candidatas del campo rival (profundidad desde la red, lateral; en la playa ×g.cs: pista 16×8)
   var DEPTHS = [2.2, 4.2, 6.2, 7.9], LATS = [-3.6, -1.8, 0, 1.8, 3.6];
   var _t2 = [0, 0];
@@ -374,11 +407,11 @@
         bl = g.defRole === 'block' ? hc : g.defRole === 'dig' ? hm : (Math.abs(hc.x) > 4 ? hm : hc);
       }
       if (t === 0 && g.drill) bl = g.ctrl; // E6 (Bloqueo, también con autopilot): bloquea el del humano
-      if (p === bl) return setTg(sd * 0.6, clamp(g.pr3.y + g.blockOff[t] + (g.scout ? studyShift(g, t) : 0), -4.2 * cs, 4.2 * cs), false, true);
+      if (p === bl) return setTg(sd * 0.6, clamp(g.pr3.y + g.blockOff[t] + (g.scout ? studyShift(g, t) : 0) + (S.isHuman(g, p) ? 0 : readShift(g, t)), -4.2 * cs, 4.2 * cs), false, true);
       // defensor: a media pista, algo hacia la diagonal (el bloqueo tapa parte de la paralela), sin dejar
       // vendida la línea: desde ahí llega a la diagonal y, lanzándose, a la paralela
       var ay = g.pr3.y;
-      return setTg(sd * 5.4 * cs, clamp(-ay * 0.3 + (g.scout ? studyLean(g, t) : 0), -2 * cs, 2 * cs));
+      return setTg(sd * 5.4 * cs, clamp(-ay * 0.3 + (g.scout ? studyLean(g, t) : 0) + (S.isHuman(g, p) ? 0 : readLean(g, t)), -2 * cs, 2 * cs));
     }
     return setTg(sd * 6.2 * cs, (idx ? 2.2 : -2.2) * cs);
   }
@@ -609,5 +642,5 @@
     remember: remember, MEM: MEM, // IA variada (1.22.0): memoria corta de remate y saque (g.aiMem)
     leaving: leaving, // (E2: VB.AI.leaving(g, team))
     // «Te tienen estudiado» (sin g.scout, 0)
-    studyShift: studyShift, studyLean: studyLean, studyLean6: studyLean6, BLK_SHIFT: BLK_SHIFT, DEF_LEAN: DEF_LEAN, DEF_LEAN6: DEF_LEAN6, RIV_B: RIV_B };
+    studyShift: studyShift, studyLean: studyLean, studyLean6: studyLean6, readShift: readShift, readLean: readLean, readLean6: readLean6, readSide: readSide, RDX: RDX, BLK_SHIFT: BLK_SHIFT, DEF_LEAN: DEF_LEAN, DEF_LEAN6: DEF_LEAN6, RIV_B: RIV_B };
 })();

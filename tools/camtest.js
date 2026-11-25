@@ -36,8 +36,12 @@
  *              < 6 s, giro <= 25°/s dentro de los planos, balón y jugadores activos en NDC x > -0,3 en >= 90 % de los frames
  *   - INTRO    CAM-16 playIntro: la presentación acaba a < 0,1 m del encuadre del saque, sin corte
  *   - CLINCH   CAM-09 (partida aparte, debug=setpoint): cierre de set con seguimiento y órbita del héroe >= 1,8 s antes de la grúa
+ *   (24-nov-2026, cámara fija del saque)
+ *   - STILL    con la cámara fija (getDebug().fx: tu saque, su vuelo y el saque rival) quieta (< 0,05 m/s, < 0,5 °/s, lente < 0,3 °/s) salvo
+ *              en los 1,5 s tras una corrección (algo se iba a salir), recomponiendo o con la red de los oficiales corrigiendo; balón
+ *              dentro en el lanzamiento y el vuelo. Tope 1 %
  *   - FEEL     CAM-04: hit-stop de 60 ms = 60 ms ±1 frame con timeScale 0 y vuelta en ~80 ms; punch de FOV < 10 % a los 200 ms
- * camBreak (pruebas de la prueba): CAMBREAK=clinch|serve|board|menu|block|clutter|hitstop|intro|cut añade &camBreak=… y camera.js
+ * camBreak (pruebas de la prueba): CAMBREAK=clinch|serve|board|menu|block|clutter|hitstop|intro|cut|still añade &camBreak=… y camera.js
  * rompe A PROPÓSITO esa regla; `node tools/camtest.js selftest` comprueba que cada una hace fallar a su comprobación (sale 1 si alguna no).
  * Uso: node tools/camtest.js [segundos=75] [semillas=7,12345,3] [tamaños=1280x720,1680x720,1024x768,844x390t]
  *   SPEED=2 (reloj de rAF ×N: la partida va N veces más rápida a ~160 fps reales, dt de cámara 1/80 s)
@@ -205,7 +209,7 @@ const INIT = (speed) => `
           dx: d.x ? d.x.map(function (v) { return +v.toFixed(2); }) : null, fw: typeof d.fovWant === 'number' ? +d.fovWant.toFixed(2) : -1, fbo: typeof d.fovBoost === 'number' ? +d.fovBoost.toFixed(2) : -1, ft: d.ft ? d.ft.on : -1, cl: d.clinch ? d.clinch.phase : '',
           x: +c.position.x.toFixed(3), y: +(-c.position.z).toFixed(3), z: +c.position.y.toFixed(3),
           yaw: +Math.atan2(-v.z, v.x).toFixed(4), pitch: +Math.asin(Math.max(-1, Math.min(1, v.y))).toFixed(4), fov: +c.fov.toFixed(3),
-          mode: g.mode, sv: g.serving, ss: g.serveState || '', ts: +(VB.ctx.timeScale).toFixed(3),
+          mode: g.mode, sv: g.serving, ss: g.serveState || '', fx: d.fx && d.fx.on ? [d.fx.k, d.fx.need, d.fx.rc ? 1 : 0, d.fx.of ? 1 : 0] : 0, shk: d.shake > 0.001 ? 1 : 0, lk2: g.lastKind || '', ts: +(VB.ctx.timeScale).toFixed(3),
           cutN: typeof d.cutN === 'number' ? d.cutN : -1, nci: typeof d.nextCutIn === 'number' ? +d.nextCutIn.toFixed(3) : -9,
           lck: d.lastCut ? d.lastCut.kind : '', bin: bin, ev: ev, maxBox: +maxBox.toFixed(3),
           hero: d.pf && d.pf.hero != null ? d.pf.hero : null, vic: d.pf && d.pf.vic != null ? d.pf.vic : null,
@@ -582,7 +586,8 @@ function analyzeW3(run, F, E, res, add) {
   // SERVE (CAM-15): frames de saque propio asentados (>= 0,6 s en el plano; en el aire solo cuenta el salto), y balón >= 3,5 m siempre
   { let n = 0, bad = [], near = 0, st = -1, offKnown = 0; const offKind = { a: 0, b: 0 };
     for (let i = 0; i < F.length; i++) {
-      const r = F[i]; if (r.shot !== 'serveUs' || !r.xs || r.st !== 'playing') { st = -1; continue; }
+      // (solo con el balón por sacar o lanzado: el vuelo del saque también es 'serveUs' con la cámara fija, 24-nov-2026)
+      const r = F[i]; if (r.shot !== 'serveUs' || !r.xs || r.st !== 'playing' || r.mode !== 'serve') { st = -1; continue; }
       if (st < 0 || F[i - 1].shot !== 'serveUs') st = i;
       if (r.xs[3] < 3.5) near++;
       let acc = 0; for (let k = st + 1; k <= i; k++) acc += F[k].dt; if (acc < 0.6) continue;
@@ -602,6 +607,37 @@ function analyzeW3(run, F, E, res, add) {
     }
     add('serve', bad.length === 0 && near === 0, n + ' frames de saque propio asentados' + (near ? ' · balón a < 3,5 m en ' + near : '') + (bad.length ? ' · ' + bad.length + ' mal: ' + bad.slice(0, 4).join(' | ') : '') +
       (offKnown ? ' · conocido (pendiente de Ferran): oficial asomando en ' + offKnown + ' (árbitros/mesa <= 0,12 NDC ' + offKind.a + ', juez cercano cortado por abajo ' + offKind.b + ')' : '')); }
+  // STILL (24-nov-2026, Ferran: «en mi saque, la cámara se mueve demasiado»): con la cámara fija del saque (getDebug().fx) —tu saque, su
+  // vuelo hasta el primer toque rival y el saque rival—, la cámara QUIETA (< 0,05 m/s, < 0,5 °/s de giro y cabeceo, < 0,3 °/s de lente)
+  // salvo en los 1,5 s que siguen a una corrección (algo se iba a salir: fx.need sube) o mientras se recompone el encuadre (el sacador se
+  // desplaza a lo ancho), sin contar la llegada (0,4 s), el temblor del golpe ni los cortes. Y el balón dentro en el lanzamiento y el vuelo
+  // (sin contar el que va a > 15 m/s o a la grada). Tope: 1 % de frames movidos sin motivo (CAMZERO=1: 0).
+  { let n = 0, still = 0, bad = 0, bOut = 0, bN = 0, segT = 0, lastNeed = -1, needT = -9, rcT = -9, ofT = -9, nOf = 0, shkT = -9, ex = [], mxR = 0, nNeed = 0;
+    const perK = {};
+    for (let i = 1; i < F.length; i++) {
+      const r = F[i], a = F[i - 1];
+      if (!r.fx || r.st !== 'playing') { segT = 0; lastNeed = -1; continue; }
+      if (!a.fx || a.fx[0] !== r.fx[0] && !(a.fx[0] === 'yo' && r.fx[0] === 'vuelo') || r.cutN !== a.cutN) { segT = 0; lastNeed = r.fx[1]; needT = r.fx[1] > 0 ? r.t : -9; rcT = -9; continue; }
+      segT += r.dt;
+      if (r.fx[1] > lastNeed) { if (lastNeed >= 0) nNeed++; needT = r.t; } lastNeed = r.fx[1];
+      if (r.fx[2]) rcT = r.t;
+      if (r.fx[3]) { ofT = r.t; nOf++; }
+      if ((r.ss === 'toss' || r.mode === 'rally') && !r.bfx) { bN++; if (!r.bin) { bOut++; if (ex.length < 6) ex.push('balón fuera ' + r.fx[0] + ' @' + r.t.toFixed(1)); } }
+      if (r.shk) shkT = r.t;
+      // (el temblor del golpe del saque en salto y su cola: el último frame con temblor < 1 mm aún mueve la cámara unos cm)
+      if (segT < 0.4 || !(r.dt > 0.004) || r.shk || a.shk || r.t - shkT < 0.15) continue;
+      const sp = Math.hypot(r.x - a.x, r.y - a.y, r.z - a.z) / r.dt, rot = Math.hypot(wrap(r.yaw - a.yaw), r.pitch - a.pitch) * DEG / r.dt, fr = Math.abs(r.fov - a.fov) / r.dt;
+      const k = r.fx[0], o = perK[k] = perK[k] || [0, 0]; o[0]++; n++;
+      if (sp < 0.05 && rot < 0.5 && fr < 0.3) { still++; o[1]++; continue; }
+      // (1,5 s: la cola de los muelles de la corrección —el de la pose fija y el de la lente— pasa de 0,5 °/s casi 1 s)
+      // (y la red de seguridad de los oficiales —CAM-15, ningún oficial cortado: el 2º árbitro que se recoloca junto al poste— mientras
+      // corrige la lente o el giro y 0,3 s después)
+      if (r.t - needT < 1.5 || r.t - rcT < 1.5 || r.t - ofT < 0.3) continue;
+      bad++; mxR = Math.max(mxR, rot); if (ex.length < 6) ex.push(k + ' ' + sp.toFixed(2) + ' m/s ' + rot.toFixed(1) + '°/s lente ' + fr.toFixed(1) + '°/s @' + r.t.toFixed(1));
+    }
+    const tol = CAMZERO ? 0 : Math.floor(0.01 * n);
+    add('still', bad <= tol && bOut === 0, n + ' frames con la cámara fija del saque · quieta ' + (n ? (still / n * 100).toFixed(1) : 0) + ' % (' + Object.keys(perK).map(k => k + ' ' + (perK[k][1] / Math.max(1, perK[k][0]) * 100).toFixed(0) + ' %').join(', ') + ')' +
+      ' · ' + nNeed + ' correcciones' + (nOf ? ' · ' + nOf + ' frames de la red de los oficiales' : '') + ' · movida sin motivo ' + bad + (bad && bad <= tol ? ' (tope ' + tol + ', 1 %)' : '') + (bad ? ' (giro máx ' + mxR.toFixed(1) + '°/s)' : '') + ' · balón fuera ' + bOut + '/' + bN + (ex.length ? ' · ' + ex.join(' | ') : '')); }
   // BOARD (CAM-19)
   { let n = 0, bad = 0, ex = ''; for (const r of F) { if (!(r.brd >= 0)) continue; n++; if (r.brd) { bad++; if (!ex) ex = r.shot + ' @' + r.t.toFixed(1); } }
     add('board', bad === 0, n + ' frames de punto/grúa/cierre/final' + (bad ? ' · marcador cortado en ' + bad + ' (' + ex + ')' : '')); }
@@ -694,7 +730,7 @@ function analyzeFeel(run) {
  * ejecución corta de esta misma herramienta con ONLY=<comprobación>. Sale 1 si alguna rotura NO se detecta. */
 const BREAKS = [
   ['clinch', 'clinch', '1280x720', '7', 20, 'setend'], ['board', 'clinch', '1280x720', '7', 20, 'setend'],
-  ['serve', 'serve', '1280x720', '7', 40, ''], ['cut', 'cuts', '1280x720', '7', 40, ''],
+  ['serve', 'serve', '1280x720', '7', 40, ''], ['cut', 'cuts', '1280x720', '7', 40, ''], ['still', 'still', '1280x720', '7', 40, ''],
   ['block', 'block', '1280x720,844x390t', '7,12345', 75, ''], ['clutter', 'clutter', '844x390t', '12345,3', 75, ''],
   ['menu', 'menu', '1280x720', '7', 20, 'menu'], ['intro', 'intro', '1280x720', '7', 20, 'menu'], ['hitstop', 'feel', '1280x720', '7', 20, 'feel']];
 async function selftest() {

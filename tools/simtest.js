@@ -61,7 +61,7 @@ let failures = 0;
 const fail = m => { failures++; console.error('FALLO:', m); };
 const KNOWN = ['hit', 'block', 'net', 'land', 'point', 'set', 'match', 'gameOver', 'whistle', 'jump', 'switch', 'serveReady',
   'sideout', 'newSet', 'bounce', 'swing', 'landPlayer', 'newMatch', 'toss', 'miss', 'dive', 'netTouch', 'courtChange', 'dribble', 'juggle', 'challenge', 'challengeResult',
-  'rotation', 'libero', 'blockPress', 'feint', 'drillStage', 'drillRep', 'drillEnd']; // (feint: E1, solo con createGame({mastery:true})) // (rotation y libero, solo 6v6; blockPress = GOLPEAR en el aire en el bloqueo, sim.js blockPress)
+  'rotation', 'libero', 'blockPress', 'feint', 'drillStage', 'drillRep', 'drillEnd', 'read']; // (read: «Te leen», racha del humano por el mismo carril, sin Fácil) // (feint: E1, solo con createGame({mastery:true})) // (rotation y libero, solo 6v6; blockPress = GOLPEAR en el aire en el bloqueo, sim.js blockPress)
 const pct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '-';
 // Vocabulario del árbitro (FCVB): cada motivo de punto con sus textos válidos. Un texto nuevo debe pasar por aquí.
 const POINT_TEXTS = {

@@ -8,7 +8,7 @@
  *     rel="icon" y ninguno con data:, manifest con description/id/categories, og.png de 1200×630 leyendo el IHDR) y sus guardas
  *     (versión que no cuadra con el CHANGELOG, sin og.png) en una copia mínima del proyecto.
  *  2) CON navegador (tools/cdp.js; NOCDP=1 la salta): (a) perfil limpio, sin aviso y seen = VERSION; (b) jugador que vuelve con
- *     seen viejo: Novedades sale sola una vez; (c) con TOUCH y el aviso de instalar abierto no sale encima; (d) document.title en
+ *     seen viejo: Novedades sale sola una vez (después de la ventana de «La jugada del día», si sale); (c) con TOUCH y el aviso de instalar abierto no sale encima; (d) document.title en
  *     menú, punto, pausa y final; (e) mando falso: Ajustes › Info › Créditos y B vuelve a Ajustes/Info.
  *     Si ui.js aún no tiene la parte de E7 (VB.UI.openAbout / _about), la parte 2 se salta con un aviso (STRICT=1 la da por fallo).
  * Uso: node tools/abouttest.js     Sale con 1 si falla algo.
@@ -142,6 +142,11 @@ async function browser() {
     // (b) jugador que vuelve
     pg = await CDP.open({ size: '1280x720', init: [returning] });
     await pg.navigate(''); await ready(pg);
+    // (24-nov-2026) la ventana de «La jugada del día» sale la primera al entrar y Novedades espera a que se cierre
+    if (await waitFor(pg, 'VB.UI.semPopOpen&&VB.UI.semPopOpen()', 5000)) {
+      check(!(await pg.evalJs(vis('#pnAbout'))), '(b) la jugada del día sale antes y Novedades espera');
+      await pg.evalJs('document.getElementById("btnSemPopNo").click()');
+    }
     const shown = await waitFor(pg, 'VB.UI.isPanelOpen&&VB.UI.isPanelOpen()&&' + vis('#pnAbout'), 7000);
     check(shown, '(b) jugador que vuelve: Novedades se abre sola (#pnAbout)');
     const s2 = await pg.evalJs('localStorage.getItem("make-the-cut.seen")');

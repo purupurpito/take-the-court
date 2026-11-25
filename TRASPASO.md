@@ -298,7 +298,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     Xaranga, «El mismo 22-24» con el sello en la portada, rencor y cariño, árbitros con nombre, «Te tienen estudiado»), jefes de pista,
     sedes de la Carrera, `S4_SYNC = true`, repeticiones 6v6 preparadas (`REPLAY6 = false`), cámara con zoom 1-2 y replaytest/camtest al
     día. `SIM_BASE` de fluidsimtest pasa a afb5ebee (opts.start y g.scout; las tres huellas idénticas). Hoja de decisiones para Ferran:
-    notes/pendientes-ferran.md (decisiones provisionales, preguntas, 30 frases del chat rápido, «El Corte» e interruptores). Al fusionar
+    notes/pendientes-ferran.md (decisiones provisionales, preguntas, chat rápido —lista FINAL de 22 frases aprobada por Ferran el 24-nov, tecla T en el PC, «¡Buen saque!» como 8ª de la rueda (provisional); sin construir—, «El Corte» e interruptores). Al fusionar
     con main (ya en 1.20.0, Take the Court): dejar las dos entradas de js/version.js y pasar a la marca nueva el enlace y el título de
     compartir de la semana. Fallos que ya estaban en la base 1.19.2 (a2eef35), comprobados en una copia aparte: camtest serve 2/12 y
     fovpump 0/3 (ver notes/camera_input.md; wide mejora de 1/3 a 2/3), abouttest «og:image absoluta» (la prueba espera ?v=x.y.z y el

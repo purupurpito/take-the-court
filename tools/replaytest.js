@@ -12,7 +12,7 @@
  *  (3) mejores jugadas: 1-3, en orden de puntuación, sin «error» de < 4 toques; playBest() en orden, playBest(i), skip y skip(true).
  *  (4) defensa: una mutación de g fuera de Sim.step en pleno peloteo → desync() > 0 y aviso «[VB] repetición desincronizada».
  *  (5) memoria: 0 asignaciones con el anillo en régimen (process.memoryUsage con gc, 10 000 pasos de onStep/onEvents con fotos clave).
- *  (2c) 6v6 detrás de REPLAY6 (apagado): con reset(g, {six:true}) partidos 6v6 enteros (autopilot, entrenador IA con cambios y tiempos
+ *  (2c) 6v6 (REPLAY6, encendido desde el 24-nov-2026): con reset(g, {six:true}) partidos 6v6 enteros (autopilot, entrenador IA con cambios y tiempos
  *      muertos, líbero) con repeticiones automáticas y todas las mejores jugadas resimuladas: desync 0, la partida en vivo intacta, el
  *      partido igual con y sin repeticiones, 8 sombras (K6) y como mucho K6.BEST_N mejores jugadas.
  * Escribe solo en la consola. Sale con 1 si algo falla. */
@@ -75,7 +75,8 @@ const sigOf = g => JSON.stringify([g.setScores, g.score, g.sets, g.rng.get(), +g
 function match(o) {
   const g = S.createGame(Object.assign({ demo: false, difficulty: 'normal', present: true, points: 15 }, o.opts));
   const R0 = { autos: 0, autoKinds: {}, replays: 0, playSteps: 0, slowFrames: 0, slow1: 0, slowOther: 0, evP: 0, evF: 0, badEv: [], forbidSeen: 0,
-    pointP: 0, liveTouched: 0, frames: 0, prepMax: 0, nMut: 0, mutSerial: -1, mutPlays: 0, skips: 0, enabled: false, bestOrder: [], bestDes: 0 };
+    pointP: 0, liveTouched: 0, frames: 0, prepMax: 0, nMut: 0, mutSerial: -1, mutPlays: 0, skips: 0, enabled: false, bestOrder: [], bestDes: 0,
+    offers: 0, ofKinds: {}, taken: 0, ofAutoMiss: 0, ofLast: -1, ofVisF: 0 };
   if (o.replay) R0.enabled = RPL.reset(g, { force: !!o.force, headless: true, six: !!o.six });
   const b = o.human ? bot(o.opts.seed) : null, evs = [], evP = [], evF = [];
   const simIn = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
@@ -119,7 +120,14 @@ function match(o) {
     if (o.replay) {
       RPL.onEvents(g, evs);
       if (o.mutate && R0.mutSerial >= 0 && RPL._state().serial > R0.mutSerial && RPL._state().last) { R0.mutSerial = -1; if (RPL.start('set')) { R0.mutPlays++; playOut('mutación'); } }
-      if (RPL.autoReady(g)) {
+      if (o.offer) {   // (2o) aviso con botón: se pide uno de cada dos (el resto se deja ir solo)
+        const of = RPL.offerTick(g, FDT);
+        if (of) R0.ofVisF++;
+        if (of && of.serial !== R0.ofLast) {
+          R0.ofLast = of.serial; R0.offers++; R0.ofKinds[of.kind] = (R0.ofKinds[of.kind] || 0) + 1;
+          if (R0.offers % 2 === 1) { if (RPL.takeOffer()) { R0.taken++; playOut('aviso'); R0.replays++; } else fail('(2o) takeOffer no arranca'); }
+        }
+      } else if (RPL.autoReady(g)) {
         const k = RPL._state().last;
         if (RPL.start('auto')) { R0.autos++; R0.autoKinds[RPL.info().kind] = (R0.autoKinds[RPL.info().kind] || 0) + 1; if (!k.auto) fail('autoReady sin last.auto'); playOut('auto'); R0.replays++; }
       }
@@ -161,7 +169,7 @@ console.log('== replaytest (parte node) ==');
   const cases = [
     ['2v2 humano', { demo: false, seed: 1 }, {}, true],
     ['playa humano', { demo: false, seed: 1, venue: 'beach' }, {}, true],
-    ['6v6', { demo: false, seed: 1, format: '6v6', ctrl: 'one', ctrlRole: 'OH' }, {}, false],
+    ['6v6 (REPLAY6 encendido el 24-nov-2026)', { demo: false, seed: 1, format: '6v6', ctrl: 'one', ctrlRole: 'OH' }, {}, true],
     ['demo', { demo: true, seed: 1 }, {}, false],
     ['ejercicio', { demo: false, seed: 1, drill: 'serve' }, {}, false],
     ['autopilot', { demo: false, seed: 1, autopilot: true }, {}, false],
@@ -174,7 +182,7 @@ console.log('== replaytest (parte node) ==');
     if (got !== want) bad.push(tag + ': ' + got + ' (' + RPL._state().why + ')');
   }
   { const g = S.createGame({ demo: false, seed: 2 }); g.watch = true; if (RPL.reset(g, { headless: true })) bad.push('espectador: true'); }
-  if (bad.length) fail('(1) elegibilidad: ' + bad.join('; ')); else console.log('(1) elegibilidad: 2v2/playa sí; 6v6, demo, ejercicio, espectador, autopilot (sin force) y sin módulos de pintado no ... OK');
+  if (bad.length) fail('(1) elegibilidad: ' + bad.join('; ')); else console.log('(1) elegibilidad: 2v2/playa/6v6 sí; demo, ejercicio, espectador, autopilot (sin force) y sin módulos de pintado no ... OK');
   RPL.reset(null);
 }
 
@@ -248,11 +256,34 @@ console.log('== replaytest (parte node) ==');
     ', eventos evP ' + tot.evP + ' / evF ' + tot.evF + ' (filtrados ' + tot.forbid + '), cámara lenta ' + tot.slow1 + ' frames a 1 paso, prep máx ' + tot.prep.toFixed(2) + ' ms (vm)' + (failures ? '' : ' ... OK'));
 }
 
+// (2o) aviso de repetición (24-nov-2026): sale tras los cierres de set/partido y los puntos grandes, una vez por punto, dura OFFER_T s
+// si no se pide; pedido, la repetición cuadra (desync 0), la partida en vivo no cambia y el partido es el mismo que sin repeticiones
+{
+  const CASES = [['humano 3', { seed: 3, ctrl: 'one' }, true, false], ['autopilot 12345', { seed: 12345, autopilot: true }, false, true]];
+  const rows = [];
+  for (const [tag, opts, human, force] of CASES) {
+    const d0 = RPL.desync();
+    const a = match({ opts, human, replay: true, force, offer: true });
+    if (!a.enabled) { fail('(2o) ' + tag + ': no graba'); continue; }
+    const b = match({ opts, human, replay: false });
+    if (a.final !== b.final) fail('(2o) ' + tag + ': el partido cambia con el aviso');
+    if (RPL.desync() !== d0) fail('(2o) ' + tag + ': ' + (RPL.desync() - d0) + ' repeticiones desincronizadas');
+    if (a.liveTouched) fail('(2o) ' + tag + ': la partida en vivo cambia durante la repetición');
+    if (a.offers < 1 || a.taken < 1) fail('(2o) ' + tag + ': avisos ' + a.offers + ', pedidos ' + a.taken);
+    if (force && a.offers < 4) fail('(2o) ' + tag + ': solo ' + a.offers + ' avisos en un partido entero (esperados ≥ 4: cierres y puntos grandes)');
+    const perOffer = a.ofVisF / Math.max(1, a.offers - a.taken) * FDT;
+    if (perOffer > RPL.K.OFFER_T + 0.1) fail('(2o) ' + tag + ': el aviso dura ' + perOffer.toFixed(2) + ' s (> ' + RPL.K.OFFER_T + ')');
+    rows.push(tag + ': avisos ' + a.offers + ' ' + JSON.stringify(a.ofKinds) + ', pedidos ' + a.taken + ', ' + a.g.setScores.map(x => x.join('-')).join(' '));
+  }
+  console.log('(2o) aviso de repetición: ' + rows.join(' | ') + ' ... ' + (failures ? 'revisar' : 'OK'));
+  RPL.reset(null);
+}
+
 // (2c) 6v6 detrás de REPLAY6 (apagado en el juego; six:true en la prueba)
 {
   const rows = [];
   let tAuto = 0, tBest = 0;
-  if (RPL.REPLAY6 !== false) fail('(2c) REPLAY6 debería seguir apagado hasta tener el pintado 6v6');
+  if (RPL.REPLAY6 !== true) fail('(2c) REPLAY6 debería estar encendido (24-nov-2026: pintado de los 12, «Jugadas» 6v6 y medido en móvil)');
   for (const seed of [4, 17]) {
     const opts = { seed, autopilot: true, format: '6v6', ctrl: 'one', ctrlRole: 'OH', points: 15 };
     const t0 = Date.now(), d0 = RPL.desync();
@@ -337,7 +368,7 @@ console.log('== replaytest (parte node) ==');
 //  (d) «Menos movimiento»: sin repetición automática (&auto=1) y sin cámara lenta en mejores jugadas; con el ajuste por defecto sí hay
 //      automática; ajuste «Al final»: sin automática; «No»: sin pestaña. La escena usa &seed= de autoSeed() (node): la primera semilla
 //      cuyo punto de set da automática con la sim de hoy
-//  (e) 6v6 humano: Replay apagado ('6v6'), bestCount 0 y sin pestaña en la hoja 6v6
+//  (e) 6v6 humano: Replay graba (REPLAY6 encendido el 24-nov-2026); hoja 6v6 con «Jugadas» y «Ver» con los 12 pintando la sombra
 //  (f) ejercicio: apagado ('drill')
 //  (g) montón: HeapProfiler.collectGarbage antes y después de 3 repeticiones, Δ < 1 MB
 //  (h) dibujos (renderer.info.render.calls) en la repetición ≤ en vivo + margen, misma calidad (quality=low)
@@ -360,7 +391,7 @@ async function cdpPart() {
   const J = async s => JSON.parse(await E('JSON.stringify(' + s + ')'));
   const waitFor = async (expr, ms) => { const t = Date.now(); while (Date.now() - t < ms) { try { if (await E(expr)) return true; } catch (e) { } await sleep(40); } return false; };
   const go = async q => { page.errors.length = 0; await page.navigate(q); return waitFor('!!(window.VB && VB.ctx && VB.ctx.game && VB.Replay && VB.UI)', 20000); };
-  const KEYS = { Enter: ['Enter', 13], Escape: ['Escape', 27] };
+  const KEYS = { Enter: ['Enter', 13], Escape: ['Escape', 27], KeyV: ['v', 86] };
   const key = async code => { const k = KEYS[code]; for (const type of ['keyDown', 'keyUp']) { await page.send('Input.dispatchKeyEvent', { type, code, key: k[0], windowsVirtualKeyCode: k[1], nativeVirtualKeyCode: k[1] }); await sleep(50); } };
   const pad = async b => { await E(`__pad.set(null,{${b}:1})`); await sleep(100); await E(`__pad.set(null,{${b}:0})`); };
   const tap = async (x, y) => { await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] }); await sleep(40); await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
@@ -508,31 +539,72 @@ async function cdpPart() {
     if (ok(AS, '(d) hay una semilla 1..40 cuyo punto de set da automática en la escena debug=replay&auto=1 (node)')) console.log('  ..   (d) semilla ' + AS.seed + ' para la automática (punto de set: ' + AS.how + ')');
     const ASd = AS ? AS.seed : 7, QA = 'debug=replay&auto=1&seed=' + ASd;
     await withSettings({}, QA);
-    const dAuto = await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 8000);
-    if (!dAuto) {   // aviso claro: si la página no da el punto decisivo que vio node, es la semilla (o la escena), no el juego
+    // (24-nov-2026) ya no hay automática: sale el aviso «Pulsa V para ver la repetición» unos segundos y V la lanza
+    const OFV = `!!VB.ctx.replayOffer && document.getElementById('rpOff').classList.contains('show')`;
+    const dOf = await waitFor(OFV, 8000);
+    if (!dOf) {   // aviso claro: si la página no da el punto decisivo que vio node, es la semilla (o la escena), no el juego
       const why = await J(`(function(){ var l = VB.Replay._state().last, g = VB.ctx.game, S = VB.Sim;
-        return { auto: !!(l && l.auto), how: l && l.how, chal: !!(S.canChallenge && (S.canChallenge(g, 0) > 0 || S.canChallenge(g, 1) > 0)) || !!g.cpuChal || !!g.review }; })()`);
-      if (!why.auto || why.chal) console.error('  !!   (d) la semilla ' + ASd + ' ya no da punto de set decisivo en la página (how ' + why.how + (why.chal ? ', challenge posible' : '') + '): la escena de main.js y autoSeed() no coinciden; cambia la semilla o revisa la escena');
+        return { offer: !!(l && l.offer), how: l && l.how, chal: !!(S.canChallenge && S.canChallenge(g, 0) > 0) || !!g.cpuChal || !!g.review }; })()`);
+      if (!why.offer || why.chal) console.error('  !!   (d) la semilla ' + ASd + ' ya no da aviso en la página (how ' + why.how + (why.chal ? ', challenge posible' : '') + '): la escena de main.js y autoSeed() no coinciden; cambia la semilla o revisa la escena');
     }
-    ok(dAuto, '(d) por defecto (Automáticas): repetición automática del punto de set (semilla ' + ASd + ')');
+    ok(dOf, '(d) por defecto (Con botón): aviso de repetición tras el punto de set (semilla ' + ASd + ')');
+    const d1 = await J(`{t: document.getElementById('rpOffT').textContent, rp: !!VB.ctx.replay, kind: VB.ctx.replayOffer && VB.ctx.replayOffer.kind, dur: VB.ctx.replayOffer && VB.ctx.replayOffer.dur}`);
+    ok(d1.t === 'Pulsa V para ver la repetición' && !d1.rp && d1.kind === 'set' && d1.dur === 4, '(d) «Pulsa V para ver la repetición», 4 s, sin arrancar sola', d1);
+    await key('KeyV');
+    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set' && VB.ctx.replay.phase === 'play'`, 8000), '(d) V lanza la repetición del punto de set');
+    ok(await E('!VB.ctx.replayOffer && VB.Replay._state().ofTaken === 1'), '(d) el aviso se va al pedirla');
+    await key('Enter'); ok(await waitFor('!VB.ctx.replay', 3000), '(d) y se salta como siempre (Intro)');
+    // sin pulsar: el aviso se va solo y el partido sigue sin esperar
+    await withSettings({}, QA);
+    await waitFor(OFV, 8000);
+    { const t0 = Date.now(); let rp = false, gone = 0;
+      while (Date.now() - t0 < 7000) { const s = await J('[!!VB.ctx.replay, !!VB.ctx.replayOffer]'); if (s[0]) rp = true; if (!s[1] && !gone) gone = Date.now() - t0; if (gone && Date.now() - t0 > gone + 1500) break; await sleep(60); }
+      ok(!rp && gone > 0 && gone < 4600, '(d) sin pulsar, el aviso se va solo en ' + (gone / 1000).toFixed(1) + ' s (4 s y el sondeo) y no hay repetición', [rp, gone]); }
+    ok(await waitFor('VB.ctx.game.mode === "rally"', 8000), '(d) el partido sigue: saque siguiente');
+    // mando: LT (botón 6 del mapeo estándar) con el aviso → la repetición; el aviso dice «Pulsa LT…»
+    await withSettings({}, QA);
+    if (await waitFor(OFV, 8000)) {
+      await E('__pad.connect(), 1'); await sleep(150);
+      await E(`__pad.set([0.7,0,0,0]), 1`); await sleep(150); await E(`__pad.set([0,0,0,0]), 1`); await sleep(200);
+      const tp = await E(`document.getElementById('rpOffT').textContent`);
+      ok(/Pulsa (LT|L2) para ver la repetición/.test(tp), '(d) con mando: «Pulsa LT para ver la repetición»', tp);
+      await pad(6);
+      ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 6000), '(d) LT lanza la repetición');
+    } else fail('(d) mando: sin aviso');
     await withSettings({ lessMotion: 'on' }, QA);
-    await sleep(4000);
-    ok(await E('!VB.ctx.replay && VB.ctx.reduceMotion === true'), '(d) «Menos movimiento»: sin automática');
+    ok(await waitFor(OFV, 8000), '(d) «Menos movimiento»: el aviso sale igual (la pide uno)');
+    await sleep(1500);
+    ok(await E('!VB.ctx.replay && VB.ctx.reduceMotion === true'), '(d) «Menos movimiento»: nunca arranca sola');
     await withSettings({ lessMotion: 'on' }, 'debug=best&play=1');
     let slowSeen = false; const td = Date.now();
     await waitFor('!!VB.ctx.replay', 8000);
     while (Date.now() - td < 25000) { const s = await J('VB.Replay.info() ? [VB.Replay.info().slow, VB.Replay.info().phase] : null'); if (!s) break; if (s[0]) slowSeen = true; await sleep(50); }
     ok(!slowSeen, '(d) «Menos movimiento»: sin cámara lenta en mejores jugadas');
     await withSettings({ replays: 'end' }, QA);
-    await sleep(4000);
-    ok(await E(`!VB.ctx.replay && VB.ctx.settings.replays === 'end' && VB.Replay.enabled()`), '(d) «Al final»: graba pero sin automática');
+    { const t0 = Date.now(); let seen = false; while (Date.now() - t0 < 4000) { if (await E('!!VB.ctx.replayOffer || !!VB.ctx.replay')) seen = true; await sleep(80); }
+      ok(!seen && await E(`VB.ctx.settings.replays === 'end' && VB.Replay.enabled()`), '(d) «Al final»: graba pero sin aviso ni repetición'); }
     await withSettings({ replays: 'off' }, 'debug=best&tab=plays');
     await waitFor(`!document.getElementById('end').hidden`, 8000);
     ok(await E(`!document.querySelector('#endTabs [data-tab="plays"], #endTabs-plays') && !document.querySelector('#endPlays [data-play]')`), '(d) «No»: sin pestaña «Jugadas»');
     const optRow = await J(`(function(){ var b = document.querySelector('[data-opt="replays"]'); return b ? [b.closest('.opt-g').getAttribute('data-tab'), b.textContent] : null; })()`);
     ok(optRow && optRow[0] === 'game' && /Repeticiones/.test(optRow[1]), '(d) fila «Repeticiones» en Ajustes · Juego', optRow);
+    const optLab = await E(`(function(){ var b = document.querySelector('[data-seg="replays"]'); return b ? b.textContent : ''; })()`);
+    ok(/Con botón/.test(optLab) && !/Automáticas/.test(optLab), '(d) la opción se llama «Con botón»', optLab);
+    // táctil (844×390): botoncito «REPETICIÓN» de ≥ 44 px; el toque la lanza
+    // (escena &offer=1: el aviso quieto, sin carrera contra el telón de carga, que en la escena tapa los primeros segundos)
+    await open('844x390', true);
+    await go('debug=replay&offer=1');
+    await waitFor(`document.getElementById('boot').classList.contains('gone')`, 15000); await sleep(700);
+    if (ok(await waitFor(`!!VB.ctx.replayOffer && document.getElementById('rpOff').classList.contains('show')`, 8000), '(d) táctil: aviso')) {
+      const r = await J(`(function(){ var b = document.getElementById('rpOff'), q = b.getBoundingClientRect(); return { t: document.getElementById('rpOffT').textContent, tch: b.classList.contains('tch'), x: q.left + q.width / 2, y: q.top + q.height / 2, h: q.height, w: q.width, inV: q.right <= innerWidth && q.bottom <= innerHeight && q.left >= 0 && q.top >= 0 }; })()`);
+      ok(r.t === 'REPETICIÓN' && r.tch && r.h >= 44 && r.inV, '(d) táctil: botoncito «REPETICIÓN» de ≥ 44 px dentro de la pantalla', r);
+      await tap(r.x, r.y);
+      ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 6000), '(d) táctil: el toque lanza la repetición');
+    }
+    await open('1280x720');
     await withSettings({ replays: 'basura' }, 'nonews=1');
-    ok(await E(`VB.ctx.settings.replays === 'auto'`), '(d) valor corrupto → «Automáticas»');
+
+    ok(await E(`VB.ctx.settings.replays === 'auto'`), '(d) valor corrupto → «Con botón»');
     await E(`localStorage.removeItem('make-the-cut.settings'), 1`);
 
     // ---------------------------------------------------------------- (e)(f)
@@ -540,11 +612,23 @@ async function cdpPart() {
     await go('nonews=1');
     await waitFor(`VB.ctx.state === 'menu'`, 8000);
     await E(`VB.ctx.actions.startMatch({ format: '6v6', noIntro: true }), 1`); await waitFor('VB.ctx.game.size === 6 && !VB.ctx.game.demo', 10000);
-    const e1 = await J(`{why: VB.Replay._state().why, on: VB.Replay.enabled(), n: VB.Replay.bestCount(), size: VB.ctx.game.size}`);
-    ok(e1.size === 6 && e1.why === '6v6' && !e1.on && e1.n === 0, '(e) 6v6 humano: Replay apagado y bestCount 0', e1);
-    await go('debug=over&format=6v6');
-    await waitFor(`!document.getElementById('end').hidden`, 8000);
-    ok(await E(`!document.querySelector('#endTabs-plays')`), '(e) hoja final 6v6 sin pestaña «Jugadas»');
+    const e1 = await J(`{why: VB.Replay._state().why, on: VB.Replay.enabled(), size: VB.ctx.game.size}`);
+    ok(e1.size === 6 && e1.why === '' && e1.on, '(e) 6v6 humano: Replay graba (REPLAY6 encendido)', e1);
+    // hoja final 6v6 con «Jugadas»: «Ver» repite la jugada con los 12 en pista, sin desajuste
+    await go('debug=best&format=6v6&tab=plays');
+    await waitFor(`!document.getElementById('end').hidden`, 15000); await sleep(600);
+    const e2 = await J(`{n: VB.Replay.bestCount(), tab: !!document.querySelector('#endTabs [data-tab="plays"]'), b: document.querySelectorAll('#endPlays [data-play]').length, size: VB.ctx.game.size}`);
+    ok(e2.size === 6 && e2.n >= 1 && e2.n <= 2 && e2.tab && e2.b >= 1, '(e) hoja final 6v6 con pestaña «Jugadas» (1-2 jugadas)', e2);
+    if (e2.n) {
+      await E(`VB.ctx.actions.playBest(0), 1`);
+      ok(await playing(), '(e) 6v6: «Ver» llega a play');
+      const e3 = await J(`{rigs: VB.Players.rigs.length, runner: VB.Replay.runner() && VB.Replay.runner().players.length, same: VB.Players.rigs.every(function (r) { return VB.Replay.runner().players.indexOf(r.p) >= 0; }), cam: VB.CameraRig.getShot ? VB.CameraRig.getShot() : ''}`);
+      ok(e3.rigs === 12 && e3.runner === 12 && e3.same, '(e) 6v6: los 12 atletas pintan la repetición', e3);
+      ok(!e3.cam || e3.cam === 'replay', '(e) 6v6: plano de la repetición', e3.cam);
+      ok(await waitFor('!VB.ctx.replay', 25000) && await E('VB.Replay.desync()') === 0, '(e) 6v6: acaba sola y sin desajuste');
+      ok(await waitFor(`!document.getElementById('end').hidden`, 3000), '(e) 6v6: vuelve la hoja');
+    }
+    ok(!page.errors.length, '(e) sin errores JS', page.errors.slice(0, 3));
     await go('nonews=1'); await waitFor(`VB.ctx.state === 'menu'`, 8000);
     await E(`VB.ctx.actions.startMatch({ drill: 'serve', noIntro: true }), 1`); await waitFor('!!VB.ctx.game.drill', 10000);
     const f1 = await J(`{why: VB.Replay._state().why, on: VB.Replay.enabled(), drill: !!VB.ctx.game.drill}`);
@@ -587,22 +671,31 @@ async function cdpPart() {
     // posible en el punto de partido (cantada de línea) NO hay automática (S3-C1 §2.1, T24): la hoja sale sin esperar a ninguna
     // repetición. Sin challenge posible, R11: la automática sale y la hoja espera a que acabe.
     await go('debug=replay&match=1&auto=1&hold=1');
-    let chal = false, sawRp = false;
-    { const t0 = Date.now(); while (Date.now() - t0 < 4000) { const s = await J(`[!!(VB.Sim.canChallenge && (VB.Sim.canChallenge(VB.ctx.game, 0) > 0 || VB.Sim.canChallenge(VB.ctx.game, 1) > 0)), !!VB.ctx.replay]`); if (s[0]) chal = true; if (s[1]) sawRp = true; if (chal || sawRp) break; await sleep(50); } }
+    let chal = false, sawOf = false;
+    { const t0 = Date.now(); while (Date.now() - t0 < 4000) { const s = await J(`[!!(VB.Sim.canChallenge && VB.Sim.canChallenge(VB.ctx.game, 0) > 0) || !!VB.ctx.game.cpuChal, !!VB.ctx.replayOffer, !!VB.ctx.replay]`); if (s[0]) chal = true; if (s[1]) sawOf = true; if (s[2]) fail('(j) repetición sin pedirla'); if (chal || sawOf) break; await sleep(50); } }
     if (chal) {
-      const t0 = Date.now(); let rpSeen = false;
-      while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden && VB.ctx.state === 'over']`); if (s[0]) rpSeen = true; if (s[1]) break; await sleep(50); }
+      const t0 = Date.now(); let ofSeen = false;
+      while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replayOffer || !!VB.ctx.replay, !document.getElementById('end').hidden && VB.ctx.state === 'over']`); if (s[0]) ofSeen = true; if (s[1]) break; await sleep(50); }
       const dt = (Date.now() - t0) / 1000;
-      ok(!rpSeen, '(j) con challenge posible en el punto de partido, sin repetición automática');
-      ok(dt < 14, '(j) la hoja final sale ' + dt.toFixed(1) + ' s después (ventana del challenge + celebración, sin repetición)');
+      ok(!ofSeen, '(j) con tu challenge posible en el punto de partido, sin aviso (V es del challenge)');
+      ok(dt < 14, '(j) la hoja final sale ' + dt.toFixed(1) + ' s después (ventana del challenge + celebración)');
     } else {
-      ok(sawRp || await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'match'`, 15000), '(j) repetición automática del punto de partido');
-      let endDuring = false, tRp = 0;
-      { const t0 = Date.now(); while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden]`); if (s[0] && s[1]) endDuring = true; if (!s[0]) { tRp = Date.now(); break; } await sleep(50); } }
-      ok(!endDuring && tRp > 0, '(j) la hoja no se ve durante la repetición');
-      ok(await waitFor(`!document.getElementById('end').hidden && VB.ctx.state === 'over'`, 15000), '(j) la hoja final sale después');
-      const dtEnd = (Date.now() - tRp) / 1000;
-      ok(dtEnd > 0.3, '(j) la hoja sale ' + dtEnd.toFixed(1) + ' s después de la repetición (resto de la celebración)');
+      ok(sawOf && await E(`VB.ctx.replayOffer && VB.ctx.replayOffer.kind === 'match'`), '(j) aviso de repetición del punto de partido');
+      // sin pulsar: la hoja sale sola y sin repetición
+      let rp = false; const t0 = Date.now();
+      while (Date.now() - t0 < 20000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden && VB.ctx.state === 'over']`); if (s[0]) rp = true; if (s[1]) break; await sleep(50); }
+      ok(!rp && await E(`!document.getElementById('end').hidden`), '(j) sin pulsar, la hoja final sale sin repetición (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
+      ok(await E(`!document.getElementById('rpOff').classList.contains('show')`), '(j) sin aviso encima de la hoja');
+      // pulsando: la hoja espera a la repetición (R11)
+      await go('debug=replay&match=1&auto=1&hold=1');
+      if (await waitFor('!!VB.ctx.replayOffer', 5000)) {
+        await key('KeyV');
+        ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'match'`, 6000), '(j) V lanza la repetición del punto de partido');
+        let endDuring = false, tRp = 0;
+        { const t1 = Date.now(); while (Date.now() - t1 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden]`); if (s[0] && s[1]) endDuring = true; if (!s[0]) { tRp = Date.now(); break; } await sleep(50); } }
+        ok(!endDuring && tRp > 0, '(j) la hoja no se ve durante la repetición');
+        ok(await waitFor(`!document.getElementById('end').hidden && VB.ctx.state === 'over'`, 15000), '(j) la hoja final sale después');
+      } else fail('(j) sin aviso en la 2ª carga');
     }
     ok(!page.errors.length, '(d-j) sin errores JS', page.errors.slice(0, 3));
   } catch (e) { fail('CDP: ' + (e && e.stack || e)); }

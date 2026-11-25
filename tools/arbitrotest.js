@@ -199,5 +199,35 @@ console.log(`frecuencias (${N} partidos, ${((Date.now() - t0) / 1000).toFixed(1)
   band('tranquilo / completo (protestas IA)', +(c.autos / Math.max(1, d.autos)).toFixed(2), 0.35, 0.7);
   band('ofertas por partido', per(d, d.offers), 0.35, 0.9);
 }
+// ---------------------------------------------------------------- aspecto del 1r (24-nov): puro, fijo y según el carácter
+{
+  const f0 = failures, TR = Object.keys(A.TRAITS), cnt = {};
+  for (let s = 1; s <= 200; s++) {
+    // fuera de la Carrera: pista = larguirucho con poco pelo; playa = calvo, sin gafas ni nada (gorra según la semilla, fija)
+    const h = A.look({ beach: false, seed: s }), b = A.look({ beach: true, seed: s });
+    if (h.hair !== 'thin' || h.build !== 'lanky' || h.glasses || h.stache || h.beard || h.cap) fail('rápido pista ' + JSON.stringify(h));
+    if (b.hair !== 'bald' || b.glasses || b.stache || b.beard || JSON.stringify(b) !== JSON.stringify(A.look({ beach: true, seed: s }))) fail('rápido playa ' + JSON.stringify(b));
+    cnt.cap = (cnt.cap | 0) + (b.cap ? 1 : 0);
+    for (const t of TR) {
+      const o = { trait: t, lk: s * 7919, sty: ['es', 'it', 'jp', 'br'][s % 4] }, L = A.look(o);
+      if (JSON.stringify(L) !== JSON.stringify(A.look(Object.assign({}, o)))) fail('no determinista ' + t);
+      if (L.cap) fail('gorra fuera de la playa ' + t);
+      const k = t + ':'; cnt[k + L.hair] = (cnt[k + L.hair] | 0) + 1; cnt[k + L.build] = (cnt[k + L.build] | 0) + 1;
+      if (t === 'nervioso' && (L.glasses !== 'round' || L.hair === 'full')) fail('nervioso sin gafas o con mucho pelo ' + JSON.stringify(L));
+      if (t === 'lince' && !(L.glasses === 'thin' || L.brow === 'frown')) fail('lince sin gafas finas ni mirada aguda ' + JSON.stringify(L));
+      if (t === 'estricto' && (L.build === 'lanky' || L.brow !== 'frown')) fail('mano dura sin cara seria o larguirucho ' + JSON.stringify(L));
+    }
+  }
+  if (!(cnt.cap > 40 && cnt.cap < 120)) fail('gorra en la playa (rápido) ' + cnt.cap + ' de 200');
+  if (!(cnt['estricto:stout'] > 120)) fail('mano dura casi siempre robusto: ' + cnt['estricto:stout']);
+  if (!(cnt['deja:full'] > 120)) fail('el que deja jugar, casi siempre con pelo: ' + cnt['deja:full']);
+  // distinguibles: en un colegio (9 árbitros) rara vez dos iguales
+  let same = 0;
+  for (let s = 1; s <= 100; s++) { const seen = new Set(); ['estricto', 'estricto', 'deja', 'deja', 'lince', 'lince', 'nervioso', 'manual', 'manual'].forEach((t, i) => { const k = JSON.stringify(A.look({ trait: t, lk: s * 1009 + i * 104729 })); if (seen.has(k)) same++; seen.add(k); }); }
+  if (same > 10) fail('aspectos repetidos en el colegio: ' + same + ' en 100 colegios');
+  const rnd = Math.random; let rc = 0; Math.random = () => { rc++; return rnd(); }; A.look({ trait: 'deja', lk: 5 }); A.look({ beach: true, seed: 2 }); Math.random = rnd;
+  if (rc) fail('look usa Math.random');
+  console.log('aspecto del 1r: ' + (failures === f0 ? 'ok' : 'FALLOS') + ' (gorra en la playa ' + cnt.cap + '/200, mano dura robusto ' + cnt['estricto:stout'] + '/200, repetidos ' + same + '/100 colegios)');
+}
 console.log(failures ? `\n${failures} FALLO(S)` : '\nTODO OK');
 process.exit(failures ? 1 : 0);

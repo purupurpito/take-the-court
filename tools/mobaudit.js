@@ -84,8 +84,11 @@ const SCREENS = [
   { id: 'acerca-novedades', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('news'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'acerca-creditos', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('credits'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'aviso-colocador', area: 'portada', q: M0 + '&setnote=1', open: "await M.ensureMenu(); VB.UI.setterNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="later"]' },
+  // rendimiento del 1r 6v6 (24-nov-2026): la ventana de la calidad antes del partido (Auto recomendada; Alta, Media y Baja)
+  { id: 'aviso-rendimiento', area: 'portada', q: M0 + '&q6=1', open: "await M.ensureMenu(); VB.UI.perfNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="q-low"]', primary: '[data-sn="q-auto"]' },
   { id: 'primer-partido', area: 'portada', q: M0 + '&panel=first', open: "return M.until(()=>VB.UI.isPanelOpen(),2000);" },
   { id: 'home-jugarya', area: 'portada', q: M0 + '&now=1', open: 'return M.ensureMenu();', exit: '', primary: '#btnNow' },   // «Jugar ya» (1.22.0): portada de quien no ha jugado nunca
+  { id: 'home-primera', area: 'portada', q: M0 + '&first=1', open: 'return M.ensureMenu();', exit: '', primary: '#btnNow' },   // primera vez (24-nov-2026): solo «¡Jugar ya!» y «Tutorial»
   // «Seguir el partido» (1.22.0, informe 4.9): portada con un partido a medias guardado (lo guardado es de mentira: solo se pinta)
   { id: 'home-seguir', area: 'portada', q: M0 + '&seguir=1&ma=sg', open: "localStorage.setItem('make-the-cut.resume', JSON.stringify({ f: 1, v: VB.VERSION, t: Date.now(), kind: 'quick', opts: {}, gOpts: {}, snap: { v: 2 }, sc: { score: [18, 15], sets: [1, 0], setNo: 2, one: false, size: 2 } })); VB.UI.refreshMenu(); await M.sleep(200); return M.ensureMenu();", exit: '', primary: '#btnSeguir' },
   { id: 'home-seguir-carrera', area: 'portada', q: M0 + '&seguir=1&ma=sgc', open: "M.seedCareer('beach'); localStorage.setItem('make-the-cut.resume', JSON.stringify({ f: 1, v: VB.VERSION, t: Date.now(), kind: 'quick', opts: {}, gOpts: {}, snap: { v: 2 }, sc: { score: [24, 23], sets: [0, 0], setNo: 1, one: true, size: 6 } })); VB.UI.refreshMenu(); await M.sleep(300); return M.ensureMenu();", exit: '', primary: '#btnSeguir' },
@@ -94,6 +97,10 @@ const SCREENS = [
   { id: 'retos-maestria', area: 'portada', q: 'debug=retos', open: "await M.ensureMenu(); return VB.UI.openRetos('maestria');" },
   { id: 'retos-semana', area: 'portada', q: 'debug=retos', open: "await M.ensureMenu(); return VB.UI.openRetos('semana');" },
   { id: 'retos-semana-grupo', area: 'portada', q: 'debug=semana&semdemo=1', open: "await M.ensureMenu(); return VB.UI.openRetos('semana');" },
+  // la jugada del día (24-nov-2026): la ventana al entrar (sin racha y con la racha más larga: «Racha: 6 días seguidos (tu mejor, 9)») y el sello «Hecha» con la chapa de la racha
+  { id: 'jugada-ventana', area: 'portada', q: M0 + '&ma=jv', open: "await M.ensureMenu(); return VB.UI.semPop(true);", exit: '#btnSemPopNo', primary: '#btnSemPopGo' },
+  { id: 'jugada-ventana-racha', area: 'portada', q: M0 + '&ma=jvr', open: "var S = VB.Semana, k = S.today(); localStorage.setItem(S.KEY, JSON.stringify({ v: 2, day: k, me: 'abc', n: 1, open: null, best: { w: 0, a: 23, b: 25, S: '', A: '' }, tries: [{ w: 0, a: 23, b: 25 }], streak: { cur: 6, best: 9, last: S.yesterday(k) } })); await M.ensureMenu(); return VB.UI.semPop(true);", exit: '#btnSemPopNo', primary: '#btnSemPopGo' },
+  { id: 'home-jugada-hecha', area: 'portada', q: M0 + '&ma=jh', open: "var S = VB.Semana, k = S.today(); localStorage.setItem(S.KEY, JSON.stringify({ v: 2, day: k, me: 'abc', n: 2, open: null, best: { w: 1, a: 26, b: 24, S: '', A: '' }, tries: [{ w: 0, a: 23, b: 25 }, { w: 1, a: 26, b: 24 }], streak: { cur: 12, best: 12, last: k } })); VB.UI.refreshMenu(); await M.sleep(1400); return M.ensureMenu();", exit: '', primary: '#btnPlay' },
   ...LK_TABS.map(t => ({ id: 'vestuario-' + t, area: 'portada', q: 'debug=look', open: `if (VB.UI.menuPage()!=='look') { await M.ensureMenu(); VB.UI.openLook({}); await M.idle(); } return M.click('#lkTabs [data-tab="${t}"]') && VB.UI.menuPage()==='look';` })),
   ...PF_TABS.map(t => ({ id: 'perfil-' + t, area: 'portada', q: 'debug=prof&pfseed=demo', open: `if (VB.UI.menuPage()!=='prof') { await M.ensureMenu(); VB.UI.openProfile({tab:'${t}'}); await M.idle(); } return M.click('#pfTabs [data-tab="${t}"]') && VB.UI.menuPage()==='prof';` })),
   { id: 'cuenta-entrar', area: 'portada', q: M0 + '&ma=acc', open: "await M.ensureMenu(); return VB.Account._preview('enter',{tab:'in'});", exit: '[data-ac="close"]', primary: '' },
@@ -207,6 +214,7 @@ const SCREENS = [
   { id: 'carrera-previa', area: 'carrera', q: 'debug=intro&kind=long&career=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
   // árbitros con nombre (21-nov-2026): la designación en la previa larga y la ficha «Frenar a … / Dejarle» (playa y pista)
   { id: 'carrera-previa-arbitro', area: 'carrera', q: 'debug=intro&kind=long&career=1&arb=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
+  { id: 'carrera-previa-arbitro-fama', area: 'carrera', q: 'debug=intro&kind=long&career=1&arb=2&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
   { id: 'partido-frenar-playa', area: 'partido', q: 'debug=amb&k=brake', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
   { id: 'partido-frenar-pista', area: 'partido', q: 'debug=amb&k=brake&format=6v6', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
 
@@ -229,8 +237,8 @@ const SCREENS = [
   { id: 'hud-saque-firma', area: 'partido', q: 'debug=serve&sig=abajo&gest=tres', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 1200, exit: HUD_EXIT, primary: '' },
   { id: 'hud-entreno', area: 'partido', q: 'debug=drill_serve', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'previa', area: 'partido', q: 'debug=intro&kind=short&t=2', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
-  { id: 'semana-previa', area: 'partido', q: 'debug=semana_play&semwk=202648&intro=1&kind=mini', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
-  { id: 'semana-pausa', area: 'partido', q: 'debug=semana_play&semwk=202650&pause=1', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} return VB.ctx.state==='paused' && !VB.UI.isPanelOpen();", wait: 500, exit: PAUSE_EXIT },
+  { id: 'semana-previa', area: 'partido', q: 'debug=semana_play&semday=20261127&intro=1&kind=mini', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
+  { id: 'semana-pausa', area: 'partido', q: 'debug=semana_play&semday=20261130&pause=1', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} return VB.ctx.state==='paused' && !VB.UI.isPanelOpen();", wait: 500, exit: PAUSE_EXIT },
   { id: 'semana-hoja', area: 'partido', q: 'debug=semana_end', open: "return M.until(()=>VB.ctx.state==='over',8000);", wait: 1500, exit: '', primary: '#btnAgain' },
   { id: 'pausa', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} return VB.ctx.state==='paused' && !VB.UI.isPanelOpen();", wait: 500, exit: PAUSE_EXIT },
   { id: 'pausa-controles', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); if (!VB.UI.isPanelOpen()) M.click('#btnPControls'); await M.sleep(150); return VB.UI.isPanelOpen();", primary: '' },
@@ -238,6 +246,7 @@ const SCREENS = [
   { id: 'cambios-6v6', area: 'partido', q: 'debug=subs6menu', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'cambios-6v6-elegido', area: 'partido', q: 'debug=subs6menu&pick=1', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'final-resumen', area: 'partido', q: 'debug=over', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); return M.click('#endTabs [data-tab=\"sum\"]') || true;", wait: 600 },
+  { id: 'final-nivel', area: 'partido', q: 'debug=over&pflv=60', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); M.click('#endTabs [data-tab=\"sum\"]'); var r=document.querySelector('#endSum .rc-prof'); if (r) r.scrollIntoView({block:'nearest'}); return !!r;", wait: 600 },   // subida de nivel del perfil con premio (el nombre más largo de los de nivel alto, 24-nov)
   { id: 'final-primero', area: 'partido', q: 'debug=over&first=1', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(600); M.click('#endTabs [data-tab=\"sum\"]'); var r=document.querySelector('#endSum .rc-first'); if (r) r.scrollIntoView({block:'nearest'}); return !!r;", wait: 600 },   // «Y ahora» tras el primer partido (1.22.0)
   { id: 'final-stats', area: 'partido', q: 'debug=over', open: "await M.until(()=>VB.ctx.state==='over',5000); await M.sleep(300); return M.click('#endTabs [data-tab=\"stats\"]');", wait: 500 },
   { id: 'final-jugadas', area: 'partido', q: 'debug=best&tab=plays', open: "await M.until(()=>VB.ctx.state==='over',8000); await M.sleep(600); M.click('#endTabs [data-tab=\"plays\"]'); return VB.ctx.state==='over';", wait: 600 },
@@ -246,6 +255,8 @@ const SCREENS = [
   { id: 'estadistica-2v2', area: 'partido', q: 'debug=stats', open: "return M.until(()=>VB.UI.isPanelOpen(),8000);", wait: 700, primary: '' },
   { id: 'estadistica-6v6', area: 'partido', q: 'debug=stats&format=6v6', open: "return M.until(()=>VB.UI.isPanelOpen(),8000);", wait: 700, primary: '' },
   { id: 'repeticion', area: 'partido', q: 'debug=replay&rpt=1', open: "return M.until(()=>VB.ctx.state==='playing',8000);", wait: 1500, exit: '', primary: '' },
+  { id: 'repeticion-6v6', area: 'partido', q: 'debug=replay&format=6v6&rpt=1.5', open: "return M.until(()=>VB.ctx.replay&&VB.ctx.replay.phase==='play',12000);", wait: 2200, exit: '', primary: '' },   // (24-nov-2026: REPLAY6 encendido)
+  { id: 'aviso-repeticion', area: 'partido', q: 'debug=replay&offer=1', open: "await M.until(()=>document.getElementById('boot').classList.contains('gone'),15000); return M.until(()=>!!VB.ctx.replayOffer&&document.getElementById('rpOff').classList.contains('show'),8000);", wait: 700, exit: '', primary: '#rpOff' },   // aviso «Pulsa V…» / botoncito táctil (24-nov-2026)
 ];
 
 // ------------------------------------------------------------------------------------------------ utilidades

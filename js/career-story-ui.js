@@ -10,7 +10,7 @@
  *                 Reúne los chips(c) de cada sistema (VB.CareerStory.chipsOf) y los que salen de datos que ya existen: decisión
  *                 pendiente de career-life, ofertas de patrocinio, ventana con ofertas, puntos sin gastar, último año de contrato
  *                 (desde la jornada 10) y, si ningún sistema avisa de la bandeja, «N mensajes esperan respuesta». Ordenados por p.
- *                 p: prioridad (menor, antes) · ic: icono (un carácter) · t: texto · x: línea pequeña («Responder») · tab / s:
+ *                 p: prioridad (menor, antes) · ic: icono (un carácter, o 'salpi': la gota de la moneda) · t: texto · x: línea pequeña («Responder») · tab / s:
  *                 pestaña y sub-pestaña a la que lleva · act: acción 'st-…' (en vez de tab) · to: selector al que salta 'st-jump'.
  *  chipsHTML(c, H) Hasta MAX_CHIPS (4) chips como botones SPLAT (<button data-tab data-s> o data-act); sin ninguno, «Todo al día».
  *  weekCard(c, H)  Tarjeta «Tu semana» (sys.ui.week de cada sistema, P2).
@@ -94,6 +94,7 @@
     Q + ' .st-chips .sp-btn{flex:1 1 calc(50% - 12px);min-width:0;--sp-h:44px;--sp-fs:13.5px;--sp-ss:11.5px}',
     Q + ' .st-chips .sp-t{white-space:normal;text-align:left;line-height:1.1}',
     Q + ' .st-ic{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:6px;border-radius:50%;background:var(--sp-ink);color:var(--sp-gold);font:700 12px/1 var(--sp-ui);font-style:normal;vertical-align:-3px}',
+    Q + ' .st-coin .sp-salpi{width:15px;height:15px;margin:0;vertical-align:0}',
     Q + ' .st-ok{font:400 clamp(15px,2.6vh,19px)/1.1 var(--sp-pop);color:var(--sp-gold);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink);transform:rotate(-1.5deg);margin:2px 0 12px}',
     Q + ' .st-plan{--sp-h:44px;max-width:100%}',
     // botones apilados (Tu semana, pacto, prensa, respuestas, publicar): a lo ancho de su columna, el texto parte en líneas
@@ -184,7 +185,7 @@
       var ev = null; try { ev = L.pendingEvent(c); } catch (e) { ev = null; }
       if (ev && ev.title) out.push({ p: 1, ic: '!', t: 'Decisión: ' + ev.title, x: 'Contestar', act: 'st-jump', to: '.lf-ev' });
     }
-    if (Array.isArray(l.spOffers) && l.spOffers.length) out.push({ p: 3, ic: '€', t: l.spOffers.length === 1 ? 'Oferta de patrocinio' : l.spOffers.length + ' ofertas de patrocinio', x: 'Mirar', tab: 'life', s: 'fame' });
+    if (Array.isArray(l.spOffers) && l.spOffers.length) out.push({ p: 3, ic: 'salpi', t: l.spOffers.length === 1 ? 'Oferta de patrocinio' : l.spOffers.length + ' ofertas de patrocinio', x: 'Mirar', tab: 'life', s: 'fame' });
     if (c.window === 'mid' && Array.isArray(c.offers) && c.offers.length) out.push({ p: 2, ic: '⇄', t: plural(c.offers.length, 'club te quiere', 'clubes te quieren'), x: 'Ventana de fichajes', tab: 'club', s: 'offers' });
     if ((c.player.pts | 0) > 0 && c.phase !== 'off') out.push({ p: 4, ic: '+', t: plural(c.player.pts | 0, 'punto', 'puntos'), x: 'Por repartir', tab: 'player', s: 'phys' });
     var ct = c.contract;
@@ -203,7 +204,8 @@
       : ' data-tab="' + esc(ch.tab || 'match') + '"' + (ch.s ? ' data-s="' + esc(ch.s) + '"' : '');
     var t = clean(ch.t), x = clean(ch.x);
     return '<button class="sp-btn sp-sm ' + CHIP_C[i % CHIP_C.length] + ' st-chip"' + at + ' data-shape="' + (i + 3) + '"><span class="sp-l"><span class="sp-t">' +
-      (ch.ic ? '<i class="st-ic" aria-hidden="true">' + esc(String(ch.ic).slice(0, 2)) + '</i>' : '') + esc(t) + '</span>' + (x ? '<small class="sp-s">' + esc(x) + '</small>' : '') + '</span></button>';
+      (ch.ic === 'salpi' ? '<i class="st-ic st-coin" aria-hidden="true"><i class="sp-salpi"></i></i>'   // (la moneda: su gota, no un carácter)
+        : ch.ic ? '<i class="st-ic" aria-hidden="true">' + esc(String(ch.ic).slice(0, 2)) + '</i>' : '') + esc(t) + '</span>' + (x ? '<small class="sp-s">' + esc(x) + '</small>' : '') + '</span></button>';
   }
   function chipsHTML(c, H) {
     if (!c) return '';

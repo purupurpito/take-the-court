@@ -4,8 +4,8 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 **decisión provisional**: cambiarlo es tocar el sitio que se indica. Lo que Ferran sí decidió está en la memoria
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
-Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Backlog del 21-nov · Señas · Xaranga · Semana · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
-publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
+Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · IA del 24-nov (rama decisiones) · Repeticiones con botón (24-nov, rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
+publicar · Chat rápido (lista final aprobada) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
 ## Imprescindibles 1.22.0 (rama investigacion; informe estudios/revision-juegos-voley-2026-11-21.md §4)
@@ -42,7 +42,8 @@ rama pendientes, sin publicar.
      partido»); la revancha de ese partido también es corta.
   3. `?jugar` vale para todos (no solo novatos): arranca el partido corto sin pasar por el menú y se quita del enlace.
   4. «Y ahora» sale una sola vez, al acabar el primer partido; Cuenta solo si no hay sesión.
-  ¿Te vale el billete encima de JUGAR, o prefieres que JUGAR haga de «Jugar ya» la primera vez (un botón menos)?
+  **Contestado el 24-nov** («Cuando alguien se meta al juego por PRIMERA VEZ que le dé de opciones Jugar ya o Tutorial»): ver «Menús:
+  decisiones de Ferran del 24-nov», abajo.
 - **4.2 «Botones táctiles movibles, con opacidad y modo zurdo»** (notes/camera_input.md «Disposición táctil»). Ajustes › Controles › Táctil ›
   «Disposición de botones»: editor a pantalla completa con los botones de verdad (arrastrar, Tamaño 70-150 % y Opacidad 30-100 % por botón,
   «Zurdos», «Restablecer», «Listo»). Solo en el aparato (`make-the-cut.device`), nunca en la cuenta. **Decisiones provisionales:**
@@ -64,7 +65,8 @@ rama pendientes, sin publicar.
   4. Vale también en 6 contra 6. **«Jugar ya» (un set a 15) solo cuenta en el primer partido de quien no ha jugado nunca** (22-nov,
      revisión de la rama: antes contaba siempre y su revancha y `?jugar` daban victorias y XP baratas). La revancha de ese primer partido
      y `?jugar` de quien ya ha jugado son un corto más (`g.short` «Un set»): no cuentan y la hoja dice «Partido corto».
-  ¿Prefieres que los cortos cuenten aparte (p. ej. su propio «ganados de jugados») en vez de no contar?
+  **Contestado el 24-nov** («Los partidos cortos son partidos sin más, sin traer experiencia ni nada»): se quedan así, sin contar nada
+  (comprobado: `g.short` no da récord, retos, insignias ni XP; tools/cortostest.js).
 - **4.6 «Marca de tu jugador» y 4.7 «Indicador de caída»** (Ajustes › Accesibilidad; notes/ui_main.md «Marca de tu jugador e indicador de
   caída»). Solo visuales, sin tocar huellas. **Decisiones provisionales:**
   1. Alto contraste = **blanco con borde negro** (halo y galón); no amarillo, que es el color del aro de golpeo.
@@ -79,10 +81,10 @@ rama pendientes, sin publicar.
      Accesibilidad» (7 s). Se apunta en el ajuste nuevo `laSeen`.
   4. La vista previa es un icono en la fila; a 568×320 no cabe y no sale.
   ¿Te vale que «Auto» retire el aro en Difícil y Experto, o lo quieres siempre entero salvo que lo cambie el jugador?
-- **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
-  1. Falta de posición (`RULES.posicion` de js/senas.js): el texto dice «todos en su sitio de rotación», pero el juego **solo** la pita
-     al equipo que recibe (regla 7.4, desde 1.11.0); la justificación del 21-nov (que también pita al que saca) es falsa. Propuesta:
-     «Reglas 7.4-7.5: al saque, el equipo que recibe, cada uno en su sitio de rotación.» ¿La pones?
+- **Preguntas del reglamento (informe §7, puntos 2 y 4):**
+  1. Falta de posición: **contestado el 24-nov** («En el reglamento ya sale que el equipo que saca es libre de ocupar la posición que
+     quiera»): puesta la propuesta en `RULES.posicion`, **sin la primera coma** para caber en los 80 caracteres de senatest: «Reglas
+     7.4-7.5: al saque el equipo que recibe, cada uno en su sitio de rotación.»
   2. Saque (`RULES.saque`): dice «se golpea con una mano»; la 12.4.1 dice «con una mano o cualquier parte del brazo». ¿Se corrige?
   3. Señas: la n.º 19 (red) también cubre el saque que toca la red y no pasa, y la n.º 12 es bloqueo o pantalla. ¿Ajustamos las
      explicaciones del Cuaderno a eso?
@@ -96,8 +98,7 @@ rama pendientes, sin publicar.
   2. La IA solo varía **entre zonas casi tan buenas como la mejor** (`MEM.tol` = 0,6 m de hueco): con la penalización tal cual del informe
      Experto bajaba claramente; así sigue igual de duro (medido con los bots de simtest, tools/variedadtest.js).
   3. Si el jugador pide el balón en 6v6, al humano no se le reparte menos por haber rematado las dos últimas.
-  4. **No hecho:** el bloqueo de la IA que se corre tras 4 remates tuyos seguidos por el mismo carril (fuera de la Carrera). Sigue solo
-     «Te tienen estudiado» en la Carrera. ¿Lo quieres para otro sprint?
+  4. El bloqueo que se corre cuando repites carril: **hecho el 24-nov** («Te leen», rama decisiones; ver «IA: decisiones del 24-nov»).
   5. **simtest recalibrado (22-nov; antes quedaba con 4 fallos). Confirmado el mismo día** con 100 partidos completos de demo (5 grupos
      de 20 semillas, rama y main 1.21.0): puntos grandes 23,9 % en la rama y 21,8 % en main (grupos 22,4-25,2 y 20,9-22,8), ≥ 0,8 fuera de
      punto de set 5,0 % y 4,7 % (main ya pasaba del 5 % en un grupo), remates que son punto 36,4 % y 38,2 %, y los mismos puntos por partido
@@ -197,13 +198,73 @@ rama pendientes, sin publicar.
   **Arreglados el 22-nov (después):** viewtest (netview.js clasifica `ritual.jug`), touchplay (la prueba arrastra la columna de
   pestañas antes de tocar Equipación), camtest (sin tocar la cámara: los fallos conocidos —oficiales asomando en el saque, balón fuera en
   fovpump, cadera en wide, héroe por muestra— cuentan como «conocido» con tope medido; `CAMZERO=1` exige 0; ver notes/camera_input.md)
-  y mobaudit (el informe del rival con carga de página propia). **Pregunta abierta a Ferran (cámara):** en el saque propio, ¿el juez
-  de línea cercano entero, fuera o cortado solo por abajo? Hasta que lo decidas, camtest lo tolera.
+  y mobaudit (el informe del rival con carga de página propia). (La pregunta del juez de línea cercano en tu saque queda como decisión
+  provisional en «Cámara», abajo: fuera de la imagen.)
   **Pasada de todas las pruebas de tools/ (22-nov, tarde, de una en una):** 86 en verde (los 72 *test*.js, las tres huellas, drive,
   drive6, padplay, touchplay, csscheck, console.sh 1280 y 844 táctil, mobaudit 568×320 y 844×390). animtest: huella neutra regenerada
   por la IA variada (comprobada en main y en el commit de la IA variada). **Fallan igual en main 1.21.0, sin tocar:** contacttest
   (holgura mano-balón en pass/dig, dive y forearm; main da 4 fallos) y balltest (pelota en la banda de las playas de día, nota 23-26
   con umbral 30; main igual). camtest «clutter» y la fila «home» de mobaudit a 844×390 fallaron una vez por tiempos y pasan solas.
+
+## Menús: decisiones de Ferran del 24-nov (rama decisiones, sin versión)
+Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al hacerlo (cambiarlas es tocar el sitio que se dice).
+- **Primera vez** (js/ui.js `firstWanted`, `#menu.first-run`; billete `#btnStartTut` en index.html y js/menu-jugador.js). La portada de
+  quien no ha jugado nunca es solo «¡Jugar ya!» y «Tutorial», con el logotipo encima también en el móvil. **Se acaba** al jugar cualquier
+  partido (el mismo `everPlayed` de «Jugar ya») **o al cerrar el tutorial, se acabe o no** (`record.intro = 1`). Empezar un partido y
+  salir a medias no la acaba. Después sale la portada de siempre, con el billete «¡Jugar ya!» encima hasta el primer partido (como en
+  1.22.0). **Decisión (revisión):** en esa portada queda un engranaje pequeño de Ajustes (sin texto, abajo a la derecha encima de la
+  versión) para quien necesite quitar el sonido o agrandar los botones táctiles; Cómo se juega y Controles no (el Tutorial ya lo enseña).
+  El billete del Tutorial lleva «Aprende a jugar» encima (antes los dos ponían «Primera vez»). Quien ya acabó el tutorial antes (`record.tut`) no la ve. El panel «Primer partido» (tutorial o jugar ya, al pulsar ¡A jugar!)
+  ya solo sale a quien no pasó por esa portada (p. ej. con una Carrera empezada y sin partidos). En depuración, `&first=1`.
+- **6v6 en JUGAR** (index.html `#plFmt`, js/ui.js `plFmtSync`). Hoy el 6v6 ya estaba en Jugar, pero como una mancha más («6 contra 6»)
+  al lado de Entrenamiento. Ahora el formato es una **opción** en la cabecera de Jugar, justo encima del Partido rápido: dos pestañas
+  «2v2 | 6v6» (el ajuste «Formato» de siempre; el parche dice cuál). La mancha 6 contra 6 se ha quitado y **Partido rápido ya no
+  vuelve a ponerte en 2v2** al entrar. La fila Formato de la preparación sigue (es la misma opción). Teclado y mando: ↑ desde Partido
+  rápido llega al formato, ←/→ entre los dos, Intro/A lo elige y ↓ vuelve a Partido rápido.
+- **Dorsales en el 2v2** (js/ui.js `sqRole`). En los menús tus dos jugadores van **por su papel** («Bloqueador», «Universal», de
+  js/prog.js): selector de Jugadores (con la inicial en el disco), selector del Vestuario (en el móvil abreviado, «Bloq.» y «Univ.»;
+  a 568×320 se esconde para ello el chip con el nombre de la pestaña, que ya va marcada en la tira de iconos), Controlar «Un jugador» («Llevas al bloqueador; la IA lleva al universal»), la línea de
+  Jugadores de la portada («Nivel 3 los dos» / «Niveles 3 y 2») y la XP e insignias de la hoja final. **No cambia nada guardado**: el
+  dorsal sigue en `VB.Prog` y en la camiseta, y en lo que pasa en la pista (consejos, MVP, cambios del 6v6) se sigue diciendo el número.
+- **Rendimiento** (js/main.js `deviceGuess` / `autoStart`). «Auto» ya bajaba y subía con los fps medidos; ahora además **empieza** según
+  el aparato: GPU por software, ≤ 2 GB o ≤ 2 núcleos (o móvil con ≤ 3 GB) → baja; GPU modesta (Mali-4xx/T6-8, Adreno 2xx-50x, PowerVR
+  viejas, Intel HD 2000-5000) → un nivel menos; ≤ 4 GB o ≤ 4 núcleos → como mucho media; PC con pantalla 4K y ≤ 6 núcleos → media.
+  Nunca empieza por encima del tope de siempre (alta en PC, media en móvil). En depuración no se aplica (las pruebas y perf.js no
+  cambian). Ajustes › Imagen sigue con Auto / Alta / Media / Baja (la nota dice «Auto se ajusta sola a tu aparato (ahora: media)»).
+- **Ventana del 1r 6v6** (js/ui.js `perfFirst` / `perfNote`, la misma hoja del aviso de colocador). Sale antes del primer partido 6v6
+  de este aparato **que se empieza desde los menús**: ¡A jugar! del Partido rápido en 6 contra 6, «Jugar partido» de la Carrera de
+  pista, la jugada del día y el reto del día cuando son 6v6, y el panel «Primer partido» con el formato en 6v6. Opciones: **Auto (recomendada, con el nivel en el que empezaría)**, Alta, Media y Baja; la de ahora dice «Ahora». Esc / B =
+  dejarla como está. Debajo de Auto pone «Recomendada · se ajusta sola (ahora: media)». **Decisión:** si sale esta ventana, el aviso de
+  colocador («Coloca con la diana») ya no sale detrás en esa sesión: nunca dos hojas seguidas antes del partido. Se apunta en `q6Asked` (solo este aparato, `make-the-cut.device`) elija lo que elija y el partido empieza al
+  cerrarla. No sale en la revancha, al reiniciar, al retomar ni en el online. Recomiendo Auto y no un nivel fijo porque Auto ya
+  empieza en lo que diga el aparato y se corrige con los fps; si prefieres que recomiende un nivel fijo, es `perfHTML` en js/ui.js.
+- **Tope de dibujos del 6v6 en calidad baja: se queda en 45** (tools/perf.js `CALLS_LOW`). Bajarlo a 33-35 como el 2v2 obligaría a juntar
+  mallas de los 12 jugadores (trabajo de render, no de menús) y lo medido (37-39) ya va holgado; el tope es una alarma, no un objetivo.
+- **La jugada del día** (antes «El mismo 22-24»: diaria, con racha y ventana al entrar): sus decisiones van en su sección, más abajo.
+- **Confirmado sin tocar**: «Cerrar sesión» no borra el progreso del aparato; el Circuito Mundial sigue como reto; los partidos cortos
+  siguen sin dar XP ni nada.
+
+## IA: decisiones de Ferran del 24-nov (rama decisiones, sin versión)
+Ferran: «Quiero que la IA se adapte excepto en modo Fácil» y las reglas nuevas de «Te tienen estudiado». Hecho; lo que he decidido yo:
+- **«Te leen»** (js/sim.js `RD` / `rdEv`, js/ai.js `readShift`, notes/ia-variada.md). **3 remates tuyos seguidos por el mismo carril**
+  (desde un ala) y la CPU corre el bloqueo y se echa la defensa hacia ahí: a la 3ª con el 60 % de la fuerza, entera desde la 4ª. Un remate
+  por el otro carril o por el centro lo corta. Fuerza por dificultad: **Fácil nada**, Normal 0,7, Difícil 0,85, Experto 1. Usa las
+  mismas distancias que «Te tienen estudiado», con la defensa del 2v2 ×2,5 (con ×1 no se notaba). Aviso en pantalla: «Te han leído: te
+  tapan la diagonal / la línea». Si ya te tienen estudiado por ese carril, no se suma (se queda lo más fuerte).
+- **Dónde**: Partido rápido (2v2, 6v6 y playa), Carrera y online Precisa. **No en el online Fluida** (allí cada máquina solo ve los toques
+  de su equipo; hacerlo obligaría a tocar netfluid.js, que es de la sesión del online) ni en Entrenamiento ni en la demo.
+- **Medido con bots** (tools/studytest.js §8, bot que remata siempre en diagonal): playa Normal, en racha, los remates en diagonal que son
+  punto bajan de 15,8 % a 12,6 %; pista 6v6 Normal ×0,7. En **Experto** ya se defiende casi todo y no se mide diferencia en los puntos
+  (solo bloquea más): sigue igual de duro, no más blando. El bot que alterna línea y diagonal no la activa nunca.
+- **Aviso de huellas**: regeneradas las de partido con humano (`tools/fp-2v2.json` human/attrs, `fp-mastery.json`, `fp-salto.json`) y
+  SIM_BASE de fluidsimtest (`e052474f`), porque el bloqueo y la defensa se colocan distinto cuando el bot repite carril. Sin azar nuevo:
+  la huella cpu (CPU contra CPU) sale idéntica; subtest y animtest no se han movido. simtest conoce el evento nuevo `read`.
+- **«Te tienen estudiado»** (js/career.js `studyGate` / `studyMe`). Media ≥ 7 en tus 3 últimos (mín. 2) **o un partido de más de 9**
+  entre esos 3 (un 9 justo no). Categorías: pista, la 1ª división de cada país y lo que se juegue desde ella; playa, la Hiperliga de Playa,
+  el Continental y el Mundial. En la **2ª** (Hiperliga 2 y equivalentes; en la playa el Circuito Nacional) solo en las **finales** (copa de
+  fin de temporada / Open) y en el **tramo final = último cuarto de la liga** (jornada > ¾ del total: de 14 jornadas, de la 11ª a la 14ª).
+  En el Circuito Regional, nunca. El informe del rival dice por qué no te estudian y desde qué jornada lo harán. Los partidos de categorías
+  sin estudio siguen contando para la nota (al subir ya te conocen). Se mantiene «por la línea».
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
@@ -213,17 +274,15 @@ rama pendientes, sin publicar.
 - **Jefes en la Carrera de pista** (`BOSS_HALL = true`, career-life.js): uno por liga, en el club más fuerte de tu liga. **Decisión
   provisional: puestos Muro = central, Martillo = opuesto, Cañón = receptor y Pulpo = receptor** (la propuesta decía líbero, pero el
   líbero rival no sale de la Carrera y no se le pueden dar atributos de jefe). El jefe juega con su nombre y su dorsal.
-- **Repeticiones en 6v6**: preparadas y APAGADAS (`REPLAY6 = false`, js/replay.js). La resimulación de partidos 6v6 enteros cuadra
-  (desync 0), pero falta lo visual (los 12 jugadores en la repetición, la cámara 6v6, la pestaña «Jugadas» de la hoja 6v6) y medirlo en
-  el móvil. **Decisión provisional: también automáticas en los puntos de set y de partido, como en el 2v2.**
-- **Torneo de la semana**: **decisión provisional: cubierto por «El mismo 22-24»**; no se construye y `w`/`weeks` quedan solo como
+- **Repeticiones en 6v6**: ENCENDIDAS el 24-nov (rama decisiones; ver «Repeticiones con botón» más abajo). Con el mismo aviso que el 2v2.
+- **Torneo de la semana**: **decisión provisional: cubierto por «La jugada del día»** (antes «El mismo 22-24»); no se construye y `w`/`weeks` quedan solo como
   compatibilidad del guardado.
 - **S4_SYNC = true** (account.js): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos ya viajan con la cuenta. La semana
-  sigue solo en el aparato. Antes de publicar: probarlo a mano con dos aparatos (conflicto «¿Qué Carrera de pista te quedas?»).
-- Preguntas:
-  1. Sedes: ¿Cúpula también en partidos de liga de élite? ¿Can Rebot en toda la 2ª, o el 25 % te vale?
-  2. Jefes de pista: ¿te valen los puestos (Pulpo de receptor)?
-  3. Repeticiones 6v6: ¿automáticas en los puntos de set y de partido, o solo desde «Jugadas»?
+  sigue solo en el aparato (la jugada del día y su racha también). Antes de publicar: probarlo a mano con dos aparatos (conflicto «¿Qué Carrera de pista te quedas?»).
+- **Sedes y jefes: decididos** (Ferran, 24-nov: «Las sedes y jefes decídelo tú»). Se quedan como arriba: Cúpula del Far solo en finales
+  de copa y rondas internacionales de élite (no en la liga), Can Rebot en el 25 % de las jornadas en casa de la 2ª, y los puestos de
+  los jefes (Pulpo de receptor). Ya no son provisionales.
+- Pregunta:
   4. ¿Confirmas que las reglas del 16-nov siguen desplegadas tal cual?
 
 ## Señas del árbitro y Cuaderno del árbitro (js/senas.js, notes/splat.md `.sp-sena`)
@@ -247,38 +306,60 @@ rama pendientes, sin publicar.
 - **Decisión provisional: online** según la dificultad del partido que manda el anfitrión (Difícil/Experto suena; Normal no).
 - **Decisión provisional: ensayos del menú apagados** (`XAR_WHEN.menu = false`): están hechos, pero no es un partido.
 - **Decisión provisional: «partidos buenos» = Difícil y Experto** (`XAR_WHEN.diffs`).
-- **Decisión provisional: el 22-24 semanal** suena según su nivel: las semanas que sale en Difícil (60 %) sí; en Normal, no.
+- **Decisión provisional: la jugada del día** (antes el 22-24 semanal) suena según su nivel: los días que sale en Difícil (60 %) sí; en Normal, no.
 - Falta escucharla con auriculares y en el altavoz del móvil antes de publicar.
 - Preguntas:
   1. ¿Suena en el online? (ahora depende del nivel del anfitrión).
-  2. En el 22-24 semanal, ¿siempre, nunca o según el nivel como ahora?
+  2. En la jugada del día, ¿siempre, nunca o según el nivel como ahora?
   3. ¿Quieres los ensayos de la charanga en los menús?
   4. ¿«Xaranga» o «Charanga»?
 
-## La situación de la semana, «El mismo 22-24» (js/semana.js, js/semana-ui.js, notes/ui_main.md)
-Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. Lo demás es provisional:
-- **Decisión provisional: igualdad** — nivel de la semana, atributos e insignias neutros, sin ayuda de novato, sin zona ni saque de
-  firma (js/main.js `startMatch`, `sitO`). Los controles (Colocación dirigida, cambios del 6v6) siguen los Ajustes de cada uno.
-- **Decisión provisional: intentos y mejor resultado solo en este aparato** (`make-the-cut.semana` no va a la cuenta).
-- **Hecho según la propuesta que Ferran aceptó («JUNTO»)**: la situación ocupa el sello de la portada (junto a JUGAR, `js/menu-jugador.js
-  semStamp`: el marcador, p. ej. «22-24», y los intentos de hoy en puntos; abre `VB.UI.openRetos('semana')`) y la 1ª pestaña de Retos; el reto
-  del día sigue en la franja de Jugar (que abre Retos en la pestaña que recuerde, «Hoy» la primera vez) y en la pestaña Hoy. El sello
-  lee con `VB.Semana.peek()`, que no cierra intentos abiertos en otra pestaña. Al montar el rediseño de menús hay que conservarlo.
-- **Decisión provisional: el «3r set» empieza 1-1 sin parciales inventados**: el marcador enseña los pilotos 1-1 sin «S1 25-22 | S2
-  22-25», y la hoja final solo el set jugado, rotulado «3r set».
-- Al fusionar el cambio de nombre a Take the Court hay que cambiar dos cadenas: la base por defecto del enlace en `js/semana.js link()`
-  ('https://purupurpito.github.io/make-the-cut/') y el `title` de `navigator.share` en `js/semana-ui.js share()`.
-- El «torneo de la semana» del backlog (D1) se puede dar por cubierto con esto; `w`/`weeks` de retos.js y `{semana}` de VB.Look quedan
-  sin usar (no se borran: compatibilidad del guardado).
-- **Decisión provisional (revisión): en el sello de la portada los intentos de hoy salen como 3 puntos** (dorado = te queda, hueco =
-  gastado), porque «Quedan 3» no cabía a 568x320. El texto entero va para los lectores de pantalla. Sin punto rojo de «nuevo».
-- **Decisión provisional (revisión): las señas sí se apuntan en el Cuaderno al jugar la situación de la semana a mano.** No se apuntan
-  en el online, el autopilot, el espectador ni las escenas de depuración.
+## La jugada del día (antes «El mismo 22-24» / situación de la semana; js/semana.js, js/semana-ui.js, notes/ui_main.md)
+Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. **24-nov:** «El 22-24 no tendría por qué ser siempre 22-24, puede ser algo
+diferente cada día. Quiero que lleve un registro de cuántos días seguidos lo cumples, y que cuando entres al juego lo primero que te salga
+sea un pop-up para completarlo.» Hecho así (rama decisiones, sin versión):
+- **Diaria.** Cada día (fecha local, la misma para todos) sale una jugada de un catálogo de cinco tipos: «Salvar el set» (22-24, 23-24,
+  21-24, 24-25), «La remontada» (18-23, 17-22, 19-23, 16-21), «El empujón» (22-23, 21-23, 20-22, 21-22), «Mano a mano» (24-24, 23-23,
+  22-22, 25-25) y «Cerrarlo» (24-23, 24-22, 25-24, 23-22), escalados al set: a 25 en pista, a 21 en playa o el 3r set a 15. Más
+  formato (2v2 pista 50 %, playa 30 %, 6v6 20 %), sede, saque y nivel. El objetivo siempre es **ganar el set** desde ese marcador, en una
+  línea («Levanta el 22-24 y gana el set»). Todos los puntos valen lo mismo.
+- **Racha:** días seguidos que la cumples (= la ganas en alguno de los 3 intentos de hoy), la actual y la mejor. Un día sin cumplirla y
+  vuelve a 0. Sale en la ventana, en la pestaña (gota dorada con el número) y en el sello de la portada (chapa crema con el número; con
+  la de hoy cumplida, una marca dorada en lugar de los puntos de intentos).
+- **Ventana al entrar:** lo primero tras la carga, una hoja SPLAT con la jugada, la racha y «¡A por ella!» / «Ahora no».
+- **Decisión provisional: nombre «La jugada del día»** (el «Reto del día» ya existe). La pestaña de Retos pasa de «Semana» a «Jugada» y,
+  para no confundirlas, la del reto del día pasa de «Hoy» a «Reto» (Retos: «Jugada | Reto | Maestría»). El sello de la jugada (portada y
+  pestaña) es verde azulado; el dorado queda para el reto del día. El sello de Retos en Jugar dice «RETOS» (antes «RETOS ★ RETO DEL DÍA»).
+  La hoja final llama al bloque «Jugada del día» (antes «Situación»). Cambiarlo: textos en js/semana-ui.js, ui.js (previa, pausa, hoja, pestaña, ventana) y menu-jugador.js.
+- **Decisión provisional: 3 intentos al día, como antes.** Si pierdes los tres, ese día no la cumples y mañana la racha empieza de cero
+  («Me gusta que sea un reto»). Cambiarlo: `TRIES` en js/semana.js.
+- **Decisión provisional: la racha solo en el aparato**, como los intentos (no va por S4_SYNC de account.js: habría que inventar cómo
+  mezclar dos rachas de dos aparatos, y lo demás de la jugada tampoco viaja).
+- **Decisión provisional: cuándo NO sale la ventana:** ya cumplida hoy o sin intentos; a quien no ha jugado nunca (ve «¡Jugar ya!» /
+  «Tutorial»); con ?jugar o ?sem; con un partido a medias («Seguir el partido» manda, también el de la Carrera); con la Carrera, la Cuenta
+  o el aviso de instalar abiertos; más de una vez por sesión (al recargar la pestaña no vuelve; al abrir el juego otro día o en otra
+  pestaña, sí). Las Novedades de una versión nueva esperan a que la cierres; ese día el reto del día ya no se abre solo (si no sale la
+  ventana, el reto del día se abre como siempre).
+- **Decisión (revisión): una ventana detrás de otra, nunca encima.** Con la jugada abierta, la portada no cuenta como libre (ni el aviso de
+  instalar, ni las Novedades, ni el online se abren encima); el aviso de instalar espera a que la jugada salga y se cierre. **Como mucho dos
+  ventanas solas al entrar:** si ya han salido la jugada y el aviso de instalar, las Novedades esperan a la próxima visita. Si la jugada no
+  llega a salir (te vas a jugar antes, o pasa 1 minuto sin portada libre), ya no sale después del partido y el reto del día recupera su turno.
+- **Intento colgado:** si cierras la pestaña (o el móvil la mata) a mitad de un intento, ese intento cuenta como perdido, pero **la ventana
+  vuelve a salir** al abrir el juego: la pestaña que juega da señal de vida cada 20 s y un intento sin señal en 75 s es de una pestaña
+  muerta. Con otra pestaña jugando de verdad, no sale.
+- **Decisión provisional: la jugada de cada día no se repite casi nunca** (dos días seguidos iguales: menos del 5 %), pero sí puede salir
+  el mismo marcador otro día.
+- El guardado `make-the-cut.semana` pasa a v2; el semanal se migra quedándose solo con tu nombre de jugador (su mejor era de otra
+  situación). Los enlaces semanales viejos (?sem=AAAAWW…) avisan «Ese enlace es de la antigua situación de la semana».
+- Sigue de antes: **igualdad** (nivel del día, atributos e insignias neutros, sin ayuda de novato, sin zona ni saque de firma; los
+  controles siguen tus Ajustes); el «3r set» empieza 1-1 sin parciales inventados; las señas se apuntan en el Cuaderno al jugarla a mano;
+  el enlace de compartir (?sem=…, desde takethecourt.com) con el «mapa del grupo», ahora por día.
+- El «torneo de la semana» del backlog (D1) se da por cubierto con esto; `w`/`weeks` de retos.js y `{semana}` de VB.Look quedan sin usar.
 - Preguntas:
-  1. ¿Te vale la igualdad (nivel fijo, atributos neutros, sin ayuda de novato), o los novatos en Normal?
-  2. ¿Intentos solo en el aparato, sin pasar por la cuenta?
-  3. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
-  4. ¿Damos el «torneo de la semana» por cubierto y se tacha del backlog?
+  1. ¿Te vale el nombre «La jugada del día» (y «Jugada» en la pestaña)?
+  2. ¿3 intentos al día, o sin límite mientras no la cumplas?
+  3. ¿Te vale la igualdad (nivel fijo, atributos neutros, sin ayuda de novato), o los novatos en Normal?
+  4. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
 
 ## Rencor y cariño de los clubes (js/career-life.js, notes/carrera.md «Rencor y cariño»)
 Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en peores condiciones; solo rencor o cariño, nada más.
@@ -290,74 +371,126 @@ Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en p
 - **Decisión provisional: el enfriamiento se salta el primer verano** (lo de la temporada que acaba se mantiene entero un verano más).
 - **Decisión provisional: la ficha de la oferta enseña el porcentaje** («Te ofrecen un 30 % menos de sueldo y un rol más bajo»).
 - **Decisión provisional: una cesión no cuenta**, y un título con el club de la cesión da cariño a ese club.
-- Preguntas:
-  1. ¿El rencor leve también te hace ofertas peores (−15 %), o solo el fuerte?
-  2. Con el ambiente apagado, ¿siguen las ofertas y los mensajes?
-  3. ¿Irte transferible o por promesa incumplida, neutro?
-  4. ¿Porcentaje en la ficha, o solo el motivo?
-  5. ¿Que se enfríe ya el primer verano?
+- **Contestado (24-nov): «El rencor ya está bien».** Las decisiones de arriba se quedan tal cual; sin preguntas.
 
-## Árbitros con nombre (js/career-world.js, js/arbitro.js, notes/ambiente.md «Árbitros con nombre y carácter»)
-Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las líneas solo en la Carrera.
-- **Decisión provisional: la ficha «Frenar a [tu pareja]» también sale en la playa** (pregunta 2 sin respuesta; propuesta de la ficha).
-  Solo en pista con brazalete: una condición en arbitro.js (`!st.hall ||` …).
-- **Decisión provisional: factores de línea**: lince p1-p3 × 0,6 (falla un 40 % menos), nervioso × 1,3 en derbi.
-- **Decisión provisional: para el nervioso cuentan como derbi** también el clásico y la final.
-- **Decisión provisional: dos apellidos de aire español en todas las ligas, también las extranjeras** de la Carrera de pista: la
-  pregunta de la ficha era para las ligas de España y Ferran no dijo nada de las demás. Hoy `panel()` (career-world.js) usa ARB_FN y
-  ARB_R + ARB_S para todos los colegios sin mirar el país de la liga; el juego no tiene un generador de nombres por país (el de los
-  jugadores mezcla países), así que cambiarlo pide hacer piezas por país.
-- **Decisión provisional: frases de fama** en la previa: «fama de mano dura», «deja jugar», «ojo de lince», «los derbis le pesan», «de manual».
-- Los apellidos se hacen con piezas (18 raíces × 12 finales); `ARB_NO` quita los que existen. Conviene que alguien repase la lista por si
-  alguno coincide con un apellido real.
-- Preguntas:
-  1. ¿La ficha «Frenar» también en la playa?
-  2. ¿Te valen los factores de las líneas (lince −40 %, nervioso +30 % en derbis, clásicos y finales)?
-  3. ¿Te gustan las frases de fama?
-  4. En las ligas extranjeras de la Carrera de pista, ¿los árbitros también con nombre y dos apellidos de aire español, o con nombres
-     del país de la liga?
+## Árbitros con nombre (js/career-world.js, js/arbitro.js, js/arena.js, notes/ambiente.md «Árbitros con nombre y carácter»)
+Ferran decidió: dos apellidos inventados en España; el lince y el nervioso afectan a las líneas solo en la Carrera. El 24-nov: «Frenar» se
+queda como está (también en la playa); los factores de lince y nervioso, como están; cada árbitro de la Carrera con su aspecto fijo; en el
+Partido rápido, el de pista larguirucho con poco pelo y el de playa calvo, sin nada y a veces con gorra; la frase de fama te la dice
+alguien de tu equipo; nombres con aire del país en las ligas extranjeras. Hecho en la rama decisiones.
+- **Decisión provisional: para el nervioso cuentan como derbi** también el clásico y la final (sin cambios).
+- **Decisión provisional: tabla del aspecto por carácter** (`LOOK_TRAIT` en js/arbitro.js, de una semilla fija por carrera y árbitro):
+  mano dura = robusto (80 %), ceño serio, bigote a menudo, sin gafas; deja jugar = pelo (80 %), barba la mitad de las veces, cara
+  tranquila, casi siempre gorra en la playa; lince = gafas finas (70 %) y si no, mirada aguda (ceño), delgado o larguirucho; nervioso =
+  gafas redondas gruesas siempre y poco pelo (calvo 1 de cada 4); de manual = de todo un poco. Piel y color de pelo según el país del
+  colegio; canas a veces (más en el de mano dura). En la playa la gorra (blanca con visera azul) sale según el carácter.
+- **Decisión provisional: el 2º árbitro, los jueces de línea y el anotador no cambian** (solo el 1r tiene aspecto propio). No hay retrato
+  del árbitro en la previa ni en una ficha, así que su cara solo se ve en la silla durante el partido.
+- **Decisión provisional: quién dice la fama.** Siempre el entrenador («Alex (entrenador): Ojo, fama de mano dura»); en la
+  playa, la mitad de los árbitros te los presenta tu pareja («Iker (tu pareja): …»), fijo por árbitro. Si cabe, dice el apellido del 1r.
+  Las frases son neutras («Tiene ojo de lince», «Suele dejar jugar», «Se agobia»), sin «este» ni «nervioso»: el árbitro no lleva
+  género y en los colegios hay tantas mujeres como hombres (revisión del 24-nov).
+  Frases en `ARB_SAYS` (career-world.js); la línea cabe en 44 letras como antes, así que la frase es corta («Ojo, fama de mano dura»). Con recuerdo (tarjeta, frenada,
+  protesta) sigue saliendo «1r: Nombre, te sacó amarilla en la J4».
+- **Decisión provisional: competiciones internacionales** (rival de otro país): pita un colegio NEUTRAL, de un país que no es ni el tuyo
+  ni el del rival, como en la CEV (`arbKeyOf`, lista `ARB_NEU`). Las ligas y copas de tu país, el colegio de tu liga.
+- **Decisión provisional: estilos de nombre por país** (`ARB_STY` / `ARB_CC`): Bélgica con nombres franceses, Suiza y Austria alemanes,
+  Serbia y Eslovenia comparten estilo, Argentina, Perú y Filipinas usan las piezas españolas con nombres de allí; nombre y UN apellido
+  (en España, dos). Cada estilo tiene su lista de apellidos reales que no pueden salir. Revisión del 24-nov: fuera Garneau, Vauquelin, Vučić y Jovović
+  (personas famosas), Cabrão y Cabralho (insultos en portugués), los apellidos que son nombres de pila («Marko Marko», finales en -ko) y
+  grafías rotas (Pospííček, Brennner, Wiśnczyk, Tikhikhin, -ırım). tools/worldtest.js repasa ahora todos los apellidos posibles.
+- **Decisión provisional: carreras guardadas.** Los nombres no se guardan (salen de la semilla), así que los árbitros de ligas extranjeras
+  ya vistos pasan a llamarse con el nombre del país, de forma coherente en todas partes; la libreta (tarjetas, protestas) sigue con ellos.
+  Solo los mensajes viejos de la bandeja conservan el nombre de antes. Los de España y la playa no cambian.
+- Conviene que alguien repase los apellidos (los españoles y los de cada país) por si alguno coincide con una persona conocida.
 
 ## «Te tienen estudiado» (scouting; js/sim.js g.scout, js/ai.js, js/career.js study*, notes/carrera.md)
-Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan.
-- **Decisión provisional: «tus notas mejoran» = media ≥ 7** en tus 3 últimos partidos jugados (con al menos 2), no la tendencia.
+Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan. El 24-nov: media ≥ 7 o un partido de más de 9, solo
+desde la Hiperliga (y en la Hiperliga 2, finales y final de liga), y «por la línea» (ver «IA: decisiones del 24-nov»).
 - **Decisión provisional: el cambio de plan** salta con 3 puntos de remate por el carril abierto (y 2 más que por el cerrado); te cierra
   ese carril con fuerza ≥ 0,7 y avisa «Cambian el plan: te tapan la línea».
-- **Decisión provisional: te estudian todos los rivales desde la 1ª temporada** si cumples la nota.
-- **Decisión provisional: «por la línea»** en los textos (como las consignas), no «paralela».
 - La defensa de la playa es muy sensible: `DEF_LEAN` 0,08 m y `BLK_SHIFT` 0,3 m (la ficha decía 0,9 y 0,45) están calibrados con bots.
   Conviene probarlo a mano.
-- Preguntas:
-  1. ¿Media ≥ 7 o que la nota suba?
-  2. ¿Te vale el umbral del cambio de plan y el aviso?
-  3. ¿Todos los rivales desde la 1ª temporada, o a partir de cierta liga?
-  4. ¿«Línea» o «paralela»?
+- Pregunta: ¿te vale el umbral del cambio de plan y el aviso?
 
-## Cámara (js/camera.js, tools/camtest.js, notes/camera_input.md «Zoom 1: la cumbre en la contención»)
+## Cámara (js/camera.js, tools/camtest.js, notes/camera_input.md «Zoom 1: la cumbre en la contención» y «Cámara fija en el saque»)
+Sprint pedido por Ferran el 24-nov («en mi saque, la cámara se mueve demasiado»), rama decisiones, sin versión. Medido: en tu saque la
+cámara recorría 0,4-2 m y giraba 9-28° por saque; ahora 0 en todos los tamaños, pista y playa, 2v2 y 6v6.
+- **Decisión provisional: la cámara del saque se fija al empezar y no se mueve** en tu saque, en el vuelo de tu saque (hasta que el rival
+  lo toca o bota) ni en el saque rival. Solo se mueve, suave y lo justo, si algo se iba a salir: el balón, tu jugador, el sacador o
+  donde va a caer. Si mueves al sacador a lo ancho más de 1,2 m, la cámara se recoloca despacio y se vuelve a fijar. Cambiarlo: `FX` en
+  js/camera.js (márgenes en `fxPoints`, recolocar en `fxApply`).
+- **Decisión provisional: el encuadre de tu saque es más alto** (2 m más alto y algo más atrás, como la grúa que antes salía solo en el
+  saque en salto). Así caben a la vez el campo rival, tu sacador y el lanzamiento más alto, y no hace falta mover nada. A cambio se ve
+  más pista propia y tu sacador sale algo más pequeño. Cambiarlo: `SVFH` / `SVFB` en js/camera.js.
+- **Decisión provisional: el vuelo se queda fijo solo con tu saque.** Si saca un compañero, la cámara va a por tu jugador durante el vuelo
+  (como antes): hacerlo de golpe al primer toque rival era un movimiento muy rápido.
+- **Decisión provisional: juez de línea cercano en tu saque, fuera de la imagen.** Con el encuadre nuevo queda fuera solo (y la silla del
+  1r árbitro ya no asoma por arriba).
+- No se ha tocado el resto del punto (peloteo): sigue la cámara de antes de 1.5.4 con la contención.
 - **Decisión provisional: con el zoom 1-2 en el móvil la cámara solo se echa atrás** cuando la cumbre del balón no cabría (colocaciones
   altas del 6v6). No gira ni cabecea por eso. El zoom normal (3) y los de lejos quedan exactamente como antes. Medido: el balón ya no se
   sale por arriba en tu propia colocación (antes, el 1 % de los frames).
 - **Decisión provisional: la regla de «no perseguir balones muy rápidos»** (más de 15 m/s, o el balón que ya va a la grada) también
   cuenta en el 2v2 al medir la cámara en las pruebas. La cámara del juego no cambia por esto.
 - Preguntas:
-  1. **Juez de línea en tu saque**: con el balón en la mano, el juez cercano sale cortado por abajo (en pantallas anchas es una figura
-     grande en primer plano) y la silla del 1r árbitro asoma por arriba. No hay un cambio pequeño de cámara que lo arregle sin bajar el
-     campo rival. ¿Lo quieres entero, fuera de la imagen, o te vale cortado por abajo cuando está en primer plano?
-  2. ¿Te vale que la cámara se eche atrás con el zoom 1 en las colocaciones altas?
+  1. ¿Te vale que la cámara se eche atrás con el zoom 1 en las colocaciones altas?
+  2. ¿Te gusta el encuadre más alto de tu saque, o prefieres el de antes (más cerca del sacador) aunque en el saque en salto la cámara
+     tenga que abrirse un poco al lanzar?
+
+## Repeticiones con botón (decisión de Ferran del 24-nov; js/replay.js, rama decisiones, sin versión)
+Ferran: «la repetición con un botón por si quieres verla. En PC que sea "Pulsa V para ver la repetición", en móvil sale un pequeño botón
+durante un tiempo corto». Ya no hay repetición automática.
+- **Decisión provisional: el aviso dura 4 s** (`K.OFFER_T`). Se va antes si empieza el saque siguiente (la foto del saque se reutiliza) o
+  si sales del partido. Si no lo pulsas, el partido sigue sin esperar.
+- **Decisión provisional: qué puntos lo dan.** Los que antes daban repetición automática (cierres de set y de partido con ace, remate,
+  dejada, bloqueo o un punto grande) y además los **puntos grandes** que no sean error (`highlight ≥ 0,65`, `K.OFFER_HL`): unos 8 por
+  partido de 2v2 (1 de cada 11 puntos). Es de los dos equipos, como «Jugadas».
+- **Decisión provisional: los botones.** PC: **V** (la tecla del challenge; si la cambias en Controles, el aviso dice la tuya). Mando:
+  **LT** (L2 en PlayStation), el del challenge. No chocan: el aviso nunca sale cuando tú puedes pedir challenge (ni con el de la CPU
+  pedido o una revisión en marcha). Antes, cualquier challenge posible cancelaba la automática y se perdían 5 de cada 8 puntos grandes;
+  ahora, si solo la CPU podría pedirlo y no lo pide, el aviso sale. Táctil: botoncito SPLAT «REPETICIÓN» con ▶ (44 px de alto) donde va
+  el botón del challenge, con una barra que se vacía.
+- **Decisión provisional: el online no tiene aviso** (la repetición para la partida en vivo y rompería la sincronía). Al final siguen
+  las «Jugadas», como antes.
+- **Decisión provisional: con «Menos movimiento» el aviso sale igual** (la repetición la pides tú; sigue sin cámara lenta). Antes, la
+  automática no salía.
+- Ajustes › Juego › Repeticiones: «Automáticas» pasa a llamarse **«Con botón»** (mismo valor guardado `auto`, sin migración). «Al final»
+  y «No» siguen igual.
+- Si la pides con el saque siguiente esperando (fuera de la pausa del punto), el partido espera también mientras entra la repetición,
+  para que la CPU no saque detrás de la cortinilla.
+- **6v6 (REPLAY6 encendido).** Los 12 se pintan en la repetición (también si hubo un cambio o entró el líbero entre la jugada y ahora),
+  con la cámara de tele; la hoja final 6v6 tiene «Jugadas». Medido con la CPU frenada ×4 a 844x390 (calidad media): la repetición va a
+  58 fps y 14,6 ms de JS por frame, el partido en vivo a 49 fps y 15,5 ms; la preparación, como mucho 6 ms por frame (el avance rápido
+  del 6v6 reparte un tercio de pasos por frame, `K6.PREP_DIV`). En el móvil de verdad no se ha medido: pruébalo a mano.
 
 ## Pruebas (replaytest)
 - **Decisión provisional:** la semilla de la prueba de repeticiones automáticas se calcula solo en pabellón, y los saltos de la
   repetición que pasan de 0,4 s se repiten una vez antes de darlos por malos (como otras pruebas con el PC cargado). No cambia nada del
   juego.
+- 24-nov: un revisor vio un «1 FALLOS» suelto en replaytest (1 de 3) sin guardar qué comprobación era (los FALLO salen por stderr,
+  más arriba del final). Repetida 5 veces seguidas guardando toda la salida: 5 de 5 TODO OK; la cifra de memoria (5a) baila entre 0 y
+  128 B, muy lejos del tope de 2 KB. Sin causa encontrada: si vuelve a salir, mirar la línea «FALLO:» de la salida entera.
+- **Pasada final de la rama decisiones (24/25-nov, de una en una):** en verde los 74 *test*.js salvo los de abajo, las huellas
+  (simtest, fingerprint6 2v2/maestría/salto, fluidsimtest), drive, drive6, padplay, touchplay, csscheck, console.sh all 1280×720 y
+  844×390 táctil, mobaudit 568×320 y 844×390 (247 pantallas cada uno, 0 fallos al abrir). Puestas al día (pruebas desfasadas, el juego
+  no cambia): jugaryatest cuenta con el engranaje de Ajustes en la portada de la primera vez; gymtest entra con `record.intro` (la portada
+  de la primera vez esconde JUGAR). gymtest falló una vez en el paso del mando y pasó al repetirla.
+  **Fallan igual en main 1.22.0, sin tocar** (comprobado en una copia aparte de origin/main): contacttest (3 fallos de holgura
+  mano-balón), balltest (pelota en la banda de las playas de día) y camtest: «block» con la semilla 12345 (giro de 77-81 °/s a los 2,6
+  y 40,8 s, en todos los tamaños) y «menu» a 1024×768 (balón en la parte libre 89 %). El 22-nov camtest pasaba: es la cámara del
+  peloteo, que esta rama no toca. Si se quiere mirar, ver notes/camera_input.md.
+  camserve (medida, sin aprobado/suspenso): 2v2, tu saque 100 % quieto en espera y lanzamiento (0 m, 0°); 6v6, el primer saque del
+  partido recompone el encuadre al llegar (4,5 m y 25°, con el balón fuera un instante); los siguientes, 0 m.
 
 ## Lo que queda detrás de un interruptor
 - **Retomar el partido en la Carrera**: `CAREER` de js/resume.js (`VB.Resume.CAREER = false`; `?resumecareer=1` para probar). El Partido
   rápido sí se retoma (4.9).
-- **Repeticiones en 6v6**: `REPLAY6 = false` en js/replay.js. Grabadas y resimuladas en las pruebas, sin pintar todavía (faltan los 12
-  jugadores en la repetición, la cámara 6v6, la pestaña «Jugadas» de la hoja 6v6 y medirlo en el móvil).
+- **Repeticiones en 6v6**: encendidas el 24-nov (`REPLAY6 = true` en js/replay.js; se apagan poniéndolo a `false`).
 - **Ensayos de la charanga en los menús**: `XAR_WHEN.menu = false` en js/audio.js (hechos, apagados).
 - **Insignia «rompemanos» del jefe Muro**: sigue cortada (tiraría un dado más y cambiaría la huella).
 - **Rencor leve con sueldo peor**: encendido; se apaga con `BOND_PAY[1] = 1` en js/career-life.js.
-- **Ficha «Frenar a tu pareja» en la playa**: encendida; se limita a la pista con brazalete en js/arbitro.js.
+- **Ficha «Frenar a tu pareja» en la playa**: encendida (Ferran, 24-nov: se queda); se limitaría a la pista con brazalete en js/arbitro.js.
 - **Sello de la semana en la portada**: si faltan js/semana.js o js/semana-ui.js, vuelve el sello del reto del día.
 - Encendidos en esta rama (antes apagados): `S4_SYNC = true` (js/account.js) y `BOSS_HALL = true` (js/career-life.js).
 - Sin cambios aquí: el Acta del partido sigue oculta (solo tu cuenta).
@@ -369,51 +502,36 @@ Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el pla
   de Firestore del 16-nov siguen tal cual (el comentario de cabecera de firebase/firestore.rules todavía da «S4_SYNC = true» como
   pendiente; no se ha tocado).
 - Un partido táctil de verdad provocando señas, y una Carrera de pista con un jefe y con un club con rencor.
-- Repasar los apellidos de los árbitros por si alguno coincide con uno real.
+- Repasar los apellidos de los árbitros de España y la playa (piezas ARB_R + ARB_S) por si alguno coincide con una persona conocida;
+  los de los otros países se repasaron el 24-nov.
 - Al juntar esta rama con main: main ya va por la 1.20.0 (Take the Court) y esta rama sube a la 1.21.0 sin la 1.20.0, así que
   js/version.js chocará y hay que dejar las dos entradas. También hay que pasar a la marca nueva el enlace de `js/semana.js link()` y el
   título de compartir de `js/semana-ui.js share()`.
 
-## Chat rápido: 30 frases propuestas (marca sí o no)
-(★) = va en la rueda principal (8). (†) = pique sano: si quieres una beta «solo positivas», se quitan las (†) y quedan 24.
-Todas tienen 28 caracteres o menos. El chat NO está construido: esto es solo para elegir las frases.
+## Chat rápido: lista FINAL aprobada (Ferran, 24-nov; el chat sigue SIN construir)
+Ferran eligió las frases y la tecla: **en el PC, la tecla T** («La tecla T me sirve, sí»). (★) = va en la rueda principal.
+(†) = pique sano, aprobado así. Son 22 frases; todas caben en 28 caracteres.
 
-| # | Frase | Momento | ¿Sí? |
-|---|---|---|---|
-| 1 | ¡Hola! (★) | Saludo | [ ] sí [ ] no |
-| 2 | ¡Suerte! (★) | Saludo | [ ] sí [ ] no |
-| 3 | ¡Que gane el mejor! | Saludo | [ ] sí [ ] no |
-| 4 | ¡A disfrutar! | Saludo | [ ] sí [ ] no |
-| 5 | ¡Hoy no te dejo ni una! (†) | Saludo | [ ] sí [ ] no |
-| 6 | ¡Vamos! (★) | Durante el partido | [ ] sí [ ] no |
-| 7 | ¡Venga, que se puede! | Durante el partido | [ ] sí [ ] no |
-| 8 | ¡Ahora verás mi saque! (†) | Durante el partido | [ ] sí [ ] no |
-| 9 | ¡Estaba dentro! | Durante el partido | [ ] sí [ ] no |
-| 10 | ¡Eso es red! | Durante el partido | [ ] sí [ ] no |
-| 11 | ¡Challenge! (es broma) | Durante el partido | [ ] sí [ ] no |
-| 12 | Tengo arena en los ojos (solo en playa) | Durante el partido | [ ] sí [ ] no |
-| 13 | ¡Buen punto! (★) | Tras un punto | [ ] sí [ ] no |
-| 14 | ¡Buen saque! | Tras un punto | [ ] sí [ ] no |
-| 15 | ¡Qué defensa! | Tras un punto | [ ] sí [ ] no |
-| 16 | ¡Vaya remate! | Tras un punto | [ ] sí [ ] no |
-| 17 | ¡Qué recepción! | Tras un punto | [ ] sí [ ] no |
-| 18 | ¡Bloqueo de libro! | Tras un punto | [ ] sí [ ] no |
-| 19 | ¡Toma ya! (†) | Tras un punto | [ ] sí [ ] no |
-| 20 | ¡Tocada! Lo vi yo (†) | Tras un punto | [ ] sí [ ] no |
-| 21 | ¡Uy, por poco! (★) | Reacciones | [ ] sí [ ] no |
-| 22 | ¡Perdón por la red! (★) | Reacciones | [ ] sí [ ] no |
-| 23 | ¡Jajaja! | Reacciones | [ ] sí [ ] no |
-| 24 | La red me tiene manía | Reacciones | [ ] sí [ ] no |
-| 25 | ¡Eso es doble! (guiño arbitral) | Reacciones | [ ] sí [ ] no |
-| 26 | Eso ha sido suerte… ¿no? (†) | Reacciones | [ ] sí [ ] no |
-| 27 | ¡Buen partido! (★) | Final | [ ] sí [ ] no |
-| 28 | ¿Otra? ¡Revancha! (★) | Final | [ ] sí [ ] no |
-| 29 | ¡Choca esa! | Final | [ ] sí [ ] no |
-| 30 | Te invito a un granizado | Final | [ ] sí [ ] no |
+| Momento | Frases |
+|---|---|
+| Saludo | ¡Hola! ★ · ¡Suerte! ★ · ¡Que gane el mejor! · ¡A disfrutar! · Vas a pillar |
+| Durante el partido | ¡Vamos! ★ · ¡Venga, que se puede! · ¡Ahora verás! † · Tenía arena en los ojos (solo en playa) |
+| Tras un punto | ¡Buen punto! ★ · ¡Buen saque! · ¡Qué defensa! · ¡Vaya remate! · ¡Qué recepción! · ¡Vaya bloqueo! · ¡Toma ya! † |
+| Reacciones | ¡Uy, por poco! ★ · ¡Jajaja! · Eso ha sido suerte… ¿no? |
+| Final | ¡Buen partido! ★ · ¡Revancha! ★ · Has tenido suerte |
 
-Cómo iría (resumen de la ficha): botón de chat al final de la pastilla del online, solo con el balón muerto; rueda con las 8 (★) y
-«Más» con la lista entera; viaja solo el número de la frase; bocadillo de 2,5 s sobre el jugador; como mucho 1 frase cada 3 s y 3 por
-punto; «Silenciar a X» para ese partido. Preguntas: ¿beta solo con frases positivas (sin las †)? ¿Te vale la tecla T en el PC?
+- **Decisión provisional: «¡Buen saque!» es la 8ª de la rueda.** Hay 7 ★ y la rueda es de 8: la rueda queda ¡Hola!, ¡Suerte!,
+  ¡Vamos!, ¡Buen punto!, ¡Buen saque!, ¡Uy, por poco!, ¡Buen partido! y ¡Revancha!. Las otras 14 van en «Más».
+- Fuera de la lista (no se reproponen): ¡Hoy no te dejo ni una!, ¡Estaba dentro!, ¡Eso es red!, ¡Challenge!, ¡Tocada! Lo vi yo,
+  ¡Perdón por la red!, La red me tiene manía, ¡Eso es doble!, ¡Choca esa!, Te invito a un granizado. Cambiadas de texto: «¡Ahora verás
+  mi saque!» → «¡Ahora verás!», «Tengo arena…» → «Tenía arena en los ojos», «¡Bloqueo de libro!» → «¡Vaya bloqueo!», «¿Otra?
+  ¡Revancha!» → «¡Revancha!».
+- «Tenía arena en los ojos» solo sale en partidos de playa (en pista no está en la lista).
+
+Cómo iría (resumen de la ficha, para quien lo construya): botón de chat al final de la pastilla del online, solo con el balón muerto;
+rueda con las 8 de arriba y «Más» con la lista entera; viaja solo el número de la frase (el orden de esta tabla; no cambiarlo una vez
+publicado, solo añadir al final); bocadillo de 2,5 s sobre el jugador; como mucho 1 frase cada 3 s y 3 por punto; «Silenciar a X»
+para ese partido. En el PC, la tecla T abre la rueda.
 
 ## «El Corte» (la gran idea del sprint; sin construir, lo decides tú)
 Cada bote a menos de 5 cm de la línea se convierte en un momento propio del juego:
@@ -428,13 +546,52 @@ Cada bote a menos de 5 cm de la línea se convierte en un momento propio del jue
 - Preguntas: ¿se construye? ¿Entero o por partes (la presentación primero; «Dejarla pasar» y «Mándalo al grupo» después)? Con el
   cambio de nombre a Take the Court, ¿se sigue llamando «El Corte»?
 
+## La moneda: salpis (decisión de Ferran del 24-nov: «La moneda que sea única, invéntatela»; rama decisiones, sin versión)
+Lo que había: una sola cosa que se gasta, el dinero de la Carrera (`c.money`, en euros ficticios): se cobra con el sueldo, el
+patrocinio, los premios de los retos y de las Estrellas, y se gasta en el material, los servicios, el fisio, el fisio intensivo de
+las lesiones y la tienda del Vestuario (`shop` en js/look.js). Lo demás es progreso y no se ha tocado: XP y nivel (del atleta y del
+perfil), fama y seguidores, puntos de mejora (`c.player.pts`), entreno (`c.tp`, se gasta solo al llenarse), química y logros.
+Decisiones mías:
+- **Nombre: «salpis»** (un salpi, de salpicadura). Corto, con gracia y de la familia de la tinta del estilo SPLAT. Si no te gusta,
+  se cambia en un rato: está en las funciones `eur()` / `fmtEur()` de career-life, career-ui, career-injury, career-loan,
+  career-allstar y look, en 4 mensajes de career.js y en `coinMsg` (career.js).
+- **Icono**: una gota de tinta turquesa (el color del balón) con dos costuras de balón, contorno de tinta y una gotita al lado
+  (`.sp-salpi` en index.html, SVG dibujado, sin marcas). Va delante de la cifra en Tienda (ahorros y botones de comprar), en los
+  premios del último partido, en «Ahorros» del contrato y en el aviso de patrocinio del inicio de la Carrera. La palabra «salpis»
+  se escribe siempre (el icono solo adorna y es aria-hidden).
+- **Conversión 1 € = 1 salpi**: como solo había una moneda, no hay nada que unificar ni que perder. Los ahorros guardados no
+  cambian de número. Los mensajes viejos de la bandeja con cifras en € se reescriben a salpis al cargar (`coinMsg`, idempotente;
+  playa y pista). No hace falta tocar js/migrate.js (es el traspaso entre direcciones, no las versiones del guardado).
+- **Sueldos también en salpis** (antes «Sueldo (ficticio)… en euros al mes»): una sola moneda en todo el juego. Fuera el
+  «(ficticio)», que solo hacía falta por ser euros.
+- **Cada Carrera guarda sus salpis** (playa y pista por separado, como hasta ahora). No hay monedero común ni salpis en Partido
+  rápido: juntar las dos Carreras rompería el equilibrio de la que empieza, y ganar salpis fuera de la Carrera sería inventar
+  una economía. Lo que compras en el Vestuario sí sigue siendo para siempre y para todo el juego.
+- Nada de pagos reales ni de comprar con dinero; nada que haga que un punto valga más (el material sigue igual que antes).
+- Pregunta: ¿te gusta «salpis» o prefieres otro nombre (gotas, manchas, tintas…)?
+
 ## Preguntas abiertas de TRASPASO.md (siguen sin respuesta)
-1. **Circuito Mundial**: los clubes de élite (media ≥ 80, IA Experto) no los gana nadie. ¿Reto final o se suaviza (`DIFF_AT`)?
-2. **«Cerrar sesión»**: no borra el progreso del aparato (si se comparte el móvil, el siguiente lo ve). ¿Debe borrarlo?
-3. **Tope de dibujos del 6v6**: en calidad baja se aceptan 45 (medido 37-39). ¿Se queda o se baja a 33 como el 2v2?
-4. **Repo de redirección**: la dirección vieja /voley-3d/ da 404. ¿Se hace la redirección en purupurpito.github.io?
-5. Música en ogg dentro de index.html o procedural; ¿moneda única o ninguna?; ¿el 6v6 visible en JUGAR?
-6. Premios por nivel: ¿se quedan en 8 (había 17 propuestos)?
-7. Dorsales «N.º 1 / N.º 2» en Jugadores: ¿se quedan así?
-8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
-9. Torneo de la semana: ¿lo damos por cubierto con «El mismo 22-24»? (también arriba, en Backlog del 21-nov y en la Semana).
+(Contestadas el 24-nov y quitadas de aquí: Circuito Mundial = se queda como reto, sin suavizar `DIFF_AT`; «Cerrar sesión» no borra
+el progreso del aparato, comprobado en js/account.js `signOut` —solo olvida la sesión y avisa «Tu progreso sigue en este dispositivo»—;
+tope de dibujos del 6v6 lo decido yo, abajo en «Menús»; redirección de /voley-3d/: no se hace, «la de voley-3d no la conoce nadie
+casi»; la moneda: ver «La moneda: salpis»; el 6v6 en JUGAR: ver «Menús»; recargar o «Reiniciar partido» en la Carrera:
+contestado el 22-nov, cerrar a mitad da el punto al rival y no hay «Reiniciar», ver 4.9.1 arriba.)
+- **Decisión (24-nov, «La música como la veas mejor»): la música sigue procedural**, hecha por js/audio.js como ahora (y como la
+  Xaranga). No pesa nada en index.html, funciona sin conexión y no hay que buscar ni licenciar ficheros ogg. No se toca nada.
+- **Premios por nivel (Ferran, 24-nov: «más premios por nivel»).** Los 14 de antes (Nv 2-36) no cambian. **Decisión provisional
+  del ritmo:** 12 nuevos, **cada 4 niveles del 40 al 60** (40, 44, 48, 52, 56, 60), **cada 5 del 65 al 80** (65, 70, 75, 80), luego
+  **90** y **99** (el máximo). Con la curva del perfil (60 + 20·Nv de XP por nivel) el Nv 60 son ≈ 39 000 XP y el 99 ≈ 103 000: más
+  hueco arriba porque cada nivel cuesta más. Rarezas que nunca bajan: rara (40-56), épica (60-80), la más alta (90 y 99).
+  Nv 40 Tinte lima · 44 Calcetines de sandía (pista) · 48 Manguito de olas (pista) · 52 Balón en la mejilla · 56 Manguito salpicado
+  (pista) · 60 Calcetines de balones (pista) · 65 Tinte medianoche · 70 Manguito de red (pista) · 75 Mancha de tinta · 80 Calcetines
+  de llamas (pista) · 90 Manguito holográfico (pista) · 99 Pelo arcoíris (efecto de pelo).
+  - **Decisión provisional:** como los de antes, cada uno se puede comprar también en la tienda de la Carrera (6 000-8 000 salpis los
+    raros, 15 000-20 000 los épicos, 50 000 el holográfico), **salvo el pelo arcoíris del Nv 99, que solo se gana con el nivel.**
+  - **Decisión provisional:** la mancha de tinta usa el color de acento, pero **nunca rojo** (con rojo, alrededor del ojo, parecía
+    una herida): si el acento es rojo, sale turquesa, el de la tinta del juego. El holográfico es de nácar y no usa fichas de color.
+  - Quien ya tenía nivel alto los recibe al entrar en el menú (lo hace `VB.Profile.check` → `grantLevel`, que ya concedía todo lo
+    de su nivel o menos); si son más de 3 de golpe sale un solo aviso «Nuevo en tu vestuario: N objetos».
+  - Pocos para playa: 7 de los 12 son de pista (calcetines y manguitos solo existen en pista); en playa valen los dos tintes, las
+    dos pinturas de cara y el pelo arcoíris. Pregunta: ¿quieres alguno más de playa (p. ej. una tobillera o una gorra), aunque sea
+    en un nivel ya ocupado? Cambiar nombres, niveles o precios: el `CATALOG` de js/look.js (busca «premios de nivel alto»).
+- Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).

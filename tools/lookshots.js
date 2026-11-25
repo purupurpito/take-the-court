@@ -485,11 +485,11 @@ async function closeups(ven) {
       }
       // (WP2) --bviews=…,fx: efectos de pelo (columnas) con el segundo color automático y con rosa, y los colores nuevos
       if (bvWant.indexOf('fx') >= 0) {
-        const FX = ['', 'raiz', 'puntas', 'mechas', 'flequilloFx', 'mitad'];
+        const FX = ['', 'raiz', 'puntas', 'mechas', 'flequilloFx', 'mitad', 'arcoiris'];
         const mkf = (style, view, h2, hair) => ({ skin: 'light', kit: 'A', hair: hair || hairK, tag: '', views: FX.map(fx => ({ region: 'head', view, style, tag: style + ' ' + (fx || 'sin efecto') + (h2 ? ' +' + h2 : ''), list: [['hairFx', fx]].concat(h2 ? [['hair2', h2]] : []) })) });
         await job('back/fx-' + ven + '.png', { venue: ven, base: 'std', cols: FX.length, tw: 220, th: 220, title: 'EFECTOS DE PELO · ' + ven, sub: 'segundo color automático salvo «+tRosa»',
           rows: [mkf('melena', 'q3l'), mkf('melena', 'q3bl'), mkf('tupe', 'q3l', 'tRosa', 'negro'), mkf('coleta', 'q3bl'), mkf('afroCorto', 'q3bl', 'tRosa', 'negro')] }, { group: 'back', venue: ven, what: 'fx' });
-        const HC = [0x1c2438, 0x6e2a18, 0xc8913e, 0xbfb29a, 0xd2561c, 0xf6f3ec, 'tRojo', 'tNaranja', 'tLila', 'tMenta', 'tPlata', 'tEquipo'];
+        const HC = [0x1c2438, 0x6e2a18, 0xc8913e, 0xbfb29a, 0xd2561c, 0xf6f3ec, 'tRojo', 'tNaranja', 'tLila', 'tMenta', 'tPlata', 'tEquipo', 'tLima', 'tNoche'];
         const mkc = (style, view, skin) => ({ skin, kit: 'A', hair: hairK, tag: '', views: HC.map(h => ({ region: 'head', view, style, tag: style + ' ' + h.toString(16), list: [['hair', h]] })) });
         await job('back/colores-' + ven + '.png', { venue: ven, base: 'std', cols: HC.length, tw: 170, th: 170, title: 'COLORES NUEVOS · ' + ven, sub: '6 naturales y 6 tintes',
           rows: [mkc('ondas', 'q3l', 'light'), mkc('afroCorto', 'q3bl', 'dark')] }, { group: 'back', venue: ven, what: 'colores' });

@@ -285,7 +285,7 @@ section('6. Noticia del jefe (C3) y escena ses1 de Faro (entrenos)');
   // ses1
   ok(Wn.BEATS.ses1 && Wn.BEATS.ses1.t === 'El primer entreno' && Wn.BEAT_ORDER[Wn.BEAT_ORDER.length - 1] === 'ses1', 'BEATS.ses1 «El primer entreno», al final de BEAT_ORDER');
   ok(Wn.BEATS.ses1.l.join(' ') === 'Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan. Jugado de verdad rinde más que en rápido. Y tu entrenador se fija en cómo entrenas.', 'frases exactas de playa');
-  ok(/elegir el seis/.test(Wn.BEATS_H.ses1[1]) && !/arena|playa|circuito|open|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…para elegir el seis»');
+  ok(/elegir el seis/.test(Wn.BEATS_H.ses1[1]) && !/arena|playa|circuito|\bopen\b|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…para elegir el seis»');
   ok(Wn.BEATS.ses1.l.concat(Wn.BEATS_H.ses1).every(l => l.length <= Wn.LINE_MAX), 'frases ≤ ' + Wn.LINE_MAX);
   const q0 = cc.world.mentor.q.length + cc.inbox.length;
   ok(Wn._beat(cc, 'ses1') === true && Wn._beat(cc, 'ses1') === false, 'ses1 se dispara una vez');
@@ -336,6 +336,46 @@ section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
   fake.seed = 9; ok(JSON.stringify(Wa.arbPanel(fake, 'ES1')) === JSON.stringify(Wa.arbPanel(JSON.parse(JSON.stringify(fake)), 'ES1')), 'misma semilla, mismo colegio');
   const rnd = Ba.ctx.Math.random; let rc = 0; Ba.ctx.Math.random = () => { rc++; return rnd(); };
   Wa.arbPanel(fake, 'B2'); Ba.ctx.Math.random = rnd; ok(rc === 0, 'sin Math.random');
+  // nombres con aire del país (24-nov): ligas extranjeras de la pista, nombre + UN apellido de las piezas de su estilo, fuera de su lista
+  // de apellidos reales; España y la playa, igual que antes (dos apellidos)
+  { const badR = [], ex = {};
+    Object.keys(Wa.ARB_CC).forEach(cc => {
+      const sty = Wa.ARB_CC[cc], S = Wa.ARB_STY[sty];
+      if (!S || !S.no || !Object.keys(S.no).length) badR.push('sin ARB_NO ' + sty);
+      for (let s = 1; s <= 60; s++) {
+        const P = Wa.arbPanel({ seed: s }, cc + '1');
+        if (P.length !== Wa.ARB_N) badR.push(cc + ' tamaño ' + P.length);
+        if (new Set(P.map(x => x.short)).size !== P.length || new Set(P.map(x => x.first)).size !== P.length) badR.push(cc + ' repetido ' + s);
+        if (!TR.every(t => P.some(x => x.trait === t))) badR.push(cc + ' caracteres ' + s);
+        P.forEach(x => {
+          const w = x.name.split(' ');
+          if (w.length !== 2 || w[0] !== x.first || w[1] !== x.short || x.sty !== sty || S.fn.indexOf(x.first) < 0) badR.push('forma ' + x.name);
+          if (S.no[x.short] || parts.no[x.short]) badR.push('real ' + x.name);
+          if (!S.es && !S.r.some(r => x.short.indexOf(r) === 0)) badR.push('piezas ' + x.name);
+          if (new RegExp("'" + x.short + "[ ',]").test(src) || src.indexOf(x.name) >= 0) badR.push('lista ' + x.name);
+        });
+        if (s === 1) ex[cc] = P[0].name;
+      }
+    });
+    ok(!badR.length, 'colegios extranjeros con aire del país (' + Object.keys(Wa.ARB_CC).length + ' países; ' + ['IT', 'BR', 'JP', 'TR'].map(k => ex[k]).join(', ') + ')' + (badR.length ? ' — ' + badR.slice(0, 3).join(', ') : ''));
+    // todos los apellidos que puede dar cada estilo (raíz + final, menos su lista no y lo que panel salta): ni famosos, ni insultos,
+    // ni letras triples o «íí», ni un nombre de pila de ningún estilo («Marko Marko»), ni grupos de consonantes imposibles
+    { const FAM = ['Garneau', 'Vauquelin', 'Vučić', 'Jovović', 'Vučević', 'Dragić', 'Kurosawa', 'Garnier', 'Lindemann', 'Lebedev', 'Pavlov', 'Sokolov', 'Erdoğan',
+        'Yıldırım', 'Papadopoulos', 'Carvalho', 'Mourinho', 'Cabrão', 'Cabralho', 'Carvão', 'Thornton', 'Dalton', 'Fenwick', 'Albuquerque', 'Guimarães'];
+      const FN = new Set([].concat(Wa._arbParts.fn || [], ...Object.keys(Wa.ARB_STY).map(k => Wa.ARB_STY[k].fn)));
+      const badA = []; let nA = 0;
+      Object.keys(Wa.ARB_STY).forEach(k => { const S = Wa.ARB_STY[k]; if (S.es) return;
+        S.r.forEach(r => S.s.forEach(x => { const sn = r + x;
+          if (S.no[sn] || parts.no[sn] || S.fn.indexOf(sn) >= 0 || /(.)\1\1|íí/i.test(sn)) return; nA++;
+          if (FAM.indexOf(sn) >= 0) badA.push(k + ' famoso ' + sn);
+          if (FN.has(sn)) badA.push(k + ' nombre de pila ' + sn);
+          if (/í[aeoáéóí]|czcz|[nś]cz|brcz|khikh|ld[çt]|ırım|lucchu/i.test(sn)) badA.push(k + ' grafía ' + sn);
+        })); });
+      ok(!badA.length, 'apellidos posibles por estilo (' + nA + '): ni famosos, ni insultos, ni nombres de pila, ni grafías rotas' + (badA.length ? ' — ' + badA.slice(0, 4).join(', ') : ''));
+      let mm = 0; for (let s = 1; s <= 400; s++) ['RS1', 'SI1', 'FR1', 'BE1', 'PT1', 'CZ1', 'DE1'].forEach(cc => Wa.arbPanel({ seed: s }, cc).forEach(x => { if (x.first === x.short || FN.has(x.short) || FAM.indexOf(x.short) >= 0) mm++; }));
+      ok(!mm, 'en 400 semillas, ningún 1r con apellido famoso o que sea un nombre de pila (antes «Marko Marko», «Louis Garneau»)'); }
+    ok(Wa.arbStyle('ES1') === 'es' && Wa.arbStyle('B2') === 'es' && Wa.arbStyle('IT1') === 'it' && Wa.arbStyle('XX1') === 'es', 'España, la playa y lo desconocido siguen con el estilo español');
+    ok(Wa.arbPanel({ seed: 7 }, 'ES1').every(x => x.name.split(' ').length === 3 && !x.sty), 'España: nombre y dos apellidos, como antes'); }
 
   for (const mode of ['beach', 'hall']) {
     const B = boot(), K = B.VB.Career, Wm = B.VB.CareerWorld, hall = mode === 'hall';
@@ -345,7 +385,8 @@ section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
     const m1 = K.matchSetup(c), m2 = K.matchSetup(K.load()), a1 = m1 && m1.career.arb, a2 = m2 && m2.career.arb;
     ok(a1 && a2 && a1.id === a2.id && a1.name && TR.indexOf(a1.trait) >= 0 && a1.r2 && a1.sc && a1.r2 !== a1.name && a1.sc !== a1.name && a1.sc !== a1.r2, mode + ': designación estable en dos matchSetup, con 2º y anotador (' + (a1 && a1.name + ', ' + a1.trait) + ')');
     ok(JSON.stringify(K.load().world || null) === w0, mode + ': el setup no escribe en c.world');
-    ok(a1 && a1.line.length <= Wm.ARB_LINE && /^1r: /.test(a1.line) && !/·/.test(a1.line) && a1.rec === false, mode + ': línea de la previa ≤ ' + Wm.ARB_LINE + ' letras, sin «·» y sin recuerdo («' + (a1 && a1.line) + '»)');
+    ok(a1 && a1.line.length <= Wm.ARB_SAY && /^([^:]+ \((entrenador|tu pareja)\)|Tu entrenador): /.test(a1.line) && !/·/.test(a1.line) && a1.rec === false, mode + ': sin recuerdo, la fama te la dice tu entrenador o tu pareja (≤ ' + Wm.ARB_SAY + ' letras, sin «·»: «' + (a1 && a1.line) + '»)');
+    ok(a1 && typeof a1.lk === 'number' && a1.lk >= 0 && a1.lk === Wm.arbLook(c, a1.id) && a1.sty === (hall ? Wm.arbStyle(Wm.arbKey(c)) : 'es'), mode + ': aspecto fijo del 1r en cs.arb (lk ' + (a1 && a1.lk) + ', estilo ' + (a1 && a1.sty) + ')');
     const R = Wm.refOf(c, a1.id); ok(R && R.name === a1.name, mode + ': refOf devuelve el designado');
     // la libreta tras un partido con tu amarilla
     const n = K.next(c), sum = { season: c.season, phase: c.phase, label: 'Jornada 1', rival: n.rival.id, rivalName: n.rival.name, win: false, sets: [1, 2], setScores: [[21, 19], [19, 21], [13, 15]], sim: false, nota: 6, me: {},
@@ -410,6 +451,24 @@ section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
     }
     ok(got && Math.abs(got.m.ref.p1 - Math.round(got.base.p1 * 0.6 * 1000) / 1000) < 1e-9 && Math.abs(got.m.ref.p3 - Math.round(got.base.p3 * 0.6 * 1000) / 1000) < 1e-9 && got.m.ref.d3 === got.base.d3,
       'ojo de lince: p1-p3 × 0,6 en su partido (' + (got && got.m.ref.p1 + ' de ' + got.base.p1) + ')');
+  }
+  // competición internacional (rival de otro país): colegio neutral, ni de tu país ni del rival, fijo para ese partido
+  {
+    const B = boot(), K = B.VB.Career, Wm = B.VB.CareerWorld;
+    K.create({ mode: 'hall', name: 'Arb Neutral', num: 8, pos: 'OH', seed: 616, now: 1 }); K.acceptOffer(K.load().offers.findIndex(x => !x.trial), 2);
+    const c = K.load(), keys = new Set(); let bad = 0;
+    for (let r = 0; r < 30; r++) {
+      const n = { foreign: true, me: { cc: 'ES' }, rival: { cc: 'IT', name: 'Rival ' + r }, round: r % 3, label: 'Copa de Europa' }, k = Wm.arbKeyOf(c, n);
+      if (/^(ES|IT)/.test(k) || k !== Wm.arbKeyOf(c, n) || !/^[A-Z]{2}1$/.test(k)) bad++; keys.add(k);
+      const d = Wm.arbDesigna(c, n); if (!d || d.ref.id.indexOf(k + '-') !== 0 || !Wm.refOf(c, d.ref.id) || Wm.refOf(c, d.ref.id).name !== d.ref.name) bad++;
+    }
+    ok(!bad && keys.size >= 4, 'internacional: pita un colegio neutral, fijo y que refOf encuentra (' + [...keys].slice(0, 6).join(', ') + ')');
+    ok(Wm.arbKeyOf(c, { foreign: false, rival: { cc: 'ES', name: 'X' } }) === Wm.arbKey(c), 'liga y copa de tu país: el colegio de tu liga');
+    // la frase de fama: cabe con nombres largos y en todos los caracteres
+    const lines = [];
+    ['estricto', 'deja', 'lince', 'nervioso', 'manual'].forEach(t => ['Al-Ghanouri', 'Papadiadis', 'Lu', ''].forEach(sh => lines.push(Wm.arbSay(c, { id: 'IT1-' + sh.length, short: sh, trait: t }, t))));
+    ok(lines.every(l => l.length <= Wm.ARB_SAY && /: /.test(l) && !/·|undefined|\{r\}/.test(l)), 'arbSay: ' + lines.length + ' frases ≤ ' + Wm.ARB_SAY + ' letras (p. ej. «' + lines[0] + '»)');
+    ok(lines.every(l => !/\b(este|esta|nervios[oa])\b/i.test(l)), 'arbSay: frases neutras, sin «este» ni «nervioso» (el árbitro no lleva género)');
   }
 }
 

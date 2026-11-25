@@ -7,7 +7,9 @@
  *  (c) al acabar ese primer partido el Resumen ofrece «Y ahora»: Carrera, Vestuario y Cuenta; Vestuario lleva al Vestuario del menú y la
  *      portada ya no enseña «¡Jugar ya!»;
  *  (d) ?jugar: directo al partido corto (g.playNow 'jugar') y el enlace queda sin «jugar»;
- *  (e) móvil (táctil, 844×390): el aviso de instalar NO sale antes del primer partido y sí cuando el récord ya tiene uno.
+ *  (e) móvil (táctil, 844×390): el aviso de instalar NO sale antes del primer partido y sí cuando el récord ya tiene uno;
+ *  (h) PRIMERA VEZ (24-nov-2026): la portada del novato es solo «¡Jugar ya!», «Tutorial» y el engranaje de Ajustes (#menu.first-run); cerrar el tutorial (aunque sea a
+ *      medias) da la portada de siempre, también al recargar (record.intro), y «¡Jugar ya!» sigue encima hasta el primer partido.
  * Uso: node tools/jugaryatest.js   (sale con 1 si algo falla)
  */
 'use strict';
@@ -18,6 +20,8 @@ const ok = (c, m) => { if (c) console.log('ok:', m); else { fail++; console.erro
 setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, 300e3).unref();
 
 async function waitFor(pg, expr, ms) { const t = Date.now() + ms; while (Date.now() < t) { try { if (await pg.evalJs(expr)) return true; } catch (e) { } await sleep(150); } return false; }
+// portada de la primera vez: clase, billete «Tutorial» y si se ven JUGAR, Jugadores y Ajustes (offsetParent: display:none no lo tiene)
+const FIRST = "(function(){var v=function(id){var b=document.getElementById(id);return !!b&&!b.hidden&&b.offsetParent!==null};return JSON.stringify({cls:document.getElementById('menu').classList.contains('first-run'),now:v('btnNow'),tut:v('btnStartTut'),play:v('btnPlay'),squad:v('btnSquad'),set:v('btnSettings')})})()";
 const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootBusy&&!VB.UI.bootBusy()";   // (frame > 5: los módulos ya han hecho init, como en resumetest)
 
 (async () => {
@@ -32,6 +36,8 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
       tk:!!b&&b.classList.contains('sp-ticket'),cls:document.getElementById('menu').classList.contains('has-now-mj'),pri:p.classList.contains('primary'),txt:b?b.textContent.replace(/\\s+/g,' ').trim():''})})()`).then(JSON.parse);
     ok(por.vis && por.tk && por.cls, 'novato: billete «¡Jugar ya!» a la vista (' + por.txt + ')');
     ok(!por.pri, 'novato: JUGAR pasa a fila plana');
+    const fr0 = await pg.evalJs(FIRST).then(JSON.parse);
+    ok(fr0.cls && fr0.tut && !fr0.play && !fr0.squad && fr0.set, 'primera vez: solo «¡Jugar ya!», «Tutorial» y el engranaje de Ajustes (' + JSON.stringify(fr0) + ')');
     await pg.evalJs("document.getElementById('btnNow').click()");
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 8000), 'un toque en «¡Jugar ya!» empieza el partido');
     const g = await pg.evalJs("JSON.stringify({pn:VB.ctx.game.playNow,pts:VB.ctx.game.points,tw:VB.ctx.game.toWin,d:VB.ctx.game.difficulty,s:VB.ctx.settings.difficulty,size:VB.ctx.game.size,first:!document.getElementById('pnFirst')||document.getElementById('pnFirst').hidden})").then(JSON.parse);
@@ -59,6 +65,8 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     await pg.evalJs('VB.UI.menuBack&&VB.UI.menuBack()'); await sleep(600);
     const now2 = await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()");
     ok(!now2, 'tras el primer partido la portada ya no enseña «¡Jugar ya!»');
+    const fr1 = await pg.evalJs(FIRST).then(JSON.parse);
+    ok(!fr1.cls && !fr1.tut && fr1.play && fr1.squad, 'tras el primer partido, la portada de siempre (' + JSON.stringify(fr1) + ')');
     // (22-nov) la revancha de «Jugar ya» de quien ya ha jugado es un partido corto más: no cuenta (g.short)
     await pg.evalJs("VB.ctx.actions.playNow('ya')");
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 8000), '«Jugar ya» otra vez: empieza');
@@ -91,6 +99,31 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     ok(await waitFor(pg, "VB.ctx&&VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 25000), '(f) ?jugar');
     ok(await pg.evalJs("!!(VB.ctx.game.short&&VB.ctx.game.short.len==='one')"), '?jugar de quien ya ha jugado: partido corto que no cuenta');
     ok(!pg.errors.length, '(f) sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
+    pg.close(); pg = null; await sleep(800);
+
+    // ---------------------------------------------------------------- (h) primera vez → Tutorial → cerrarlo a medias → portada de siempre
+    pg = await CDP.open({ size: '844x390', touch: true, ua: CDP.ANDROID_UA });
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 25000), '(h) móvil: arranca');
+    const h0 = await pg.evalJs(FIRST).then(JSON.parse);
+    ok(h0.cls && h0.now && h0.tut && !h0.play, '(h) móvil: primera vez con los dos billetes (' + JSON.stringify(h0) + ')');
+    const foc = await pg.evalJs("(function(){var L=[].filter.call(document.querySelectorAll('#menu .mlist button'),function(b){return b.offsetParent!==null&&!b.hidden});return L.map(function(b){return b.id}).join(',')})()");
+    ok(foc === 'btnNow,btnStartTut,btnSettings', '(h) en la portada solo se pueden tocar los dos billetes y el engranaje (' + foc + ')');
+    await pg.evalJs("document.getElementById('btnStartTut').click()");
+    ok(await waitFor(pg, "VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden", 4000), '(h) «Tutorial» abre Cómo se juega');
+    await sleep(500);
+    await pg.evalJs("document.getElementById('btnTutNext').click()"); await sleep(300);
+    await pg.evalJs("document.getElementById('btnPanelBack').click()");
+    ok(await waitFor(pg, "!VB.UI.isPanelOpen()", 4000), '(h) se cierra a medias');
+    await sleep(400);
+    const h1 = await pg.evalJs(FIRST).then(JSON.parse);
+    ok(!h1.cls && h1.now && !h1.tut && h1.play && h1.squad, '(h) cerrado el tutorial: portada de siempre con «¡Jugar ya!» encima (' + JSON.stringify(h1) + ')');
+    ok(await pg.evalJs("JSON.parse(localStorage.getItem('make-the-cut.record')).intro===1"), '(h) se apunta record.intro');
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 25000), '(h) recarga');
+    const h2 = await pg.evalJs(FIRST).then(JSON.parse);
+    ok(!h2.cls && h2.play, '(h) al recargar sigue la portada de siempre (' + JSON.stringify(h2) + ')');
+    ok(!pg.errors.length, '(h) sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
     pg.close(); pg = null; await sleep(800);
 
     // ---------------------------------------------------------------- (e) aviso de instalar en el móvil, después del primer partido

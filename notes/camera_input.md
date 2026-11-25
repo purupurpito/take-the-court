@@ -1389,3 +1389,71 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
 - `spiker` (nuevo con la IA variada, 1024×768 s3): el jugador controlado «fuera» 9 frames en defensa justo tras un cambio de `g.ctrl`
   (el nuevo aparece en x -1,01 NDC y la cámara se recoloca en 0,2 s). Como en `wide`, no se cuentan los 0,3 s tras el cambio.
 - `CAMZERO=1` quita todas estas tolerancias (exige 0 como antes).
+
+## Cámara fija en el saque (24-nov-2026, rama decisiones; Ferran: «En mi saque, la cámara se mueve demasiado … que sea "fija" excepto cuando NECESITE moverse para encuadrar todo lo que pase»)
+- **Medido antes de tocar nada** (`node tools/camserve.js`, nueva: autopilot, por saque y fase —espera con el balón en la mano desde
+  0,5 s, lanzamiento, vuelo hasta el primer toque rival o el bote—; `WALK=1` mueve al sacador a lo ancho como un humano; la copia de antes
+  con `VB_ROOT`). En TU saque del 2v2 la cámara recorría 0,4-0,6 m y giraba 9-23° por saque (con WALK, 1,6-2 m y 24-28°, lente 19-48°):
+  en el lanzamiento giro p95 25-68 °/s y lente 6-17 °/s de media (la grúa del saque en salto, el cabeceo que sigue al lanzamiento, la
+  búsqueda de candidatos y un tirón de ~4° en un frame de la red de seguridad de los oficiales) y, nada más golpear, pasaba a la cámara del
+  peloteo en pleno vuelo (2,8-3,6 m/s, 11-22 °/s, lente ~10 °/s). 6v6: tu saque 1,2 m; el de un compañero 1,2-1,5 m; el rival 0,3-0,6 m.
+  Tabla completa en tools/out/camserve/comparativa.txt (git la ignora; se rehace con las pasadas de tools/out/camserve/base.sh).
+- **Cambio** (`FX`, `fxApply` al final de `computeDesired`; ver el comentario «CÁMARA FIJA EN EL SAQUE» en camera.js): al entrar en el
+  saque la pose del plano (posición, giro, cabeceo y lente) se FIJA y se queda quieta mientras quepa lo que importa, mirado con la pose
+  fijada: tu saque (sacador de rodillas o pies a cabeza, el balón lanzado y su cumbre), su vuelo (tu jugador, el balón y dónde caerá) y el
+  saque rival (tu jugador, el sacador rival y su lanzamiento). Si algo pasaría del margen de fuera (0,95 NDC; el balón del vuelo 0,92,
+  táctil 0,9) gira, cabecea o abre la lente lo mínimo para dejarlo 0,1 NDC por dentro (zona muerta amplia), con un muelle (0,32 s; 0,12 s
+  en el lanzamiento) y se queda ahí: no cierra la lente ni vuelve sola. Sin trasladarse, salvo que el sacador humano se desplace > 1,2 m
+  (se recompone el encuadre entero, 0,55 s, y se fija al pararse) o que algo quede detrás de la cámara (vuelve el plano). Balones a
+  > 15 m/s no cuentan (regla de 1.8.2). Al fijar se mete ya lo que vendrá: la cumbre del lanzamiento más alto (saque en salto, 4,6 m) y el
+  arranque del vuelo del saque (3 m por delante, 3,7 m) en tu saque; la cumbre del lanzamiento rival en el suyo.
+  - **Encuadre del saque propio más alto** (`svFixed`, `SVFH` 2 m más alto y `SVFB` 1,2 m más atrás, con el tope x <= 15): desde la altura
+    de antes (3,35-3,5 m) no caben a la vez el fondo rival >= 0,5 NDC y el lanzamiento (con la cumbre dentro el fondo bajaba a 0,3). Desde
+    ahí el campo rival sigue alto, el sacador sale de rodillas arriba y el lanzamiento en salto cabe: la grúa del saque en salto ya no hace
+    falta. Los candidatos (`svcEval`) se puntúan a esa altura (sin la prueba de la grúa); la pasada de antemano y `predictServe` también.
+    Se ve más pista propia vacía y el sacador algo más pequeño que antes (es el encuadre que antes salía solo con la grúa del salto).
+  - **Vuelo de tu saque**: el plano sigue siendo `serveUs` (pickShot) hasta el primer toque rival o el bote; solo si sacaste tú (con el de
+    un compañero la cámara tiene que ir a por tu jugador y mejor durante el vuelo: en el 6v6 hacerlo al primer toque rival pedía 12 m/s).
+    Sin seguimiento del remate en el saque en salto (`ftStart`) ni contención (`ctUpdate`) mientras la cámara está fija: dos correcciones a
+    la vez se pisaban. Al soltar, la transición de plano de siempre (6v6: `startBlend(0.8, 0.6, 16)`).
+  - **Se fija donde está** si la cámara ya está a < 2 m de la pose del plano (fin de la transición fija desde el punto): si no, los muelles
+    de posición y mira daban 0,5 s de pequeños ajustes. Tras un corte (`settle`, dt = 0) se fija la pose del plano.
+  - **Saque rival del 2v2**: el encuadre fino (`framing`) se congela mientras la cámara está fija (ya enmarcaba el lanzamiento desde el
+    principio); la comprobación cuenta su giro, cabeceo y lente de ayuda.
+  - **Red de seguridad de los oficiales** (CAM-15) con la cámara fija: si la corrección que ya aplica deja a todos enteros o fuera, se
+    queda (antes buscaba otra cada frame: un giro lento de 3-4° nada más empezar) y, si cambia, llega con un muelle de 0,18 s (antes, de
+    golpe: 247 °/s y 284 °/s de lente en un frame al abrirse la lente en el lanzamiento en salto). `getDebug().fx.of` = corrige este frame.
+  - `getDebug().fx` = {on, k ('yo' | 'vuelo' | 'rival'), need (correcciones), rc (recomponiendo), why, of}. `&camBreak=still`: la cámara
+    de antes (sin fijar ni subir) aunque fx diga que está fija.
+- **Medido después** (mismas pasadas; quieta = < 0,05 m/s, < 0,5 °/s y lente < 0,3 °/s):
+
+  | caso | tu saque, espera+lanzamiento: antes → después | vuelo de tu saque: antes → después | saque rival (espera / lanzamiento) |
+  |---|---|---|---|
+  | 2v2 1280 pista | 0,62 m, 14°, lente 18° → **0** (100 % quieta) | 0 % quieta, 2,9 m/s → 84 %, 0,02 m/s | 100/86 % → 100/100 % |
+  | 2v2 1280 pista WALK | 1,59 m, 28°, lente 48° → **0** | 0 %, 3,0 m/s → 74 % | 100 % → 100 % |
+  | 2v2 1280 playa | 0,59 m, 9° → **0** | 0 % → 95 % | 100 % → 100 % |
+  | 2v2 844 táctil pista | 0,42 m, 13° → **0** | 0 % (balón fuera 3,8 %) → 79 % (0 %) | 71/78 % → 100/100 % |
+  | 2v2 844 táctil WALK | 1,99 m, 24° → **0** | 0 % → 56 % | 63 % → 100 % |
+  | 2v2 568 táctil pista | 0,42 m, 23° (giro p95 68 °/s) → **0** | 0 % (balón fuera 5,5 %) → 79 % (0 %) | 71/77 % → 100/100 % |
+  | 2v2 844 táctil playa | 0,59 m, 12° → **0** | 0 % → 95 % | 55 % → 100 % |
+  | 6v6 1280 (tu saque) | 1,21 m → **0** | 0 % → 74 % | 52/72 % → 100/100 % |
+  | 6v6 844 / 568 táctil | (compañero) 1,2-1,5 m → 0 salvo el 1r saque del partido de autopilot | (compañero: se mueve en el vuelo, como antes) | 0-52 % → 100 % |
+
+  Lo que queda movido en el vuelo son correcciones de verdad (tu jugador que entra en la pista, el bote) de 0,3-0,9 °/s de media. El 1r
+  saque del partido de autopilot (6v6) llega sin corte desde el menú: ese sí se mueve (hasta 4 m); no pasa en un partido de verdad.
+  Balón fuera en la espera: 0 (antes 3-9 %, el bote del ritual del sacador fuera por abajo; ahora el encuadre es más abierto).
+- **Juez de línea cercano en tu saque** (pregunta abierta del 21-nov): **decisión provisional: fuera de la imagen**. Con el encuadre más
+  alto queda fuera solo, y la silla del 1r árbitro y los anotadores ya no asoman: `CAMZERO=1 ONLY=serve` pasa en 1280×720 y 844×390 táctil
+  (semillas 7 y 12345) sin los «conocidos». La tolerancia de camtest se queda (por si alguna sede la necesita), pero ya no salta.
+- **tools/camtest.js**: comprobación nueva **STILL** (ver la cabecera): con fx encendida, cámara quieta salvo en los 1,5 s que siguen a una
+  corrección, recomponiendo, con la red de los oficiales corrigiendo (y 0,3 s después) o con el temblor del golpe (y 0,15 s después), sin
+  la llegada (0,4 s); balón dentro en el lanzamiento y el vuelo. Tope 1 % de frames movidos sin motivo (CAMZERO=1: 0). `SERVE` solo mira
+  frames con el balón por sacar o lanzado (el vuelo también es `serveUs`). El registro guarda `fx`, `shk`, `lk2`. Selftest con
+  `camBreak=still` (detectado: 40 % quieta, giro 36 °/s) y `camBreak=serve` (sigue detectado).
+- **tools/camserve.js** `[2v2|6v6] [WxH] [s] [semilla]` (`MAP=beach`, `TOUCH=1`, `WALK=1`, `JSON=`, `VB_ROOT=`, `LOG=1`, `SHOTS=carpeta`
+  fotos de espera / lanzamiento flotante y en salto / vuelo de cada uno; `NSHOT=n`).
+- **Pruebas** (24-nov, de una en una): camtest entero 75 s, semillas 7, 12345 y 3, en 1280×720, 1680×720, 1024×768 y 844×390 táctil: TODO
+  OK salvo `menu` en 1024×768 («balón en la parte libre 89 %», pide 90): falla igual en la copia de antes (VB_ROOT), no es de la cámara del
+  saque. CAMZERO=1 `still,serve` (1280 y 844 táctil, 7 y 12345): serve 4/4, still 4/4. cam6test 1280 y 844 táctil TODO OK (SUAVE p99
+  7,9 m/s; antes 7,0). tv6test, viewtest (11 ok), console.sh all 1280×720 y 844×390 táctil (y saque/rally con map=beach) sin errores.
+  Capturas en tools/out/camserve/fotos (y fotos-antes). La sim no se toca: simtest TODO OK (huella del 2v2 igual).

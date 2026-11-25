@@ -26,7 +26,7 @@
   // Presentación (UI-02/03/04): banKind = qué anuncia el banner visible ('point' | 'set' | 'match' | 'court' | 'info' | 'sp');
   // banGate = cómo acaba ('cut' = con el corte de vuelta al saque; 'court' = al bajar la grúa del cambio de campo)
   var banKind = '', banTier = 0, banRect = null, bugT = 0, bugOut = false;
-  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {}, anyMatch: 0 }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
+  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {}, anyMatch: 0, intro: 0 }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
   // byD (B5): {easy:[ganados, perdidos], normal, hard, expert}, solo partidos 2v2 de Partido rápido (la previa dice «3-1 en Normal»)
   var hudScale = 1;            // UI-16: escala del HUD (ctx.settings.hudScale) × vpScale (pantallas grandes; vpFit)
   var hudSet = 1, vpScale = 1; // ajuste del jugador (1 | 1,15 | 1,3) y escala por tamaño de pantalla (--vs)
@@ -450,8 +450,8 @@
       'btnPlay', 'optDiff', 'optVenue', 'venueVal', 'optPts', 'ptsVal', 'optCtrl', 'ctrlVal', 'btnTut', 'btnControls', 'btnSettings', 'btnSquad', 'squadSub', 'sqBody', 'btnResume', 'btnRestart', 'btnQuit', 'btnPControls', 'btnPSettings',
       'btnAgain', 'btnMenu', 'btnPanelBack', 'btnTutPrev', 'btnTutNext', 'btnHudPause', 'btnHudMute', 'icoSound',
       'pnKick', 'pnTitle', 'tutBody', 'tutFig', 'tutStep', 'tutTitle', 'tutText', 'tutDots', 'ctlGrid', 'ctlSub', 'navHint', 'menuRecord', 'menuLast',
-      'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optLen', 'lenVal', 'lenHelp', 'optCam6', 'cam6Val', 'cam6Help', 'btn6v6', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
-      'diffVal', 'diffLvl', 'playSub', 'qualNote', 'tb1t', 'btnFirstTut', 'btnFirstPlay', 'firstDiff', 'guide', 'guideK', 'guideT', 'skip', 'btnAgainAlt', 'endMvp', 'btnPeek', 'btnEndBack', 'btnEndOpts',
+      'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optLen', 'lenVal', 'lenHelp', 'optCam6', 'cam6Val', 'cam6Help', 'plFmt', 'quickSub', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
+      'diffVal', 'diffLvl', 'playSub', 'qualNote', 'tb1t', 'btnStartTut', 'btnFirstTut', 'btnFirstPlay', 'firstDiff', 'guide', 'guideK', 'guideT', 'skip', 'btnAgainAlt', 'endMvp', 'btnPeek', 'btnEndBack', 'btnEndOpts',
       'btnVer', 'abTabs', 'abBody', 'btnAbOk', 'optVer', 'optSave', 'resNote', 'ctlMsg',
       // E6: Entrenamiento (tarjeta, página, pastilla del HUD, tarjeta de presentación y hoja final)
       'btnGym', 'mpGym', 'gymList', 'gymFoot', 'btnGymBack', 'gymSub', 'drillBar', 'drillTxt', 'introDrill', 'idTitle', 'idGoal', 'idKeys', 'idMed',
@@ -487,6 +487,7 @@
     el.ambCard = $('ambCard'); el.ambCard1 = $('ambCard1'); el.ambCard2 = $('ambCard2');
     if (el.ambChR) el.ambChR.addEventListener('pointerdown', ambTap);
     el.chal = $('chal'); el.chalK = el.chal ? el.chal.firstChild : null; el.chalKey = $('chalKey'); el.chalN = $('chalN'); el.chalBar = $('chalBar'); el.sbChal = $('sbChal');
+    el.rpOff = $('rpOff'); el.rpOffT = $('rpOffT'); el.rpOffBar = $('rpOffBar');
     try { subsDom(); } catch (e) { console.error('[VB][ERROR] UI.subsDom: ' + e); }   // banquillo y cambios (6v6)
   }
   function device() {
@@ -655,6 +656,32 @@
     if (chal.n !== n) { chal.n = n; el.chalN.textContent = n; el.chalN.hidden = !n; }
     fr = Math.round(fr * 100) / 100;
     if (chal.bar !== fr) { chal.bar = fr; el.chalBar.style.transform = 'scaleX(' + fr + ')'; }
+  }
+
+  // Aviso de repetición (24-nov-2026, decisión de Ferran): con ctx.replayOffer (VB.Replay.offerTick) a la vista, en el sitio del
+  // challenge: PC «Pulsa V para ver la repetición» (la tecla del challenge, reasignable), mando «Pulsa LT…» (PS: L2), táctil un
+  // botoncito «REPETICIÓN» con ▶. Se va solo (barra que se vacía); el toque lo pide con ctx.actions.takeReplay. Cero basura por frame.
+  var rpo = { key: '', bar: -1 };
+  function rpOffTick(g) {
+    if (!el.rpOff) return;
+    var of = ctx.state === 'playing' && !g.demo && !(ctx.introLeft > 0) ? ctx.replayOffer : null;
+    var dv = of ? device() : '', key = of ? dv + padFam() + '|' + of.serial : '';
+    if (rpo.key !== key) {
+      var was = rpo.key !== '';
+      rpo.key = key; rpo.bar = -1;
+      el.rpOff.className = of ? 'show' + (dv === 'touch' ? ' tch' : '') : '';
+      if (of) {
+        var kb = (VB.Input && VB.Input.glyph && safe(function () { return VB.Input.glyph('challenge', 'keyboard'); })) || 'V';
+        var k = dv === 'gamepad' ? (padFam() === 'ps' ? 'L2' : 'LT') : kb;
+        if (dv === 'touch') el.rpOffT.textContent = 'REPETICIÓN';
+        else el.rpOffT.innerHTML = 'Pulsa <span class="key' + (dv === 'gamepad' ? ' pad' : '') + '">' + escT(k) + '</span> para ver la repetición';
+        el.rpOff.setAttribute('aria-label', 'Ver la repetición');
+        if (!was) srSay(dv === 'touch' ? 'Repetición disponible: toca el botón para verla.' : 'Repetición disponible: pulsa ' + k + ' para verla.');
+      }
+    }
+    if (!of) return;
+    var fr = Math.round(Math.max(0, Math.min(1, of.left / (of.dur || 4))) * 100) / 100;
+    if (rpo.bar !== fr) { rpo.bar = fr; el.rpOffBar.style.transform = 'scaleX(' + fr + ')'; }
   }
 
   // =====================================================================
@@ -1045,6 +1072,8 @@
         case 'zone': znEvent(e, g); break;   // la zona (ZN-HUD)
         // «Te tienen estudiado» (Carrera, g.scout): el rival cambia el plan porque le haces daño por el otro carril
         case 'study': if (!e.replay && !g.demo) { var stT = 'Cambian el plan: te tapan ' + (e.lane === 'line' ? 'la línea' : 'la diagonal'); callout(stT, 1, '', 2.0); srSay(stT); } break;
+        // «Te leen» (sim.js rdEv; todos los modos salvo Fácil): 3 remates tuyos seguidos por el mismo carril y la CPU se corre hacia él
+        case 'read': if (!e.replay && !g.demo && e.team === 1) { var rdT = 'Te han leído: te tapan ' + (e.lane === 'line' ? 'la línea' : 'la diagonal'); callout(rdT, 1, '', 1.8); srSay(rdT); } break;
         case 'block':
           if (e.human && e.result === 'stuff') pulse(e.team, false);
           // C4: el bloqueo directo de tu equipo lo dice la cinta cinética («¡Muro!») 0,5 s después: sin aviso duplicado
@@ -1399,7 +1428,7 @@
     else { try { introFill(g, plan); } catch (e) { console.error('[VB][ERROR] UI.introFill: ' + e); } }
     // la situación de la semana: antetítulo propio y el marcador de arranque en lugar de «Al mejor de 3 sets»
     if (g && g.sit && !g.demo && !dr) {
-      if (it && it.nodeType === 3) it.nodeValue = 'La situación de la semana';
+      if (it && it.nodeType === 3) it.nodeValue = 'La jugada del día';
       if (el.introFmt) el.introFmt.textContent = (g.bo1 ? 'Set único a ' + setT(g) : SET_ORD[(g.setNo | 0) - 1] + ' set a ' + setT(g)) + ': ' + g.score[0] + '-' + g.score[1];
       if (el.introSrv) el.introSrv.textContent = cpuTxt(g.serving === 1 ? 'Saca el rival' : six ? 'Sacáis vosotros' : 'Sacas tú');
     }
@@ -2528,6 +2557,7 @@
   function hud(g, dt) {
     var demo = g.demo;
     chalTick(g);
+    rpOffTick(g);
     var drOn = !!(g.drill && !demo); e1.on = false;
     if (last.drOn !== drOn) { last.drOn = drOn; el.app.classList.toggle('drill-on', drOn); }
     var wOn = !!(g.watch && !demo);   // espectador táctil: sin mandos táctiles, la pausa del HUD es la salida (index.html .watch-on)
@@ -3152,7 +3182,7 @@
   function spRow(b) { var p = b && b.parentNode; return p && p.closest ? p.closest('[data-sp-row]') : null; }
   function spRowList(r, list) { return list.filter(function (x) { return spRow(x) === r; }); }
   function spNavIdx(list, i, d) {
-    var n = list.length, r = spRow(list[i]), col = r ? spRowList(r, list).indexOf(list[i]) : 0, j = i;
+    var n = list.length, r = spRow(list[i]), col = r && !r.hasAttribute('data-sp-col0') ? spRowList(r, list).indexOf(list[i]) : 0, j = i;   // (data-sp-col0: al salir de la fila, a la 1ª columna de la otra; formato de Jugar → Partido rápido)
     do { j = (j + d + n) % n; } while (r && j !== i && spRow(list[j]) === r);
     var r2 = spRow(list[j]); if (!r2 || r2 === r) return j;
     var L2 = spRowList(r2, list); return list.indexOf(L2[r ? Math.min(col, L2.length - 1) : 0]);
@@ -3183,7 +3213,13 @@
   // «Jugar ya» (1.22.0, informe 4.3): #btnNow solo para quien no ha jugado nunca un partido rápido (récord a 0) y sin Carrera activa; un
   // toque = un set a 15 contra la CPU (main.js playNow), sin Jugar ni «Primer partido» (que sigue saliendo a quien entra por JUGAR).
   // En depuración no sale (mobaudit/capturas: &now=1 lo fuerza). Con él, JUGAR pasa a fila plana con su línea, como con la Carrera.
-  function nowWanted() { return ctx.debug ? ctx.params.now === '1' && !heroOn : !heroOn && !everPlayed(); }
+  function nowWanted() { return ctx.debug ? (ctx.params.now === '1' || ctx.params.first === '1') && !heroOn : !heroOn && !everPlayed(); }
+  // PRIMERA VEZ (24-nov-2026, Ferran: «Cuando alguien se meta al juego por PRIMERA VEZ que le dé de opciones Jugar ya o Tutorial. De ahí,
+  // para adelante, le saldrá el menú normal»): con «¡Jugar ya!» a la vista y sin haber cerrado nunca el tutorial (record.intro), la portada
+  // es solo esos dos billetes (#menu.first-run). Se acaba al jugar cualquier partido (everPlayed) o al CERRAR el tutorial, se acabe o no
+  // (closePanel). Empezar un partido y salir a medias no lo acaba. En depuración, &first=1 la fuerza (mobaudit)
+  var firstOn = false;
+  function firstWanted(nw) { return !!nw && !!el.btnStartTut && (ctx.debug ? ctx.params.first === '1' : !(record.intro > 0 || record.tut > 0)); }   // (tut: ya lo acabó antes de 1.23)
   function syncHero() {
     heroDirty = false;
     if (!el.btnCont) return;
@@ -3197,6 +3233,9 @@
     if (ml && ml.classList.contains('has-cont') !== showC) ml.classList.toggle('has-cont', showC);
     if (el.menuCol && el.menuCol.classList.contains('has-cont') !== showC) el.menuCol.classList.toggle('has-cont', showC);
     var nw = !sgOn && !!el.btnNow && nowWanted(); nowOn = nw;
+    var fr = firstWanted(nw); firstOn = fr;
+    if (el.btnStartTut && el.btnStartTut.hidden === fr) el.btnStartTut.hidden = !fr;
+    if (el.menu && el.menu.classList.contains('first-run') !== fr) el.menu.classList.toggle('first-run', fr);
     if (el.btnSeguir) {
       if (el.btnSeguir.hidden === sgOn) el.btnSeguir.hidden = !sgOn;
       if (sg) {
@@ -3218,6 +3257,7 @@
     var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
     if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
     if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(mainF, kbNow());
+    if (!fr && el.btnStartTut && document.activeElement === el.btnStartTut && mpage === 'main') focusEl(mainF, kbNow());
     if (!sgOn && el.btnSeguir && document.activeElement === el.btnSeguir && mpage === 'main') focusEl(mainF, kbNow());
   }
   /** «Continuar carrera»: abre el hub en «Partido» con el foco en «Jugar partido» (el partido no empieza solo; R15: from 'main'). */
@@ -3280,9 +3320,9 @@
     }
     if (el.squadSub && VB.Prog) {
       var sq = VB.Prog.get().a, pt = sq[0].pts + sq[1].pts;
-      // sin puntos: una pastilla por jugador con su dorsal en círculo («(1) Nv 3  (2) Nv 2»)
+      // sin puntos: el nivel de los dos (sin dorsales, 24-nov-2026: «Nivel 3 los dos» o «Niveles 3 y 2»)
       setHTML(el.squadSub, 'sqs', pt ? pt + (pt === 1 ? ' punto de mejora' : ' puntos de mejora')
-        : sepHTML(sq.map(function (a) { return { h: '<i class="dn" aria-label="N.º ' + a.num + '">' + a.num + '</i>Nv ' + a.lvl }; }), 'c'));
+        : sq[0].lvl === sq[1].lvl ? 'Nivel ' + sq[0].lvl + ' los dos' : 'Niveles ' + sq[0].lvl + ' y ' + sq[1].lvl);
       el.btnSquad.classList.toggle('has-pts', pt > 0);
     }
     // Vestuario: punto en el botón de la portada mientras haya algo nuevo sin ver
@@ -3301,12 +3341,12 @@
     if (!el.sqBody || !VB.Prog) return;
     var P = VB.Prog, d = P.get();
     if (sqSel >= d.a.length) sqSel = 0;
-    // selector de atleta (radio): dorsal, rol, nivel y aviso de puntos sin gastar
+    // selector de atleta (radio): papel (sin dorsal: 24-nov-2026), nivel, media y aviso de puntos sin gastar
     var ph = '';
     d.a.forEach(function (a, i) {
       var on = i === sqSel;
       ph += '<button class="sq-pk sp-btn sp-wide sp-calm sp-quiet ' + (on ? 'sp-gold on' : 'sp-ink') + (a.pts ? ' has-pts' : '') + '" data-shape="' + (i * 2 + 1) + '" role="radio" aria-checked="' + on + '" data-pick="' + i + '"' + (on ? '' : ' tabindex="-1"') + '>' +
-        '<span class="sq-num">' + a.num + '</span><span class="sq-pn">N.º ' + a.num + '<small>' + escT(a.role || '') + '<span class="sq-lv"> (Nv&nbsp;' + a.lvl + ')</span><span class="sq-pm"><span class="sep sep-v"><span class="sr">, </span></span><span class="sq-pl">Nv&nbsp;' + a.lvl + ' · </span>Media ' + P.ovr(a.st) + '</span></small></span>' +
+        '<span class="sq-num" aria-hidden="true">' + escT(String(a.role || '?').charAt(0)) + '</span><span class="sq-pn' + (String(a.role || '').length > 8 ? ' sq-long' : '') + '">' + escT(a.role || sqRole(a.num)) + '<small class="sq-lm">Nv&nbsp;' + a.lvl + ' · Media ' + P.ovr(a.st) + '</small></span>' +
         (a.pts ? '<em class="sq-pp" aria-label="' + a.pts + ' puntos de mejora">+' + a.pts + '</em>' : '') + '</button>';
     });
     var ae0 = document.activeElement, pickF = ae0 && el.sqPick && el.sqPick.contains(ae0), pickKb = pickF && ae0.classList.contains('kf');
@@ -3330,7 +3370,7 @@
       gr[1].forEach(function (k) {
         var v = a.st[k], c = P.cost(v), can = v < P.MAX && a.pts >= c;
         html += '<div class="sq-r' + (upKey === i + ':' + k ? ' up' : '') + '" title="' + (P.HINT[k] || '') + '"><span>' + P.LABEL[k] + '<small>' + (P.HINT[k] || '') + '</small></span><span class="bar"><i style="width:' + v + '%"></i></span><b>' + v + '</b>' +
-          '<button data-i="' + i + '" data-up="' + k + '"' + (can ? '' : ' disabled') + ' aria-label="Mejorar ' + P.LABEL[k] + ' del ' + a.num + ' (' + c + (c === 1 ? ' punto' : ' puntos') + ')">' + (v >= P.MAX ? 'máx' : '+' + c) + '</button></div>';
+          '<button data-i="' + i + '" data-up="' + k + '"' + (can ? '' : ' disabled') + ' aria-label="Mejorar ' + P.LABEL[k] + ' del ' + escT(String(a.role || sqRole(a.num)).toLowerCase()) + ' (' + c + (c === 1 ? ' punto' : ' puntos') + ')">' + (v >= P.MAX ? 'máx' : '+' + c) + '</button></div>';
       });
       html += '</div>';
     }
@@ -3384,7 +3424,7 @@
     var h = '';
     list.forEach(function (u) {
       var b = VB.Badges.BY[u.id];
-      h += '<span class="l' + u.lvl + '"' + (u.eq && !u.prev ? ' title="Equipada"' : '') + '><i class="bd-ic">' + (b ? b.icon : '') + '</i>N.º ' + u.num + ': <b>' + VB.Badges.label(u) + '</b></span>';
+      h += '<span class="l' + u.lvl + '"' + (u.eq && !u.prev ? ' title="Equipada"' : '') + '><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + escT(sqRole(u.num)) + ': <b>' + VB.Badges.label(u) + '</b></span>';
     });
     return '<div class="end-bd">' + h + '</div>';
   }
@@ -3414,7 +3454,7 @@
     var pk = [{ h: 'Set ' + g.setNo + SEP_V + g.score[0] + '-' + g.score[1] }, nm || OPT.difficulty.labels[optIndex('difficulty')]];
     if (rs && !rs.sc) pk.push('Nota ' + rtNum(+rs.v || 0));
     if (g && g.reto && !g.demo) pk.unshift('Reto del día');   // D1: «Reto del día ◆ Set 1 | 24-10 ◆ Difícil»
-    if (g && g.sit && !g.demo) { pk[0] = { h: nw((g.bo1 ? 'Set único' : SET_ORD[(g.setNo | 0) - 1] + ' set') + SEP_V + g.score[0] + '-' + g.score[1]) }; pk.unshift('La situación'); }   // «La situación ◆ Set único | 22-24 ◆ Difícil»
+    if (g && g.sit && !g.demo) { pk[0] = { h: nw((g.bo1 ? 'Set único' : SET_ORD[(g.setNo | 0) - 1] + ' set') + SEP_V + g.score[0] + '-' + g.score[1]) }; pk.unshift('La jugada del día'); }   // «La jugada del día ◆ Set único | 22-24 ◆ Difícil»
     return pk;
   }
   var SEP_V = '<span class="sep sep-v"><span class="sr">, </span></span>'; // barra vertical fina suelta (entre trozos ya en HTML)
@@ -3607,7 +3647,7 @@
       var dfk = ctx.game.difficulty, perP = [stats.p[0], stats.p[1]];
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
-        xh += '<span>N.º ' + sqa[i].num + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">¡NIVEL ' + r.lvl + '! +' + r.pts + ' puntos</span>' : '') + '</span>';
+        xh += '<span>' + escT(sqa[i].role || sqRole(sqa[i].num)) + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">¡NIVEL ' + r.lvl + '! +' + r.pts + ' puntos</span>' : '') + '</span>';
         // (B6: lo mismo para el bloque «Progreso» del Resumen, con la barra de nivel)
         endAw.push({ num: sqa[i].num, xp: r.xp | 0, lvl: r.lvl | 0, lvlUp: !!r.lvlUp, pts: r.pts | 0, cur: sqa[i].xp | 0, need: VB.Prog.need ? VB.Prog.need(sqa[i].lvl) : 0 });
       });
@@ -3666,6 +3706,12 @@
     var was = {}; unl0.forEach(function (id) { was[id] = 1; });
     return lkUnseen().filter(function (id) { return !was[id]; });
   }
+  /** Solo depuración: &pflv=N enseña en la hoja final la subida al Nv N del perfil con su premio (VB.Look.lvlPrize; mobaudit «final-nivel»). */
+  function dbgProf() {
+    var n = ctx.debug && ctx.params && +ctx.params.pflv; if (!(n > 1)) return null;
+    var id = VB.Look && VB.Look.lvlPrize ? VB.Look.lvlPrize(n) : '', nm = id && VB.Look.name ? VB.Look.name(id) : '';
+    return { xp: 45, lvl: n, lvlUp: true, prize: nm || '' };
+  }
   function replayN() { if (ctx.settings && ctx.settings.replays === 'off') return 0; try { return VB.Replay && VB.Replay.bestCount ? VB.Replay.bestCount() | 0 : 0; } catch (e) { return 0; } }
   /** Datos de la hoja para VB.Recap.endModel (los de headline más los del Resumen). x = extras de la Carrera (main.js). */
   function endData(e, g, sum, x) {
@@ -3678,7 +3724,7 @@
     var d = { seed: (g && g.seed) >>> 0, win: e.team === 0, sets: [e.sets[0] | 0, e.sets[1] | 0], setScores: (e.setScores || (g && g.setScores) || []).map(function (s) { return [s[0] | 0, s[1] | 0]; }),
       to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: g && g.netCr ? 'el rival' : 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
       longest: stats.longest, watch: !!(g && g.watch0 && !g.demo), drill: false, reto: g && g.reto && !cs ? g.reto : null, plays: replayN(), unlocks: endUnlocks(),
-      profile: profEnd || null };
+      profile: profEnd || dbgProf() };
     if (g && g.sit && !g.demo && !cs) d.sit = semData(g);   // la situación de la semana (recap.js: título, bloque «Situación» y botones)
     if (cs) {
       d.sum = sum || null; x = x || {};
@@ -3702,7 +3748,8 @@
     var ls = g.setScores && g.setScores[g.setScores.length - 1] || g.score;
     var lbl = (g.bo1 ? 'Set único a ' : SET_ORD[(g.setNo | 0) - 1] + ' set a ') + setT(g);
     return { wk: g.sit.wk | 0, wn: M ? M.wkNum(g.sit.wk | 0) : 0, label: lbl, start: [sc0[0] | 0, sc0[1] | 0], a: ls[0] | 0, b: ls[1] | 0, win: !!(r ? r.w : g.sets[0] > g.sets[1]),
-      i: r ? r.i | 0 : g.sit.i | 0, tries: M ? M.TRIES : 3, left: r ? r.left | 0 : (M ? M.left() : 0), best: r && r.best ? { w: r.best.w, a: r.best.a, b: r.best.b } : null, isBest: !!(r && r.isBest) };
+      i: r ? r.i | 0 : g.sit.i | 0, tries: M ? M.TRIES : 3, left: r ? r.left | 0 : (M ? M.left() : 0), best: r && r.best ? { w: r.best.w, a: r.best.a, b: r.best.b } : null, isBest: !!(r && r.isBest),
+      dayLbl: M && M.dayLbl ? M.dayLbl(g.sit.wk | 0) : '', streak: r && r.streak ? r.streak.cur | 0 : 0, up: !!(r && r.up), done: !!(r && r.done) };
   }
   /** Entreno de la semana (sesiones de main antes del partido y mejoras del entreno semanal): «2 sesiones de 3 | +1 Recepción». */
   function trainLine(sum, ses) {
@@ -3736,8 +3783,8 @@
     var cs = d.career;
     // antetítulo y título: los de la Carrera (competición y «Gana el …») y del reto del día; Partido rápido, los de showEnd
     if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
-    else if (d.sit) {   // «La situación ◆ Semana 47 | Set único a 25»
-      setSep(el.endKicker, [{ h: nw('La situación') }, { h: nw('Semana ' + d.sit.wn) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
+    else if (d.sit) {   // «La jugada del día ◆ 24 nov | Set único a 25»
+      setSep(el.endKicker, [{ h: nw('La jugada del día') }, { h: nw(escT(d.sit.dayLbl || '')) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
       el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 11);
     }
     else if (d.reto) {
@@ -4155,7 +4202,7 @@
     var h = '';
     list.slice(0, 3).forEach(function (u) {
       var b = VB.Badges.BY && VB.Badges.BY[u.id], tier = u.tier || (VB.Badges.TIERS && VB.Badges.TIERS[u.lvl]) || '';
-      h += '<span class="l' + (u.lvl | 0) + '" title="' + escT(VB.Badges.label ? VB.Badges.label(u) : u.name) + '"><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + (u.num ? 'N.º ' + u.num + ': ' : '') + '<b>' + escT(u.name || '') + '</b><small>' + (u.prev ? 'sube a ' + tier : 'nueva (' + tier + ')') + '</small></span>';
+      h += '<span class="l' + (u.lvl | 0) + '" title="' + escT(VB.Badges.label ? VB.Badges.label(u) : u.name) + '"><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + (u.num ? escT(sqRole(u.num)) + ': ' : '') + '<b>' + escT(u.name || '') + '</b><small>' + (u.prev ? 'sube a ' + tier : 'nueva (' + tier + ')') + '</small></span>';
     });
     if (list.length > 3) h += '<span class="more">+' + (list.length - 3) + '</span>';
     return '<div class="end-bd rc-bd">' + h + '</div>';
@@ -4222,7 +4269,7 @@
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
-        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
+        case 'sit': blk('rc-sit', H.sit || 'Jugada del día', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
       }
     });
     return h;
@@ -4563,6 +4610,13 @@
   function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : p === 'online' ? el.mpOnline : el.menuCol; }
   function netLobbyFocus() { var f = VB.NetLobby && VB.NetLobby.focus ? safe(VB.NetLobby.focus) : null; return f || el.btnOnlineBack; }
   function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : segOn && el.btnSeguir && !el.btnSeguir.hidden ? el.btnSeguir : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : nowOn && el.btnNow && !el.btnNow.hidden ? el.btnNow : el.btnPlay; }
+  /** Formato del Partido rápido en la cabecera de Jugar (#plFmt) y la línea del parche (#quickSub): lee el ajuste «Formato». */
+  function plFmtSync() {
+    if (!el.plFmt) return;
+    var six = ctx.settings.format === '6v6', bs = el.plFmt.querySelectorAll('[data-fmt]');
+    for (var i = 0; i < bs.length; i++) { var on = (bs[i].getAttribute('data-fmt') === '6v6') === six; if (bs[i].getAttribute('aria-checked') !== String(on)) bs[i].setAttribute('aria-checked', String(on)); bs[i].classList.toggle('on', on); }
+    setText(el.quickSub, 'qs', six ? '6 contra 6: equipos completos, eliges tu puesto' : '2 contra 2: tú y tu pareja contra la CPU');
+  }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
@@ -4582,6 +4636,7 @@
     if (anim && n) { n.classList.remove('pg-in', 'pg-back'); void n.offsetWidth; n.classList.add(anim === 'back' ? 'pg-back' : 'pg-in'); }
     if (p === 'quick') renderOpts();
     if (ctx && ctx.state === 'menu') renderMenu();   // pistas de teclado/mando de esta página
+    if (p === 'play') plFmtSync();
     if (p === 'play' && VB.CareerUI && VB.CareerUI.syncMenu) try { VB.CareerUI.syncMenu(); } catch (e) { }
     // R8: los retratos de la previa de Partido rápido (tus n.º 1 y n.º 2, 72 px) se precargan aquí: main.js solo pinta la cola en el
     // menú, nunca durante el partido (si no llegan a tiempo, la previa enseña la silueta)
@@ -4929,13 +4984,14 @@
     if (!el.mpLook || !lk.fit) return;
     var U = {}, uu = lkUnseen(); uu.forEach(function (id) { U[id] = 1; });
     // selector de jugador (radio; solo el elegido entra en el recorrido ↑/↓, ←/→ cambia)
-    var car = lkCareer(), picks = [[0, '<span class="lk-sx">N.º </span>' + lkSquadNum(0)], [1, '<span class="lk-sx">N.º </span>' + lkSquadNum(1)]];   // (a 320 de alto, sin «N.º»: va en la fila del título)
+    var car = lkCareer(), rl = function (i) { var r = sqRole(lkSquadNum(i)); return '<span class="lk-rl">' + escT(r) + '</span><span class="lk-ra" aria-hidden="true">' + escT(roleAbbr(r)) + '</span>'; },
+      picks = [[0, rl(0)], [1, rl(1)]];   // (sin dorsales, 24-nov-2026: el papel de cada uno; en el móvil abreviado —«Bloq.», «Univ.»—: una letra suelta no se entendía)
     if (car || lk.who === 'career') picks.push(['career', 'Carrera']);
     var ph = '';
     picks.forEach(function (p) {
       var on = p[0] === lk.who;
       ph += '<button type="button" class="lk-pk sp-tab' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-lkpick="' + p[0] + '"' + (on ? '' : ' tabindex="-1" data-skip') +
-        (p[0] === 'career' ? ' title="Tu jugador de la Carrera"' : '') + '>' + p[1] + '</button>';
+        (p[0] === 'career' ? ' title="Tu jugador de la Carrera"' : ' aria-label="' + escT(sqRole(lkSquadNum(p[0]))) + '"') + '>' + p[1] + '</button>';
     });
     var ae = document.activeElement, kb = !!(ae && ae.classList && ae.classList.contains('kf'));
     var fPick = ae && el.lkPick.contains(ae), fVen = ae && el.lkVen.contains(ae);
@@ -5380,7 +5436,7 @@
     lkGridReset();
     lkLoad(w); lk.ukey = '';
     uiSound('click');
-    srSay(w === 'career' ? 'Tu jugador de la Carrera' : 'N.º ' + lk.num);
+    srSay(w === 'career' ? 'Tu jugador de la Carrera' : sqRole(lk.num));
     lkRender(); restartAnim(el.lkList, 'tp-n');
     lk.pvT = 0; lkPvFlush();
   }
@@ -5814,13 +5870,22 @@
   /** JUGAR desde el menú: la primera vez (sin partidos ni tutorial) ofrece ver el tutorial o jugar ya. */
   function play() {
     if (VB.Install && VB.Install.isOpen && VB.Install.isOpen()) return;   // el aviso de instalar está delante: nunca los dos a la vez
-    if (!firstAsked && !record.played && !record.tut && !ctx.debug) {
+    if (!firstAsked && !everPlayed() && !record.tut && !(record.intro > 0) && !ctx.debug) {   // (la portada de la primera vez ya lo ofrece: aquí solo si no salió)
       firstAsked = true; uiSound('click');
       var di = optIndex('difficulty');
       el.firstDiff.textContent = 'Nivel ' + OPT.difficulty.labels[di] + (di === 0 ? ' (recomendado para empezar)' : '') + '. Se cambia en Partido rápido';
       openPanel('first', 'menu'); return;
     }
+    if (fmt6() && perfFirst(function () { uiSound('start'); goMatch(); })) return;   // rendimiento del 1r 6v6 de este aparato
     uiSound('start'); goMatch();
+  }
+  /** Rendimiento del 1r 6v6 (24-nov-2026, Ferran: «la primera vez que juegues en 6v6 que salga la opción de escogerlo»): antes del primer
+   *  partido 6v6 de este aparato que se empieza DESDE LOS MENÚS (¡A jugar! del Partido rápido en 6 contra 6, «Jugar partido» de la
+   *  Carrera de pista, la jugada del día y el reto del día en 6v6 y el panel «Primer partido»), la ventana de la calidad (perfNote). Se apunta en q6Asked (solo este aparato) al cerrarla, elija lo que elija,
+   *  y después sigue cb (el partido). true si la ha abierto. Nunca en depuración (salvo &q6=1) ni online. */
+  function perfFirst(cb) {
+    if (ctx.net || (ctx.debug ? ctx.params.q6 !== '1' : ctx.settings.q6Asked)) return false;
+    return perfNote({ from: 'menu' }, cb);
   }
   /** Al partido (menú, revancha, tutorial): bajo la cortinilla de marca (UI-13). */
   //  fmt ('2v2' | '6v6', sin guardarlo en el ajuste): desde un partido (revancha, reiniciar) repite el formato del que acaba; desde
@@ -5926,10 +5991,12 @@
       return true;
     }
     var was = panel; panel = null; tutStop();
+    var tutFirst = false;   // primera vez: cerrar el tutorial (acabado o no) da paso a la portada de siempre (record.intro)
+    if (was === 'tut' && !(record.intro > 0) && !ctx.debug) { tutFirst = firstOn; record.intro = 1; saveRecord(); heroDirty = true; }
     if (was === 'mstats') rpBack = true;   // (de vuelta a la hoja final: sin repetir la entrada ni la cuenta de las cifras)
     shown = ''; syncScreens(ctx.game);
     // en pausa, el foco vuelve al botón que abrió el panel (antes caía en «Seguir jugando»)
-    focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? el.btnTut : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
+    focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? (tutFirst && nowOn && el.btnNow ? el.btnNow : el.btnTut) : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
       : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
     if (was === 'mstats' && el.btnMStats && kbNow()) setTimeout(function () { if (!panel && document.activeElement === el.btnMStats) focusEl(el.btnMStats, true); }, 45);
     return true;
@@ -6006,9 +6073,13 @@
     if (!wasReturning) { seenSet(V); return; }
     if (ctx.debug || ctx.params.autopilot || ctx.params.nonews) return;
     aboutAuto = 'waiting';
-    var idle = 0;
+    var idle = 0, inst = false;
     aboutIv = setInterval(function () {
       if (seenGet() === V) { clearInterval(aboutIv); if (aboutAuto === 'waiting') aboutAuto = 'off'; return; }
+      if (VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) inst = true;
+      if (semPopSt === 'waiting' || semPopOpen()) { idle = 0; return; }   // (la jugada del día sale la primera)
+      // como mucho dos ventanas solas al entrar: con la jugada del día y el aviso de instalar ya vistos, las Novedades esperan a la próxima visita
+      if (semPopSt === 'shown' && inst) { clearInterval(aboutIv); aboutAuto = 'off'; return; }
       var ok = VB.UI.menuIdle() && !document.hidden && !(VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) &&
         !(VB.Account && VB.Account.isOpen && safe(VB.Account.isOpen)) && !(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
       idle = ok ? idle + 250 : 0;
@@ -6369,8 +6440,8 @@
     msTiming: { vals: [true, false], labels: ['Sí', 'No'] },
     // 6v6: cambios de tu equipo (main.js ctx.settings.subs6 → coach[0].auto): el entrenador CPU también cambia (nunca a ti) o solo los que pidas
     subs6: { vals: ['auto', 'manual'], labels: ['Automáticos', 'Solo los míos'] },
-    // S3-C1: repeticiones (main.js ctx.settings.replays → VB.Replay): puntos de set y de partido solos, solo en «Jugadas», o ninguna
-    replays: { vals: ['auto', 'end', 'off'], labels: ['Automáticas', 'Al final', 'No'] },
+    // S3-C1: repeticiones (main.js ctx.settings.replays → VB.Replay): aviso con botón tras los puntos grandes, solo en «Jugadas», o ninguna
+    replays: { vals: ['auto', 'end', 'off'], labels: ['Con botón', 'Al final', 'No'] },   // ('auto': el aviso «Pulsa V…» tras los puntos grandes; antes, Automáticas)
     // la zona y el saque de firma (20-nov-2026; main.js ctx.settings.zone / serveSig / serveGest; filas que pone znOptRows en Ajustes · Juego)
     zone: { vals: ['career', 'all', 'off'], labels: ['Solo Carrera', 'Siempre', 'No'] },
     serveSig: VB.SERVE_SIG ? { vals: VB.SERVE_SIG.ids.slice(), labels: VB.SERVE_SIG.ids.map(function (id) { var d = VB.SERVE_SIG.byId[id]; return d.short || d.name; }) } : { vals: ['clasico'], labels: ['Clásico'] },
@@ -6501,6 +6572,15 @@
   function teamNums() {
     var g = ctx && ctx.game, t = g && g.teams && g.teams[0];
     return [t && t[0] && t[0].num || 1, t && t[1] && t[1].num || 2];
+  }
+  /** DORSALES (24-nov-2026, Ferran: «Los dorsales en 2v2 no se escogen, y tampoco hace falta mostrarlos como Opción»): en los menús del 2v2
+   *  (Jugadores, Vestuario, Controlar, hoja final) tus dos jugadores se nombran por su papel («Bloqueador», «Universal»; VB.Prog), no por el
+   *  dorsal. El dorsal sigue en la camiseta y en lo que pasa en la pista. sqRole(num) = papel del atleta con ese dorsal (o «N.º n»). */
+  /** Papel abreviado que aún se lee (Vestuario en el móvil): «Bloq.», «Univ.», «Def.»; los cortos, enteros. */
+  function roleAbbr(r) { r = String(r || ''); var M = { Bloqueador: 'Bloq.', Universal: 'Univ.', Defensor: 'Def.' }; return M[r] || (r.length > 6 && !/^N\.º/.test(r) ? r.slice(0, 4) + '.' : r); }
+  function sqRole(num) {
+    try { var a = VB.Prog && VB.Prog.get().a; for (var i = 0; a && i < a.length; i++) if ((a[i].num | 0) === (num | 0) && a[i].role) return a[i].role; } catch (e) { }
+    return 'N.º ' + num;
   }
   /** ¿Modo «Control: Uno»? En partido manda el partido (g.ctrlMode); en el menú, el ajuste. */
   function oneMode() {
@@ -6700,7 +6780,7 @@
     var snd = document.querySelector('.opt-snd');
     if (snd) { snd.classList.toggle('muted', !!ctx.settings.muted); var mb = snd.querySelector('[data-mute]'); if (mb) mb.setAttribute('aria-checked', ctx.settings.muted ? 'true' : 'false'); }
     var q = ctx.quality && ctx.quality.level, qn = { high: 'alta', medium: 'media', low: 'baja' }[q] || '';
-    el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto la ajusta sola' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
+    el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto se ajusta sola a tu aparato' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
     // menú: dificultad
     var di = optIndex('difficulty');
     if (el.diffVal.textContent !== OPT.difficulty.labels[di]) {
@@ -6779,7 +6859,7 @@
     // menú: control (los dos / uno), misma fila que los puntos
     // (6v6, lote A: la misma fila recorre los puestos jugables —Receptor, Colocador, Opuesto, Central— y guarda role6)
     var ci = optIndex('ctrlMode'), tn = teamNums(), R6 = six ? roles6() : null, ri = six ? Math.max(0, R6.indexOf(role6)) : ci, rn = six ? R6.length : OPT.ctrlMode.vals.length;
-    var cd = six ? 'Controlar al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '; la IA lleva al resto del equipo)' : OPT.ctrlMode.desc[ci] + (ci > 0 ? ' (el n.º ' + tn[0] + '; la IA lleva al n.º ' + tn[1] + ')' : '');
+    var cd = six ? 'Controlar al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '; la IA lleva al resto del equipo)' : OPT.ctrlMode.desc[ci] + (ci > 0 ? ' (el ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() + ')' : '');
     var cl = six ? roleName() : OPT.ctrlMode.labels[ci];
     el.optCtrl.classList.toggle('lock', six && rn < 2);
     if (el.optCtrl.title !== cd) { el.optCtrl.title = cd; el.optCtrl.setAttribute('aria-label', 'Control: ' + cd); }
@@ -6798,7 +6878,7 @@
     }
     // pastillas (CSS .mi.primary .mi-s .chip; el nivel en amarillo); el lector lee «Partido rápido, Normal, Sets a 25»
     setSep(el.playSub, six ? ['6 contra 6', { t: OPT.difficulty.labels[di], c: 'hi' }, 'Sets a ' + OPT.setPoints.vals[pi], roleName()]
-      : [vb ? 'Playa' : 'Pabellón', { t: OPT.difficulty.labels[di], c: 'hi' }, vb ? 'Sets a 21' : 'Sets a ' + OPT.setPoints.vals[pi], ci > 0 ? 'Solo el n.º ' + tn[0] : 'A los dos'], 'c');
+      : [vb ? 'Playa' : 'Pabellón', { t: OPT.difficulty.labels[di], c: 'hi' }, vb ? 'Sets a 21' : 'Sets a ' + OPT.setPoints.vals[pi], ci > 0 ? 'Solo el ' + sqRole(tn[0]).toLowerCase() : 'A los dos'], 'c');
     el.optCtrl.classList.toggle('one', ci > 0 && !six);
     // Partido rápido: una línea de ayuda bajo cada fila (con Playa, Puntos explica las reglas de playa)
     setText(el.fmtHelp, 'fh', six ? 'Equipos completos: llevas al ' + roleName().toLowerCase() : 'Tú y tu pareja contra la CPU');
@@ -6807,7 +6887,7 @@
     setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
     var lshort = lk !== 'full' || (!vb && ptsN === 7);
     setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da experiencia' : ''));
-    setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al n.º ' + tn[0] + '; la IA lleva al n.º ' + tn[1] : 'El control pasa a quien va a tocar');
+    setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() : 'El control pasa a quien va a tocar');
   }
   /** Una línea por nivel de dificultad (fila Dificultad de Partido rápido). */
   var DIFF_HELP = ['La CPU saca suave', 'Ataca y defiende a medio gas', 'Defiende casi todo', 'Casi no falla'];
@@ -7262,7 +7342,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Semana' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Jugada' }] : []).concat([{ id: 'hoy', label: 'Reto' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
@@ -7274,7 +7354,7 @@
     if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
     else if (rtTab === 'semana') {   // la situación de la semana (js/semana-ui.js pinta; aquí solo se monta)
       try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
-      if (!h) h = '<p class="rt-none">La situación de la semana no está disponible.</p>';
+      if (!h) h = '<p class="rt-none">La jugada del día no está disponible.</p>';
     } else if (rtTab === 'maestria') {
       var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
       h = '';
@@ -7329,7 +7409,9 @@
     var dd = rtDaily(); if (!dd || !dd.opts) return;
     var o = Object.assign({}, dd.opts); if (mini) o.introKind = 'mini';
     var f = function () { ctx.actions.startMatch(o); };
-    if (!wipeRun(2, f) && !wp.cb) f();
+    var go = function () { if (!wipeRun(2, f) && !wp.cb) f(); };
+    if (o.format === '6v6' && perfFirst(go)) return;   // (reto del día en 6v6: la calidad del 1r 6v6, como en ¡A jugar!)
+    go();
   }
   /** Hoja final del reto → «Retos»: al menú, en la página Retos (Volver lleva a Jugar). */
   function goRetosList() {
@@ -7354,12 +7436,15 @@
     var M = VB.Semana; if (!M) return;
     var f = function () {
       var o = M.begin();
-      if (!o) { semToast('Hoy ya no quedan intentos. Mañana, 3 más'); if (ctx.state !== 'menu') ctx.actions.toMenu(); return; }
+      if (!o) { semToast('Hoy ya no quedan intentos. Mañana, otra jugada'); if (ctx.state !== 'menu') ctx.actions.toMenu(); return; }
       if (mini) o.introKind = 'mini';
       ctx.actions.startMatch(o);
     };
-    if (M.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, 3 más'); return; }
-    if (!wipeRun(2, f) && !wp.cb) f();
+    if (M.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, otra jugada'); return; }
+    var go = function () { if (!wipeRun(2, f) && !wp.cb) f(); }, sx = null;
+    try { sx = M.situation(); } catch (e) { sx = null; }
+    if (sx && sx.six && perfFirst(go)) return;   // (jugada del día en 6v6: la calidad del 1r 6v6 antes de gastar el intento)
+    go();
   }
   /** Hoja final de la situación → «Ver el grupo»: al menú, en Retos › Semana (Volver lleva a Jugar). */
   function goSemanaList() { rtTab = 'semana'; rtTabSave('semana'); goRetosList(); }
@@ -7374,11 +7459,67 @@
       clearInterval(iv);
       var r = null; try { r = M.mergeLink(q); } catch (e) { console.error('[VB][ERROR] Semana.mergeLink: ' + e); }
       try { var u = new URL(location.href); u.searchParams.delete('sem'); history.replaceState(history.state, '', u.pathname + (u.search || '') + u.hash); } catch (e) { }
-      if (!r) { semToast('Ese enlace de la situación está roto o incompleto'); return; }
+      if (!r) { semToast('Ese enlace de la jugada está roto o incompleto'); return; }
       VB.UI.openRetos('semana');
-      if (r.old) semToast('Es la cadena de la semana ' + M.wkNum(r.wk) + ': ya está cerrada');
+      if (r.gone) semToast('Ese enlace es de la antigua situación de la semana: ya está cerrada');
+      else if (r.old) semToast('Es la cadena del ' + M.dayLbl(r.wk) + ': ya está cerrada');
       else if (r.n) semToast('Tienes la cadena de ' + String(r.from).replace(/_/g, ' ') + (r.n > 1 ? ' y ' + (r.n - 1) + (r.n === 2 ? ' más' : ' más') : '') + '. ¡Te toca!');
     }, 250);
+  }
+
+
+  // ---- Ventana al entrar: «La jugada del día» (Ferran, 24-nov-2026: «que cuando entres al juego lo primero que te salga sea un pop-up
+  // para completarlo»). Al abrir el juego, en cuanto la portada está libre tras la carga, LO PRIMERO (antes de las Novedades, que esperan,
+  // y en lugar del reto del día, que ese día no se abre solo) sale una hoja SPLAT (VB.Splat.sheet: teclado, mando, Esc / B y lector) con la
+  // jugada de hoy, la racha y «¡A por ella!» / «Ahora no». No sale: si ya la has cumplido hoy o no te quedan intentos (VB.Semana.popWanted),
+  // a quien no ha jugado nunca (ese ve «¡Jugar ya!» / «Tutorial»), con ?jugar, ?sem o un partido a medias («Seguir el partido» manda,
+  // también el de la Carrera), con la Carrera, la Cuenta o el aviso de instalar abiertos, ni en depuración, autopilot o nonews (&sempop=1
+  // la deja salir en depuración). Una vez por sesión como mucho (sessionStorage 'make-the-cut.sempop', y en memoria si no hay).
+  var SEMPOP_KEY = 'make-the-cut.sempop', semPopSt = 'off', semPopApi = null;
+  function semPopSeen() { if (semPopSt === 'shown') return true; try { return sessionStorage.getItem(SEMPOP_KEY) === '1'; } catch (e) { return false; } }
+  function semPopWanted(force) {
+    var M = VB.Semana; if (!M || !M.popWanted || !VB.SemanaUI || !VB.SemanaUI.popHTML || !VB.Splat || !VB.Splat.sheet) return false;
+    if (force) return true;
+    if (ctx.debug ? ctx.params.sempop !== '1' : false) return false;
+    if (ctx.params.autopilot || ctx.params.nonews || ctx.params.sem || ctx.params.jugar != null) return false;
+    if (semPopSeen() || !everPlayed()) return false;
+    var rp = null; try { rp = VB.Resume && VB.Resume.peek ? VB.Resume.peek() : null; } catch (e) { rp = null; }
+    if (rp) return false;   // «Seguir el partido» tiene prioridad (también el partido de Carrera a medias)
+    try { return !!M.popWanted(); } catch (e) { return false; }
+  }
+  /** Abre la ventana (force: sin mirar las condiciones; pruebas y mobaudit). → true si se ha abierto. */
+  function semPop(force) {
+    if (!semPopWanted(force)) return false;
+    var U = VB.SemanaUI, P = null; try { P = U.popHTML(); } catch (e) { console.error('[VB][ERROR] SemanaUI.popHTML: ' + e); P = null; }
+    if (!P) return false;
+    semPopSt = 'shown'; try { sessionStorage.setItem(SEMPOP_KEY, '1'); } catch (e) { }
+    uiSound('click');
+    semPopApi = VB.Splat.sheet({ title: 'La jugada del día', html: P.html, cls: 'semp-sh',
+      actions: [{ label: 'Ahora no', cls: 'sp-cream', id: 'btnSemPopNo', fn: function () { uiSound('back'); } },
+        { label: '¡A por ella!', cls: 'sp-kit', primary: true, id: 'btnSemPopGo', fn: function () { uiSound('start'); setTimeout(function () { goSemana(false); }, 0); } }],
+      onClose: function () { semPopApi = null; } });
+    try { if (semPopApi && semPopApi.el) { semPopApi.el.setAttribute('aria-describedby', 'sempDesc'); semPopApi.el.classList.add('semp-sheet'); } } catch (e) { }
+    // con el mando o el teclado, el foco en «¡A por ella!» con su aro (Splat.sheet solo lo pinta si quien la abrió tenía el aro)
+    setTimeout(function () { var b = document.getElementById('btnSemPopGo'); if (b && semPopApi && (kbNow() || ctx.inputDevice === 'gamepad')) focusEl(b, true); }, 40);
+    return true;
+  }
+  function semPopOpen() { return !!(semPopApi && semPopApi.open); }
+  /** Al arrancar: si toca, espera a que la portada esté libre (0,6 s seguidos y ≥ 1,2 s desde la carga) y la abre. → true si va a salir
+   *  (retoAuto no abre el reto del día y las Novedades esperan a que se cierre). */
+  function semPopAuto() {
+    if (!semPopWanted(false)) return false;
+    semPopSt = 'waiting';
+    var idle = 0, tries = 0, iv = setInterval(function () {
+      if (semPopSt !== 'waiting') { clearInterval(iv); return; }
+      // 1 min sin portada libre, o ya se ha ido a jugar: ya no es «al entrar» (no sale después del partido); el turno pasa al reto del día
+      if (++tries > 240 || ctx.state !== 'menu') { clearInterval(iv); semPopSt = 'off'; retoAuto(); return; }
+      var ok = VB.UI.menuIdle() && !document.hidden && !firstOn && !segOn && !(VB.Splat.sheetOpen && VB.Splat.sheetOpen()) &&
+        !(VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) && !(VB.Account && VB.Account.isOpen && safe(VB.Account.isOpen)) &&
+        !(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
+      idle = ok ? idle + 250 : 0;
+      if (idle >= 600 && performance.now() >= 1200) { clearInterval(iv); semPopSt = 'off'; if (!semPop(false)) semPopSt = 'off'; }
+    }, 250);
+    return true;
   }
 
   // =====================================================================
@@ -7460,7 +7601,10 @@
         var h = (P.HITOS || []).filter(function (x) { return x.id === id; })[0];
         if (h) out.push('Hito: ' + h.name + ' (+' + h.xp + ' XP)');
       });
-      (r.grants || []).forEach(function (id) { var nm = VB.Look && VB.Look.name ? safe(function () { return VB.Look.name(id); }) : ''; if (nm) out.push('Nuevo en tu vestuario: ' + nm); });
+      // (premios de nivel alto, 24-nov: quien ya tenía nivel alto recibe varios de golpe al entrar; más de 3, un solo aviso con la cuenta)
+      var gn = (r.grants || []).map(function (id) { return VB.Look && VB.Look.name ? safe(function () { return VB.Look.name(id); }) : ''; }).filter(Boolean);
+      if (gn.length > 3) out.push('Nuevo en tu vestuario: ' + gn.length + ' objetos');
+      else gn.forEach(function (nm) { out.push('Nuevo en tu vestuario: ' + nm); });
       if ((r.lvlUp && r.lvlUp.length) || (r.hitos && r.hitos.length) || (r.grants && r.grants.length)) { pfDirty = true; last.pf = null; }
     }
     pfNote(out);
@@ -8172,7 +8316,7 @@
   // colocador) con la «Colocación en salto con diana» apagada y el aviso sin quitar («No volver a mostrar» = jsetNote false).
   // ?setnote=1 lo saca siempre (capturas). Teclado: flechas / Tab, Intro o Espacio, Esc = «Ahora no» (escucha en captura en window,
   // registrada al cargar ui.js, antes que career-ui.js e input.js). Mando: main.js manda las intenciones a noteNav. Toque: ≥ 44 px.
-  var sn = { open: false, t0: 0, cb: null, from: '', root: null, toast: null, toastT: 0, shown: false, prev: null, ax: 0 };
+  var sn = { open: false, t0: 0, cb: null, from: '', root: null, toast: null, toastT: 0, shown: false, prev: null, ax: 0, kind: '' };
   var SN_FORCE = /[?&]setnote=1(&|$)/.test(location.search || '');
   function snButtons() { return sn.root ? Array.prototype.slice.call(sn.root.querySelectorAll('[data-sn]')) : []; }
   function snFocus(b, kb) {
@@ -8186,15 +8330,18 @@
     if (j === i) { uiSound2('arrowEdge', d); return; }
     snFocus(L[j], true); hoverSound();
   }
-  function snBuild() {
-    if (sn.root) return;
-    var r = document.createElement('div'); r.id = 'setNote'; r.hidden = true;
-    r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-labelledby', 'snH'); r.setAttribute('aria-describedby', 'snT');
-    r.innerHTML = '<div class="sp-panel sn-sheet"><div class="sn-txt"><p class="sp-k">Eres colocador</p><h2 class="sp-h" id="snH">Coloca con la diana</h2>' +
+  // (24-nov-2026) la misma hoja sirve para la ventana de rendimiento del 1r 6v6 (perfNote): kind 'set' | 'perf' rehace el contenido
+  var SN_SET_HTML = '<div class="sp-panel sn-sheet"><div class="sn-txt"><p class="sp-k">Eres colocador</p><h2 class="sp-h" id="snH">Coloca con la diana</h2>' +
       '<p class="sn-t" id="snT"></p><small class="sn-s">Lo cambias cuando quieras en Ajustes, Juego.</small></div>' +
       '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="on"><span class="sp-l"><span class="sp-t">Activar</span></span></button>' +
       '<div class="sn-row"><button type="button" class="sp-btn sp-sm sp-teal" data-shape="2" data-sn="later"><span class="sp-t">Ahora no</span></button>' +
       '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never" aria-label="No volver a mostrar"><span class="sp-t"><span class="ph-hide">No volver a mostrar</span><span class="ph-only">No mostrar más</span></span></button></div></div></div>';
+  function snBuild(kind) {
+    kind = kind || 'set';
+    if (sn.root) { if (sn.kind !== kind) { sn.kind = kind; sn.root.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML; if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(sn.root); } catch (e) { } } } return; }
+    var r = document.createElement('div'); r.id = 'setNote'; r.hidden = true; sn.kind = kind;
+    r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-labelledby', 'snH'); r.setAttribute('aria-describedby', 'snT');
+    r.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML;
     r.addEventListener('click', function (e) {
       e.stopPropagation();
       var b = e.target && e.target.closest ? e.target.closest('[data-sn]') : null;
@@ -8218,7 +8365,7 @@
     if (sn.open || !ctx) return false;
     var st = ctx.settings || {};
     if (!SN_FORCE && (sn.shown || st.jsetAim === true || st.jsetNote === false || ctx.net)) return false;
-    snBuild();
+    snBuild('set');
     sn.shown = true; sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
     sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
     var gl = GLYPH[device()] || GLYPH.keyboard;
@@ -8232,11 +8379,44 @@
     uiSound('open');
     return true;
   }
+  /** Rendimiento del 1r 6v6 (24-nov-2026; main.js startMatch): «Auto» recomendada (con el nivel en el que empieza en este aparato) y
+   *  Alta / Media / Baja fijas. La de ahora lleva «Ahora». cb(elección) al cerrarla. false si no toca (ya abierta, online). */
+  function perfHTML() {
+    var cur = ctx.settings.quality || 'auto', st = ctx.qAutoStart ? ctx.qAutoStart() : (ctx.quality && ctx.quality.level) || 'medium';
+    var nm = { high: 'alta', medium: 'media', low: 'baja' }, lb = function (v) { return OPT.quality.labels[OPT.quality.vals.indexOf(v)]; };
+    var now = function (v) { return cur === v ? '<small class="sp-s">Ahora</small>' : ''; };
+    return '<div class="sp-panel sn-sheet sn-perf"><div class="sn-txt"><p class="sp-k">6 contra 6</p><h2 class="sp-h" id="snH">Calidad de imagen</h2>' +
+      '<p class="sn-t" id="snT">Con 12 jugadores en la pista, el 6 contra 6 pide más al aparato. Con menos calidad, va más fluido.</p>' +
+      '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Imagen.</small></div>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">Recomendada · se ajusta sola (ahora: ' + (nm[st] || 'media') + ')</small></span></button>' +
+      '<div class="sn-row">' + ['high', 'medium', 'low'].map(function (v, i) { return '<button type="button" class="sp-btn sp-sm ' + (i === 2 ? 'sp-cream' : 'sp-teal') + '" data-shape="' + (i + 2) + '" data-sn="q-' + v + '"><span class="sp-l"><span class="sp-t">' + lb(v) + '</span>' + now(v) + '</span></button>'; }).join('') + '</div></div></div>';
+  }
+  function perfNote(o, cb) {
+    o = o || {};
+    if (sn.open || !ctx || ctx.net) return false;
+    sn.kind = ''; snBuild('perf');
+    sn.shown = true;   // (una sola ventana antes del partido: con la de la calidad, el aviso de colocador espera a otra sesión)
+    if (el.menu) el.menu.classList.add('sn-hide');   // (desde el menú: la ventana sola sobre el partido de fondo, sin la página de debajo)
+    sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
+    sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
+    sn.root.hidden = false; sn.root.classList.remove('in');
+    if (sn.rel) { sn.rel(); sn.rel = null; }
+    if (VB.Splat && VB.Splat.modal && VB.Splat.phone && VB.Splat.phone()) sn.rel = VB.Splat.modal(sn.root);
+    requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
+    snFocus(sn.root.querySelector('[data-sn="q-auto"]'), device() !== 'touch');
+    uiSound('open');
+    return true;
+  }
   function snClose(choice) {
     if (!sn.open) return;
     sn.open = false; sn.root.hidden = true; sn.root.classList.remove('in');
     if (sn.rel) { sn.rel(); sn.rel = null; }
-    if (choice === 'on') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetAim', true); snToast('Colocación con diana activada'); uiSound('click'); }
+    if (el.menu) el.menu.classList.remove('sn-hide');
+    if (sn.kind === 'perf') {   // rendimiento del 1r 6v6: la calidad elegida (Esc / B = la de ahora) y no vuelve a salir en este aparato
+      var qv = /^q-(auto|high|medium|low)$/.exec(choice || '');
+      if (ctx.actions.setSetting) { if (qv) ctx.actions.setSetting('quality', qv[1]); ctx.actions.setSetting('q6Asked', true); }
+      if (qv) { snToast('Calidad: ' + OPT.quality.labels[OPT.quality.vals.indexOf(qv[1])]); uiSound('click'); } else uiSound('back');
+    } else if (choice === 'on') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetAim', true); snToast('Colocación con diana activada'); uiSound('click'); }
     else if (choice === 'never') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetNote', false); uiSound('back'); }
     else uiSound('back');
     snButtons().forEach(function (x) { x.classList.remove('kf'); });
@@ -8268,13 +8448,17 @@
     if (Math.abs(v) < 0.3) sn.ax = 0;
     if (d && !sn.ax) { sn.ax = 1; snStep(d); }
     var ok = it.navOk != null ? it.navOk : it.hit, bk = it.navBack != null ? it.navBack : it.jump && !it.jset;
-    if (ok) { var a = document.activeElement; snClose(a && a.hasAttribute && a.hasAttribute('data-sn') ? a.getAttribute('data-sn') : 'on'); }
+    if (ok) { var a = document.activeElement; snClose(a && a.hasAttribute && a.hasAttribute('data-sn') ? a.getAttribute('data-sn') : sn.kind === 'perf' ? 'q-auto' : 'on'); }
     else if (bk) snClose('later');
   }
 
   VB.UI = {
     /** Salto con impulso (v1.12.0): aviso de colocador (ver setterNote) y su entrada (main.js). */
     setterNote: setterNote,
+    /** Rendimiento del 1r 6v6 desde los menús: abre la ventana si toca y sigue con cb al cerrarla (career-ui.js play). true si la ha abierto. */
+    perfFirst: perfFirst,
+    /** Rendimiento del 1r 6v6 (24-nov-2026): ventana corta para elegir la calidad antes del partido (main.js startMatch). */
+    perfNote: perfNote,
     noteOpen: function () { return sn.open; },
     noteNav: snNav,
     noteBack: function () { if (!sn.open) return false; snClose('later'); return true; },
@@ -8322,6 +8506,9 @@
     replayWipe: replayWipe, replayDone: replayDone,
     /** Pruebas (B6): último modelo de la hoja, sus datos y la pestaña abierta. */
     _recap: function () { return recapM ? { M: recapM, tab: endTab, blocks: recapM.blocks, buttons: recapM.buttons, tabs: recapM.tabs } : null; },
+    /** La jugada del día: abre la ventana de entrada (force = sin mirar las condiciones; pruebas y mobaudit) y dice si está abierta. */
+    semPop: function (force) { return semPop(!!force); },
+    semPopOpen: function () { return semPopOpen(); },
     /** La situación de la semana (pruebas): último cierre de VB.Semana.finish. */
     _semEnd: function () { return semEnd; },
     /** D1: el menú en la página Retos (escena debug=retos; tab = 'hoy' | 'semana' | 'maestria'). */
@@ -8358,7 +8545,9 @@
     /** Pruebas (E3): panel abierto, pila de vuelta, pestaña de Ajustes, pestañas compactas y captura en curso. */
     _settings: function () { return { panel: panel, stack: pstack.map(function (x) { return x.name; }), tab: setTabs ? setTabs.get() : '', compact: !!(el.setTabs && el.setTabs.classList.contains('tabs-ic')), capturing: capturing, ctl: ctlView, glyph: { hit: GLYPH.keyboard.hitT, jump: GLYPH.keyboard.jumpT, padHit: GLYPH.gamepad.hitT } }; },
     /** Portada del menú libre (sin panel, sin cortinilla, sin telón): install.js espera a esto para su aviso (nunca encima de «Primer partido»). */
-    menuIdle: function () { return ctx.state === 'menu' && !panel && !wp.ph && mpage === 'main' && !sn.open && !(bootStage < 2 && bootBusy()); }, // (!sn.open: nada encima del aviso de colocador)
+    menuIdle: function () { return ctx.state === 'menu' && !panel && !wp.ph && mpage === 'main' && !sn.open && !(VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()) && !(bootStage < 2 && bootBusy()); }, // (!sn.open / sin hoja SPLAT: nada encima del aviso de colocador ni de la jugada del día)
+    /** Ventanas al entrar (una cola: jugada del día → instalar → novedades): true mientras la jugada del día espera para salir (install.js espera). */
+    popWaiting: function () { return semPopSt === 'waiting'; },
     /** Pestañas reutilizables (ver «PESTAÑAS» arriba): VB.UI.tabs(host, items, opts) → api {get, set, step, refresh, hint, focus}. */
     tabs: makeTabs,
     /** Mando: −1 con LB/L1 pulsado, +1 con RB/R1 (o Y). Para cambiar de pestaña con it.switchPlayer fuera de ui.js. */
@@ -8375,7 +8564,7 @@
       return senaShow(s, 'bug', true);
     },
     /** D4 (account.js tras una bajada con ganchos) y Vestuario: vuelve a leer el récord y la portada (B3) y repinta el menú. */
-    refreshMenu: function () { last.rec = null; last.navh = null; last.pf = null; pfDirty = true; heroDirty = true; if (ctx && ctx.state === 'menu') { renderMenu(); if (mpage === 'prof') pfRender(true); } },
+    refreshMenu: function () { loadRecord(); last.rec = null; last.navh = null; last.pf = null; pfDirty = true; heroDirty = true; if (ctx && ctx.state === 'menu') { renderMenu(); if (mpage === 'prof') pfRender(true); } },
     /** D2: el menú en la página Perfil (chip de la portada, escena debug=prof). o = {tab: 'vestuario' | 'insignias' | 'entreno' | 'carrera' | 'retos' | 'sedes' | 'hitos'}. */
     openProfile: openProfile,
     /** Pruebas (D2): estado de la página y del chip. */
@@ -8411,12 +8600,16 @@
         ev.preventDefault(); ev.stopPropagation();
         if (ctx.actions && ctx.actions.challenge) ctx.actions.challenge();
       });
+      // aviso de repetición (táctil, ratón): por encima de #touch para que el toque no llegue al joystick
+      if (el.rpOff) el.rpOff.addEventListener('pointerdown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        if (ctx.actions && ctx.actions.takeReplay) ctx.actions.takeReplay();
+      });
       // menús v2: JUGAR → modos; Partido rápido → preparación; ¡A JUGAR! → partido (la Carrera la abre career-ui.js en #btnCareer)
       el.btnPlay.addEventListener('click', function () { menuGo('play'); });
       if (el.btnCont) on(el.btnCont, goCont);   // B3: «Continuar carrera» → hub de la Carrera en «Partido»
-      // tarjeta Partido rápido: la preparación SIEMPRE en 2 contra 2 (la tarjeta 6 contra 6 deja el formato en 6v6; sin esto, mirar
-      // esa tarjeta y volver dejaba el Partido rápido en 6v6). Dentro, la fila Formato se puede cambiar igual
-      if (el.btnQuick) el.btnQuick.addEventListener('click', function () { if (ctx.settings.format !== '2v2') ctx.actions.setSetting('format', '2v2'); menuGo('quick'); });
+      // (24-nov-2026) Partido rápido abre la preparación con el formato elegido en la cabecera de Jugar (#plFmt); antes lo volvía a poner en 2v2
+      if (el.btnQuick) el.btnQuick.addEventListener('click', function () { menuGo('quick'); });
       if (el.btnGo) el.btnGo.addEventListener('click', play);
       [el.btnPlayBack, el.btnQuickBack, el.btnGymBack].forEach(function (b) { if (b) b.addEventListener('click', function () { menuBack(); }); });
       // ONLINE (especialista net): tarjeta en Jugar solo si VB.NetLobby.menuOn() (publicación o ?online=1); su «Volver» sale de la página
@@ -8444,9 +8637,10 @@
       buildTabs();
       lkInit();   // Vestuario
       el.btnFirstTut.addEventListener('click', function () { click(); openPanel('tut', 'menu'); });
-      el.btnFirstPlay.addEventListener('click', function () { uiSound('start'); goMatch(); });
+      el.btnFirstPlay.addEventListener('click', function () { var go = function () { uiSound('start'); goMatch(); }; if (fmt6() && perfFirst(go)) return; go(); });
       if (el.btnSeguir) el.btnSeguir.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goSeguir(); });
       if (el.btnNow) el.btnNow.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goNow('ya'); });
+      if (el.btnStartTut) el.btnStartTut.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; click(); openPanel('tut', 'menu'); });
       // Dificultad: ‹ baja y › sube (zonas propias, UI-06); un clic en el resto de la fila sigue avanzando en ciclo
       el.optDiff.addEventListener('click', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;
@@ -8478,8 +8672,13 @@
         if (a) { stepOpt('cam6', +a.getAttribute('data-d'), el.cam6Val); restartAnim(a, 'hit'); }
         else changeOpt('cam6', 1);
       });
-      // tarjeta 6 contra 6 de Jugar: la preparación del Partido rápido con el formato ya en 6 contra 6
-      if (el.btn6v6) el.btn6v6.addEventListener('click', function () { ctx.actions.setSetting('format', '6v6'); menuGo('quick'); });
+      // formato del Partido rápido en la cabecera de Jugar (24-nov-2026): elegir 2v2 o 6v6 sin salir de Jugar
+      if (el.plFmt) el.plFmt.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-fmt]') : null; if (!b) return;
+        var f = b.getAttribute('data-fmt');
+        if (ctx.settings.format !== f) { ctx.actions.setSetting('format', f); uiSound('click'); restartAnim(b, 'hit'); } else click();
+        plFmtSync();
+      });
       el.optCtrl.addEventListener('click', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;
         if (a) { stepOpt('ctrlMode', +a.getAttribute('data-d'), el.ctrlVal); restartAnim(a, 'hit'); }
@@ -8517,7 +8716,7 @@
       on(el.btnRestart, function () {
         if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart();
           // (la situación de la semana sin intentos hoy: el atajo no abandona el que está en juego; avisa y sigue)
-          if (ctx.game && ctx.game.sit && !ctx.game.demo && VB.Semana && VB.Semana.left && VB.Semana.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, 3 más'); return; }
+          if (ctx.game && ctx.game.sit && !ctx.game.demo && VB.Semana && VB.Semana.left && VB.Semana.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, otra jugada'); return; }
           if (ctx.game && (ctx.game.retoOpts || ctx.game.sit) && !ctx.game.demo) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
         disarmRestart(); restartArm = performance.now();
         el.btnRestart.textContent = armTxt('reiniciar');
@@ -8562,7 +8761,7 @@
       if (el.rtBody) el.rtBody.addEventListener('click', function (ev) {
         var b = ev.target && ev.target.closest ? ev.target.closest('button') : null; if (!b || !el.rtBody.contains(b)) return;
         if (b.getAttribute('data-reto') === 'day') { uiSound('start'); goReto(false); }
-        else if (b.getAttribute('data-sem') === 'go') { if (b.getAttribute('aria-disabled') === 'true') { uiSound('back'); semToast('Hoy ya no quedan intentos. Mañana, 3 más'); } else { uiSound('start'); goSemana(false); } }
+        else if (b.getAttribute('data-sem') === 'go') { if (b.getAttribute('aria-disabled') === 'true') { uiSound('back'); semToast('Hoy ya no quedan intentos. Mañana, otra jugada'); } else { uiSound('start'); goSemana(false); } }
         else if (b.getAttribute('data-sem') === 'share') { click(); semShare(); }
         else if (b.hasAttribute('data-semmap')) { var mm = b.getAttribute('data-semmap') === 'A' ? 'A' : 'S'; if (mm !== semMap) { semMap = mm; click(); renderRetos(); var nb = el.rtBody.querySelector('[data-semmap="' + mm + '"]'); if (nb) focusEl(nb, kbNow()); } }
         else if (b.hasAttribute('data-rt')) click();
@@ -8632,7 +8831,7 @@
       window.addEventListener('gamepadconnected', function () { last.navh = null; last.ctls = null; padFamF = -999; GLYPH_PS = null; if (ctx.state === 'menu') renderMenu(); if (panel === 'ctl') { ctlView = 'gamepad'; renderCtl(); } });
       this.onSettings(ctx.settings);
       newsAuto();   // E7: novedades una vez por versión (jugador que vuelve)
-      if (ctx.params.sem) semAuto(); else retoAuto();   // reto del día al abrir el juego (una vez al día, sin medalla de hoy); con ?sem=, la situación de la semana
+      if (ctx.params.sem) semAuto(); else if (!semPopAuto()) retoAuto();   // la jugada del día al entrar (ventana); si no sale, el reto del día (una vez al día, sin medalla de hoy); con ?sem=, Retos › Jugada
       var pn = ctx.params.panel || (ctx.debug === 'tutorial' ? 'tut' : ctx.debug === 'controls' ? 'ctl' : ctx.debug === 'settings' ? 'set' : '');
       if (ctx.params.menu === 'play' || ctx.params.menu === 'quick') setTimeout(function () { mstack.push({ p: 'main', f: 'btnPlay' }); if (ctx.params.menu === 'quick') { mstack.push({ p: 'play', f: 'btnQuick' }); } setPage(ctx.params.menu); focusLayer(); }, 0);
       if (pn && PANELS[pn]) setTimeout(function () { if (pn === 'about') openAbout(ctx.params.tab === 'credits' ? 'credits' : 'news', 'menu'); else openPanel(pn, 'menu'); if (ctx.params.step) tutGo(+ctx.params.step - 1); }, 0);

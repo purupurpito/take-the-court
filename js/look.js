@@ -175,6 +175,9 @@
     // 1.18 (WP7): media cara de afición (base y acento del equipo) y un rayo que cruza el ojo
     { id: 'pinturaEquipo', name: 'Pintura de afición', slot: 'paint', rarity: 1, unlock: [{ ach: 'ch10' }, shop(3000)], g: 'f', hint: 'Con los colores de tu equipo' },
     { id: 'rayoOjo', name: 'Rayo en el ojo', slot: 'paint', pc: 'A', rarity: 2, unlock: [reto('r_kills', 3), shop(15000)], g: 'm' },
+    // (premios de nivel alto, 24-nov: ver «premios de nivel alto» junto a los manguitos)
+    { id: 'balonCara', name: 'Balón en la mejilla', slot: 'paint', pc: 'A', rarity: 1, unlock: [shop(8000), lv(52)], g: 'm', hint: 'Con las costuras del color de acento' },
+    { id: 'manchaTinta', name: 'Mancha de tinta', slot: 'paint', pc: 'A', rarity: 2, unlock: [shop(20000), lv(75)], g: 'f', hint: 'Salpicón de tinta del acento alrededor del ojo; turquesa si es rojo' },
     { id: 'pecas', name: 'Pecas', slot: 'marks', g: 'f', pl: 1 },
     { id: 'tirita', name: 'Tirita', slot: 'marks', unlock: [{ ach: 'm50' }, rec('played', 50)], g: 'f' },
     { id: 'tiraNasal', name: 'Tira nasal', slot: 'marks', pc: 'A', unlock: [shop(500), lv(2)], g: 'f' },
@@ -213,6 +216,11 @@
     { id: 'manguitoFundido', name: 'Manguito degradado', slot: 'arm', venue: 'P', rarity: 1, unlock: [shop(4000), gym('atk', 2)], vc: 'AB', g: 'm' },
     { id: 'manguitoEstrella', name: 'Manguito de estrellas', slot: 'arm', venue: 'P', rarity: 2, unlock: [{ ach: 'p500' }, shop(18000)], vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoNumero', name: 'Manguito con dorsal', slot: 'arm', venue: 'P', rarity: 1, unlock: [shop(5000), rec('wins', 100)], vc: 'A', pc: 'B', g: 'm', hint: 'Con tu número' },
+    // premios de nivel alto (24-nov, decisión de Ferran «más premios por nivel»): Nv 40-60 cada 4, 65-80 cada 5, 90 y 99; rarezas que suben
+    { id: 'manguitoOlas', name: 'Manguito de olas', slot: 'arm', venue: 'P', rarity: 1, unlock: [shop(7500), lv(48)], vc: 'A', pc: 'B', g: 'm' },
+    { id: 'manguitoTinta', name: 'Manguito salpicado', slot: 'arm', venue: 'P', rarity: 1, unlock: [shop(8000), lv(56)], vc: 'A', pc: 'B', g: 'm', hint: 'Salpicones de pintura blanca (del segundo color si el manguito es claro)' },
+    { id: 'manguitoRed', name: 'Manguito de red', slot: 'arm', venue: 'P', rarity: 2, unlock: [shop(18000), lv(70)], vc: 'A', pc: 'B', g: 'm', hint: 'Como la red del partido, con su cinta blanca arriba' },
+    { id: 'manguitoHolo', name: 'Manguito holográfico', slot: 'arm', venue: 'P', rarity: 3, unlock: [shop(50000), lv(90)], g: 'm', hint: 'Nácar que brilla con todos los colores' },
     { id: 'coderas', name: 'Coderas', slot: 'elbows', venue: 'P', vc: 'AP', g: 'f', pl: 1, tris: [80, 80, 168] },
     // manos, piernas y pies
     { id: 'muneq', name: 'Muñequera de rizo', slot: 'wrist', vc: 'A', g: 'f', tris: [80, 100, 160] },
@@ -235,6 +243,10 @@
     { id: 'compresion', name: 'Calcetines de compresión', slot: 'socks', venue: 'P', unlock: [shop(1100)], geo: false, pc: 'S', g: 'm', pl: 1 },   // (1.18, WP7)
     { id: 'lunares', name: 'Calcetines de lunares', slot: 'socks', venue: 'P', unlock: [shop(1000), lv(12)], geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'caido', name: 'Calcetines caídos', slot: 'socks', venue: 'P', unlock: [shop(900), lv(16)], geo: false, pc: 'S', g: 'm', pl: 1 },
+    // (premios de nivel alto, 24-nov)
+    { id: 'sandia', name: 'Calcetines de sandía', slot: 'socks', venue: 'P', rarity: 1, unlock: [shop(7000), lv(44)], geo: false, g: 'm', pl: 1, hint: 'Verdes arriba, rojos y con pepitas' },
+    { id: 'calcBalones', name: 'Calcetines de balones', slot: 'socks', venue: 'P', rarity: 2, unlock: [shop(15000), lv(60)], geo: false, pc: 'S', g: 'm', pl: 1 },
+    { id: 'calcLlamas', name: 'Calcetines de llamas', slot: 'socks', venue: 'P', rarity: 2, unlock: [shop(20000), lv(80)], geo: false, pc: 'S', g: 'm', pl: 1, hint: 'Llamas del color del calcetín que suben desde el tobillo' },
     { id: 'blanca', name: 'Tobillera', slot: 'ankle', venue: 'P', g: 'f' },
     { id: 'tela', name: 'Tobillera de tela', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
     { id: 'pulseraTob', name: 'Pulsera de tobillo', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
@@ -264,12 +276,17 @@
     { id: 'tMenta', name: 'Tinte menta', slot: 'hairTint', hex: 0x7fe0b0, rarity: 1, unlock: [shop(3000), { ach: 'w1' }], g: 'm' },
     { id: 'tPlata', name: 'Tinte plateado', slot: 'hairTint', hex: 0xc8d0dc, rarity: 2, unlock: [shop(15000), { fame: 3 }], g: 'm' },
     { id: 'tEquipo', name: 'Tinte del equipo', slot: 'hairTint', hex: 0xd8262e, team: 1, rarity: 1, unlock: [shop(4000), { ach: 'm50' }], g: 'm', hint: 'Del color de tu equipación' },
+    // (premios de nivel alto, 24-nov)
+    { id: 'tLima', name: 'Tinte lima', slot: 'hairTint', hex: 0xb4e03a, rarity: 1, unlock: [shop(6000), lv(40)], g: 'm' },
+    { id: 'tNoche', name: 'Tinte medianoche', slot: 'hairTint', hex: 0x3b2fa0, rarity: 2, unlock: [shop(16000), lv(65)], g: 'm' },
     // efectos de pelo (fit.hairFx; el segundo color es fit.hair2 o, sin él, uno que contraste): color por vértice, 0 triángulos
     { id: 'raiz', name: 'Raíces', slot: 'hairFx', g: 'f', pl: 1, hint: 'Con el segundo color en la raíz' },
     { id: 'puntas', name: 'Puntas', slot: 'hairFx', g: 'f', pl: 1, hint: 'Con el segundo color en las puntas' },
     { id: 'mechas', name: 'Mechas', slot: 'hairFx', unlock: [shop(1200)], g: 'f', pl: 1, hint: 'Mechas del segundo color' },
     { id: 'flequilloFx', name: 'Flequillo teñido', slot: 'hairFx', unlock: [shop(1000)], g: 'm', hint: 'El flequillo del segundo color' },
     { id: 'mitad', name: 'Mitad y mitad', slot: 'hairFx', rarity: 1, unlock: [shop(3000), { fame: 2 }], g: 'f', hint: 'Media cabeza de cada color' },
+    // (premio del nivel 99, 24-nov: solo por nivel, no se vende; no usa el segundo color)
+    { id: 'arcoiris', name: 'Pelo arcoíris', slot: 'hairFx', rarity: 3, unlock: [lv(99)], g: 'm', hint: 'Seis colores de la raíz a las puntas. Premio del nivel 99' },
     // objetos de jefe (S3-C3 §2.1): solo de la Carrera, por la primera victoria contra un jefe de ese estilo. Son variantes de
     // piezas que ya existen: «as» = la pieza que dibuja doll.js mientras no sepa dibujar la variante (resolve la sustituye)
     { id: 'munhCanon', name: 'Muñequera de cañón', slot: 'wrist', rarity: 2, unlock: [boss('saque')], as: 'muneq', vc: 'A', g: 'f', tris: [80, 100, 160] },
@@ -357,7 +374,7 @@
     return function () { a = (a + 0x6d2b79f5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
   function pick(r, arr) { return arr[Math.floor(r() * arr.length) % arr.length]; }
-  function fmtEur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function fmtEur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function now() { return Date.now(); }
   /** 'hall' | 'beach' a partir de lo que pasen (true / 'Y' / 'beach' = playa); null si no dice (= las dos, en fix y ok). */
   function venueOf(v) {

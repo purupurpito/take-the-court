@@ -14,9 +14,10 @@
  * mismo stateHash (la memoria g.aiMem viaja con la partida: rollback de Precisa); con la memoria, menos «3 seguidos» de remate que
  * sin ella (el mismo código sin g.aiMem, que es la IA de antes); y Experto no se ablanda (con el bot medio y el bueno la CPU gana como poco el
  * TOL puntos porcentuales menos que sin memoria; con 4000 s el ruido de la muestra es de ~3 puntos, por eso el triple en esas casillas).
- * Uso: node tools/variedadtest.js [segundos por casilla = 4000; las de Experto con bot, el triple] [--base <ref de git>]  (salida en tools/out/variedad.json)
+ * Uso: node tools/variedadtest.js [segundos por casilla = 4000; las de Experto con bot, el triple (6v6, 9 veces)] [--base <ref de git>]  (salida en tools/out/variedad.json)
  *   --base main: además juega las mismas casillas con js/sim.js, ai.js y ai6.js de esa referencia (git show, sin escribir ficheros)
  *   VAR_FILTER=<regex>: solo las casillas cuya etiqueta encaje.
+ *   VAR_NORD=1: «ahora» sin la lectura «Te leen» (g.aiMem.rd = null): para separar su efecto del de la IA variada.
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process');
@@ -35,6 +36,8 @@ function load(ref, noMem) {
   const VB = ctx.VB, S = VB.Sim, C = VB.C, DT = 1 / C.SIM_HZ;
   // VAR_MEM='{"tol":0.4}': prueba otros valores de VB.AI.MEM sin tocar ai.js
   if (process.env.VAR_MEM && VB.AI.MEM) Object.assign(VB.AI.MEM, JSON.parse(process.env.VAR_MEM));
+  // VAR_RDX='{"blk6":0}': prueba otros multiplicadores de «Te leen» (VB.AI.RDX)
+  if (process.env.VAR_RDX && VB.AI.RDX) Object.assign(VB.AI.RDX, JSON.parse(process.env.VAR_RDX));
   let bots = null;
   try {
     const s = src('tools/simtest.js', ''), a = s.indexOf('const BOTS = {'), b = s.indexOf('function topWhy(');
@@ -71,7 +74,7 @@ function runCell(E, j) {
   if (j.fmt === 'playa') base.venue = 'beach';
   let g = null, seedN = 0;
   // sin memoria: sin g.aiMem la IA hace exactamente lo de antes (todas sus ramas miran si existe)
-  const newGame = () => { g = S.createGame(Object.assign({ seed: j.seed + 101 * seedN++ }, base)); if (E.noMem) delete g.aiMem; };
+  const newGame = () => { g = S.createGame(Object.assign({ seed: j.seed + 101 * seedN++ }, base)); if (E.noMem) delete g.aiMem; else if (process.env.VAR_NORD && g.aiMem) g.aiMem.rd = null; };
   newGame();
   const cpuT = j.bot ? [1] : [0, 1];
   const atk = [newSeq(), newSeq()], srv = [newSeq(), newSeq()], rcv = [newSeq(), newSeq()], set = [newSeq(), newSeq()];
@@ -106,7 +109,7 @@ function cells() {
   let s = 7100;
   for (const fmt of ['2v2', '6v6', 'playa']) {
     for (const d of DIFFS) L.push({ label: fmt + ' cpu ' + d, fmt, diff: d, seed: s++, seconds: SECS });
-    for (const bot of ['medio', 'bueno']) for (const d of fmt === '2v2' ? DIFFS : ['hard', 'expert']) L.push({ label: fmt + ' ' + bot + ' ' + d, fmt, bot, diff: d, seed: s++, seconds: d === 'expert' ? 3 * SECS : SECS });
+    for (const bot of ['medio', 'bueno']) for (const d of fmt === '2v2' ? DIFFS : ['hard', 'expert']) L.push({ label: fmt + ' ' + bot + ' ' + d, fmt, bot, diff: d, seed: s++, seconds: d === 'expert' ? (fmt === '6v6' ? 9 : 3) * SECS : SECS });   // (6v6: menos puntos por segundo; con 3× el «no se ablanda» bailaba 3 puntos con la misma IA, 24-nov)
   }
   const re = process.env.VAR_FILTER ? new RegExp(process.env.VAR_FILTER) : null;
   return re ? L.filter(c => re.test(c.label)) : L;

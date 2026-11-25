@@ -5024,7 +5024,9 @@
     },
     _update: function (g, dt, events) {
       // (con banquillo, g.subsOn, un cambio puede sustituir a g.players[0]: mismo partido = syncRigs, sin rehacer a todos)
-      if (syncVenue() || !rigs.length || (rigs[0].p !== g.players[0] && !(g.subsOn && CUR_G === g))) this.onGameStart(g);   // TAJO: al cambiar de escenario, se visten de nuevo
+      // (repetición 6v6: la sombra R enlazada con bindReplay es el mismo partido; si su g.players[0] es otro —un cambio o el líbero entre
+      // la jugada y ahora— syncRigs la arregla sin rehacer a todos)
+      if (syncVenue() || !rigs.length || (rigs[0].p !== g.players[0] && !(g.subsOn && CUR_G === g) && !(g.replay && REP.g === g))) this.onGameStart(g);   // TAJO: al cambiar de escenario, se visten de nuevo
       else if (g.size > 2) {
         // Vestuario: cambió tu atleta (g.ctrlBase) → solo se rehacen los 2 rigs afectados (comparar un id por frame)
         if (g.rot && !g.watch) { var me6 = g.ctrlBase ? g.ctrlBase.id : -1; if (me6 !== ME6_ID) swapMe(g, ME6_ID, me6); }

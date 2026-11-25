@@ -277,6 +277,7 @@
     if (!played()) return false;
     if (c && c.state && c.state !== 'menu') return false;
     if (U && U.menuIdle) { try { if (!U.menuIdle()) return false; } catch (e) { return false; } }
+    if (U && U.popWaiting) { try { if (U.popWaiting()) return false; } catch (e) { } }   // (la jugada del día sale antes: una ventana detrás de otra, nunca encima)
     else if (U && U.isPanelOpen && U.isPanelOpen()) return false;
     if (VB.CareerUI && VB.CareerUI.isOpen) { try { if (VB.CareerUI.isOpen()) return false; } catch (e) { } }
     return document.visibilityState !== 'hidden';

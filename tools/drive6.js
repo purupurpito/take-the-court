@@ -119,6 +119,19 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
     await sleep(3000);
     check(await evalJs("VB.ctx.state==='menu'&&VB.ctx.game.demo"), 'arranca en el menú');
     // «Jugar ya» (1.22.0): perfil nuevo → el foco empieza en el billete «¡Jugar ya!» (#btnNow); ↓ baja a JUGAR (como tools/drive.js)
+    // Primera vez (24-nov-2026): la portada es solo «¡Jugar ya!» y «Tutorial»; ↓ llega a Tutorial, Intro lo abre y Esc lo cierra → portada
+    // de siempre con el foco en «¡Jugar ya!»
+    if (await evalJs("document.getElementById('menu').classList.contains('first-run')")) {
+      await press('ArrowDown'); await sleep(250);
+      check(await evalJs("document.activeElement&&document.activeElement.id==='btnStartTut'"), 'primera vez: ↓ desde «¡Jugar ya!» llega a «Tutorial»');
+      await press('ArrowDown'); await sleep(250);
+      check(await evalJs("document.activeElement&&['btnNow','btnStartTut','btnSettings'].indexOf(document.activeElement.id)>=0"), 'primera vez: las flechas no salen de los dos billetes y el engranaje de Ajustes');
+      for (let i = 0; i < 3 && await evalJs("document.activeElement.id!=='btnStartTut'"); i++) { await press('ArrowUp'); await sleep(250); }
+      await press('Enter'); await sleep(500);
+      check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden"), 'primera vez: Intro en «Tutorial» abre Cómo se juega');
+      await press('Escape'); await sleep(600);
+      check(await evalJs("!VB.UI.isPanelOpen()&&!document.getElementById('menu').classList.contains('first-run')&&document.activeElement.id==='btnNow'"), 'primera vez: Esc cierra el tutorial y deja la portada de siempre con el foco en «¡Jugar ya!»');
+    }
     if (await evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")) {
       await press('ArrowDown'); await sleep(250);
       check(await evalJs("document.activeElement&&document.activeElement.id==='btnPlay'"), 'perfil nuevo: ↓ desde «¡Jugar ya!» llega a JUGAR');
@@ -126,10 +139,17 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
     // JUGAR → tarjetas; → → hasta «6 contra 6»; Intro → preparación con Formato en 6 contra 6
     await press('Enter'); await sleep(450);
     check(await evalJs("VB.UI.menuPage()==='play'&&document.activeElement.id==='btnQuick'"), 'JUGAR abre los modos');
-    await goTo('btn6v6', ['ArrowDown'], 4); await goTo('btn6v6', ['ArrowLeft'], 3);   // (SPLAT: 6 contra 6 está en la fila de abajo, la 1.ª)
-    check(await evalJs("document.activeElement.id==='btn6v6'&&!document.getElementById('btn6v6').disabled"), 'la tarjeta 6 contra 6 está activa y se llega con las flechas');
+    // (24-nov-2026) el formato va en la cabecera de Jugar, encima del Partido rápido: ↑ llega a «2v2», → a «6v6», Intro lo elige
+    await press('ArrowUp'); await sleep(250);
+    check(await evalJs("document.activeElement.getAttribute('data-fmt')==='2v2'"), '↑ desde Partido rápido llega al formato (2v2)');
+    await press('ArrowRight'); await sleep(250);
+    check(await evalJs("document.activeElement.getAttribute('data-fmt')==='6v6'"), '→ pasa a 6v6');
+    await press('Enter'); await sleep(300);
+    check(await evalJs("VB.ctx.settings.format==='6v6'&&document.querySelector('#plFmt [data-fmt=\"6v6\"]').getAttribute('aria-checked')==='true'&&/6 contra 6/.test(document.getElementById('quickSub').textContent)"), 'Intro elige 6 contra 6 (y el parche lo dice)');
+    await press('ArrowDown'); await sleep(250);
+    check(await evalJs("document.activeElement.id==='btnQuick'"), '↓ vuelve a Partido rápido');
     await press('Enter'); await sleep(500);
-    check(await evalJs("VB.UI.menuPage()==='quick'&&VB.ctx.settings.format==='6v6'&&document.getElementById('fmtVal').textContent==='6 contra 6'"), 'la tarjeta abre la preparación con Formato «6 contra 6»');
+    check(await evalJs("VB.UI.menuPage()==='quick'&&VB.ctx.settings.format==='6v6'&&document.getElementById('fmtVal').textContent==='6 contra 6'"), 'Partido rápido abre la preparación con Formato «6 contra 6»');
     check(await evalJs("document.getElementById('optVenue').classList.contains('lock')&&document.getElementById('venueVal').textContent==='Pabellón'&&document.getElementById('ctrlVal').textContent==='Receptor'"), '6v6: Escenario fijo en Pabellón y Controlar en Receptor (por defecto)');
     // ←/→ en la fila Formato (↑ desde ¡A JUGAR! hasta la primera fila)
     await goTo('optFmt', ['ArrowUp'], 6); await goTo('optFmt', ['ArrowLeft', 'ArrowUp'], 4);
@@ -164,6 +184,12 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
       if(g.ask6!==window.__s6.lastAsk){window.__s6.lastAsk=g.ask6;if(g.ask6>0)window.__s6.ask++;}};})()`);
     await press('Enter'); await sleep(500);
     if (await evalJs("VB.UI.isPanelOpen&&VB.UI.isPanelOpen()")) { await press('ArrowDown'); await sleep(150); await press('Enter'); } // «Primer partido» → Jugar ya
+    // rendimiento del 1r 6v6 (24-nov-2026): la ventana de la calidad sale antes del partido con «Auto» enfocada; ↓ a «Alta», Esc = la de ahora
+    if (await waitFor('VB.UI.noteOpen&&VB.UI.noteOpen()', 2500)) {
+      check(await evalJs("document.activeElement&&document.activeElement.getAttribute('data-sn')==='q-auto'&&document.getElementById('menu').classList.contains('sn-hide')"), '1r 6v6: la ventana de la calidad sale con «Auto» (recomendada) enfocada');
+      await sleep(450); await press('Escape'); await sleep(300);
+      check(await evalJs("!VB.UI.noteOpen()&&VB.ctx.settings.q6Asked===true&&VB.ctx.settings.quality==='auto'"), '1r 6v6: Esc la cierra sin cambiar la calidad y no vuelve a salir (q6Asked)');
+    }
     check(await waitFor("VB.ctx.state==='playing'&&!VB.ctx.game.demo", 9000), 'empieza el partido');
     if (ROLE) { // el puesto elegido manda (ui.js goMatch → VB.Sim.setCtrlRole): g.ctrlRole y su atleta (g.ctrlBase; al central sustituido le toca el líbero)
       check(await evalJs("(function(g){var b=g.ctrlBase||g.ctrl;return g.size===6&&!g.watch&&!g.autopilot&&g.ctrlMode==='one'&&g.ctrlRole==='" + ROLE + "'&&b.role==='" + ROLE + "'&&b.num===" + ROLE_NUM[ROLE] + "&&(g.ctrl===b||g.ctrl===g.libero[0])&&VB.Arena.venue()==='hall'})(VB.ctx.game)"),

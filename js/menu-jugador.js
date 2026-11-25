@@ -3,15 +3,17 @@
  *
  * El partido de demo se queda de fondo, a la vista y sin velos. Reutiliza los MISMOS botones (ids y manejadores de ui.js): solo los pone en
  * filas dentro de .menu-col y les da las clases del sistema (index.html, bloque «SPLAT · PORTADA»; dibujo en js/splat.js):
- *   - JUGAR: .sp-patch (parche crema cosido con el gajo de TU equipación) y, en su esquina, el sello .sp-stamp (.sp-pair): la situación de
- *     la semana («El mismo 22-24», js/semana.js) con su marcador y los intentos de hoy, que abre Retos › Semana. Propuesta de la ficha
- *     «semana» que Ferran aceptó («JUNTO»): la situación en el sello de la portada y en la 1ª pestaña de Retos; el reto del día sigue
- *     en la franja de Jugar y en la pestaña Hoy. Sin VB.Semana / VB.SemanaUI, el sello vuelve a ser el del Reto del día.
+ *   - JUGAR: .sp-patch (parche crema cosido con el gajo de TU equipación) y, en su esquina, el sello .sp-stamp (.sp-pair): la jugada
+ *     del día (antes «El mismo 22-24» semanal; js/semana.js) con su marcador, los intentos de hoy (o una marca dorada si ya la has cumplido) y la
+ *     racha en una chapa crema (.mj-semr, solo con racha), que abre Retos › Jugada. Propuesta de la ficha «semana» que Ferran aceptó
+ *     («JUNTO»): la jugada en el sello de la portada y en la 1ª pestaña de Retos; el reto del día sigue en la franja de Jugar y en la
+ *     pestaña Hoy. Sin VB.Semana / VB.SemanaUI, el sello vuelve a ser el del Reto del día.
  *   - Jugadores y Vestuario: .sp-btn.sp-wide de la equipación y del contraste; Jugadores lleva tu camiseta con el dorsal y Vestuario tu cabeza
  *     (retrato recortado de VB.Doll.portrait con req.matte, pintado una vez por main.js).
  *   - Cómo se juega, Controles y Ajustes: tres .sp-btn.sp-sm de tinta con icono dorado.
  *   - Carrera: .sp-ticket (brochazo turquesa) con tu escudo y el del rival. «¡Jugar ya!» y «Seguir el partido» (partido a medias guardado,
  *     js/resume.js): .sp-ticket.sp-gold en el mismo sitio (ui.js syncHero decide cuál sale).
+ *   - Primera vez (24-nov-2026): solo «¡Jugar ya!» y el billete «Tutorial» (#btnStartTut); #menu.first-run esconde lo demás (ui.js syncHero).
  * Filas con data-sp-row: ←/→ dentro de la fila y ↑/↓ de fila en fila (ui.js adjustFocused / navMove). Pruebas: &mjseed=1 (Carrera de muestra),
  * &mjfocus=<id> (enfoca ese botón). Datos vivos sin coste por frame: una firma, como mucho cada 1,2 s.
  */
@@ -47,8 +49,8 @@
   var SEM = !!(VB.Semana && VB.Semana.peek && VB.SemanaUI && VB.UI && VB.UI.openRetos);
   var stamp = mk('button', 'sp-stamp');
   stamp.type = 'button'; stamp.id = 'btnMjReto';
-  stamp.setAttribute('aria-label', SEM ? 'La situación de la semana' : 'Reto del día');
-  stamp.setAttribute('data-ring', SEM ? 'LA SITUACIÓN ★ DE LA SEMANA ★' : 'RETO DEL DÍA ★ RETO DEL DÍA ★');
+  stamp.setAttribute('aria-label', SEM ? 'La jugada del día' : 'Reto del día');
+  stamp.setAttribute('data-ring', SEM ? 'LA JUGADA ★ DEL DÍA ★' : 'RETO DEL DÍA ★ RETO DEL DÍA ★');
   if (SEM) stamp.classList.add('mj-sem');
   stamp.innerHTML = '<span class="sp-sc" id="mjStampC"></span>';
   if (bPlay) {
@@ -67,6 +69,7 @@
     if (!p[0]) return;
     cls(p[0], 'sp-btn sp-sm sp-ink'); p[0].setAttribute('data-shape', String(i)); label(p[0]);
     p[0].insertAdjacentHTML('afterbegin', '<span class="sp-ic">' + p[1] + '</span>'); strip.appendChild(p[0]);
+    if (p[0] === bSet && !bSet.hasAttribute('aria-label')) bSet.setAttribute('aria-label', 'Ajustes');   // (primera vez: solo el engranaje, sin texto)
   });
   // «Jugar ya» (1.22.0, informe 4.3; solo sin partidos jugados, ui.js syncHero lo enseña): billete dorado con el balón en el talón, en el
   // sitio de «Continuar carrera» (nunca salen los dos). Los hijos de la portada de antes (.pl-tx, .go) se quedan, ocultos por CSS
@@ -76,6 +79,15 @@
     bNow.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.BALL + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
       '<b class="sp-t">¡Jugar ya!</b><small class="sp-s">Un set a 15 contra la CPU</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
     nav.appendChild(bNow);
+  }
+  // Primera vez (24-nov-2026, Ferran): con #menu.first-run (ui.js syncHero) la portada solo enseña «¡Jugar ya!» y este billete turquesa
+  // «Tutorial» con la «?» de Cómo se juega en el talón (abre el mismo panel). Después, la portada de siempre
+  var bST = $('btnStartTut');
+  if (bST) {
+    bST.classList.remove('mi', 'primary'); cls(bST, 'sp-ticket');
+    bST.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.ICONS.tut + '</span></span><span class="sp-tk-main"><small class="sp-k">Aprende a jugar</small>' +
+      '<b class="sp-t">Tutorial</b><small class="sp-s">Cómo se juega, paso a paso</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
+    nav.appendChild(bST);
   }
   // «Seguir el partido» (1.22.0, informe 4.9; js/resume.js, ui.js syncHero lo enseña con un partido a medias guardado): el mismo billete
   // dorado y el mismo sitio; mientras lo hay tapa a «Jugar ya» y a «Continuar carrera». La línea (marcador y set) la escribe ui.js
@@ -146,14 +158,19 @@
     var st = null; try { st = VB.Semana.peek(); } catch (e) { st = null; }
     stamp.hidden = !st || !$('btnRetos');
     if (!st || !C) return;
-    var a = st.sit.score[0] | 0, b = st.sit.score[1] | 0, lf = st.left | 0;
+    var a = st.sit.score[0] | 0, b = st.sit.score[1] | 0, lf = st.left | 0, sk = st.streak ? st.streak.cur | 0 : 0;
     var T = VB.Semana.TRIES | 0 || 3, dots = '';   // los intentos de hoy en puntos: dorado = queda, hueco = gastado (el texto va en aria-label)
     for (var i = 0; i < T; i++) dots += '<i' + (i < lf ? ' class="on"' : '') + '></i>';
-    var h = '<b class="mj-semsc">' + a + '-' + b + '</b><span class="mj-semd">' + dots + '</span>';
+    // cumplida hoy: una marca dorada en lugar de los puntos («Hecha» a 9 px no se leía a 568x320); con racha, su número en la chapa crema de la esquina
+    var h = '<b class="mj-semsc">' + a + '-' + b + '</b>' + (st.done ? '<svg class="mj-semok" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>' : '<span class="mj-semd">' + dots + '</span>');
     if (C._h !== h) { C._h = h; C.innerHTML = h; }
+    var rb = stamp.querySelector('.mj-semr');
+    if (sk > 0) { if (!rb) { rb = mk('i', 'mj-semr'); rb.setAttribute('aria-hidden', 'true'); stamp.appendChild(rb); } if (rb.textContent !== String(sk)) rb.textContent = String(sk); }
+    else if (rb) rb.parentNode.removeChild(rb);
     stamp.classList.remove('sp-dot');
-    stamp.setAttribute('aria-label', 'La situación de la semana: ' + a + '-' + b + ', ' + (lf ? (lf === 1 ? 'queda 1 intento hoy' : 'quedan ' + lf + ' intentos hoy') : 'mañana, 3 intentos nuevos') +
-      (st.best ? '. Tu mejor: ' + VB.Semana.resLbl(st.best).toLowerCase() : ''));
+    stamp.classList.toggle('mj-semdone', !!st.done);
+    stamp.setAttribute('aria-label', 'La jugada del día: ' + a + '-' + b + ', ' + (st.done ? 'cumplida hoy' : lf ? (lf === 1 ? 'queda 1 intento hoy' : 'quedan ' + lf + ' intentos hoy') : 'mañana, otra jugada') +
+      (sk ? '. Racha: ' + VB.Semana.streakTxt(sk) : '') + (st.best && !st.done ? '. Tu mejor de hoy: ' + VB.Semana.resLbl(st.best).toLowerCase() : ''));
   }
   function stampSync() {
     var R = VB.Retos, C = $('mjStampC');

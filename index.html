@@ -229,6 +229,22 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 #chal.rev .ch-key{background:transparent;color:#ffc8a8;font:600 13px/1 var(--ui);padding:0}
 @keyframes chPulse{50%{opacity:.45}}
 #app.end-on #chal,#app.intro-on #chal{display:none}
+/* Aviso de repetición (24-nov-2026, ui.js rpOffTick con ctx.replayOffer): donde el challenge (nunca salen a la vez), unos segundos.
+   PC: «Pulsa V para ver la repetición»; mando: «Pulsa LT…»; táctil: botoncito «REPETICIÓN» con ▶ (44 px de alto). La barra se vacía */
+#rpOff{position:absolute;right:calc(16px + var(--sr));top:calc(18px + 52px * var(--hs,1) + var(--st));z-index:6;display:none;align-items:center;gap:8px;
+  height:40px;padding:0 14px 0 10px;border:0;border-radius:12px;color:#fff;font:700 14px/1 var(--ui);cursor:pointer;pointer-events:auto;overflow:hidden;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;white-space:nowrap;max-width:calc(100% - 32px - var(--sl) - var(--sr))}
+#rpOff.show{display:flex;animation:fadeUp .25s var(--ease) both}
+.rm #rpOff.show{animation:tvFade .15s linear both}
+#rpOff .ro-ic{flex:none;width:24px;height:24px;border-radius:50%;background:#ffd23f;display:flex;align-items:center;justify-content:center}
+#rpOff .ro-ic svg{width:15px;height:15px;fill:#1d1530;margin-left:2px}
+#rpOff .ro-t{overflow:hidden;text-overflow:ellipsis}
+#rpOff .key{font:700 13px/1 var(--ui);color:#0b1220;background:#ffd23f;border-radius:6px;padding:4px 7px;margin:0 2px}
+#rpOff .key.pad{background:#ffd23f;color:#0b1220}
+#rpOff .ch-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--tk,#1d1530)}
+#rpOff .ch-bar b{display:block;height:100%;width:100%;background:#ffd23f;transform-origin:0 50%}
+#rpOff.tch{height:44px;padding:0 16px 0 10px;font:800 15px/1 var(--display);letter-spacing:.1em}
+#app.end-on #rpOff,#app.intro-on #rpOff,#app.replay #rpOff{display:none}
 .sb-set{display:flex;align-items:center;padding:0 12px;background:var(--glass2);color:var(--gold);border-radius:0 8px 0 0;border:1px solid var(--line);border-left:0;border-bottom:0}
 .sb-body{background:linear-gradient(180deg,rgba(14,22,40,.95),rgba(8,13,24,.95));border:1px solid var(--line);border-radius:0 12px 12px 12px;overflow:hidden;min-width:236px}
 .sb-row{position:relative;display:grid;grid-template-columns:7px 1fr 18px 30px 52px;align-items:center;gap:8px;height:40px;padding-right:12px}
@@ -1565,6 +1581,8 @@ kbd,.key{background:#fff7e8;color:var(--tk);border:1.5px solid var(--tk);border-
 #chal.rev{box-shadow:inset 0 0 0 2px var(--tk),inset 0 0 0 4px #ff5a2c,3px 4px 0 var(--tk)}
 #chal .ch-key{box-shadow:0 0 0 1.5px var(--tk);text-shadow:none}
 #chal .ch-bar{height:4px;background:var(--tk)}
+#rpOff{background:var(--tp);box-shadow:inset 0 0 0 2px var(--tk),inset 0 0 0 4px #ffd23f,3px 4px 0 var(--tk);text-shadow:var(--ring1)}
+#rpOff .ro-ic,#rpOff .key{box-shadow:0 0 0 1.5px var(--tk);text-shadow:none}
 #skip{background:var(--tp);border-color:var(--tk);box-shadow:0 0 0 1.5px var(--tk),3px 4px 0 1.5px var(--tk);text-shadow:var(--ring1)}
 #fsTip{background:var(--tp);box-shadow:inset 0 0 0 2px var(--tk),4px 5px 0 var(--tk)}
 
@@ -3456,8 +3474,12 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .sp-sc b{font:800 max(8px,calc(var(--sp-stamp) * .1))/1 var(--sp-ui);letter-spacing:.08em;text-transform:uppercase}
 .sp-sc .sp-ball,.sp-sc svg{width:50%;height:50%;display:block}
 .mj-sem .sp-sc b{letter-spacing:.02em;white-space:nowrap}.mj-semd{display:flex;gap:3px}.mj-semd i{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--sp-gold)}.mj-semd i.on{background:var(--sp-gold)}:root:not(#_):not(#_):not(#_) .mj-sem .sp-sc b.mj-semsc{font-size:max(12px,calc(var(--sp-stamp) * .15));color:var(--sp-cream);letter-spacing:0}   /* sello de la portada: el marcador de la situación de la semana */
+:is(.mj-sem,.sem-stamp) .sp-st .st0{fill:var(--sp-teal)}   /* la jugada del día, sello verde azulado: no se confunde con el dorado del reto del día / Retos */
 .sp-sc .sc-med{display:block;width:44%;height:44%;border-radius:50%;box-shadow:0 0 0 2px var(--sp-ink),inset 0 -3px 0 rgba(0,0,0,.2);background:#d98a4a}.sp-sc .sc-med.t2{background:#d6e2ee}.sp-sc .sc-med.t3{background:#ffd23f}
 .sp-ball .b0{fill:var(--sp-cream)}.sp-ball .b1{fill:var(--sp-teal)}.sp-ball .b2{fill:var(--sp-teal-d)}.sp-ball .bs{fill:none;stroke:var(--sp-ink);stroke-width:1.1}.sp-ball .b3{fill:none;stroke:var(--sp-ink);stroke-width:1.4}
+/* la moneda del juego (24-nov-2026): el «salpi», una gota de tinta turquesa (el color del balón) con costuras de balón y su gotita. Va delante de la cifra
+   (<i class="sp-salpi" aria-hidden="true"></i>1.200 salpis); la palabra siempre se escribe, el icono solo adorna */
+.sp-salpi{display:inline-block;width:1.1em;height:1.1em;margin:0 .18em 0 0;vertical-align:-.2em;flex:none;font-style:normal;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.2 2.2C8.2 6.6 4.6 10.4 4.6 14.8a6.6 6.6 0 0 0 13.2 0c0-4.4-3.6-8.2-6.6-12.6z' fill='%231bb5a5' stroke='%2315102a' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M5.4 13.4c3.4-1.6 8-1.6 11.8.2M8.6 20.6c.2-4.2 1.2-8.6 2.8-12.4' fill='none' stroke='%2315102a' stroke-width='1.3' stroke-linecap='round'/%3E%3Cpath d='M7.6 11.2c.5-1.3 1.2-2.5 2-3.6' fill='none' stroke='%23fff4dc' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='19.6' cy='5.4' r='1.8' fill='%231bb5a5' stroke='%2315102a' stroke-width='1.4'/%3E%3C/svg%3E") center/contain no-repeat}
 .sp-stamp.sp-dot::after,:root:not(#_):not(#_):not(#_) .sp-stamp.sp-dot::after{content:"";display:block;position:absolute;right:6%;top:6%;width:18%;height:18%;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) .sp-stamp:hover{transform:rotate(-4deg) scale(1.05)}
 :root:not(#_):not(#_):not(#_) .sp-stamp:is(.kf,:focus-visible){transform:rotate(0) scale(1.1);filter:drop-shadow(0 4px 0 var(--sp-ink)) drop-shadow(3px 0 0 var(--sp-cream)) drop-shadow(-3px 0 0 var(--sp-cream)) drop-shadow(0 -3px 0 var(--sp-cream)) drop-shadow(0 3px 0 var(--sp-cream))}
@@ -4017,11 +4039,31 @@ html.sp-kb [data-kb-hide]{display:none!important}
 #menu.mj :is(#btnNow,#btnSeguir){margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
 :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir)>:is(.pl-tx,.go){display:none}
 #menu.mj :is(#btnNow,#btnSeguir) .sp-crest svg{width:100%;height:100%}
-:root.ph:not(#_):not(#_):not(#_) #menu.mj.has-now-mj .brand{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.has-now-mj:not(.first-run) .brand{display:none}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-now-mj{--mj-tape:46px}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-side{gap:8px;padding-top:6px;padding-bottom:4px}
 :root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-strip .sp-ic{width:42px;height:42px;padding:11px}
 :root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-strip .sp-btn{gap:3px}
+/* PRIMERA VEZ (24-nov-2026; ui.js syncHero pone #menu.first-run): solo dos billetes grandes, «¡Jugar ya!» (dorado) y «Tutorial» (turquesa),
+   con el logotipo encima también en el móvil. El resto de la portada vuelve en cuanto se ha jugado un partido o se ha cerrado el tutorial.
+   Vale también para la portada de antes (?menu=old): todo lo de .mlist menos los dos billetes se esconde */
+:root:not(#_):not(#_):not(#_) #menu.first-run .mlist>:not(#btnNow):not(#btnStartTut){display:none}
+#menu.first-run .pf-wrap,#menu.first-run #menuRecord{display:none}
+#menu.mj #btnStartTut{margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu.mj #btnStartTut>:is(.pl-tx,.go){display:none}
+#menu.mj #btnStartTut .sp-crest svg{width:100%;height:100%;fill:var(--sp-gold);stroke:var(--sp-ink);stroke-width:2.2;paint-order:stroke fill}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut){--sp-h:clamp(64px,17vh,128px);--sp-cs:clamp(40px,9vh,72px);margin-bottom:clamp(6px,1.6vh,14px)}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut) .sp-t{font-size:clamp(20px,4.6vh,40px)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut){--sp-h:clamp(62px,15vh,84px)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut) .sp-t{font-size:calc(var(--ph-head) * 1.25)}
+#menu:not(.mj).first-run .mlist>#btnStartTut{height:72px;font-size:26px}
+/* primera vez: Ajustes sigue a mano (sonido, teclas, tamaño de los botones táctiles) como un engranaje pequeño, sin texto, abajo a la
+   derecha encima de la versión; Cómo se juega y Controles no (el billete Tutorial ya lo enseña). Siguen siendo solo dos opciones grandes */
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mlist>.mj-strip:not(#btnNow):not(#btnStartTut){display:block;position:fixed;right:calc(20px + var(--sr,0px));bottom:calc(64px + var(--sbm,0px));margin:0;z-index:3}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip>:not(#btnSettings){display:none}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip #btnSettings{width:48px;height:48px;min-width:48px;padding:0;justify-content:center;flex:none}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip #btnSettings>:not(.sp-ic):not(svg){display:none}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run .mj-strip #btnSettings .sp-ic{--sp-is:22px}
 /* ==== fin SPLAT · PORTADA ==== */
 
 /* =====================================================================
@@ -4044,7 +4086,12 @@ html.sp-kb [data-kb-hide]{display:none!important}
 #menu.sp-full #btnCareer{--sp-h:clamp(50px,11vh,96px);--sp-cs:clamp(32px,6.6vh,58px);margin-right:calc(var(--sp-pad) * .5)}
 #menu.sp-full #btnCareer .sp-crest svg{fill:var(--sp-gold);stroke:var(--sp-ink);stroke-width:3.4;stroke-linejoin:round;paint-order:stroke fill;overflow:visible;padding:2px;box-sizing:border-box}
 :root:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-s .chip{display:inline-flex;margin:0 6px 0 0;padding:1px 6px;border-radius:5px;background:var(--sp-ink);color:var(--sp-cream);font:800 .92em/1.3 var(--sp-ui);box-shadow:none}
-/* fila de manchas: 6 contra 6 (equipación), Entrenamiento (contraste) y Online (tinta): pegatina con su dibujo arriba y el rótulo debajo */
+/* formato del Partido rápido en la cabecera de Jugar (24-nov-2026): dos pestañas de pincel «2v2 | 6v6» a la derecha del título, encima del parche */
+#menu .pl-fmt{display:flex;align-items:center;gap:6px;margin-left:auto;padding-right:calc(var(--sp-stamp,64px) * .2)}
+:root:not(#_):not(#_):not(#_) #menu .pl-fmt .sp-tab{--sp-tbh:44px;min-width:64px;padding:0 12px;font:400 clamp(17px,3vh,24px)/1 var(--sp-pop);letter-spacing:-.01em}
+#menu .pl-fmt .sp-tab i{font-style:normal;font-size:.72em;margin:0 .05em}
+:root.ph:not(#_):not(#_):not(#_) #menu .pl-fmt .sp-tab{min-width:58px;padding:0 10px;font-size:calc(var(--ph-head) * .95)}
+/* fila de manchas: Entrenamiento (contraste) y Online (tinta): pegatina con su dibujo arriba y el rótulo debajo */
 #menu.sp-full .sp-row{display:flex;align-items:stretch;gap:clamp(12px,2.2vh,20px)}
 :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(3px,.8vh,8px);
   --sp-h:clamp(62px,15vh,124px);padding:4px 6px 6px}
@@ -4285,7 +4332,19 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 6px 0 5.5px var(--sp-ink);font:400 14px/1 var(--sp-pop);letter-spacing:.06em;text-shadow:none;rotate:-2deg}
 #app #rpExit:is(:focus-visible,.kf){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
 #app #rpExit:active{translate:2px 3px}
+/* aviso de repetición (#rpOff): pegatina crema con filo de tinta, ▶ en botón dorado, tecla en tinta y barra dorada que se vacía */
+#app #rpOff{border-radius:12px 16px 11px 15px/15px 11px 16px 12px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);
+  font:400 13px/1 var(--sp-pop);letter-spacing:.04em;text-shadow:none;rotate:-1.5deg}
+#app #rpOff .ro-ic{background:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-ink)}
+#app #rpOff .ro-ic svg{fill:var(--sp-ink)}
+#app #rpOff .key{border-radius:6px 8px 6px 7px;background:var(--sp-ink);color:var(--sp-cream);box-shadow:none}
+#app #rpOff .ch-bar{height:5px;background:rgba(21,16,42,.18)}
+#app #rpOff .ch-bar b{background:var(--sp-gold);box-shadow:inset 0 -1.5px 0 rgba(21,16,42,.35)}
+#app #rpOff.tch{font-size:14px;letter-spacing:.06em}
+#app #rpOff:active{translate:2px 3px}
 @media (max-height:420px){
+  #app #rpOff{height:36px;font-size:12px;padding:0 12px 0 8px}
+  #app #rpOff.tch{height:44px;font-size:13px}
   #rpBug{font-size:12px;padding:5px 9px 4px}
   #rpCap .rp-hd{font-size:12px;padding:4px 12px 3px 10px;margin-bottom:4px}
   #rpCap .rp-ph{font-size:14.5px;padding:5px 12px 1px 11px}
@@ -5485,6 +5544,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{grid-row:1/-1;grid-column:1;--lkt:76px;--lkg:10px}
 /* con la rejilla abierta, su «‹» hace de Volver: la cabecera se va y caben dos filas de fichas a 568×320 */
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook.lk-gon .mp-head{display:none}
+/* Vestuario: tus dos jugadores por su papel (24-nov-2026, sin dorsales); en el móvil abreviado (Bloq., Univ.): el nombre entero no cabe junto a la sede */
+#mpLook .lk-ra{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-rl{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-ra{display:inline}
+:root:not(.ph):not(#_):not(#_):not(#_) #menu #mpLook .lk-top{flex-wrap:wrap;row-gap:6px}
 /* 380 de alto o menos (568×320, 640×360): el título, el jugador y la sede van en UNA fila (sin «Vestuario», sin «N.º» ni «En»:
    «‹ PELO · 1 2 · PISTA PLAYA») y la lista gana una fila entera (a 568×320 se veían 1-2 filas y ninguna miniatura) */
 @media (max-height:380px){
@@ -5496,6 +5560,10 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-sx{display:none}
   :root.ph:not(#_):not(#_):not(#_) #menu #mpLook :is(.lk-pick,.lk-ven) .sp-tab{padding:0 8px;min-width:36px}
   :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{grid-column:1/-1}
+}
+/* 568×320: con los papeles abreviados («Bloq.», «Univ.») y la sede no cabe también el chip de la pestaña (la elegida ya va marcada en la tira) */
+@media (max-height:380px) and (max-width:600px){
+  :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-tchip{display:none}
 }
 /* tira de pestañas: los 7 iconos a la vista (40 de ancho y 44 de alto); el nombre de la elegida va en el chip de la cabecera */
 :root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tb-row{gap:3px;padding:2px 2px 4px;justify-content:flex-start;overflow:visible}
@@ -5659,7 +5727,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(.ph):has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:calc(max(8px,var(--st)) + 66px)}
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================
-   SPLAT · RETOS · SEMANA (la situación de la semana, 20-nov-2026; js/semana-ui.js la pinta y ui.js renderRetos la monta en #rtBody).
+   SPLAT · RETOS · SEMANA (la jugada del día, antes situación de la semana, 20/24-nov-2026; js/semana-ui.js la pinta y ui.js renderRetos la monta en #rtBody).
    Dos columnas: .sem-l (brochazo turquesa con el sello y el marcador grande, pegatinas, intentos de hoy, parche «¡A jugar!» y
    «Compartir») y .sem-r («Mapa del grupo»: Saque | Ataque, campo rival en SVG con un punto por amigo y la lista). En vertical
    (≤ 480 de ancho), una sola columna. Con ≤ 380 de alto las pegatinas se quedan en sede y nivel (.sem-cx fuera; están en aria-label).
@@ -5752,6 +5820,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{--sp-ph:56px;--sp-pt:clamp(16px,5vh,24px);padding-right:6px}
 @media (max-height:380px){
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-ch .sem-cx{display:none}
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-sub .sem-ty{display:none}
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-tk.sp-ticket{padding:4px 14px 6px 8px}
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-tk .sp-stamp{display:none}   /* (decorativo: así sede y nivel caben en una fila) */
   :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-ch{flex-wrap:nowrap}
@@ -5759,7 +5828,39 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   #rtBody .sem-l{gap:6px}
   :root:not(#_):not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{--sp-ph:50px}
 }
-/* hoja final: el bloque «Situación» con el mejor de la semana en dorado */
+/* la jugada del día (24-nov-2026): la racha. .sem-fl = gota de pintura con el número (dorada con racha, hueca sin ella) */
+.sem-fl{flex:none;position:relative;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50% 0 50% 50%;transform:rotate(-45deg);background:transparent;
+  box-shadow:inset 0 0 0 2.5px var(--sp-cream),0 0 0 2px var(--sp-ink)}
+.sem-fl>b{transform:rotate(45deg);font:400 12px/1 var(--sp-pop);color:var(--sp-cream)}
+.on>.sem-fl{background:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 var(--sp-ink)}
+.on>.sem-fl>b{color:var(--sp-ink)}
+.sem-rk{flex:none;display:flex;align-items:center;margin-left:auto;padding:0 4px}
+/* sello de la portada: «Hecha» (cumplida hoy) y la chapa crema de la racha en la esquina */
+.mj-sem .mj-semok{display:block;width:34%;height:auto;aspect-ratio:1;fill:none;stroke:var(--sp-gold);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) .mj-sem .mj-semr{position:absolute;right:2%;top:2%;z-index:3;display:grid;place-items:center;min-width:22px;height:22px;padding:0 4px;box-sizing:border-box;
+  border-radius:11px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 var(--sp-ink);font:400 12px/1 var(--sp-pop);font-style:normal;pointer-events:none;transform:rotate(8deg)}
+/* ventana al entrar (ui.js semPop → VB.Splat.sheet .semp-sh): brochazo con el marcador a la izquierda y lo demás a la derecha */
+#spSheets .semp{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 16px;padding:4px 2px 2px}
+@media (max-width:420px){#spSheets .semp{grid-template-columns:minmax(0,1fr)}}
+:root:not(#_):not(#_):not(#_) #spSheets .semp-tk.sp-ticket{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;width:auto;min-width:0;height:auto;min-height:0;
+  padding:8px 22px 10px 14px;white-space:nowrap;cursor:default;pointer-events:none;animation:none;transform:rotate(-1.2deg);color:var(--sp-ink)}
+#spSheets .semp-t{font:800 12.5px/1.1 var(--sp-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-ink)}
+#spSheets .semp-sc{font:400 clamp(34px,9vh,54px)/.95 var(--sp-pop);color:var(--sp-cream);font-variant-numeric:tabular-nums;
+  text-shadow:3px 3px 0 var(--sp-ink),-1.5px -1.5px 0 var(--sp-ink),1.5px -1.5px 0 var(--sp-ink),-1.5px 1.5px 0 var(--sp-ink);transform:rotate(-2deg);transform-origin:0 60%}
+#spSheets .semp-sc i{font-style:normal;margin:0 .06em;color:var(--sp-gold)}
+#spSheets .semp-sub{font:800 12.5px/1.2 var(--sp-ui);color:var(--sp-ink)}
+#spSheets .semp-i{display:flex;flex-direction:column;gap:6px;min-width:0}
+#spSheets .semp-i p{margin:0}
+#spSheets .semp-goal{font:400 clamp(15px,2.6vh,19px)/1.2 var(--sp-pop);color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink)}
+#spSheets .semp-meta,#spSheets .semp-lf{font:600 max(12px,var(--ph-cap,13px))/1.3 var(--sp-ui);color:var(--sp-cream)}
+#spSheets .semp-rk{display:flex;align-items:center;gap:10px;font:700 max(12.5px,var(--ph-label,14px))/1.25 var(--sp-ui);color:var(--sp-cream)}
+#spSheets .semp-rk .sem-fl{margin:0 2px 0 3px}
+@media (max-height:360px){
+  :root:not(#_):not(#_):not(#_) #spSheets .semp-tk.sp-ticket{padding:6px 18px 8px 12px}
+  #spSheets .semp-sc{font-size:34px}
+  #spSheets .semp-i{gap:4px}
+}
+/* hoja final: el bloque «Situación» con el mejor de hoy (o la racha que sube) en dorado */
 #end .rc-sit .rc-l.up{color:var(--sp-gold);font-weight:800}
 /* ==== fin SPLAT · RETOS · SEMANA ==== */
 /* =====================================================================
@@ -6199,6 +6300,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{min-height:60px;padding:5px 10px 5px 8px;gap:8px;align-items:center}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{width:36px;height:36px;font-size:20px}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{font-size:var(--ph-row)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn.sq-long{font-size:clamp(12px,2vh,17px);letter-spacing:0}   /* (papel largo, «Bloqueador»: 24-nov-2026, sin dorsales) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn.sq-long{font-size:calc(var(--ph-row) * .82)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{font-size:var(--ph-cap);white-space:normal;overflow:visible;line-height:1.2}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pp{font-size:var(--ph-cap)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm{display:block;white-space:nowrap}
@@ -6303,6 +6406,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-s{margin:4px 0 0;font-size:var(--ph-cap)}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts{gap:12px}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-row{flex-direction:column;gap:10px}
+/* rendimiento del 1r 6v6 (24-nov-2026, ui.js perfNote): Alta, Media y Baja en una fila (en columna tapaban la esquina de la versión a 568×320) */
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-perf .sn-row{flex-direction:row;gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-perf .sn-row .sp-btn{flex:1 1 0;min-width:64px;padding:0 8px}
+#setNote .sn-perf .sn-row .sp-btn .sp-l{align-items:center;text-align:center}
+#menu.sn-hide{visibility:hidden}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-row .sp-btn{--sp-fs:var(--ph-row);min-height:44px;white-space:nowrap;text-align:center;justify-content:center}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts .sp-patch{min-width:max-content}
 /* (con el aviso o la Cuenta abiertos, la portada se aparta: queda solo el partido de fondo, no dos maquetas solapadas) */
@@ -6364,6 +6472,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     </div>
   </div>
   <button id="chal" type="button" tabindex="-1" aria-label="Pedir challenge"><span class="ch-k">CHALLENGE</span><span class="ch-key" id="chalKey">V</span><b class="ch-n" id="chalN">7</b><i class="ch-bar"><b id="chalBar"></b></i></button>
+  <button id="rpOff" type="button" tabindex="-1" aria-label="Ver la repetición"><span class="ro-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><span class="ro-t" id="rpOffT">Repetición</span><i class="ch-bar"><b id="rpOffBar"></b></i></button>
   <div id="ambChoice" role="group" aria-label="Protesta"><span class="amc-s" id="ambChoiceS"></span><div class="amc-r" id="ambChoiceR"></div><i class="amc-bar"><b id="ambChoiceBar"></b></i></div>
   <div id="ambCard" aria-hidden="true"><i class="amk-c"></i><span class="amk-t"><b class="amk-1" id="ambCard1"></b><span class="amk-2" id="ambCard2"></span></span></div>
   <div id="banner" aria-live="polite"><div class="bn-rib"><div id="bn1"></div></div><div id="bn2"></div><div id="bn3" hidden></div></div>
@@ -6407,6 +6516,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <!-- «Jugar ya» (1.22.0, informe 4.3): solo para quien no ha jugado nunca (ui.js syncHero). Un set a 15 contra la CPU sin pasar por
              Jugar ni por «Primer partido»; menu-jugador.js lo pinta como billete dorado (.sp-ticket.sp-gold) en el sitio de «Continuar carrera» -->
         <button class="mi primary" id="btnNow" hidden><span class="pl-tx"><span>¡Jugar ya!</span><span class="mi-s">Un set a 15 contra la CPU</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
+        <!-- Primera vez (24-nov-2026, Ferran: «que le dé de opciones Jugar ya o Tutorial»): con #menu.first-run la portada enseña SOLO «¡Jugar ya!»
+             y este «Tutorial» (ui.js syncHero); en cuanto se ha jugado un partido o se ha cerrado el tutorial, la portada de siempre -->
+        <button class="mi primary" id="btnStartTut" hidden><span class="pl-tx"><span>Tutorial</span><span class="mi-s">Cómo se juega, paso a paso</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi primary" id="btnSeguir" hidden><span class="pl-tx"><span>Seguir el partido</span><span class="mi-s" id="seguirS"></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi primary" id="btnPlay"><span class="pl-tx"><span>Jugar</span><span class="mi-s" id="playMainSub" hidden>Partido rápido, 6 contra 6 y entrenamiento</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi" id="btnSquad"><span>Jugadores</span><span class="mi-s" id="squadSub">Estadísticas y mejoras</span></button>
@@ -6418,22 +6530,26 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     </div>
     <!-- JUGAR (sistema SPLAT, 17-nov-2026; notes/splat.md): cada modo con su material. Partido rápido = parche cosido (.sp-patch) con el sello
          de Retos en la esquina (.sp-stamp); Carrera = brochazo turquesa (.sp-ticket) con la copa en pegatina; 6 contra 6, Entrenamiento y Online =
-         manchas (.sp-btn) de la equipación, del contraste y de tinta. Mismos ids y manejadores (ui.js, career-ui.js syncMenu, netlobby). ←/→ dentro
-         de cada fila (data-sp-row) y ↑/↓ de fila en fila (ui.js navMove). 6 contra 6 abre la preparación con la fila Formato en 6 contra 6 -->
+         manchas (.sp-btn) del contraste y de tinta. Mismos ids y manejadores (ui.js, career-ui.js syncMenu, netlobby). ←/→ dentro
+         de cada fila (data-sp-row) y ↑/↓ de fila en fila (ui.js navMove). El formato (2v2 o 6v6) va en la cabecera, encima del Partido rápido -->
     <div class="mpage sp-page" id="mpPlay" data-page="play" data-sp-full hidden>
       <div class="mp-head sp-head">
         <button class="mp-back sp-back" id="btnPlayBack" aria-label="Volver al menú principal" data-shape="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
         <div class="mp-tt"><h2 class="mp-t sp-h">Jugar</h2></div>
+        <!-- FORMATO (24-nov-2026, Ferran: «6v6 como opción (2v2 o 6v6) en JUGAR»): el del Partido rápido, justo encima de él; es el ajuste
+             «Formato» de siempre (ui.js plFmtSync; la fila Formato de la preparación sigue). Antes el 6v6 era una mancha más de la fila de abajo -->
+        <div class="pl-fmt" id="plFmt" data-sp-row data-sp-col0 role="radiogroup" aria-label="Formato del Partido rápido">
+          <button type="button" class="sp-tab" role="radio" data-fmt="2v2" aria-checked="true" aria-label="2 contra 2">2<i>v</i>2</button><button type="button" class="sp-tab" role="radio" data-fmt="6v6" aria-checked="false" aria-label="6 contra 6">6<i>v</i>6</button>
+        </div>
       </div>
       <nav class="modes sp-modes" data-nav aria-label="Modos de juego">
         <div class="sp-pair" data-sp-row>
-          <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s">Un partido contra la CPU, a tu medida</small></span></button>
+          <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s" id="quickSub">2 contra 2: tú y tu pareja contra la CPU</small></span></button>
           <!-- D1: Retos (reto del día y maestría) en sello; ui.js renderRetoStrip pinta la medalla de hoy en #retoMeds y el texto en #retoSub (para el lector) -->
-          <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETO DEL DÍA ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
+          <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETOS ★ RETOS ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
         </div>
         <button class="mode m-career sp-ticket" id="btnCareer"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span></span><span class="sp-tk-main"><small class="sp-k">Tu jugador, tu club</small><b class="sp-t">Carrera</b><small class="sp-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></span></button>
         <div class="sp-row" data-sp-row>
-          <button class="mode m-6v6 sp-btn sp-kit" id="btn6v6" data-shape="0"><span class="sp-crest sp-num" aria-hidden="true">6<i>v</i>6</span><span class="sp-l"><span class="sp-t">6 contra 6</span><small class="sp-s">Equipos completos: elige tu puesto</small></span></button>
           <button class="mode m-gym sp-btn sp-alt" id="btnGym" data-shape="1"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/></svg></span><span class="sp-l"><span class="sp-t" data-ph-short="Entreno">Entrenamiento</span><small class="sp-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
           <!-- ONLINE (especialista net, js/netlobby.js): 1 contra 1 con otra persona; oculta hasta que VB.NetLobby.menuOn() (o ?online=1) -->
           <button class="mode m-onl sp-btn sp-ink" id="btnOnline" data-shape="2" hidden><span class="sp-crest sp-num" aria-hidden="true">1<i>v</i>1</span><span class="sp-l"><span class="sp-t">Online</span><small class="sp-s">Contra otra persona, con tu jugador</small></span><i class="sp-chip" aria-hidden="true">Beta</i></button>
@@ -6479,7 +6595,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <div class="qlist gy-list" id="gymList" data-nav aria-label="Ejercicios"></div>
       <p class="gy-foot" id="gymFoot"></p>
     </div>
-    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Semana | Hoy | Maestría (Semana = la situación de la semana, js/semana-ui.js) en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
+    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Jugada | Hoy | Maestría (Jugada = la jugada del día, js/semana-ui.js; id semana) en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
          turquesa con el sello dorado de la medalla de hoy, las tres medallas en pegatina y «¡A jugar!» en parche; Maestría = pegatinas del color del grupo
          (doradas con el oro) con la medalla en pegatina redonda y la barra de pintura hasta la siguiente -->
     <div class="mpage sp-page" id="mpRetos" data-page="retos" data-sp-full hidden>
@@ -6734,7 +6850,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
             <button class="opt" data-opt="aimSet" data-need="Sim"><span>Colocación dirigida<small>Sí: eliges el destino con la dirección (sin dirección, alta a la 4). No: siempre a tu compañero</small></span><span class="seg sp-seg" data-seg="aimSet"></span></button>
             <button class="opt" data-opt="jsetAim" data-need="Sim"><span>Colocación en salto con diana<small>Sí: en salto, mueves la diana y la colocación va donde la pongas. No: como siempre</small></span><span class="seg sp-seg" data-seg="jsetAim"></span></button>
             <button class="opt" data-opt="msTiming"><span>Golpe al milisegundo<small>El sello dice cuántos ms llegas pronto o tarde</small></span><span class="seg sp-seg" data-seg="msTiming"></span></button>
-            <button class="opt" data-opt="replays"><span>Repeticiones<small>Automáticas: los puntos de set y de partido. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
+            <button class="opt" data-opt="replays"><span>Repeticiones<small>Con botón: tras los puntos grandes, unos segundos para pedirla. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
             <button class="opt opt-go" data-go="ctl"><span>Controles<small>Ver y cambiar teclas y botones</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button type="button" class="opt-reset sp-pill" data-reset="game">Restablecer este apartado</button>
           </div>

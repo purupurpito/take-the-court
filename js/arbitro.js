@@ -28,6 +28,7 @@
  *   undo(st)   cancela la disputa pendiente (punto anulado por challenge)
  *   unbrake(st, D)   la ficha «Frenar» de D no se llegó a abrir (ambiente.js): devuelve la oportunidad (offers, lastOffer)
  *   state(st) → { verbal:[n0,n1], yellow:[bool,bool], red:[n0,n1], byPid:{pid:{y,r}}, delay:[0|1|2, 0|1|2], offers, protests }
+ *   look(o) → aspecto del 1r para arena.js (o = {trait, lk, id, sty, beach} en la Carrera; {beach, seed} fuera): pelo, gafas, bigote…
  *   RATES (probabilidades; las calibra tools/arbitrotest.js), TRAITS (carácter del 1r), hash01.
  */
 (function () {
@@ -276,5 +277,56 @@
       offers: st.offers, protests: st.protests };
   }
 
-  VB.Arbitro = { create: create, feed: feed, protest: protest, taunt: taunt, undo: undo, unbrake: unbrake, state: state, RATES: RATES, TRAITS: TRAITS, hash01: hash01, _disputeOf: disputeOf };
+  // ------------------------------------------------------------------ aspecto del 1r (24-nov, Ferran; lo dibuja arena.js refLook)
+  // Puro y sin g.rng: sale de una semilla fija. En la Carrera, cada árbitro con nombre tiene el suyo (o.lk = career-world arbLook, fijo
+  // por carrera e id) y encaja con su carácter (LOOK_TRAIT, tabla en notes/ambiente.md). Fuera de la Carrera: en pista, SIEMPRE el
+  // larguirucho con poco pelo; en la playa, calvo y sin nada, a veces con gorra (o.seed = semilla del partido).
+  // → { hair: 'full'|'thin'|'bald', glasses: ''|'round'|'thin', stache, beard, cap (bool), build: 'lanky'|'normal'|'stout',
+  //     brow: 'flat'|'frown', skin, hairC (colores '#rrggbb') }
+  var LOOK_SKIN = ['#f3d3b8', '#e8bf9c', '#d9a77f', '#c18c64', '#9f6c48', '#75492f'];
+  var LOOK_HAIR = { k: '#17110d', d: '#2a1c12', b: '#5b3b22', r: '#a65a2c', y: '#c9a35e', g: '#a6a39d' };
+  // por estilo de nombres (career-world ARB_STY; 'es' España y playa): pieles posibles (índices) y pelos (letra = LOOK_HAIR)
+  var LOOK_REG = {
+    es: ['0122233', 'ddbbkg'], it: ['1122233', 'ddbbkg'], pt: ['1222334', 'ddbbkg'], gr: ['1222333', 'ddkbkg'], tr: ['1222334', 'kkddbg'],
+    fr: ['0011223', 'bbddyrg'], de: ['0001123', 'bbyyrdg'], nl: ['0001123', 'byyybrg'], pl: ['0001122', 'bbyyddg'], cz: ['0011122', 'bbyddrg'],
+    sl: ['0111222', 'ddbbkg'], ru: ['0001122', 'bbyyddg'], ro: ['0112223', 'ddbbkg'], br: ['1223345', 'kkddbg'], la: ['1222334', 'kkddbg'],
+    en: ['0112345', 'bbyddrkg'], jp: ['1111222', 'kkkkdg'], kr: ['1111222', 'kkkkdg'], cn: ['1111222', 'kkkkdg'], ir: ['2223334', 'kkkddg'],
+    ar: ['2233344', 'kkkkdg'], ph: ['2223334', 'kkkkdg']
+  };
+  // probabilidades por carácter (u = tirada propia de cada rasgo): hair [hasta aquí pelo, hasta aquí poco pelo; el resto calvo],
+  // glasses [redondas, + finas], build [robusto, + normal; el resto larguirucho]
+  var LOOK_TRAIT = {
+    estricto: { hair: [0.55, 0.85], glasses: [0, 0], stache: 0.7, beard: 0, build: [0.8, 1], frown: 1, cap: 0.25, grey: 0.4 },   // serio y robusto
+    deja: { hair: [0.8, 1], glasses: [0, 0.15], stache: 0.2, beard: 0.55, build: [0.1, 0.9], frown: 0, cap: 0.7, grey: 0.15 },    // relajado
+    lince: { hair: [0.6, 0.95], glasses: [0, 0.7], stache: 0.15, beard: 0, build: [0, 0.65], frown: 1, cap: 0.3, grey: 0.15 },   // gafas finas o mirada aguda
+    nervioso: { hair: [0, 0.75], glasses: [1, 1], stache: 0.3, beard: 0, build: [0, 0.5], frown: 0, cap: 0.35, grey: 0.3 },      // gafas y poco pelo
+    manual: { hair: [0.5, 0.8], glasses: [0, 0.25], stache: 0.25, beard: 0.15, build: [0.15, 0.85], frown: 0, cap: 0.35, grey: 0.25 }
+  };
+  function strHash(s) { s = String(s || ''); var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h | 0; }
+  function look(o) {
+    o = o || {};
+    var L = { hair: 'full', glasses: '', stache: false, beard: false, cap: false, build: 'normal', brow: 'flat', skin: LOOK_SKIN[2], hairC: LOOK_HAIR.d };
+    var T = LOOK_TRAIT[o.trait];
+    if (!T) {   // fuera de la Carrera
+      if (o.beach) { L.hair = 'bald'; L.cap = hash01(o.seed | 0, 0x10C, 0xCA9) < 0.4; }
+      else { L.hair = 'thin'; L.build = 'lanky'; }
+      return L;
+    }
+    var k = o.lk != null && isFinite(+o.lk) ? +o.lk | 0 : strHash(o.id), u = function (salt) { return hash01(k, salt, 0x100C); };
+    var h = u(1); L.hair = h >= T.hair[1] ? 'bald' : h >= T.hair[0] ? 'thin' : 'full';
+    var gl = u(2); L.glasses = gl < T.glasses[0] ? 'round' : gl < T.glasses[1] ? 'thin' : '';
+    L.beard = u(3) < T.beard; L.stache = L.beard || u(4) < T.stache;
+    var b = u(5); L.build = b < T.build[0] ? 'stout' : b < T.build[1] ? 'normal' : 'lanky';
+    L.brow = T.frown && !L.glasses ? 'frown' : T.frown && u(6) < 0.5 ? 'frown' : 'flat';
+    L.cap = !!o.beach && u(7) < T.cap;
+    var R = LOOK_REG[o.sty] || LOOK_REG.es;
+    L.skin = LOOK_SKIN[+R[0].charAt(Math.floor(u(8) * R[0].length) % R[0].length)];
+    var hc = R[1].charAt(Math.floor(u(9) * R[1].length) % R[1].length);
+    if (u(10) < T.grey) hc = 'g';
+    L.hairC = LOOK_HAIR[hc] || LOOK_HAIR.d;
+    return L;
+  }
+
+  VB.Arbitro = { create: create, feed: feed, protest: protest, taunt: taunt, undo: undo, unbrake: unbrake, state: state, RATES: RATES, TRAITS: TRAITS, hash01: hash01, _disputeOf: disputeOf,
+    look: look, LOOK_TRAIT: LOOK_TRAIT, LOOK_SKIN: LOOK_SKIN, LOOK_HAIR: LOOK_HAIR, LOOK_REG: LOOK_REG };
 })();

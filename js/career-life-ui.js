@@ -18,6 +18,8 @@
   function sp(a, k) { return H.sp(a, k); }
   function qph() { return !!(H && H.q && H.ph && H.ph()); }   // móvil: explicaciones detrás de «?» (career-ui qBtn)
   function eur(v) { return Lf().eur(v); }
+  /** Cifra con el icono del salpi delante (HTML; la palabra «salpis» va siempre: el icono es aria-hidden). */
+  function coin(v) { return '<i class="sp-salpi" aria-hidden="true"></i>' + eur(v); }
   function num(v) { return Lf().num(v); }
   function isHall(c) { return !!(c && c.mode === 'hall'); }
   /** Pista: el nombre del puesto que llevas (Receptor, Colocador…), para el reto; '' en la playa. */
@@ -146,7 +148,7 @@
     if (ch) {
       var rv = l.rival, bm = nextBoss(c);
       h += '<div class="card lf-ch' + (ch.duel ? ' lf-duel' : '') + '"><h3>' + (ch.duel ? sp(['Duelo', 'contra ' + esc(rv.name)], 'd') : posName(c) ? sp(['Reto de la jornada', esc(posName(c))], 'd') : 'Reto de la jornada') + '</h3><b class="goal">' + esc(ch.txt) + '</b><p>' +
-        '<span class="tag y">+' + num(ch.fans) + ' seguidores</span><span class="tag y">+' + ch.xp + ' XP</span><span class="tag y">+' + eur(ch.money) + '</span>' + (ch.duel ? '<span class="tag r">Premio doble</span>' : '') + (bm ? '<span class="tag r">Jefe: ' + esc(bm.nick) + '</span>' : '') + '</p>' +
+        '<span class="tag y">+' + num(ch.fans) + ' seguidores</span><span class="tag y">+' + ch.xp + ' XP</span><span class="tag y">+' + coin(ch.money) + '</span>' + (ch.duel ? '<span class="tag r">Premio doble</span>' : '') + (bm ? '<span class="tag r">Jefe: ' + esc(bm.nick) + '</span>' : '') + '</p>' +
         (bm ? '<p class="lf-bh">' + sp([esc(bm.name) + ' «' + esc(bm.nick) + '»', esc(bm.hint)], 'v') + '</p>' : '') +
         '<p class="muted" style="margin:4px 0 0">' + sp([ch.duel ? 'Cara a cara ' + rv.w + '-' + rv.l : bm ? 'Cara a cara ' + bm.w + '-' + bm.l : '', 'Solo cuenta si juegas el partido', 'Retos cumplidos: ' + (l.chDone | 0)], 'v') + '</p></div>';
     }
@@ -163,7 +165,7 @@
     var h = '<p>';
     if (x.ch) h += '<span class="tag ' + (x.ch.ok ? 'g' : 'r') + '">' + (x.ch.ok ? 'Reto cumplido' : 'Reto fallado') + ': ' + esc(x.ch.txt) + ' (' + esc(x.ch.prog) + ')</span>';
     if (x.fans) h += '<span class="tag ' + (x.fans > 0 ? 'y' : 'r') + '">' + (x.fans > 0 ? '+' : '−') + num(Math.abs(x.fans)) + ' seguidores</span>';
-    if (x.money) h += '<span class="tag">' + (x.money > 0 ? '+' : '−') + eur(Math.abs(x.money)) + '</span>';
+    if (x.money) h += '<span class="tag">' + (x.money > 0 ? '+' : '−') + coin(Math.abs(x.money)) + '</span>';
     if (x.duel) h += '<span class="tag ' + (x.duel.win ? 'g' : 'r') + '">' + (x.duel.win ? 'Duelo ganado' : 'Duelo perdido') + ' contra ' + esc(x.duel.name) + ' (' + x.duel.w + '-' + x.duel.l + ')</span>';
     if (x.boss) h += x.boss.first ? '<span class="tag g">Jefe tumbado: ' + esc(x.boss.nick) + '</span>' : '<span class="tag ' + (x.boss.win ? 'g' : 'r') + '">Jefe: ' + esc(x.boss.nick) + ' (' + x.boss.w + '-' + x.boss.l + ')</span>';
     if (x.chemUp) h += '<span class="tag g">▲ Química: ' + esc(x.chemUp.name) + '</span>';
@@ -253,12 +255,12 @@
     var l = c.life, money = +c.money || 0, h = '';
     var sx = 'Cobras el sueldo, el patrocinio y los premios de los retos cada jornada. El material suma en tus partidos (como la química) y los servicios se pagan por jornada.';
     // (móvil: la explicación, detrás de «?» en la pegatina del título; el desplazamiento empieza con el material)
-    h += '<div class="card"><h3>' + sp(['Ahorros', eur(money)], 'd') + '</h3>' + (qph() ? H.q('Ahorros', sx) : '<p class="muted">' + esc(sx) + '</p>') + '</div>';
+    h += '<div class="card"><h3>' + sp(['Ahorros', coin(money)], 'd') + '</h3>' + (qph() ? H.q('Ahorros', sx) : '<p class="muted">' + esc(sx) + '</p>') + '</div>';
     h += '<div class="card"><h3>Material</h3>' + Lf().GEAR_KEYS.map(function (id) {
       var G = Lf().GEAR[id], lv = l.gear[id] | 0, pr = Lf().gearPrice(c, id), pips = '';
       for (var i = 0; i < Lf().GEAR_MAX; i++) pips += '<i class="' + (i < lv ? 'on' : '') + '"></i>';
       return '<div class="lf-item"><div><b>' + esc(Lf().gearName(c, id)) + '<span class="lf-pips" aria-label="Nivel ' + lv + ' de 3">' + pips + '</span></b><small>' + esc(G.hint) + (lv ? ': +' + lv + ' en el partido' : '') + '</small></div>' +
-        (lv >= Lf().GEAR_MAX ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (money < pr ? ' aria-disabled="true"' : '') + '>' + (lv ? 'Mejorar' : 'Comprar') + ' <small>' + eur(pr) + '</small></button>') + '</div>';
+        (lv >= Lf().GEAR_MAX ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (money < pr ? ' aria-disabled="true"' : '') + '>' + (lv ? 'Mejorar' : 'Comprar') + ' <small>' + coin(pr) + '</small></button>') + '</div>';
     }).join('') + '</div>';
     h += '<div class="card"><h3>Servicios</h3>' + Lf().SVC_KEYS.map(function (id) {
       var S = Lf().SVC[id], on = !!l.svc[id], cost = Lf().svcCost(c, id);
@@ -288,7 +290,7 @@
       list.map(function (x) {
         var other = x.venue === 'Y' && hallC ? 'solo en playa' : x.venue === 'P' && !hallC ? 'solo en pista' : '';
         return '<div class="lf-item"><div><b>' + esc(x.name) + starsHTML(x.rarity) + '</b><small>' + sp([esc(SLOT_N[x.slot] || ''), other ? esc(other) + ' (para Partido rápido)' : ''], 'v') + '</small></div>' +
-          (x.owned ? '<span class="tag g">En tu vestuario</span>' : '<button data-act="lf-look" data-id="' + esc(x.id) + '"' + (money < x.price ? ' aria-disabled="true"' : '') + '>Comprar <small>' + eur(x.price) + '</small></button>') + '</div>';
+          (x.owned ? '<span class="tag g">En tu vestuario</span>' : '<button data-act="lf-look" data-id="' + esc(x.id) + '"' + (money < x.price ? ' aria-disabled="true"' : '') + '>Comprar <small>' + coin(x.price) + '</small></button>') + '</div>';
       }).join('') + (sl ? '<p class="muted">Gastado en el vestuario: ' + eur(sl) + '</p>' : '') + '</div>';
   }
   function goals(c) {

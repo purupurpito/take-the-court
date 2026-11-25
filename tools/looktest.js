@@ -82,20 +82,20 @@ const SPEC = {
   style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta' +   // + los 22 de 1.16 (WP2 del plan del Vestuario)
     ' alCero degradado cepillo undercut crop pinchos rizosCortos afroCorto frohawk raices twists rastas despeinado cortina melenita mullet ondas melena semirrecogido coletaBaja trenza monoBajo',
   head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC' + ' diadema pinzas gorroPompon pescadorCuadros viseraGafas', ears: 'pendientes',   // (gorraMTC: online, fase 3; + los de WP7; los pendientes, en su ranura)
-  eyes: 'frente pasta oscuras deporte espejo gafasRedondas aviador gafasVentisca', paint: 'zinc rayas rayasEq estrella pinturaEquipo rayoOjo', marks: 'pecas tirita tiraNasal tiritaNariz', beard: 'bigote perilla tresDias barba bigote70',   // (barba: 1.16, WP3; WP7)
+  eyes: 'frente pasta oscuras deporte espejo gafasRedondas aviador gafasVentisca', paint: 'zinc rayas rayasEq estrella pinturaEquipo rayoOjo balonCara manchaTinta', marks: 'pecas tirita tiraNasal tiritaNariz', beard: 'bigote perilla tresDias barba bigote70',   // (barba: 1.16, WP3; WP7)
  
   neck: 'medalla conchas bandanaCuello silbato cadenaPlata', under: 'termica licra licraCorta', band: 'capitan', legs: 'malla mallaLarga mallaUnLado malla34',
-  armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo manguitoMedio manguitoBajo manguitoBicolor manguitoFundido manguitoEstrella manguitoNumero', elbows: 'coderas',
-  wristL: 'muneq reloj munhCanon cintaMuneca muneqDoble', hands: 'dedos mitones dedosMuro dedosColor', knees: 'cortas altas bajadas rodiPulpo rodillerasColor rodilleraUna', socks: 'tobilleros media altos altosRayas desparejados compresion lunares caido',
+  armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo manguitoMedio manguitoBajo manguitoBicolor manguitoFundido manguitoEstrella manguitoNumero manguitoOlas manguitoTinta manguitoRed manguitoHolo', elbows: 'coderas',
+  wristL: 'muneq reloj munhCanon cintaMuneca muneqDoble', hands: 'dedos mitones dedosMuro dedosColor', knees: 'cortas altas bajadas rodiPulpo rodillerasColor rodilleraUna', socks: 'tobilleros media altos altosRayas desparejados compresion lunares caido sandia calcBalones calcLlamas',
   ankle: 'blanca tela pulseraTob escarpines tobiPulpo escarpinesNeo vendajeTob cuentasTob', shoes: 'clasicas negras neon doradas botinAlto suelaGorda bicolor retro',
-  hairTint: 'tAzul tRosa tVerde tMorado tTurquesa tDorado tRojo tNaranja tLila tMenta tPlata tEquipo', color: 'dorado',
-  hairFx: 'raiz puntas mechas flequilloFx mitad'
+  hairTint: 'tAzul tRosa tVerde tMorado tTurquesa tDorado tRojo tNaranja tLila tMenta tPlata tEquipo tLima tNoche', color: 'dorado',
+  hairFx: 'raiz puntas mechas flequilloFx mitad arcoiris'
 };
 let specOk = true;
 Object.keys(SPEC).forEach(s => { const want = SPEC[s].split(' ').sort().join(), got = C.filter(x => x.slot === s).map(x => x.id).sort().join(); if (want !== got) { specOk = false; console.error('  ranura ' + s + ': ' + got + ' (esperado ' + want + ')'); } });
 check(specOk, 'el catálogo tiene exactamente los ids de la especificación por ranura');
 check(eq(L.items('armR'), L.items('armL')) && eq(L.items('wristR'), L.items('wristL')), 'manguitos y muñecas valen en los dos lados');
-check(L.STYLES.length === 32 && L.TINTS.length === 12 && L.SKINS.length === 14 && L.HAIRS.length === 21, '32 peinados, 12 tintes, 14 pieles y 21 colores de pelo');
+check(L.STYLES.length === 32 && L.TINTS.length === 14 && L.SKINS.length === 14 && L.HAIRS.length === 21, '32 peinados, 14 tintes (+2 de nivel alto, 24-nov), 14 pieles y 21 colores de pelo');
 check(L.STYLES.filter(id => L.isStart(id)).length === 9 + 18, '18 de los 22 peinados nuevos son de inicio (27 de 32)');
 // sede (§1.4.1)
 const ONLY_Y = ('gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines tobiPulpo' +
@@ -348,16 +348,16 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
 // --- precios y textos
 {
   const shopIt = C.filter(x => L.price(x.id) > 0);
-  check(shopIt.filter(x => L.price(x.id) < 1500).length >= 4, 'al menos 4 objetos de tienda por debajo de 1.500 € (' + shopIt.filter(x => L.price(x.id) < 1500).map(x => x.id).join(', ') + ')');
+  check(shopIt.filter(x => L.price(x.id) < 1500).length >= 4, 'al menos 4 objetos de tienda por debajo de 1.500 salpis (' + shopIt.filter(x => L.price(x.id) < 1500).map(x => x.id).join(', ') + ')');
   const lux = C.filter(x => x.lux);
-  check(lux.length === 3 && lux.every(x => L.price(x.id) >= 40000 && L.price(x.id) <= 60000 && x.rarity === 3), '3 objetos de lujo entre 40.000 y 60.000 € (' + lux.map(x => x.id + ' ' + L.price(x.id)).join(', ') + ')');
+  check(lux.length === 3 && lux.every(x => L.price(x.id) >= 40000 && L.price(x.id) <= 60000 && x.rarity === 3), '3 objetos de lujo entre 40.000 y 60.000 salpis (' + lux.map(x => x.id + ' ' + L.price(x.id)).join(', ') + ')');
   const band = [[500, 1200], [3000, 8000], [15000, 20000], [40000, 60000]];
   check(shopIt.every(x => { const p = L.price(x.id), b = band[x.lux ? 3 : x.rarity]; return p >= b[0] && p <= b[1]; }), 'precios por rareza (común 500-1.200, rara 3.000-8.000, épica 15.000-20.000, lujo 40.000-60.000)');
-  check(L.lockText('manguitoCuadros') === 'Tienda de la Carrera: 6.000 €', 'lockText: «Tienda de la Carrera: 6.000 €»');
+  check(L.lockText('manguitoCuadros') === 'Tienda de la Carrera: 6.000 salpis', 'lockText: «Tienda de la Carrera: 6.000 salpis»');
   // (fame = índice de TIERS de career-life.js, contra tierIdx(fameMax): 4 Estrella, 5 Ídolo, 6 Leyenda viva)
-  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 € o Reto: Rodillo (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
+  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 salpis o Reto: Rodillo (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
   check(L.lockText('dedos') === 'Logro: b50 (50 bloqueos punto) o Entrenamiento: medalla en Bloqueo', 'lockText sin la Carrera cargada enseña el id: «' + L.lockText('dedos') + '»');
-  check(L.lockText('manguitoLlamas').indexOf('Entrenamiento: oro en Saque') > 0 && L.lockText('cresta') === 'Tienda de la Carrera: 3.000 € o Entrenamiento: 3 medallas', 'lockText: oro en Saque; 3 medallas');
+  check(L.lockText('manguitoLlamas').indexOf('Entrenamiento: oro en Saque') > 0 && L.lockText('cresta') === 'Tienda de la Carrera: 3.000 salpis o Entrenamiento: 3 medallas', 'lockText: oro en Saque; 3 medallas');
   check(L.lockText('kinesio').endsWith('Récord: 1 partido') && L.lockText('rayasEq').indexOf('Récord: 25 victorias') > 0 && L.lockText('desparejados').endsWith('Récord: 5 puntos seguidos en un partido'), 'lockText: récords');
   check(L.lockText('doradas').indexOf('Premio: MVP') >= 0 && L.lockText('tupe') === '' && L.lockText('deporte').indexOf('Fama: Conocido en el circuito') === 0 && L.lockText('deporte', true).indexOf('Fama: Conocido en la liga') === 0, 'lockText: premio, inicio vacío, fama por modo');
   const names = { m50: ['Veterano de la arena', 'Veterano del parqué'], b50: ['Muralla'], top: ['En la élite'] };
@@ -368,8 +368,8 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(!/·|1\.er|2\.º|undefined|NaN/.test(all), 'textos sin «·», sin ordinales con punto y sin undefined');
   check(L.name('', 'head') === 'Sin gorro' && L.name('rojo') === 'Rojo' && L.name('auto') === 'Automático' && L.name(0xd8d4cc) === 'Canas' && /^Tono \d+$/.test(L.name(0x5a3626, 'skin')) && L.name('cintaRizo') === 'Cinta de rizo', 'name: objetos, «nada», fichas, colores de pelo y tonos de piel');
   check(L.stars('corona') === '★★★★' && L.stars('pasta') === '★☆☆☆' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'estrellas y aria-label de la rareza');
-  check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 33 && L.choices('skin').length === 14 &&
-    L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 6, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
+  check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 35 && L.choices('skin').length === 14 &&
+    L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 7, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
   check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana,gorroPompon,pescadorCuadros', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online, el pañuelo (1.16, WP3), el gorro de lana y el pescador de cuadros (WP7)');
 }
 // pendientes (WP7 ronda 1): ranura propia 'ears'; un guardado con los pendientes en 'head' pasa a 'ears' y se pueden llevar con gorro
@@ -402,7 +402,7 @@ console.log('== sprint 2-4 (T9) ==');
   check(X.lockText('munhCanon') === 'Jefe: gana a un Cañón' && X.lockText('dedosMuro') === 'Jefe: gana a un Muro' && X.lockText('manguitoMazo') === 'Jefe: gana a un Martillo' && X.lockText('rodiPulpo') === 'Jefe: gana a un Pulpo' && X.lockText('tobiPulpo') === 'Jefe: gana a un Pulpo', 'lockText jefe: «' + X.lockText('dedosMuro') + '»');
   check(X.lockText('bandana').endsWith(' o Reto: Lluvia de aces (plata)') && X.lockText('deporte').endsWith('Reto: Pase al dedo (plata)'), 'lockText reto: «' + X.lockText('bandana') + '»');
   check(X.lockText('tTurquesa').endsWith('Retos: 30 medallas') && X.lockText('tVerde').endsWith('Reto del día: 7 oros'), 'lockText retoN / dias: «' + X.lockText('tTurquesa') + '», «' + X.lockText('tVerde') + '»');
-  check(X.lockText('manguitoRayas') === 'Tienda de la Carrera: 1.200 € o Perfil: Nv 8' && X.lockText('tAzul') === 'Tienda de la Carrera: 1.200 € o Perfil: Nv 10', 'lockText lvl: «' + X.lockText('tAzul') + '»');
+  check(X.lockText('manguitoRayas') === 'Tienda de la Carrera: 1.200 salpis o Perfil: Nv 8' && X.lockText('tAzul') === 'Tienda de la Carrera: 1.200 salpis o Perfil: Nv 10', 'lockText lvl: «' + X.lockText('tAzul') + '»');
   check(X.lockText('rayasEq').endsWith('Química: Pareja de oro') && X.lockText('rayasEq', true).endsWith('Química: Equipo de oro'), 'lockText chem por modo: «' + X.lockText('rayasEq', true) + '»');
   const S2 = sandbox({ Retos: { BY: { r_aces: { name: 'Aces a mansalva' } } }, CareerLife: { CHEM_LV: [[0, 'a'], [30, 'b'], [60, 'c'], [90, 'Dúo de oro']], CHEM_LV6: ['a', 'b', 'c', 'Bloque de oro'] } });
   check(S2.L.lockText('bandana').endsWith('Reto: Aces a mansalva (plata)') && S2.L.lockText('rayasEq').endsWith('Química: Dúo de oro') && S2.L.lockText('rayasEq', true).endsWith('Química: Bloque de oro'), 'lockText lee los nombres de VB.Retos.BY y VB.CareerLife.CHEM_LV/CHEM_LV6');
@@ -412,10 +412,14 @@ console.log('== sprint 2-4 (T9) ==');
   // premios por nivel: 8, de la tabla de S4-D2 §2.3, siempre como alternativa; + 6 objetos nuevos de WP7 (ronda 1: el plan reparte
   // los premios nuevos también por nivel, en niveles que no tenían premio)
   const D2 = { tiraNasal: 2, altosRayas: 3, conchas: 4, oscuras: 5, mallaLarga: 6, manguitoRayas: 8, tAzul: 10, tRosa: 12, mitones: 14, escarpines: 16, pescador: 18, licra: 20, tVerde: 22, manguitoCuadros: 24, neon: 28, manguitoOro: 40, tDorado: 50,
-    lunares: 12, caido: 16, rodilleraUna: 18, gafasRedondas: 24, malla34: 32, bicolor: 36 };
+    lunares: 12, caido: 16, rodilleraUna: 18, gafasRedondas: 24, malla34: 32, bicolor: 36,
+    // premios de nivel alto (24-nov): Nv 40-60 cada 4, 65-80 cada 5, 90 y 99, con rarezas que suben
+    tLima: 40, sandia: 44, manguitoOlas: 48, balonCara: 52, manguitoTinta: 56, calcBalones: 60, tNoche: 65, manguitoRed: 70, manchaTinta: 75, calcLlamas: 80, manguitoHolo: 90, arcoiris: 99 };
   const P = X.LVL_PRIZES;
-  check(P.length === 8 + 6 && P.every(e => D2[e.id] === e.lvl) && P.every((e, i) => !i || P[i - 1].lvl < e.lvl), '8 premios por nivel de la tabla de S4-D2 + 6 de WP7, uno por nivel (Nv ' + P.map(e => e.lvl + ' ' + e.id).join(', ') + ')');
-  check(P.every(e => X.item(e.id).unlock.length >= 2 && X.price(e.id) > 0) && !P.some(e => ['doradas', 'corona', 'medalla', 'capitan'].includes(e.id) || X.item(e.id).lux), 'cada premio por nivel se sigue vendiendo en la tienda; nada de lujo ni doradas, corona, medalla o brazalete');
+  check(P.length === 8 + 6 + 12 && P.every(e => D2[e.id] === e.lvl) && P.every((e, i) => !i || P[i - 1].lvl < e.lvl), '8 premios por nivel de la tabla de S4-D2 + 6 de WP7 + 12 de nivel alto, uno por nivel (Nv ' + P.map(e => e.lvl + ' ' + e.id).join(', ') + ')');
+  check(P.every(e => e.id === 'arcoiris' ? X.item(e.id).unlock.length === 1 && X.price(e.id) === 0 : X.item(e.id).unlock.length >= 2 && X.price(e.id) > 0) && !P.some(e => ['doradas', 'corona', 'medalla', 'capitan'].includes(e.id) || X.item(e.id).lux), 'cada premio por nivel se sigue vendiendo en la tienda (salvo el del Nv 99, solo por nivel); nada de lujo ni doradas, corona, medalla o brazalete');
+  const HI = P.filter(e => e.lvl >= 40), rk = HI.map(e => X.item(e.id).rarity);
+  check(HI.length === 12 && HI.every(e => X.item(e.id).unlock.some(u => u.lvl === e.lvl)) && rk.every((r, i) => !i || r >= rk[i - 1]) && rk[0] === 1 && rk[rk.length - 1] === 3 && X.lvlPrize(99) === 'arcoiris' && P[P.length - 1].lvl <= 99, 'nivel alto: 12 premios del Nv 40 al 99 con la rareza que nunca baja (rareza 1 → 2 → 3 en el Nv 90 y 99)');
   check(X.lvlPrize(8) === 'manguitoRayas' && X.lvlPrize(9) === '' && Object.isFrozen(P), 'lvlPrize(8) = manguitoRayas, lvlPrize(9) vacío; tabla congelada');
   // sin quitar ninguna alternativa: comparado con look.js del Vestuario original (commit 928ac39; LOOK_BASE=<rev> para otro). No con
   // HEAD: desde que el sprint 2-4 está en commits (WIP de la ola 1b), HEAD ya trae los premios y la comparación salía 80 → 80
@@ -429,7 +433,7 @@ console.log('== sprint 2-4 (T9) ==');
     H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
     const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
     check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
-    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 34 + 40, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 34 de 1.16 (22 peinados, 6 tintes, 5 efectos, la barba) + 40 de WP7 (' + H.CATALOG.length + ' → ' + C.length + ')');
+    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 34 + 40 + 12, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 34 de 1.16 (22 peinados, 6 tintes, 5 efectos, la barba) + 40 de WP7 + 12 de nivel alto (24-nov) (' + H.CATALOG.length + ' → ' + C.length + ')');
     check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
   } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
 
@@ -469,6 +473,10 @@ console.log('== sprint 2-4 (T9) ==');
   const so = JSON.parse(G.store['make-the-cut.look']).own;
   check(Object.keys(so).every(id => so[id].s === 'hito') && !G.L.owned('munhCanon') && !G.L.owned('rayasEq'), 'origen hito; jefe y química no se dan fuera de la Carrera');
   check(eq(G.L.checkGlobal({ lvl: 8 }), []) && eq(G.L.checkGlobal({ lvl: 28 }).sort(), ['caido', 'gafasRedondas', 'licra', 'lunares', 'mitones', 'neon', 'rodilleraUna', 'tAzul']), 'checkGlobal por nivel: nada la segunda vez; luego lo que falta hasta el Nv 28 (con los de WP7)');
+  // quien ya tenía nivel alto antes de los premios nuevos (24-nov) los recibe en la siguiente comprobación (VB.Profile.check → grantLevel)
+  const GH = sandbox(), gh1 = GH.L.checkGlobal({ lvl: 62 }), gh2 = GH.L.checkGlobal({ lvl: 99 });
+  check(gh1.length === 14 + 6 && ['tLima', 'sandia', 'manguitoOlas', 'balonCara', 'manguitoTinta', 'calcBalones'].every(id => gh1.includes(id)) && !gh1.includes('tNoche') &&
+    eq(gh2.slice().sort(), ['arcoiris', 'calcLlamas', 'manchaTinta', 'manguitoHolo', 'manguitoRed', 'tNoche']) && eq(GH.L.checkGlobal({ lvl: 99 }), []), 'checkGlobal con nivel alto: Nv 62 da los 14 de antes y 6 nuevos de golpe; Nv 99 el resto; nada la segunda vez');
   const g2 = G.L.checkGlobal({ reto: { r_aces: 2, r_recv: 1, r_streak: 3 }, retoN: 30, dias: 7 });
   const so2 = JSON.parse(G.store['make-the-cut.look']).own;
   check(eq(g2.slice().sort(), ['bandana', 'estrella', 'tTurquesa', 'tVerde']) && g2.every(id => so2[id].s === 'retos'), 'checkGlobal con retos (origen retos): ' + g2.join(', '));

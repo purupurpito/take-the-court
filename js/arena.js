@@ -674,6 +674,45 @@
    * Jerarquía: root -> piernas (fijas) + `upper` (pivote en la cadera: respiración, balanceo)
    *            -> tronco, `head` (sigue el balón), `armR`/`armL` (señales).
    */
+  /** Piezas del aspecto del 1r (24-nov, Ferran), en coordenadas del hueso de la cabeza: cejas rectas y de ceño, poco pelo (mechones
+   *  de los lados y dos pelos peinados por encima), gafas redondas gruesas y finas, bigote, barba y gorra de playa. Van en la misma
+   *  SkinnedMesh de los oficiales (0 dibujos más); las que no tocan se pliegan a nada en refLook. */
+  function refLookGeo(BRf, BRw, skin, hair, eyeY, eyeX, ez, ny) {
+    var HC = CH.hc, RX = CH.hrx, RY = CH.hry, RZ = CH.hrz, G = { browF: BRf.build(), browW: BRw.build() };
+    var T = new Builder(), tuft = new THREE.SphereGeometry(1, 8, 6);
+    for (var sd = -1; sd <= 1; sd += 2) T.geo(tuft, sd * (RX - 0.012), HC + 0.035, -0.045, hair, 0, 0, sd * 0.25, 0.045, 0.07, 0.115);   // mechones sobre las orejas
+    var strand = new THREE.TorusGeometry(RY + 0.004, 0.009, 3, 10, Math.PI * 0.55);
+    T.geo(strand, 0.035, HC, 0.0, hair, Math.PI / 2 - 0.2, 0, Math.PI * 0.22, 1.02, 1, 0.95);
+    T.geo(strand, -0.01, HC, 0.0, hair, Math.PI / 2 - 0.12, 0, Math.PI * 0.24, 1.02, 1, 0.95);
+    G.thin = T.build();
+    // gafas: aros sobre los ojos, puente y patillas hasta las orejas
+    function glasses(rr, tube, c, sx, sy, seg) {
+      var Bg = new Builder(), ring = new THREE.TorusGeometry(rr, tube, 4, seg), zz = ez + 0.03;
+      for (var e = -1; e <= 1; e += 2) {
+        Bg.geo(ring, e * eyeX, eyeY, zz - 0.004, c, e * 0.36, 0, 0, sx, sy, 1);
+        var hx = e * (eyeX + rr * sx), hz = zz - 0.012, ex = e * (RX + 0.004), ezz = -0.01, dx = ex - hx, dz = ezz - hz;   // patilla: bisagra → oreja
+        Bg.box(tube * 1.6, tube * 1.6, Math.hypot(dx, dz), (hx + ex) / 2, eyeY + 0.012, (hz + ezz) / 2, c, Math.atan2(dx, dz));
+      }
+      Bg.box(eyeX * 2 - rr * 2 * sx + 0.012, tube * 1.6, tube * 1.6, 0, eyeY + 0.012, faceZ(0, eyeY) + 0.03, c);
+      return Bg.build();
+    }
+    G.glR = glasses(0.06, 0.011, col('#1d1530'), 1, 1, 14);
+    G.glT = glasses(0.055, 0.005, col('#8b93a1'), 1.15, 0.78, 12);
+    // bigote: dos lóbulos bajo la nariz
+    var M = new Builder(), lobe = new THREE.SphereGeometry(1, 8, 5), my = ny - 0.036;
+    for (var sm = -1; sm <= 1; sm += 2) M.geo(lobe, sm * 0.03, my, faceZ(0.03, my) + 0.004, hair, sm * 0.3, 0, sm * -0.25, 0.042, 0.02, 0.026);
+    G.stache = M.build();
+    // barba: casquete de la mandíbula (mitad delantera, de la boca para abajo)
+    var Bd = new Builder();
+    Bd.geo(new THREE.SphereGeometry(1, 14, 5, 0, Math.PI, Math.PI * 0.69, Math.PI * 0.31), 0, HC, 0, hair, 0, 0, 0, RX + 0.012, RY + 0.012, RZ + 0.014);
+    G.beard = Bd.build();
+    // gorra de playa: copa blanca y visera azul
+    var Cp = new Builder(), cw = col('#f3f0e7'), cv = col('#2f6fb0');
+    Cp.geo(new THREE.SphereGeometry(1, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.42), 0, HC + 0.02, -0.006, cw, 0, -0.18, 0, RX + 0.026, RY + 0.02, RZ + 0.026);
+    Cp.geo(new THREE.CylinderGeometry(0.15, 0.15, 0.014, 14, 1, false, -Math.PI / 2, Math.PI), 0, HC + 0.105, RZ * 0.62, cv, 0, 0.22, 0, 1.15, 1, 1.25);
+    G.cap = Cp.build();
+    return G;
+  }
   function makePerson(o) {
     var grp = new THREE.Group(), LB = new Builder(), B = new Builder();
     var shirt = col(o.shirt), pants = col(o.pants), skin = col(o.skin), hair = col(o.hair), shoe = col(o.shoe || '#2a2f3a'), sole = col('#eeeae2');
@@ -755,6 +794,8 @@
     HB.geo(new THREE.SphereGeometry(1, sg(12), lo ? 4 : 6, Math.PI * 1.12, Math.PI * 0.76, Math.PI * 0.28, Math.PI * 0.42), 0, HC, -0.008, hair, 0, 0, 0, RX + 0.01, RY + 0.008, RZ + 0.01);
     if (o.headProps) o.headProps(HB, skin, hair);
     var eyeY = HC + 0.004, eyeX = 0.082, ez = faceZ(eyeX, eyeY);
+    // 1r árbitro (baldable): cejas en su hueso (rectas) y otras de ceño (serio) en otro; refLook enseña unas u otras
+    var BRf = o.baldable ? new Builder() : HB, BRw = o.baldable ? new Builder() : null;
     for (var e2 = -1; e2 <= 1; e2 += 2) {
       HB.geo(new THREE.SphereGeometry(0.046, lo ? 4 : 6, lo ? 3 : 5), e2 * (RX - 0.004), HC - 0.012, -0.01, skin, 0, 0, 0, 0.5, 1, 0.8);   // orejas
       // ojos de dibujo grandes: blanco, pupila de tinta y brillo (los del muñeco van pintados en su atlas; aquí, geometría)
@@ -762,12 +803,14 @@
       HB.geo(new THREE.SphereGeometry(0.027, sg(8), lo ? 4 : 6), e2 * (eyeX - 0.004), eyeY - 0.004, ez + 0.004, ink, e2 * 0.36, 0, 0, 1, 1.22, 0.5);
       if (!lo) HB.geo(new THREE.SphereGeometry(0.0085, 4, 3), e2 * (eyeX - 0.004) + 0.01, eyeY + 0.013, ez + 0.017, white, e2 * 0.36);
       var by = HC + 0.082;
-      HB.box(0.066, 0.016, 0.016, e2 * 0.08, by, faceZ(0.08, by) + 0.002, hair, e2 * 0.34, -0.25, e2 * -0.14);                   // cejas
+      BRf.box(0.066, 0.016, 0.016, e2 * 0.08, by, faceZ(0.08, by) + 0.002, hair, e2 * 0.34, -0.25, e2 * -0.14);                  // cejas
+      if (BRw) BRw.box(0.074, 0.022, 0.018, e2 * 0.078, by - 0.01, faceZ(0.078, by - 0.01) + 0.003, hair, e2 * 0.34, -0.25, e2 * 0.36);   // ceño
     }
     var ny = HC - 0.05, my = HC - 0.112;
     HB.geo(new THREE.SphereGeometry(0.028, sg(7), 5), 0, ny, faceZ(0, ny) + 0.004, skin, 0, 0, 0, 1, 0.85, 0.75);          // nariz
     HB.geo(new THREE.TorusGeometry(0.032, 0.0075, 3, lo ? 5 : 7, Math.PI), 0, my + 0.012, faceZ(0, my) - 0.004, col('#6b3426'), 0, 0.35, Math.PI); // sonrisa
     parts.push({ g: HB.build(), b: 2 });
+    var lookG = o.baldable ? refLookGeo(BRf, BRw, skin, hair, eyeY, eyeX, ez, ny) : null;
     // Brazo en DOS huesos (ARN-07): hombro (bola + manga + brazo) y codo (antebrazo + manopla). El 1r y el 2º árbitro llevan además
     // dedos en 4 huesos por mano (índice, corazón, anular+meñique, pulgar) que se «pliegan» escalándolos hacia el nudillo:
     // así hay 4 dedos, 2 dedos, índice que señala, 8 dedos, palma abierta o puño sin dibujos nuevos (misma SkinnedMesh).
@@ -784,6 +827,9 @@
       var hairB = new THREE.Bone(); head.add(hairB); parts.push({ g: hairG, b: bones.length }); bones.push(hairB);
       var shineB = new THREE.Bone(); head.add(shineB); parts.push({ g: shineG, b: bones.length }); bones.push(shineB);
       look.hair = hairB; look.shine = shineB;
+      // aspecto propio (24-nov): cada pieza en su hueso de la cabeza; refLook las abre (escala 1) o las pliega (BONE_OFF)
+      for (var lk in lookG) { var lb = new THREE.Bone(); head.add(lb); parts.push({ g: lookG[lk], b: bones.length }); bones.push(lb); look[lk] = lb; }
+      look.skinHex = o.skin; look.hairHex = o.hair; look.shineHex = o.shine || '#f6d7bc';
     }
     var shBall = new THREE.SphereGeometry(0.074, sg(9), lo ? 5 : 6), sleeveG = new THREE.CylinderGeometry(0.071, 0.064, 0.13, sg(9), 1, true);
     var uArmG = new THREE.CylinderGeometry(0.044, 0.044, CH.elb, sg(8), 1, true), elbG = new THREE.SphereGeometry(0.047, sg(8), lo ? 4 : 6);
@@ -853,19 +899,62 @@
   function restPair(r0, l0) {
     return { R: { x: r0[0], z: r0[1], y: r0[2], e: r0[3], t: r0[4] || 0 }, L: { x: l0[0], z: -l0[1], y: -l0[2], e: l0[3], t: -(l0[4] || 0) } };
   }
-  /** 1r árbitro según la sede (12-nov-2026, Ferran): en el pabellón, más largo que los demás (piernas ×REF_TALL.legs y tronco
-   *  ×REF_TALL.trunk, la cabeza igual: cadera 0,72 m, ~1,84 m frente a ~1,65); en la playa, altura normal y calvo (sin casquete,
-   *  con brillo). Solo mueve/escala huesos del esqueleto común: 0 dibujos y 0 geometría nueva al cambiar. */
-  var REF_TALL = { legs: 1.2, trunk: 1.12 }, BONE_OFF = 1e-4;
+  /** 1r árbitro (12-nov-2026 y 24-nov-2026, Ferran): su aspecto sale de VB.Arbitro.look. Fuera de la Carrera, en el pabellón, el
+   *  larguirucho con poco pelo (piernas ×1,2 y tronco ×1,12, más estrecho: ~1,84 m frente a ~1,65) y en la playa, calvo y sin nada (a
+   *  veces con gorra, por la semilla del partido). En la Carrera, el de cada árbitro con nombre (g.career.arb.lk: pelo, gafas, bigote,
+   *  barba, complexión, piel, gorra en la playa). Solo mueve/escala huesos del esqueleto común y, si cambian piel o pelo, repinta sus
+   *  vértices (una subida del tramo del 1r): 0 dibujos y 0 geometría nueva. No toca g.rng ni la sim. */
+  var REF_BUILD = { lanky: { legs: 1.2, trunk: 1.12, w: 0.88 }, normal: { legs: 1.06, trunk: 1.04, w: 1 }, stout: { legs: 1, trunk: 1, w: 1.17 } };
+  var REF_TALL = REF_BUILD.lanky, BONE_OFF = 1e-4;
+  var REFL = { arb: null, seed: 0, cur: null, col: '' };
+  /** Cada frame (barato): si cambia el 1r de la Carrera (g.career.arb, también en escenas y al retomar) o la semilla, rehace el aspecto. */
+  function refLookFor(g) {
+    if (REFL.force) return;
+    var ca = g && g.career && g.career.arb; ca = ca && ca.trait ? ca : null;
+    var sd = g ? g.seed | 0 : 0;
+    if (ca !== REFL.arb || (!ca && sd !== REFL.seed)) { REFL.arb = ca; REFL.seed = sd; refLook(); }
+  }
+  function refSpec() {
+    var A = VB.Arbitro, beach = !!BEACH.on, a = REFL.force || REFL.arb;
+    if (REFL.force && REFL.force.quick) a = null;
+    if (A && A.look) return a ? A.look({ trait: a.trait, lk: a.lk, id: a.id, sty: a.sty, beach: beach }) : A.look({ beach: beach, seed: REFL.seed });
+    return beach ? { hair: 'bald', build: 'normal' } : { hair: 'thin', build: 'lanky' };
+  }
   function refLook() {
     var P = R1, L = P && P.look; if (!L) return;
-    var beach = !!BEACH.on, kl = beach ? 1 : REF_TALL.legs, kt = beach ? 1 : REF_TALL.trunk;
+    var beach = !!BEACH.on, S = refSpec(); REFL.cur = S;
+    var Bd = REF_BUILD[S.build] || REF_BUILD.normal, kl = Bd.legs, kt = Bd.trunk, w = Bd.w;
+    if (beach) { kl = 1 + (kl - 1) * 0.5; kt = 1 + (kt - 1) * 0.5; }   // (playa: sin la silla alta, más bajito)
     if (L.legs) {
-      L.legs.scale.y = kl; P.upper.position.y = L.hip * kl; L.trunk.scale.y = kt;
+      L.legs.scale.set(w, kl, w); P.upper.position.y = L.hip * kl; L.trunk.scale.set(w, kt, w);
       P.head.position.y = CH.top * kt; P.armR.position.y = CH.shY * kt; P.armL.position.y = CH.shY * kt;
+      P.armR.position.x = -CH.shX * w; P.armL.position.x = CH.shX * w;
     }
-    if (L.hair) { L.hair.scale.setScalar(beach ? BONE_OFF : 1); L.shine.scale.setScalar(beach ? 1 : BONE_OFF); }
+    function on(b, v) { if (b) b.scale.setScalar(v ? 1 : BONE_OFF); }
+    var cap = !!S.cap;
+    on(L.hair, S.hair === 'full' && !cap); on(L.thin, S.hair === 'thin'); on(L.shine, S.hair !== 'full' && !cap);
+    on(L.glR, S.glasses === 'round'); on(L.glT, S.glasses === 'thin'); on(L.stache, !!S.stache); on(L.beard, !!S.beard); on(L.cap, cap);
+    on(L.browF, S.brow !== 'frown'); on(L.browW, S.brow === 'frown');
+    refColors(S.skin || L.skinHex, S.hairC || L.hairHex);
     if (P.st) { P.root.updateMatrixWorld(true); P.head.getWorldPosition(_v); P.st.hx = _v.x; P.st.hy = _v.y; P.st.hz = _v.z; }
+  }
+  /** Vértices del 1r con su color de piel, pelo y brillo de la calva (los busca una vez tras fusionar). */
+  function refColorsInit(sm) {
+    var L = R1 && R1.look; if (!L || !L.vr || !sm) return;
+    var ca = sm.geometry.attributes.color, want = { skin: col(L.skinHex), hair: col(L.hairHex), shine: col(L.shineHex) }, idx = { skin: [], hair: [], shine: [] };
+    for (var v = L.vr[0]; v < L.vr[1]; v++) {
+      var r = ca.getX(v), g2 = ca.getY(v), b = ca.getZ(v);
+      for (var k in want) { var c = want[k]; if (Math.abs(r - c.r) < 1e-4 && Math.abs(g2 - c.g) < 1e-4 && Math.abs(b - c.b) < 1e-4) { idx[k].push(v); break; } }
+    }
+    L.cIdx = idx; L.mesh = sm; REFL.col = L.skinHex + L.hairHex;
+  }
+  function refColors(skinHex, hairHex) {
+    var L = R1 && R1.look; if (!L || !L.cIdx || !L.mesh || REFL.col === skinHex + hairHex) return;
+    REFL.col = skinHex + hairHex;
+    var ca = L.mesh.geometry.attributes.color, sk = col(skinHex), hr = col(hairHex), sh = col(skinHex).lerp(col('#fff4e8'), 0.45);
+    function paint(a, c) { for (var i = 0; i < a.length; i++) ca.setXYZ(a[i], c.r, c.g, c.b); }
+    paint(L.cIdx.skin, sk); paint(L.cIdx.hair, hr); paint(L.cIdx.shine, sh);
+    ca.updateRange.offset = L.vr[0] * 3; ca.updateRange.count = (L.vr[1] - L.vr[0]) * 3; ca.needsUpdate = true;
   }
   /** Fusiona a todos los oficiales (ya colocados) en una SkinnedMesh con un esqueleto común (7 huesos por persona: raíz,
    *  tronco, cabeza, 2 hombros, 2 codos; los dos árbitros, 8 más de dedos).
@@ -880,14 +969,16 @@
     // baja = solo el primero (−20 k triángulos en el móvil).
     function grp(b) { return b.P.lowSkip ? 3 : b.P.kind === 'sub' ? 2 : b.P.kind === 'photo' ? 1 : 0; }
     var order = [0, 1, 2, 3].reduce(function (a, k) { return a.concat(offBatch.filter(function (b) { return grp(b) === k; })); }, []);
+    var vOff = 0;
     for (var i = 0; i < order.length; i++) {
-      var B = order[i], gk = grp(B);
+      var B = order[i], gk = grp(B), v0 = vOff;
       for (var j = 0; j < B.parts.length; j++) {
         allParts.push({ g: B.parts[j].g, b: B.parts[j].b + allBones.length });
-        var ic = B.parts[j].g.index.count;
+        var ic = B.parts[j].g.index.count; vOff += B.parts[j].g.attributes.position.count;
         if (gk < 3) lowIdx += ic; if (gk < 2) beachIdx += ic; if (gk < 1) beachLowIdx += ic;
       }
       for (var k = 0; k < B.bones.length; k++) allBones.push(B.bones[k]);
+      if (B.P.look && B.P.look.skinHex) B.P.look.vr = [v0, vOff];   // (vértices del 1r en la malla común: refColors)
     }
     var sm = new THREE.SkinnedMesh(skinMerge(allParts, allBones), personMat);
     sm.userData.lowIdx = lowIdx; sm.userData.beachIdx = beachIdx; sm.userData.beachLowIdx = beachLowIdx;
@@ -900,6 +991,7 @@
       if (Pm.fingR) for (var fg = 0; fg < 4; fg++) { var s0 = 0.18 + 0.82 * (fg < 3 ? 0.55 : 0.7); Pm.fingR[fg].scale.setScalar(s0); Pm.fingL[fg].scale.setScalar(s0); }
     }
     offBatch.length = 0;
+    refColorsInit(sm);
     refLook();
     cardBuild();   // ambiente (P2): las 3 cartulinas del 1r, ocultas (precompiladas con el resto: prewarmList)
   }
@@ -5644,6 +5736,8 @@
       SB.msgT = 0; SB.msg = ''; SB.next = null; led.next = null; RT.ccT = 0; scoreFromGame(g);
       MOOD.winOn = false; MOOD.win = 0; MOOD.pfT = 9; MOOD.tense = 0; MOOD.dirty = true;
       ambReset(); cardShow('');   // ambiente: lo enciende amb:start / crowdOf del partido nuevo
+      // aspecto del 1r: el árbitro con nombre de la Carrera (g.career.arb) o el de siempre (semilla del partido; sin g.rng)
+      REFL.arb = undefined; refLookFor(g);
     },
     onState: function (s) { if (s === 'menu') RT.menuWave = 6; },
     setQuality: function (q) {
@@ -5743,6 +5837,7 @@
       mapStep(rdt, g);
       updateNet(dt > 0 ? dt : 0, g);
       setJudges(!g || g.lineJudges !== false);
+      refLookFor(g);
       updateOfficials(g, dt, rdt);
       updateFlashes(rdt);
       applyMood(g, rdt);
@@ -5811,6 +5906,6 @@
       lights: { key: keyLight, hemi: hemi, fill: fillLight, rim: rimLight }, floorMat: floorMat, post: post, mood: MOOD, screens: screens,
       crew: crew, crewReact: crewReact, POSE: POSE,
       // señales de los árbitros (tools/refposes.js): R1/R2, estado del paso del 2º y las secuencias con un evento falso
-      R1: R1, R2: R2, R2S: R2S, onEvents: onEvents, refCard: refCard, refTalk: refTalk, cardM: CARD.m, AMB: AMB, judgeSignal: judgeSignal, lineJudgeFor: lineJudgeFor, refSignal: refSignal, refAuthorize: refAuthorize, refChallenge: refChallenge, refChallengeResult: refChallengeResult }; }
+      R1: R1, R2: R2, R2S: R2S, refLook: function (a) { REFL.force = a || null; if (a && a.quick) REFL.seed = a.seed | 0; if (!a) REFL.arb = undefined; refLook(); return REFL.cur; }, onEvents: onEvents, refCard: refCard, refTalk: refTalk, cardM: CARD.m, AMB: AMB, judgeSignal: judgeSignal, lineJudgeFor: lineJudgeFor, refSignal: refSignal, refAuthorize: refAuthorize, refChallenge: refChallenge, refChallengeResult: refChallengeResult }; }
   };
 })();
