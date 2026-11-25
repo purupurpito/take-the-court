@@ -27,15 +27,32 @@
 
   var FRONT_ENTRY = 3;   // índice de la zona 4 en la rotación (zona 1 = índice 0): el líbero que llega ahí sale (FIVB 19.3.1.3)
 
-  /** Colegio arbitral de Take the Court (inventado). Cada partido designa tres distintos: 1r árbitro, 2º árbitro y anotador. */
-  var ARBITROS = [
-    'Aitana Roig Belda', 'Bernat Climent Sola', 'Carla Ivars Peiró', 'Damià Albors Pla', 'Elena Garrigues Mompó', 'Fermín Lacasa Ortiz',
-    'Gemma Sancho Llorca', 'Héctor Revert Calabuig', 'Inés Marhuenda Coloma', 'Jaume Escrivà Tormo', 'Lidia Barceló Ferri',
-    'Marcos Ventura Alapont', 'Neus Agulló Benavent', 'Óscar Penalva Císcar', 'Paula Grau Montaner', 'Quim Sorribes Vela',
-    'Rosa Llinares Boix', 'Salva Moltó Ribelles', 'Tere Vañó Gisbert', 'Uxue Etxeberria Lasa', 'Vicent Ballester Puchol',
-    'Xènia Rovira Oliver', 'Yolanda Cuenca Pardo', 'Àlex Mascarell Fuster', 'Berta Sendra Cervera', 'Cristian Lledó Zaragozà',
-    'Dolors Pastor Insa', 'Edu Talens Navarro', 'Fina Cardona Vidal', 'Guillem Carbonell Tur'
-  ];
+  /** Colegio arbitral de Take the Court (inventado). Cada partido designa tres distintos: 1r árbitro, 2º árbitro y anotador.
+   *  (25-nov-2026, auditoría legal) Antes era una lista de nombres y apellidos valencianos reales; ahora, como el colegio de la Carrera
+   *  (js/career-world.js ARB_FN/ARB_R/ARB_S), nombre de pila corriente y dos apellidos hechos con piezas inventadas (ACT_R + ACT_S,
+   *  otras piezas que las de la Carrera para que no salgan los mismos). Determinista (mismo orden siempre): la lista es la misma en
+   *  todas las máquinas y en cada versión mientras no cambien las piezas. Solo la usa el acta (después del partido): la sim no la ve. */
+  var ACT_FN = ['Aitana', 'Bernat', 'Carla', 'Damià', 'Elena', 'Fermín', 'Gemma', 'Héctor', 'Inés', 'Jaume', 'Lidia', 'Marcos', 'Neus', 'Óscar',
+    'Paula', 'Quim', 'Rosa', 'Salva', 'Tere', 'Uxue', 'Vicent', 'Xènia', 'Yolanda', 'Àlex', 'Berta', 'Cristian', 'Dolors', 'Edu', 'Fina', 'Guillem'];
+  var ACT_R = ['Brav', 'Cosm', 'Dorb', 'Fenz', 'Grisp', 'Holv', 'Jasp', 'Krem', 'Lofr', 'Mird', 'Nusp', 'Pelv', 'Trosk', 'Vosp', 'Zelb', 'Quemb'];
+  var ACT_S = ['alet', 'ignac', 'oste', 'urell', 'anyó', 'ibert', 'erol', 'aduc', 'olem', 'issa'];
+  var ACT_NO = { 'Cosmerol': 1, 'Bravissa': 1, 'Kremerol': 1 };   // (por si alguna junta se parece a una palabra o apellido)
+  var ARBITROS = (function () {
+    var out = [], used = {}, k = 0;
+    function sur(n, not) {
+      for (var i = 0; i < 40; i++) {
+        var r = ACT_R[hash('actR', n, i) % ACT_R.length], e = ACT_S[hash('actS', n, i) % ACT_S.length], w = r + e;
+        if (!ACT_NO[w] && !used[w] && !(not && not.indexOf(r) === 0)) return w;   // (sin repetir la raíz del otro apellido)
+      }
+      return '';
+    }
+    for (var f = 0; f < ACT_FN.length && k < 400; k++) {
+      var a = sur(k * 2, ''), b = a && sur(k * 2 + 1, a);
+      if (!a || !b) continue;
+      used[a] = used[b] = 1; out.push(ACT_FN[f++] + ' ' + a + ' ' + b);
+    }
+    return out;
+  })();
   /** Nombres para los jugadores que la sim no nombra (Partido rápido y líberos). */
   var NOMBRES = ['Adrià', 'Bruno', 'Carles', 'Dani', 'Eloi', 'Fabio', 'Gerard', 'Hugo', 'Iker', 'Joel', 'Kilian', 'Lluc', 'Mateo', 'Nil',
     'Oriol', 'Pau', 'Quique', 'Roc', 'Sergi', 'Tomàs', 'Unai', 'Vicent', 'Xavi', 'Yago', 'Àlex', 'Biel', 'Ciro', 'Dídac', 'Enzo', 'Gael'];
