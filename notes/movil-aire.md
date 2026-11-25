@@ -1711,3 +1711,20 @@ ruido de estado del arnés ya conocido, p. ej. `#lenHelp` en quick-* a 1024 seg�
   vitrinas a 844 en dos bloques; consecuencias de propuesta-puesto bajo el pliegue a 568; estado con ofertas/cesiones de playa y lesión en
   player-train para el arnés; detector de rótulo tapado por un hermano en mobaudit; Vestuario vertical (zona negra arriba, barra sobre el
   muñeco); perfil vertical con cabecera que se pliegue.
+
+#### 8.6.12 Puerta de pruebas de cierre (25-nov-2026, sobre 5b4d718)
+Una a una y en primer plano. Verde: csscheck (estático y `--cssom`, 9330 selectores), settest (86), touchtest (34), touchedittest 844x390 y
+568x320 (52 y 52), keytest (44), padtest (54), a11ymarktest (28), abouttest, resumetest, jugaryatest, semanatest (66), synctest (55),
+feedbacktest (120), careertest, simtest, `console.sh all` (44 escenas sin errores JS), padplay 1280x720 20.
+- **googletest**: 1 de 4 vueltas con «Inspected target navigated or closed» en el paso de «Entrar con Google» a 844x390 (CDP, no la
+  maqueta); las otras 3 vueltas y la base, TODO OK (72).
+- **touchplay 844x390 25**: una vuelta con 2 toques humanos de 3 (azar del juego); la repetición, TODO OK; la base falla igual (2 de 3).
+- **drive.js 1280x720 30**: «Invalid parameters» del driver tras el saque, igual en la base (ya fallaba).
+- **mobaudit** (`…/movil2/h3`, `v3`, DPR 2; `pc3` con `--desktop`, DPR 1; cada tamaño por áreas con `--merge` para no pasar de 10 min por
+  orden): 241 pantallas × 9 tamaños, **0 fallos al abrir**. V: girar fuera del juego 0 (19 pantallas del partido en juego), principal NO 0,
+  salida NO 0, < 12 0, < 44 0, recortes 15 (todos `o` del HUD detrás del aviso de girar). H: recortes 0, < 44 0, principal NO 0.
+  Frente a v2: solapes 0 → 33 = la tostada del Perfil abajo (decisión de 8.6.11, pasajera, sobre la rejilla que se desplaza) y banners del
+  HUD de frenar detrás del aviso; «Lo intentamos otra vez en 30 s» de 13 px en online-off.
+- **PC** (`pc3` frente a `pcbase`): solo lo conocido de 8.6.1/8.6.10; además, ofertas sin cesiones, Estado/lesión, Estrellas-voto y el oro
+  del reto del día («gana remontando 4 puntos en un set», recortado igual) cambian con la fecha: la base pasada hoy con el mismo arnés da
+  las mismas cifras (`…/movil2/pcbase-now`, `pcbase-now2`). Sin arreglos que hacer.
