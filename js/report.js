@@ -4,7 +4,7 @@
  *  - Denunciar: guarda en Firestore feedback/{id aleatorio de 20} (la colección de las sugerencias, reglas en firebase/firestore.rules
  *    «FEEDBACK», rama kind 'report') = {kind: 'report', uid (quien denuncia: hace falta sesión), ru (uid denunciado), rn (su nombre tal
  *    cual llegó, ≤ 40), room (código de la sala, ≤ 12), ver, t (hora del SERVIDOR, transformación REQUEST_TIME), state: 'nuevo',
- *    exp (ahora + 180 días: lo borra una política TTL de Firestore sobre feedback.exp, como netlogs)}. Lo lee solo admin().
+ *    exp (ahora + 180 días: sin TTL en el plan gratuito: la borra la tarea diaria local ttc-netlogs del responsable)}. Lo lee solo admin().
  *    Una denuncia por uid y página (no se repite al pulsar dos veces). Sin sesión no se manda (el online ya la exige).
  *  - Bloquear: SOLO en este aparato, 'make-the-cut.netblock' = [{u, n, t}] (como mucho 200; nunca va a la cuenta ni a la nube).
  *    js/netlobby.js no enseña las salas donde está un bloqueado, no deja entrar por código en la de un anfitrión bloqueado y, si un

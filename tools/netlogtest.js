@@ -309,9 +309,17 @@ async function emu() {
   const ADMIN = 'Admin@Prueba.invalid', h = crypto.createHash('sha256').update(ADMIN.toLowerCase()).digest('hex');
   // las de antes (origin/main, sin exp: clientes viejos) y las de este árbol (con exp, desplegadas el 24-nov-2026)
   let old = '';
-  try { old = require('child_process').execFileSync('git', ['show', 'origin/main:firebase/firestore.rules'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old = ''; }
+  const gitOut = args => { try { return require('child_process').execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { return ''; } };
+  old = gitOut(['show', 'origin/main:firebase/firestore.rules']);
+  // Desde la 1.23.0 publicada, origin/main ya trae exp: «las de antes» pasan a ser las del commit anterior al primero que añadió
+  // 'exp' a las reglas (las que aún tienen los clientes de 1.22.0 y anteriores en caché).
+  if (old && /'exp'/.test(old)) {
+    const adds = gitOut(['log', "-S'exp'", '--format=%H', '--', 'firebase/firestore.rules']).trim().split('\n').filter(Boolean);
+    const prev = adds.length ? gitOut(['show', adds[adds.length - 1] + '~1:firebase/firestore.rules']) : '';
+    if (prev && !/'exp'/.test(prev)) old = prev;
+  }
   const sets = [['reglas de este árbol (exp opcional)', real, true, PORT]];
-  if (old && old.indexOf(H) > 0) sets.unshift(['reglas de origin/main (las de antes: sin exp)', old, false, PORT + 1]);
+  if (old && old.indexOf(H) > 0) sets.unshift(['reglas de antes (sin exp: origin/main o la anterior a exp)', old, false, PORT + 1]);
   else console.log('\n(sin git o sin origin/main: solo las reglas de este árbol)');
   if (old && /'exp'/.test(old)) console.log('  (aviso: origin/main ya trae exp en las reglas)');
   for (const [label, text, isNew, port] of sets) {
