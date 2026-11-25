@@ -148,7 +148,7 @@ window.__ax = function (i, a, v) { window.__pads[i].axes[a] = v; return 1; };
     await wait(100);
     await E(`__connect(__mk(1, 'standard', 17, 4, 'Xbox falso 2 (STANDARD GAMEPAD)'))`); await wait();
     console.log('9) padKeys {hit:[3]}: el botón 3 golpea y el 0 no, pero navOk sigue en el 0');
-    check('VB.Input.OPTS anuncia keys/padKeys/padDead/touchSize', JSON.stringify(await E('VB.Input.OPTS')) === JSON.stringify(['keys', 'padKeys', 'padDead', 'touchSize']));
+    check('VB.Input.OPTS anuncia keys/padKeys/padDead/touchSize (y ctrlPC, controles PC)', JSON.stringify(await E('VB.Input.OPTS')) === JSON.stringify(['keys', 'padKeys', 'padDead', 'touchSize', 'ctrlPC']));
     await setPad('padKeys', { hit: [3] });
     let b = await E('VB.Input.bindings()');
     check('bindings: hit = 3 y cambiar jugador sin el 3 (le quedan LB/RB fijos)', b.pad.hit[0] === 3 && b.pad.sw[0] !== 3 && b.padStd === true && b.fixed.pad.swExtra.join() === '4,5', b);

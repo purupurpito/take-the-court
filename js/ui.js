@@ -2732,7 +2732,7 @@
         pk = 'serve'; ptext = touchDev ? (help ? '<span>' + sgl.hit + '</span>' + gl.jump + '<span>' + sgl.jump + '</span>' : 'Lanza el balón') : 'Lanzar';
         pcls = touchDev && help ? 'hit two' : 'hit';
         coach = touchDev ? ''
-          : svAim(g) ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca ' + sgl.hitT + ' y ' + gl.jump + ' ' + sgl.jumpT + '; al lanzar, apunta la <b>diana</b> con ' + gl.aim + sgl.roof
+          : svAim(g) ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca ' + sgl.hitT + ' y ' + gl.jump + ' ' + sgl.jumpT + '; ' + (kmOn() && device() === 'keyboard' ? '' : 'al lanzar, ') + 'apunta la <b>diana</b> con ' + gl.aim + sgl.roof
           : g.serveState ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca ' + sgl.hitT + ' y ' + gl.jump + ' ' + sgl.jumpT + sgl.roof
           : 'Tu saque · Con ' + gl.move + ' te colocas en el fondo, apunta con ' + gl.aim + ' (la <b>diana naranja</b> marca adónde va) y pulsa ' + gl.serve;
         // reloj de saque (UI-05): 8 s en el pabellón y 5 en la playa (sim g.serveClockMax). Aro alrededor de la tecla en los
