@@ -12,7 +12,7 @@
  *    coincide con window.__vbBuild.sw, la activa enseguida sin recargar (si no, una recarga sin red volvería al index anterior).
  *  - activate: borra las cachés 'ttc-*' que no son la suya y toma el control de las pestañas (clients.claim).
  *  - fetch: solo contesta a peticiones GET del mismo origen que están en la lista:
- *      · páginas (index, privacidad, borrar-cuenta): primero la red (sin caché del navegador; como mucho 6 s si hay copia) y, si
+ *      · páginas (index, privacidad, borrar-cuenta, aviso-legal, condiciones, licencias): primero la red (sin caché del navegador; como mucho 6 s si hay copia) y, si
  *        no hay red, la copia guardada. Lo que llega de la red NO se guarda: la copia es siempre la de esta versión;
  *      · el resto (js, three.js, fuentes, iconos): de la caché; si faltara, de la red.
  *    Todo lo demás pasa sin tocar y nunca se guarda: Firebase y Google (auth, Firestore, SDK), STUN/TURN, version.json (lo pide

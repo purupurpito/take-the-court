@@ -87,7 +87,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     check(A && B && bA.sw === A.hash && bB.sw === B.hash, 'el index sabe cuál es su service worker (__vbBuild.sw = hash de su sw.js)');
     const bad = A ? A.files.filter(f => /version\.json|netlogs|sw\.js|^https?:|\.well-known|CNAME/.test(f.u)) : [1];
     check(!bad.length, 'la lista no lleva version.json, netlogs, sw.js, .well-known ni otras webs', bad);
-    const need = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'privacidad.html', 'borrar-cuenta.html'];
+    const need = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'privacidad.html', 'borrar-cuenta.html', 'aviso-legal.html', 'condiciones.html', 'licencias.html'];
     check(A && need.every(n => A.files.some(f => f.u === n)) && A.files.some(f => /^vendor\/three\/three\.min\.js\?v=/.test(f.u)) &&
       A.files.filter(f => /\.woff2$/.test(f.u)).length >= 20 && A.files.filter(f => /^js\/.*\?v=/.test(f.u)).length >= 60, 'la lista lleva index, js, three.js, fuentes, iconos, manifest y páginas legales (' + (A && A.files.length) + ' archivos)');
     const idx = fs.readFileSync(path.join(SITE_A, 'index.html'), 'utf8');
