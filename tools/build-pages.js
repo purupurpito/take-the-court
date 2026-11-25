@@ -16,8 +16,8 @@
  * Se escribe igual para que el artefacto diga dónde vive y por si un día se publica desde una rama.
  * Google Play (24-nov-2026, notes/playstore/privacidad.md): pages/privacidad.html y pages/borrar-cuenta.html se copian a _site como el
  * resto de pages/ (https://takethecourt.com/privacidad.html y /borrar-cuenta.html). Llevan los huecos {{RESPONSABLE}} y
- * {{CONTACTO_EMAIL}} hasta que el dueño los rellene. Auditoría legal (25-nov-2026): también pages/aviso-legal.html (con {{NIF}} y
- * {{DOMICILIO_NOTIFICACIONES}} hasta que el dueño los rellene), pages/condiciones.html y pages/licencias.html (generada por
+ * {{CONTACTO_EMAIL}} hasta que el dueño los rellene. Auditoría legal (25-nov-2026): también pages/aviso-legal.html (sin NIF ni domicilio desde el
+ * 25-nov-2026), pages/condiciones.html y pages/licencias.html (generada por
  * tools/build-licencias.js); las cinco son POLICY_PAGES: misma comprobación de huecos y van al service worker como páginas. Por defecto el build solo AVISA si faltan o si quedan huecos {{...}};
  * con STRICT_POLICY=1 FALLA (úsalo antes de mandar la ficha a Google Play: STRICT_POLICY=1 node tools/build-pages.js).
  * pages/ se copia ENTERA y con subcarpetas (pages/.well-known/assetlinks.json → /.well-known/assetlinks.json para la TWA); el

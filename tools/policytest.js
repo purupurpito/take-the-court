@@ -20,8 +20,8 @@
  *        takethecourt.com; con window.__vbBuild, la de al lado). Desde el 25-nov-2026 también «Aviso legal», «Condiciones» y
  *        «Licencias», y crear cuenta pide la casilla de los 14 años y enlaza Condiciones y Privacidad.
  * Auditoría legal (25-nov-2026): también pages/aviso-legal.html, pages/condiciones.html y pages/licencias.html (generada por
- * tools/build-licencias.js: tiene que estar al día). aviso-legal.html lleva {{NIF}} y {{DOMICILIO_NOTIFICACIONES}} hasta que el dueño
- * los rellene: la batería normal los deja pasar con un AVISO; con --release (o RELEASE=1) cualquier hueco {{...}} es un FALLO (úsalo
+ * tools/build-licencias.js: tiene que estar al día). aviso-legal.html va sin NIF ni domicilio (decisión del
+ * 25-nov-2026: solo nombre y correo); si alguna página lleva un hueco de OWNER_HOLES, la batería normal lo deja pasar con un AVISO; con --release (o RELEASE=1) cualquier hueco {{...}} es un FALLO (úsalo
  * antes de publicar).
  * Uso: node tools/policytest.js [--release]     Sale con 1 si falla algo.
  */
@@ -34,7 +34,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const PAGES = ['privacidad.html', 'borrar-cuenta.html', 'aviso-legal.html', 'condiciones.html', 'licencias.html'];
 const RELEASE = process.argv.includes('--release') || process.env.RELEASE === '1';
 /** Huecos que el dueño rellena a mano y que la batería normal deja pasar con un aviso (con --release, fallo). */
-const OWNER_HOLES = { 'aviso-legal.html': ['{{NIF}}', '{{DOMICILIO_NOTIFICACIONES}}'] };
+const OWNER_HOLES = {};
 const holeNotes = [];
 const rd = f => fs.readFileSync(path.join(ROOT, 'pages', f), 'utf8');
 
@@ -142,7 +142,7 @@ if (SRC['aviso-legal.html']) {
   const s = SRC['aviso-legal.html'], txt = t => t.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ');
   const resp = ((/responsable de tus datos es <b>([^<]+)<\/b>/.exec(SRC['privacidad.html'] || '') || [])[1] || '').trim();
   check(resp && s.indexOf('<b>Titular</b>' + resp + '<') >= 0 && s.indexOf('<b>Owner</b>' + resp + '<') >= 0, 'aviso-legal: el titular es el mismo responsable de la política (' + resp + ')');
-  check(/<b>NIF<\/b>/.test(s) && /Domicilio a efectos de notificaciones/.test(s) && /Address for notices/.test(s), 'aviso-legal: NIF y domicilio de notificaciones (es y en)');
+  check(/mailto:help@takethecourt\.com/.test(s) && !/<b>NIF<\/b>|Tax ID/.test(s), 'aviso-legal: titular y correo help@, sin NIF ni domicilio (decisión del 25-nov-2026)');
   check(/Ley 34\/2002/.test(s), 'aviso-legal: cita la LSSI (Ley 34/2002)');
   const note = VBV.CREDITS && VBV.CREDITS.note;
   check(note && txt(s).indexOf(note) >= 0, 'aviso-legal: el aviso de ficción es el mismo texto que VB.CREDITS.note de js/version.js');
@@ -235,7 +235,7 @@ const SITE = path.join(tmp, 'site');
   check(runBuild(d, path.join(d, '_s'), { STRICT_POLICY: '1' }).code === 1, 'STRICT_POLICY=1 falla si falta borrar-cuenta.html');
   { const o = allFilled(); delete o['aviso-legal.html']; d = mini(o); }
   check(runBuild(d, path.join(d, '_s'), { STRICT_POLICY: '1' }).code === 1, 'STRICT_POLICY=1 falla si falta aviso-legal.html');
-  { const o = allFilled(); o['aviso-legal.html'] = rd('aviso-legal.html'); d = mini(o); }
+  { const o = allFilled(); o['aviso-legal.html'] = rd('aviso-legal.html').replace('</main>', '<p>{{NIF}}</p></main>'); d = mini(o); }
   const rh = runBuild(d, path.join(d, '_s'), { STRICT_POLICY: '1' });
   check(rh.code === 1 && /\{\{NIF\}\}/.test(rh.out), 'STRICT_POLICY=1 falla con el aviso legal sin rellenar ({{NIF}}…)', rh.out.trim());
   d = mini(allFilled());
