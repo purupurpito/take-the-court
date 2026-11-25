@@ -479,7 +479,7 @@
     } else {
       // marca del fabricante (ficticia) en la banda superior
       g.fillStyle = 'rgba(20,40,70,0.55)'; g.font = '800 ' + Math.round(top * 0.78) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('SALT·9  PRO NET', Wd * 0.5, top * 0.55);
+      g.fillText('KOLOKA·9  PRO NET', Wd * 0.5, top * 0.55);
     }
     // bandas laterales sobre las líneas laterales (5 cm x 1 m)
     function bandAt(yy) { var u0 = (yy + NET_W / 2) * ppm; g.fillStyle = beach ? bandCol : '#f7f4ee'; g.fillRect(u0, 0, 0.05 * ppm, Ht); }
@@ -2712,13 +2712,13 @@
    * VALLAS LED (marcas ficticias) y mensajes de partido
    * ===================================================================== */
   var BRANDS = [
-    { name: 'NÓRDIKA', fg: '#ffd23f', bg: ['#0d1b2a', '#16324f'], deco: 'flake' },
-    { name: 'VOLTA', fg: '#ffffff', bg: ['#ff5b3a', '#ff8a3d'], deco: 'bolt' },
-    { name: 'ALBA·SPORT', fg: '#0d1b2a', bg: ['#7ee0c3', '#bff3e2'], deco: 'sun' },
-    { name: 'MARINA FM', fg: '#ffffff', bg: ['#2a55c9', '#3f7cf0'], deco: 'wave' },
+    { name: 'BLOQUIVERN', fg: '#ffd23f', bg: ['#0d1b2a', '#16324f'], deco: 'flake' },
+    { name: 'REMATEX', fg: '#ffffff', bg: ['#ff5b3a', '#ff8a3d'], deco: 'bolt' },
+    { name: 'SAQUESOL', fg: '#0d1b2a', bg: ['#7ee0c3', '#bff3e2'], deco: 'sun' },
+    { name: 'ONDARRED FM', fg: '#ffffff', bg: ['#2a55c9', '#3f7cf0'], deco: 'wave' },
     { name: 'PALAU DEL MAR', fg: '#ffffff', bg: ['#0b3a4f', '#146a86'], deco: 'wave' },
-    { name: 'TERRA', fg: '#ffd23f', bg: ['#2a1a0d', '#4a2f17'], deco: 'leaf' },
-    { name: 'SALT·9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
+    { name: 'TOQUE VERD', fg: '#ffd23f', bg: ['#2a1a0d', '#4a2f17'], deco: 'leaf' },
+    { name: 'KOLOKA·9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
     { name: 'TAKE THE COURT', fg: '#0e1118', bg: ['#ffd23f', '#ffb03d'], deco: 'ball' }
   ];
   var led = { cv: null, tex: null, mcv: null, mtex: null, mat: null, mesh: null, reflMat: null, refl: null, msgT: 0, msgOn: false, scrollT: 0, scrollM: 0, w: 0, pend: null };

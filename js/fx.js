@@ -333,7 +333,7 @@
     g.fillStyle = 'rgba(29,21,48,0.9)'; g.fillRect(0, 0, S, 5); g.fillRect(0, S - 5, S, 5); g.fillRect(0, 0, 5, S); g.fillRect(S - 5, 0, 5, S);
     // logotipo diminuto en el panel blanco
     g.save(); g.translate(S / 2, S / 2); g.rotate(-Math.PI / 2); g.fillStyle = hc ? 'rgba(255,246,200,0.6)' : 'rgba(8,92,90,0.55)';
-    g.font = '900 22px "Barlow Condensed", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SALT·9', 0, 0); g.restore();
+    g.font = '900 22px "Barlow Condensed", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('KOLOKA·9', 0, 0); g.restore();
     var t = tex(cv); t.anisotropy = 4; return t;
   }
   function shade(hex, k) {
