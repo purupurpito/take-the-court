@@ -565,11 +565,12 @@
     tools: [
       'three.js r149 (motor 3D, licencia MIT)',
       'Sonido y gráficos generados por código, sin grabaciones',
-      'Guardado en la nube con Firebase'
+      'Guardado en la nube con Firebase (Firebase JS SDK, licencia Apache 2.0)',
+      'App de Android con Android Browser Helper y AndroidX (licencia Apache 2.0)'
     ],
     fonts: 'Titan One (Rodrigo Fuenzalida), Bowlby One (Vernon Adams), Rubik (The Rubik Project Authors) y Barlow (The Barlow ' +
       'Project Authors), todas con la SIL Open Font License 1.1. ' +
-      'El logotipo usa sus letras pasadas a trazos.',
+      'El logotipo usa letras de Anton (Vernon Adams) y Bungee (David Jonathan Ross), OFL, pasadas a trazos.',
     licenses: {
       three: MIT_THREE,   // año comprobado en la cabecera de three.min.js 0.149.0 (cdnjs): «Copyright 2010-2023 Three.js Authors»
       threeLine: 'three.js: Copyright © 2010-2023 Three.js Authors. Licencia MIT.',

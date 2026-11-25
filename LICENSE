@@ -12,7 +12,13 @@ Ver el código o jugar en takethecourt.com no da ningún derecho sobre él.
 Excepciones: las bibliotecas y tipografías de terceros incluidas en vendor/
 (three.js, licencia MIT; Barlow, Titan One, Bowlby One y Rubik, licencia
 SIL Open Font License) conservan sus licencias originales, que se indican
-en vendor/ y en la pantalla de Info del juego.
+en vendor/, en la pantalla de Info del juego y en takethecourt.com/licencias.html.
+También conservan su licencia (Apache License 2.0): en android/, la plantilla
+de Bubblewrap (© Google Inc.) y el Gradle wrapper (gradlew, gradlew.bat y
+gradle/wrapper/; © los autores de Gradle), y las bibliotecas que usa la app
+(Android Browser Helper y AndroidX; android/app/src/main/assets/NOTICE.txt);
+y el Firebase JS SDK (© Google LLC), que el juego carga de www.gstatic.com y
+no está en este repositorio.
 
 ---
 
@@ -22,4 +28,8 @@ This repository is public for viewing only. No license is granted: copying,
 modifying, distributing, publishing, selling or reusing the code, graphics,
 sounds, texts, the "Take the Court" name or its logo, in whole or in part,
 is prohibited without the prior written permission of the copyright holder.
-Third-party libraries and fonts in vendor/ keep their own licenses.
+Third-party libraries and fonts in vendor/ keep their own licenses. So do,
+under the Apache License 2.0, the Bubblewrap template and the Gradle wrapper
+in android/, the libraries used by the Android app (Android Browser Helper,
+AndroidX; see android/app/src/main/assets/NOTICE.txt) and the Firebase JS SDK,
+which the game loads from www.gstatic.com.
