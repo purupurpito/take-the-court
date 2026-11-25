@@ -74,7 +74,7 @@ Guardados: `localStorage['make-the-cut.career']` (playa, igual que siempre), `['
   Polonia, Turquía, Rusia, Francia, Alemania, España, Brasil y Japón. Sin `real`, `official` ni `check` (llevan patrocinadores):
   solo lo que usa el juego. Cada competición lleva `kind`/`rank`/`zone`/`country`, así que ya no se deduce nada por el nombre.
 - **Competiciones unificadas:** Europa «Copa de Campeones VEC» (CCV, rank 1) + «Copa VEC» (CVC, rank 2) + «Challenge VEC» (CHV, solo
-  nombre); América «Copa del Sur de Clubes» (zona sur) y «Copa Norte de Campeones» (zona norte); Asia «Copa de Campeones Asia»;
+  nombre); América «Copa del Sur de Clubes» (zona sur) y «Copa Norte de Campeones» (zona norte); Asia «Copa de Campeones CVA» (antes «Copa de Campeones Asia»);
   «Mundial de Clubes VBF» igual en los tres (antes «World Club Cup» y «Mundial VBC de Clubes»). Copas nacionales en 21 países;
   nuevas del integrador: Coppa Tricolore (IT), Puchar Orła (PL), Hilal Kupası (TR) y Kubok Volgi (RU), una búsqueda cada una sin
   coincidencias. Sin copa propia (juegan «Copa Nacional»): EE. UU., Canadá, Perú, China, Irán, Catar y Filipinas.

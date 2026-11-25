@@ -2511,7 +2511,36 @@
   }
   /** Competiciones renombradas (25-nov-2026): «Champions Cup» es marca de otras competiciones. Los guardados viejos las llevan en
    *  copas en curso, palmarés y buzón; se cambian todas las apariciones (texto incluido). */
-  var COMP_REN6 = [[/Champions Cup VEC/g, 'Copa de Campeones VEC'], [/Champions Cup Asia/g, 'Copa de Campeones Asia']];
+  var COMP_REN6 = [[/Champions Cup VEC/g, 'Copa de Campeones VEC'], [/Champions Cup Asia/g, 'Copa de Campeones CVA']];
+  /** Clubes, ligas y copas renombrados (25-nov-2026) porque coincidían (o casi) con nombres reales o marcas: [viejo, nuevo].
+   *  El guardado lleva su copia de clubes, ligas y copas, más el palmarés y el buzón con esos nombres en el texto. Se cambia el
+   *  nombre entero: entre comillas JSON ("viejo" → "nuevo") y suelto en el texto, pero nunca dentro de otra palabra (ni letra
+   *  delante ni detrás), así «Vòlei Manacor» no vuelve a tocar «Vòlei Manacorí» cada vez que se carga. Se comprobó que ningún
+   *  otro nombre del juego contiene uno de los viejos como palabras enteras. */
+  var NAME_REN6 = [
+    // Italia (élite)
+    ['Voley Perugia', 'Perusia Volley'], ['Voley Verona', 'Voley Adige'], ['Volley Scandicci', 'Voley Vingone'], ['Voley Chieri', 'Voley Maddalene'],
+    ['Milano Power', 'Volley Meneghino'], ['Volley Padova', 'Patavium Volley'], ['Voley Cisterna', 'Voley Ninfa'], ['Voley Cuneo', 'Voley Stura'],
+    ['Volley Macerata', 'Voley Sferisterio'],
+    // Polonia y Turquía
+    ['Siatkówka Wrocław', 'Krasnale Wrocław'], ['Efsaneler Ligi', 'Sultanefe Ligi'], ['Efsaneler 1. Lig', 'Sultanefe 1. Lig'],
+    // Europa media
+    ['Ligue Volley Belga', 'Liga Belvolley'], ['Eredivisión', 'Hiperdivisie'], ['Copa BeNeVol', 'Copa Deltavol'], ['Voley Waldviertel', 'Voley Zwettl'],
+    ['Leones de Praga', 'Melenas de Praga'], ['Ferroviario Lajkovac', 'Traviesas Lajkovac'], ['Voley Zalău', 'Voley Meseș'],
+    // Francia y España
+    ['Voley Le Cannet', 'Volley Cannettan'], ['Vòlei Manacor', 'Vòlei Manacorí'], ['Copa del Trono', 'Copa del Cetro'],
+    // Asia
+    ['Bluzeon Osaka', 'Aoiron Osaka'], ['Stingz Aichi', 'Hornets Aichi'], ['Tokyo Grand Bears', 'Tokyo Higuma'], ['Vittorina Himeji', 'Vincitrice Himeji'],
+    ['Spearz Osaka', 'Lancers Osaka'], ['Fragola Kagoshima', 'Ichigo Kagoshima'], ['Shinshu Brilliant Rams', 'Shinshu Shining Rams'],
+    ['Riorena Gifu', 'Nagara Queens Gifu'], ['Omid Tehran', 'Arezoo Tehran'], ['Arabi Doha', 'Ahlam Doha'], ['Shurta Doha', 'Haris Doha'],
+    ['Sadd Doha', 'Zaeem Doha'], ['Ahliya Doha', 'Ameed Doha'], ['Kool Smashers Manila', 'Chill Smashers Manila'],
+    ['Copa de Campeones Asia', 'Copa de Campeones CVA']
+  ];
+  var LET6 = 'A-Za-z0-9\\u00C0-\\u024F';   // letras (latinas con tildes y extendidas: ł, ș, ă...) y cifras: lo que no puede pegarse al nombre
+  NAME_REN6.forEach(function (r) {
+    var q = r[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    COMP_REN6.push([new RegExp('(^|[^' + LET6 + '])' + q + '(?![' + LET6 + '])', 'g'), '$1' + r[1]]);
+  });
   function renameComps6(o) {
     if (!o || typeof o !== 'object') return o;
     var t = JSON.stringify(o), u = t;

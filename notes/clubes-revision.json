@@ -99,7 +99,7 @@
   },
   {
    "real": "Copa del Rey + Copa de la Reina (España)",
-   "name": "Copa del Trono",
+   "name": "Copa del Cetro",
    "short": "CDT",
    "note": "Copa nacional única y mixta de España. No coincide con ningún trofeo oficial que yo sepa; sin comprobar por búsqueda web. [Integrador, búsqueda «\"Copa del…",
    "doubt": null,
@@ -155,7 +155,7 @@
   },
   {
    "real": "BeNe Conference (Bélgica + Países Bajos, los 4 mejores de cada liga)",
-   "name": "Copa BeNeVol",
+   "name": "Copa Deltavol",
    "short": "BNV",
    "note": "Libre (solo Wikipedia): No hay ninguna competición con ese nombre. «Benevol» solo aparece como nombre de asociaciones de voluntariado suizas y como…",
    "doubt": null,
@@ -403,9 +403,9 @@
   },
   {
    "real": "AVC Champions League (antes Asian Club Championship)",
-   "name": "Copa de Campeones Asia",
+   "name": "Copa de Campeones CVA",
    "short": "CCA",
-   "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones Asia\" volleyball» 11-nov-2026: sin coincidencias.]",
+   "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones Asia\" volleyball» 11-nov-2026: sin…",
    "doubt": null,
    "searched": false
   },
@@ -476,7 +476,7 @@
       {
        "real": "Sir Safety Perugia",
        "official": "Sir Susa Scai Perugia (club: Sir Safety Umbria Volley Perugia)",
-       "name": "Voley Perugia",
+       "name": "Perusia Volley",
        "short": "PER",
        "city": "Perugia",
        "colors": {
@@ -530,7 +530,7 @@
       {
        "real": "Savino Del Bene Scandicci",
        "official": "Savino Del Bene Scandicci (club: Pallavolo Scandicci Savino Del Bene)",
-       "name": "Volley Scandicci",
+       "name": "Voley Vingone",
        "short": "SCA",
        "city": "Scandicci",
        "colors": {
@@ -566,7 +566,7 @@
       {
        "real": "Rana Verona",
        "official": "Rana Verona (club: Verona Volley)",
-       "name": "Voley Verona",
+       "name": "Voley Adige",
        "short": "VER",
        "city": "Verona",
        "colors": {
@@ -638,7 +638,7 @@
       {
        "real": "Reale Mutua Fenera Chieri '76",
        "official": "Reale Mutua Fenera Chieri '76 (club: Chieri '76 Volleyball)",
-       "name": "Voley Chieri",
+       "name": "Voley Maddalene",
        "short": "CHI",
        "city": "Chieri",
        "colors": {
@@ -682,7 +682,7 @@
       {
        "real": "Allianz Milano",
        "official": "Allianz Milano (club: Powervolley Milano)",
-       "name": "Milano Power",
+       "name": "Volley Meneghino",
        "short": "MIL",
        "city": "Milán",
        "colors": {
@@ -718,7 +718,7 @@
       {
        "real": "Sonepar Padova",
        "official": "Sonepar Padova (club: Pallavolo Padova)",
-       "name": "Volley Padova",
+       "name": "Patavium Volley",
        "short": "PAD",
        "city": "Padua",
        "colors": {
@@ -754,7 +754,7 @@
       {
        "real": "MA Acqua San Bernardo Cuneo",
        "official": "MA Acqua San Bernardo Cuneo (club: Cuneo Volley)",
-       "name": "Voley Cuneo",
+       "name": "Voley Stura",
        "short": "CUN",
        "city": "Cuneo",
        "colors": {
@@ -790,7 +790,7 @@
       {
        "real": "Cisterna Volley",
        "official": "Cisterna Volley",
-       "name": "Voley Cisterna",
+       "name": "Voley Ninfa",
        "short": "CIS",
        "city": "Cisterna di Latina",
        "colors": {
@@ -808,7 +808,7 @@
       {
        "real": "CBF Balducci HR Macerata",
        "official": "CBF Balducci HR Macerata (club: Helvia Recina Volley Macerata)",
-       "name": "Volley Macerata",
+       "name": "Voley Sferisterio",
        "short": "MAC",
        "city": "Macerata",
        "colors": {
@@ -1210,7 +1210,7 @@
       {
        "real": "#VolleyWrocław",
        "official": "KGHM #VolleyWrocław",
-       "name": "Siatkówka Wrocław",
+       "name": "Krasnale Wrocław",
        "short": "WRO",
        "city": "Wrocław",
        "colors": {
@@ -1363,7 +1363,7 @@
    "divisions": [
     {
      "lvl": 1,
-     "name": "Efsaneler Ligi",
+     "name": "Sultanefe Ligi",
      "short": "EFS",
      "strength": 87,
      "clubs": [
@@ -1587,7 +1587,7 @@
     },
     {
      "lvl": 2,
-     "name": "Efsaneler 1. Lig",
+     "name": "Sultanefe 1. Lig",
      "short": "EF1",
      "strength": 72,
      "clubs": [
@@ -2480,7 +2480,7 @@
       {
        "real": "Volero Le Cannet",
        "official": "Volero Le Cannet",
-       "name": "Voley Le Cannet",
+       "name": "Volley Cannettan",
        "short": "VLR",
        "city": "Le Cannet",
        "colors": {
@@ -3248,7 +3248,7 @@
       {
        "real": "Conectabalear CV Manacor",
        "official": "Club Voleibol Manacor",
-       "name": "Vòlei Manacor",
+       "name": "Vòlei Manacorí",
        "short": "MAN",
        "city": "Manacor",
        "colors": {
@@ -3607,7 +3607,7 @@
    "divisions": [
     {
      "lvl": 1,
-     "name": "Ligue Volley Belga",
+     "name": "Liga Belvolley",
      "short": "LVB",
      "strength": 64,
      "clubs": [
@@ -3785,7 +3785,7 @@
    "divisions": [
     {
      "lvl": 1,
-     "name": "Eredivisión",
+     "name": "Hiperdivisie",
      "short": "ERD",
      "strength": 59,
      "clubs": [
@@ -4576,7 +4576,7 @@
       {
        "real": "Union Volleyball Waldviertel",
        "official": "Union Volleyball Waldviertel",
-       "name": "Voley Waldviertel",
+       "name": "Voley Zwettl",
        "short": "WAL",
        "city": "Zwettl",
        "colors": {
@@ -4700,7 +4700,7 @@
       {
        "real": "VK Lvi Praha",
        "official": "VK Lvi Praha",
-       "name": "Leones de Praga",
+       "name": "Melenas de Praga",
        "short": "LEO",
        "city": "Praga",
        "colors": {
@@ -4950,7 +4950,7 @@
       {
        "real": "ŽOK Železničar Lajkovac",
        "official": "Ženski odbojkaški klub Železničar Lajkovac",
-       "name": "Ferroviario Lajkovac",
+       "name": "Traviesas Lajkovac",
        "short": "FER",
        "city": "Lajkovac",
        "colors": {
@@ -5306,7 +5306,7 @@
       {
        "real": "SCM Zalău",
        "official": "Sport Club Municipal Zalău",
-       "name": "Voley Zalău",
+       "name": "Voley Meseș",
        "short": "ZAL",
        "city": "Zalău",
        "colors": {
@@ -6634,7 +6634,7 @@
       {
        "real": "Osaka Bluteon",
        "official": "Osaka Bluteon (大阪ブルテオン; antes Panasonic Panthers)",
-       "name": "Bluzeon Osaka",
+       "name": "Aoiron Osaka",
        "short": "BLZ",
        "city": "Osaka",
        "colors": {
@@ -6670,7 +6670,7 @@
       {
        "real": "JTEKT Stings Aichi",
        "official": "JTEKT STINGS Aichi (ジェイテクトSTINGS愛知)",
-       "name": "Stingz Aichi",
+       "name": "Hornets Aichi",
        "short": "STZ",
        "city": "Kariya (Aichi)",
        "colors": {
@@ -6778,7 +6778,7 @@
       {
        "real": "Tokyo Great Bears",
        "official": "Tokyo Great Bears (東京グレートベアーズ)",
-       "name": "Tokyo Grand Bears",
+       "name": "Tokyo Higuma",
        "short": "TGB",
        "city": "Tokio",
        "colors": {
@@ -6796,7 +6796,7 @@
       {
        "real": "Victorina Himeji",
        "official": "Victorina Himeji (ヴィクトリーナ姫路)",
-       "name": "Vittorina Himeji",
+       "name": "Vincitrice Himeji",
        "short": "VIT",
        "city": "Himeji (Hyogo)",
        "colors": {
@@ -6840,7 +6840,7 @@
       {
        "real": "Kubota Spears Osaka",
        "official": "KUBOTA Spears Osaka (クボタスピアーズ大阪)",
-       "name": "Spearz Osaka",
+       "name": "Lancers Osaka",
        "short": "SPZ",
        "city": "Osaka",
        "colors": {
@@ -6912,7 +6912,7 @@
       {
        "real": "Fragolad Kagoshima",
        "official": "Fragolad Kagoshima (フラーゴラッド鹿児島)",
-       "name": "Fragola Kagoshima",
+       "name": "Ichigo Kagoshima",
        "short": "FRA",
        "city": "Kagoshima",
        "colors": {
@@ -6930,7 +6930,7 @@
       {
        "real": "Shinshu Brilliant Aries",
        "official": "Shinshu Brilliant Aries (信州ブリリアントアリーズ)",
-       "name": "Shinshu Brilliant Rams",
+       "name": "Shinshu Shining Rams",
        "short": "SBR",
        "city": "Nagano",
        "colors": {
@@ -6966,7 +6966,7 @@
       {
        "real": "JA Gifu Rioreina",
        "official": "JA Gifu Rioreina (JAぎふリオレーナ; desde jul-2026 «Gifu Rioreina»)",
-       "name": "Riorena Gifu",
+       "name": "Nagara Queens Gifu",
        "short": "RIO",
        "city": "Gifu",
        "colors": {
@@ -7590,7 +7590,7 @@
       {
        "real": "Sanatgaran Omid Tehran",
        "official": "Sanatgaran Omid Tehran (صنعتگران امید تهران)",
-       "name": "Omid Tehran",
+       "name": "Arezoo Tehran",
        "short": "OMI",
        "city": "Teherán",
        "colors": {
@@ -7642,7 +7642,7 @@
       {
        "real": "Al Arabi SC",
        "official": "Al-Arabi Sports Club (النادي العربي)",
-       "name": "Arabi Doha",
+       "name": "Ahlam Doha",
        "short": "ARB",
        "city": "Doha",
        "colors": {
@@ -7678,7 +7678,7 @@
       {
        "real": "Police SC",
        "official": "Al-Shorta / Police Sports Club (نادي الشرطة)",
-       "name": "Shurta Doha",
+       "name": "Haris Doha",
        "short": "SHU",
        "city": "Doha",
        "colors": {
@@ -7714,7 +7714,7 @@
       {
        "real": "Al Sadd SC",
        "official": "Al-Sadd Sports Club (نادي السد)",
-       "name": "Sadd Doha",
+       "name": "Zaeem Doha",
        "short": "SAD",
        "city": "Doha",
        "colors": {
@@ -7768,7 +7768,7 @@
       {
        "real": "Al Ahli SC",
        "official": "Al-Ahli Sports Club Doha (النادي الأهلي)",
-       "name": "Ahliya Doha",
+       "name": "Ameed Doha",
        "short": "AHL",
        "city": "Doha",
        "colors": {
@@ -7802,7 +7802,7 @@
       {
        "real": "Creamline Cool Smashers",
        "official": "Creamline Cool Smashers (Rebisco)",
-       "name": "Kool Smashers Manila",
+       "name": "Chill Smashers Manila",
        "short": "KSM",
        "city": "Gran Manila",
        "colors": {

@@ -35,7 +35,7 @@
             {
               "real": "Osaka Bluteon",
               "official": "Osaka Bluteon (大阪ブルテオン; antes Panasonic Panthers)",
-              "name": "Bluzeon Osaka",
+              "name": "Aoiron Osaka",
               "realSponsor": false,
               "short": "BLZ",
               "city": "Osaka",
@@ -47,12 +47,12 @@
               },
               "liberoEstimated": true,
               "ovr": 86,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; guiño a «Bluteon». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; guiño a «Bluteon». Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Osaka Bluteon» (antes Panasonic Panthers). Nombre anterior: «Bluzeon Osaka»."
             },
             {
               "real": "JTEKT Stings Aichi",
               "official": "JTEKT STINGS Aichi (ジェイテクトSTINGS愛知)",
-              "name": "Stingz Aichi",
+              "name": "Hornets Aichi",
               "sponsor": "Tatami Toss",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; toss = colocación (inglés japonés).",
@@ -66,7 +66,7 @@
               },
               "liberoEstimated": true,
               "ovr": 82,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JTEKT; guiño a «Stings». Líbero probable: negro (2025-26, equipaciones en jtekt-stings.jp (deducido)). Ojo: casi igual que la 2ª camiseta (#1A1A1A); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JTEKT; guiño a «Stings». Líbero probable: negro (2025-26, equipaciones en jtekt-stings.jp (deducido)). Ojo: casi igual que la 2ª camiseta (#1A1A1A); se deja porque es el real (el juego tiene plan B si choca). Cambiado el 25-nov-2026: coincidía con «Stings Aichi», como se conoce al JTEKT STINGS Aichi. Nombre anterior: «Stingz Aichi»."
             },
             {
               "real": "Wolfdogs Nagoya",
@@ -105,7 +105,7 @@
             {
               "real": "Tokyo Great Bears",
               "official": "Tokyo Great Bears (東京グレートベアーズ)",
-              "name": "Tokyo Grand Bears",
+              "name": "Tokyo Higuma",
               "realSponsor": false,
               "short": "TGB",
               "city": "Tokio",
@@ -117,7 +117,7 @@
               },
               "liberoEstimated": true,
               "ovr": 78,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Great Bears». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Great Bears». Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Tokyo Great Bears». Nombre anterior: «Tokyo Grand Bears»."
             },
             {
               "real": "SAGA Hisamitsu Springs",
@@ -196,7 +196,7 @@
             {
               "real": "Victorina Himeji",
               "official": "Victorina Himeji (ヴィクトリーナ姫路)",
-              "name": "Vittorina Himeji",
+              "name": "Vincitrice Himeji",
               "realSponsor": false,
               "short": "VIT",
               "city": "Himeji (Hyogo)",
@@ -208,7 +208,7 @@
               },
               "liberoEstimated": false,
               "ovr": 77,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; la búsqueda solo devuelve «Victorina Himeji», el real. Líbero: blanco (2026-27, buscado 12-nov-2026: nota del club (3-ago-2026))."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; la búsqueda solo devuelve «Victorina Himeji», el real. Líbero: blanco (2026-27, buscado 12-nov-2026: nota del club (3-ago-2026)). Cambiado el 25-nov-2026: coincidía con «Victorina Himeji». Nombre anterior: «Vittorina Himeji»."
             },
             {
               "real": "Queenseis Kariya",
@@ -239,7 +239,7 @@
             {
               "real": "Kubota Spears Osaka",
               "official": "KUBOTA Spears Osaka (クボタスピアーズ大阪)",
-              "name": "Spearz Osaka",
+              "name": "Lancers Osaka",
               "sponsor": "Sushi Saabu",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; saabu = サーブ, saque.",
@@ -253,7 +253,7 @@
               },
               "liberoEstimated": true,
               "ovr": 68,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; se quita el patrocinador Kubota; guiño a «Spears». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; se quita el patrocinador Kubota; guiño a «Spears». Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Spears Osaka», como se conoce al KUBOTA Spears Osaka. Nombre anterior: «Spearz Osaka»."
             },
             {
               "real": "Hokkaido Yellow Stars",
@@ -309,7 +309,7 @@
             {
               "real": "Fragolad Kagoshima",
               "official": "Fragolad Kagoshima (フラーゴラッド鹿児島)",
-              "name": "Fragola Kagoshima",
+              "name": "Ichigo Kagoshima",
               "realSponsor": false,
               "short": "FRA",
               "city": "Kagoshima",
@@ -321,7 +321,7 @@
               },
               "liberoEstimated": true,
               "ovr": 64,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Fragolad» (de fragola, fresa). Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Fragolad» (de fragola, fresa). Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Fragolad Kagoshima». Nombre anterior: «Fragola Kagoshima»."
             },
             {
               "real": "Fujitsu Kawasaki Red Spirits",
@@ -345,7 +345,7 @@
             {
               "real": "Shinshu Brilliant Aries",
               "official": "Shinshu Brilliant Aries (信州ブリリアントアリーズ)",
-              "name": "Shinshu Brilliant Rams",
+              "name": "Shinshu Shining Rams",
               "realSponsor": false,
               "short": "SBR",
               "city": "Nagano",
@@ -357,12 +357,12 @@
               },
               "liberoEstimated": true,
               "ovr": 64,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; Aries = carnero (ram). Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; Aries = carnero (ram). Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Shinshu Brilliant Aries», el club real (Rams es la traducción de Aries). Nombre anterior: «Shinshu Brilliant Rams»."
             },
             {
               "real": "JA Gifu Rioreina",
               "official": "JA Gifu Rioreina (JAぎふリオレーナ; desde jul-2026 «Gifu Rioreina»)",
-              "name": "Riorena Gifu",
+              "name": "Nagara Queens Gifu",
               "sponsor": "Sento Blocking-yu",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; baño público (sento) + bloqueo; nada agrícola (JA).",
@@ -376,7 +376,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JA; guiño a «Rioreina». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JA; guiño a «Rioreina». Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «(JA) Gifu Rioreina». Nombre anterior: «Riorena Gifu»."
             },
             {
               "real": "KANOA Laulea's Fukuoka",
@@ -980,7 +980,7 @@
             {
               "real": "Sanatgaran Omid Tehran",
               "official": "Sanatgaran Omid Tehran (صنعتگران امید تهران)",
-              "name": "Omid Tehran",
+              "name": "Arezoo Tehran",
               "realSponsor": false,
               "short": "OMI",
               "city": "Teherán",
@@ -992,7 +992,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Omid». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Omid». Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Sanatgaran Omid Tehran», el nombre oficial sin la primera palabra. Nombre anterior: «Omid Tehran»."
             },
             {
               "real": "Saipa Tehran",
@@ -1051,7 +1051,7 @@
             {
               "real": "Al Arabi SC",
               "official": "Al-Arabi Sports Club (النادي العربي)",
-              "name": "Arabi Doha",
+              "name": "Ahlam Doha",
               "realSponsor": false,
               "short": "ARB",
               "city": "Doha",
@@ -1063,7 +1063,7 @@
               },
               "liberoEstimated": true,
               "ovr": 72,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2023-24 y, según el primer informe, 2025-26 (sin confirmar). Líbero probable: azul marino (2025-26, foto de la celebración del título (alkassenglish.net))."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2023-24 y, según el primer informe, 2025-26 (sin confirmar). Líbero probable: azul marino (2025-26, foto de la celebración del título (alkassenglish.net)). Cambiado el 25-nov-2026: coincidía con «Al Arabi Doha», como aparece el Al-Arabi SC. Nombre anterior: «Arabi Doha»."
             },
             {
               "real": "Al Wakrah SC",
@@ -1085,7 +1085,7 @@
             {
               "real": "Police SC",
               "official": "Al-Shorta / Police Sports Club (نادي الشرطة)",
-              "name": "Shurta Doha",
+              "name": "Haris Doha",
               "realSponsor": false,
               "short": "SHU",
               "city": "Doha",
@@ -1097,7 +1097,7 @@
               },
               "liberoEstimated": true,
               "ovr": 68,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «shurta» es «policía»; la prensa lo llama «Al-Shorta», no «Shurta Doha». Líbero probable: celeste (2022-23, foto de gulf-times (Copa de Catar 2023))."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «shurta» es «policía»; la prensa lo llama «Al-Shorta», no «Shurta Doha». Líbero probable: celeste (2022-23, foto de gulf-times (Copa de Catar 2023)). Cambiado el 25-nov-2026: coincidía con «Al-Shorta», nombre real de clubes de la policía (Police SC de Catar). Nombre anterior: «Shurta Doha»."
             },
             {
               "real": "Al Rayyan SC",
@@ -1119,7 +1119,7 @@
             {
               "real": "Al Sadd SC",
               "official": "Al-Sadd Sports Club (نادي السد)",
-              "name": "Sadd Doha",
+              "name": "Zaeem Doha",
               "realSponsor": false,
               "short": "SAD",
               "city": "Doha",
@@ -1131,7 +1131,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño al barrio de Al Sadd. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño al barrio de Al Sadd. Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Al Sadd», el Al-Sadd SC de Doha. Nombre anterior: «Sadd Doha»."
             },
             {
               "real": "Qatar SC",
@@ -1170,7 +1170,7 @@
             {
               "real": "Al Ahli SC",
               "official": "Al-Ahli Sports Club Doha (النادي الأهلي)",
-              "name": "Ahliya Doha",
+              "name": "Ameed Doha",
               "realSponsor": false,
               "short": "AHL",
               "city": "Doha",
@@ -1182,7 +1182,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Al Ahli». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Al Ahli». Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Al-Ahli Doha» (Ahliya es el mismo adjetivo que Ahli). Nombre anterior: «Ahliya Doha»."
             }
           ]
         }
@@ -1203,7 +1203,7 @@
             {
               "real": "Creamline Cool Smashers",
               "official": "Creamline Cool Smashers (Rebisco)",
-              "name": "Kool Smashers Manila",
+              "name": "Chill Smashers Manila",
               "sponsor": "Adobo Ace",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; ace; nada de galletas (Rebisco).",
@@ -1217,7 +1217,7 @@
               },
               "liberoEstimated": false,
               "ovr": 58,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón All-Filipino 2026; se quita la marca Creamline; guiño a «Cool Smashers». Líbero: blanco con rosa y rojo (2025, buscado 12-nov-2026: fotos de spin.ph y rappler.com)."
+              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón All-Filipino 2026; se quita la marca Creamline; guiño a «Cool Smashers». Líbero: blanco con rosa y rojo (2025, buscado 12-nov-2026: fotos de spin.ph y rappler.com). Cambiado el 25-nov-2026: coincidía con «Cool Smashers», como se conoce a Creamline. Nombre anterior: «Kool Smashers Manila»."
             },
             {
               "real": "Cignal HD Spikers",
@@ -1447,9 +1447,9 @@
     },
     {
       "real": "AVC Champions League (antes Asian Club Championship)",
-      "name": "Copa de Campeones Asia",
+      "name": "Copa de Campeones CVA",
       "short": "CCA",
-      "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones Asia\" volleyball» 11-nov-2026: sin coincidencias.]",
+      "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones Asia\" volleyball» 11-nov-2026: sin coincidencias.] Cambiado el 25-nov-2026: coincidía con la FIBA Asia Champions Cup (baloncesto; «Copa de Campeones Asia» es su traducción literal). Nombre anterior: «Copa de Campeones Asia».",
       "kind": "intl",
       "rank": 1
     },

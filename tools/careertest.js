@@ -1278,7 +1278,7 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
     ok(cupCC.every(cc => cupOf(cc)), 'copa nacional propia en ' + cupCC.length + ' países: ' + cupCC.map(cc => cc + ' ' + cupOf(cc)).join(', '));
     ok(cupOf('IT') === 'Coppa Tricolore' && cupOf('PL') === 'Puchar Orła' && cupOf('TR') === 'Hilal Kupası' && cupOf('RU') === 'Kubok Volgi', 'las copas de Italia, Polonia, Turquía y Rusia ya no son la genérica');
     const inm = cc => H.intlFor(c6, cc).map(x => x.name + ' (' + x.rank + ')').join(' + ');
-    ok(inm('ES') === 'Copa de Campeones VEC (1) + Copa VEC (2)' && inm('BE') === inm('ES') && inm('BR') === 'Copa del Sur de Clubes (1)' && inm('US') === 'Copa Norte de Campeones (1)' && inm('JP') === 'Copa de Campeones Asia (1)',
+    ok(inm('ES') === 'Copa de Campeones VEC (1) + Copa VEC (2)' && inm('BE') === inm('ES') && inm('BR') === 'Copa del Sur de Clubes (1)' && inm('US') === 'Copa Norte de Campeones (1)' && inm('JP') === 'Copa de Campeones CVA (1)',
       'copas internacionales unificadas: Europa ' + inm('ES') + '; BR ' + inm('BR') + '; US ' + inm('US') + '; JP ' + inm('JP'));
     const allComp = []; regs.forEach(rg => rg.competitions.forEach(x => allComp.push(x.name)));
     ok(!allComp.some(n => /^(Champions Cup|World Club Cup|Mundial VBC de Clubes|Challenge Trophy)$/.test(n)) && allComp.filter(n => n === 'Mundial de Clubes VBF').length === 3, 'un solo nombre por competición (Champions Cup VEC; Mundial de Clubes VBF en los tres continentes)');
@@ -1294,7 +1294,27 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
       o.inbox.push({ id: 9999, t: 'Juegas la Champions Cup VEC', b: 'y la Champions Cup Asia', read: false });
       mem['make-the-cut.career6'] = JSON.stringify(o).replace(/Copa de Campeones (VEC|Asia)/g, 'Champions Cup $1'); C._reset();
       const r = JSON.stringify(H.get() || {});
-      ok(r.length > 1000 && !/Champions Cup (VEC|Asia)/.test(r) && /Copa de Campeones VEC/.test(r) && /Copa de Campeones Asia/.test(r), 'guardado viejo: «Champions Cup VEC/Asia» pasa a «Copa de Campeones VEC/Asia» al cargar');
+      ok(r.length > 1000 && !/Champions Cup (VEC|Asia)/.test(r) && /Copa de Campeones VEC/.test(r) && /Copa de Campeones CVA/.test(r) && !/Copa de Campeones Asia/.test(r), 'guardado viejo: «Champions Cup VEC/Asia» pasa a «Copa de Campeones VEC/CVA» al cargar');
+      mem['make-the-cut.career6'] = raw0; C._reset();
+    }
+    // guardado viejo con nombres de club, liga y copa cambiados el 25-nov-2026 (clubes, ligas, buzón): al cargar salen los nuevos,
+    // sin tocar los nombres que contienen al viejo («Vòlei Manacorí») ni aunque se cargue dos veces
+    {
+      const raw0 = mem['make-the-cut.career6'], o = JSON.parse(raw0);
+      const REN = [['Voley Perugia', 'Perusia Volley'], ['Vòlei Manacor', 'Vòlei Manacorí'], ['Efsaneler Ligi', 'Sultanefe Ligi'], ['Eredivisión', 'Hiperdivisie'], ['Copa de Campeones Asia', 'Copa de Campeones CVA'], ['Sadd Doha', 'Zaeem Doha']];
+      ok(REN.every(([, b]) => raw0.indexOf('"' + b + '"') >= 0), 'el guardado lleva los nombres nuevos (' + REN.map(x => x[1]).join(', ') + ')');
+      o.inbox.push({ id: 9998, t: 'Oferta del Ensaïmades Es Bloqueig Vòlei Manacor', b: 'Voley Perugia gana la Efsaneler Ligi? No: la Copa de Campeones Asia.', read: false });
+      let old = JSON.stringify(o); REN.forEach(([a, b]) => { old = old.split('"' + b + '"').join('"' + a + '"'); });
+      ok(old.indexOf('"Voley Perugia"') >= 0 && old.indexOf('"Vòlei Manacor"') >= 0, 'guardado viejo preparado con «Voley Perugia» y «Vòlei Manacor»');
+      mem['make-the-cut.career6'] = old; C._reset();
+      const r = JSON.stringify(H.get() || {});
+      const gone = REN.every(([a, b]) => r.indexOf('"' + b + '"') >= 0 && r.indexOf('"' + a + '"') < 0);
+      const msg = (H.get().inbox || []).find(m => m.id === 9998) || {};
+      ok(gone && msg.t === 'Oferta del Ensaïmades Es Bloqueig Vòlei Manacorí' && msg.b === 'Perusia Volley gana la Sultanefe Ligi? No: la Copa de Campeones CVA.',
+        'guardado viejo: los clubes, ligas y copas renombrados (Voley Perugia, Vòlei Manacor, Efsaneler Ligi...) cargan con el nombre nuevo, buzón incluido (' + msg.t + ' / ' + msg.b + ')');
+      mem['make-the-cut.career6'] = r; C._reset();
+      const r2 = JSON.stringify(H.get() || {});
+      ok(r2 === r && !/Manacoríí/.test(r2), 'cargar dos veces no vuelve a cambiar nada («Vòlei Manacorí» se queda igual)');
       mem['make-the-cut.career6'] = raw0; C._reset();
     }
     // empezar en cada país: ofertas de su 2ª (o de su 1ª si no tiene)

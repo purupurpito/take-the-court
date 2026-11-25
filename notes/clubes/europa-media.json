@@ -9,7 +9,7 @@
         {
           "lvl": 1,
           "real": "Volley League hombres + Volley League mujeres 2025-26 (mezcla)",
-          "name": "Ligue Volley Belga",
+          "name": "Liga Belvolley",
           "short": "LVB",
           "strength": 64,
           "clubs": [
@@ -177,7 +177,8 @@
               "sponsor": "Fromagerie Le Contre",
               "sponsorCheck": "Quesería «El Bloqueo» (contre = bloqueo en francés). WebSearch 11-nov-2026 con la frase exacta entre comillas (búsqueda agrupada con OR): sin resultados que coincidan con ninguna empresa o marca real; solo salen negocios genéricos con otros nombres. Nombre real 2025-26 con patrocinador: «CapitalatWork BAO Tchalou Volley» (guías de competición Lotto Volley League 25-26)."
             }
-          ]
+          ],
+          "note": "Cambiado el 25-nov-2026: coincidía con la (Lotto) Volley League, la liga belga real (traducida y con el orden cambiado). Nombre anterior: «Ligue Volley Belga»."
         }
       ]
     },
@@ -189,7 +190,7 @@
         {
           "lvl": 1,
           "real": "Eredivisie hombres + Eredivisie mujeres 2025-26 (mezcla)",
-          "name": "Eredivisión",
+          "name": "Hiperdivisie",
           "short": "ERD",
           "strength": 59,
           "clubs": [
@@ -340,7 +341,8 @@
               "sponsor": "Seguros Tie-Break",
               "sponsorCheck": "Marca recurrente del gag (inventada, común a todo el juego). Recurrente, no se comprueba por separado."
             }
-          ]
+          ],
+          "note": "Cambiado el 25-nov-2026: coincidía con la Eredivisie (liga neerlandesa de vóley de la Nevobo y, sobre todo, la de fútbol). Nombre anterior: «Eredivisión»."
         }
       ]
     },
@@ -942,7 +944,7 @@
             {
               "real": "Union Volleyball Waldviertel",
               "official": "Union Volleyball Waldviertel",
-              "name": "Voley Waldviertel",
+              "name": "Voley Zwettl",
               "short": "WAL",
               "city": "Zwettl",
               "gender": "M",
@@ -953,7 +955,7 @@
               },
               "liberoEstimated": false,
               "ovr": 56,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Volley Waldviertel\" OR \"Voley Waldviertel\". Resultado: El club se llama oficialmente Union (Raiffeisen) Volleyball Waldviertel, y Sofascore lo muestra como «Waldviertel Volleyball». No hay ninguno llamado «Volley Waldviertel». No coincide con ningún club de las tablas 2025-26 de la AVL de hombres y de mujeres (Sportradar, 365Scores); no hay artículo con ese título en Wikipedia en; sin respuesta de Wikipedia de/es. Líbero: rojo (2026-27, buscado 12-nov-2026: foto de equipo en volleyball-waldviertel.at). Ojo: casi igual que la 1ª camiseta (#E30613); se deja porque es el real (el juego tiene plan B si choca).",
+              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Volley Waldviertel\" OR \"Voley Waldviertel\". Resultado: El club se llama oficialmente Union (Raiffeisen) Volleyball Waldviertel, y Sofascore lo muestra como «Waldviertel Volleyball». No hay ninguno llamado «Volley Waldviertel». No coincide con ningún club de las tablas 2025-26 de la AVL de hombres y de mujeres (Sportradar, 365Scores); no hay artículo con ese título en Wikipedia en; sin respuesta de Wikipedia de/es. Líbero: rojo (2026-27, buscado 12-nov-2026: foto de equipo en volleyball-waldviertel.at). Ojo: casi igual que la 1ª camiseta (#E30613); se deja porque es el real (el juego tiene plan B si choca). Cambiado el 25-nov-2026: coincidía con «Union Volleyball Waldviertel», el club real (volleyball-waldviertel.at). Nombre anterior: «Voley Waldviertel».",
               "realSponsor": true,
               "sponsor": "Erdäpfel Netzroller",
               "sponsorCheck": "Patatas «La Cinta» (Netzroller = balón que toca la red; el Waldviertel es tierra de patatas). WebSearch 11-nov-2026 con la frase exacta entre comillas (búsqueda agrupada con OR): sin resultados que coincidan con ninguna empresa o marca real; solo salen negocios genéricos con otros nombres. Dudoso: suele jugar como «Union Raiffeisen Waldviertel»; no confirmado para 2025-26."
@@ -1085,7 +1087,7 @@
             {
               "real": "VK Lvi Praha",
               "official": "VK Lvi Praha",
-              "name": "Leones de Praga",
+              "name": "Melenas de Praga",
               "short": "LEO",
               "city": "Praga",
               "gender": "MW",
@@ -1096,7 +1098,7 @@
               },
               "liberoEstimated": true,
               "ovr": 61,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Leones de Praga\". Resultado: Sin resultados de club. Es la traducción al español de «Lvi Praha» (guiño), no el nombre oficial. No coincide con ningún club de las listas 2025-26 de la Extraliga de hombres y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/cs. Guiño: «Lvi» significa leones. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Leones de Praga\". Resultado: Sin resultados de club. Es la traducción al español de «Lvi Praha» (guiño), no el nombre oficial. No coincide con ningún club de las listas 2025-26 de la Extraliga de hombres y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/cs. Guiño: «Lvi» significa leones. Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «VK Lvi Praha», el club real (traducción literal). Nombre anterior: «Leones de Praga».",
               "realSponsor": false
             },
             {
@@ -1363,7 +1365,7 @@
             {
               "real": "ŽOK Železničar Lajkovac",
               "official": "Ženski odbojkaški klub Železničar Lajkovac",
-              "name": "Ferroviario Lajkovac",
+              "name": "Traviesas Lajkovac",
               "short": "FER",
               "city": "Lajkovac",
               "gender": "W",
@@ -1374,7 +1376,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ferroviario Lajkovac\". Resultado: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «železničar» significa ferroviario. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ferroviario Lajkovac\". Resultado: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «železničar» significa ferroviario. Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Železničar Lajkovac», el club real (traducción literal). Nombre anterior: «Ferroviario Lajkovac».",
               "realSponsor": false
             },
             {
@@ -1616,7 +1618,7 @@
             {
               "real": "SCM Zalău",
               "official": "Sport Club Municipal Zalău",
-              "name": "Voley Zalău",
+              "name": "Voley Meseș",
               "short": "ZAL",
               "city": "Zalău",
               "gender": "M",
@@ -1627,7 +1629,7 @@
               },
               "liberoEstimated": true,
               "ovr": 58,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Voley Zalău» no existe como club oficial. Método: WebSearch \"Volley Zalău\" OR \"Volei Zalău\" club. Resultado: El real es VM Zalău (Volei Municipal Zalău), antes Remat Zalău; también existe SCM Zalău (fútbol). No hay ningún «Volei/Voley Zalău» exacto: al nuestro le falta «Municipal». Se parece, pero no es igual. Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch: \"Volei Zalău\" OR \"Voley Zalau\" OR \"Volley Zalau\" club. Resultado: El club real se llama oficialmente (CS) Volei Municipal Zalău, abreviado VM Zalău, y hoy aparece como SCM Zalău. «Volei Zalău» se usa en la prensa como forma corta y solo se diferencia del nuestro por la traducción de Voley/Volei. No es el nombre oficial (le falta «Municipal»), pero está muy cerca. Propuesta: Si se quiere ir sobre seguro: «Sălaj Zalău» (no comprobado: se acabó el cupo). No coincide con ningún club de las listas oficiales 2025-26 de la FRV (dataproject: Divizia A1 hombres y mujeres); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/ro. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Voley Zalău» no existe como club oficial. Método: WebSearch \"Volley Zalău\" OR \"Volei Zalău\" club. Resultado: El real es VM Zalău (Volei Municipal Zalău), antes Remat Zalău; también existe SCM Zalău (fútbol). No hay ningún «Volei/Voley Zalău» exacto: al nuestro le falta «Municipal». Se parece, pero no es igual. Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch: \"Volei Zalău\" OR \"Voley Zalau\" OR \"Volley Zalau\" club. Resultado: El club real se llama oficialmente (CS) Volei Municipal Zalău, abreviado VM Zalău, y hoy aparece como SCM Zalău. «Volei Zalău» se usa en la prensa como forma corta y solo se diferencia del nuestro por la traducción de Voley/Volei. No es el nombre oficial (le falta «Municipal»), pero está muy cerca. Propuesta: Si se quiere ir sobre seguro: «Sălaj Zalău» (no comprobado: se acabó el cupo). No coincide con ningún club de las listas oficiales 2025-26 de la FRV (dataproject: Divizia A1 hombres y mujeres); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/ro. Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Volei Municipal Zalău», nombre del club real de 2017 a 2020. Nombre anterior: «Voley Zalău».",
               "realSponsor": false
             },
             {
@@ -1764,9 +1766,9 @@
     },
     {
       "real": "BeNe Conference (Bélgica + Países Bajos, los 4 mejores de cada liga)",
-      "name": "Copa BeNeVol",
+      "name": "Copa Deltavol",
       "short": "BNV",
-      "note": "Búsqueda entre comillas sin coincidencias (oleadas 11-nov), solo en Wikipedia (sin cupo de búsqueda web; confianza menor). Método: WebFetch sobre la búsqueda de en.wikipedia \"BeNeVol\". Resultado: No hay ninguna competición con ese nombre. «Benevol» solo aparece como nombre de asociaciones de voluntariado suizas y como abreviatura latina. Fase conjunta de Bélgica y Países Bajos antes de los play-offs.",
+      "note": "Búsqueda entre comillas sin coincidencias (oleadas 11-nov), solo en Wikipedia (sin cupo de búsqueda web; confianza menor). Método: WebFetch sobre la búsqueda de en.wikipedia \"BeNeVol\". Resultado: No hay ninguna competición con ese nombre. «Benevol» solo aparece como nombre de asociaciones de voluntariado suizas y como abreviatura latina. Fase conjunta de Bélgica y Países Bajos antes de los play-offs. Cambiado el 25-nov-2026: coincidía con la BeNe Cup / BeNe Conference reales (Bélgica + Países Bajos). Nombre anterior: «Copa BeNeVol».",
       "kind": "skip"
     },
     {
