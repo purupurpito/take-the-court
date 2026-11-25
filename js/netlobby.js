@@ -932,6 +932,9 @@
     PP + '#menu #mpOnline .ol-sel .mv-val{width:auto;flex:1 1 auto;min-width:0}',
     PP + '#menu #mpOnline .ol-sel .mv-val b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PP + '#menu #mpOnline .ol-sel:is(.kf,.ol-on,:focus) .ol-hint{display:none}',
+    // (1.24.0) filas de alto propio: «Formato» con su «Beta» y «Escenario» con la nota del 6v6 ocupan dos líneas y las flechas se salían
+    //  sobre la fila de abajo (min-height:72 fijaba la fila de la rejilla a 72)
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-sels{grid-auto-rows:max-content}',
     ':root.ph.ph-s' + P.slice(5) + '#menu #mpOnline .ol-sel{min-height:58px;padding:2px 6px 1px;gap:0}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="create"] .mk-sels{gap:10px 12px;padding-top:2px}',
     ':root.ph.ph-s' + P.slice(5) + '#menu #mpOnline .ol-sel .mi-l{line-height:1.05}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .mk-go .sp-patch{--sp-ph:var(--ph-cta-h)}',
     '@media (min-width:720px){',

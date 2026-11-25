@@ -2034,7 +2034,9 @@
     PQ + ' .lf-sph>.lf-shd>.lf-sav{flex:1 1 auto;min-width:0;font:600 var(--ph-label)/1.2 var(--sp-ui);white-space:nowrap}',
     PQ + ' .lf-sph>.lf-shd>.lf-sav b{color:var(--sp-gold)}',
     PQ + ' .lf-sph>.lf-shd>.cr-q{position:relative;top:auto;right:auto;margin:0;transform:none}',
-    PQ + ' .lf-sph .lf-item>div>b{display:flex;align-items:center;gap:8px}',
+    // (1.24.0: con los precios en salpis el botón es más ancho y «Gafas de sol polarizadas» salía con «…»: el nombre baja de línea)
+    PQ + ' .lf-sph .lf-item>div>b{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}',
+    PQ + ' .lf-sph .lf-nm{min-width:0;white-space:normal;overflow:visible;text-overflow:clip}',
     PQ + ' .lf-nv{flex:none;padding:1px 7px;border-radius:7px 9px 7px 8px;background:var(--sp-ink);color:var(--sp-gold);font:700 var(--ph-micro)/1.3 var(--sp-ui);font-style:normal;letter-spacing:0}',
     PQ + ' .lf-short{color:#ff9aa8}',
     // ---- Vida › Logros: tarjetas de 3 líneas en 2 columnas (3 a .ph-w), barra de 6 con «1/5 · premio»; los conseguidos plegados al final
@@ -2046,6 +2048,8 @@
     PQ + ' .lf-gph .lf-gp{display:grid;grid-template-columns:minmax(28px,1fr) minmax(0,max-content);align-items:center;gap:8px;margin:5px 0 0}',
     PQ + ' .lf-gph .lf-gp>.bar{height:6px;margin:0}',
     PQ + ' .lf-gph .lf-gp>small{font:700 var(--ph-cap)/1.2 var(--sp-ui);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--sp-gold)}',
+    // (1.24.0: «193/2.000 · +1.000 salpis» no cabía en la tarjeta: la cifra y el premio bajan de línea por el «·», sin «…»)
+    PQ + ' .lf-gph .lf-gp>small{white-space:normal;overflow:visible;text-overflow:clip}' + PQ + ' .lf-gph .lf-gp>small>:is(.lf-gn,.lf-gr){white-space:nowrap}',
     PQ + ' .lf-gph .lf-gd{margin:10px 0 0}',
     PQ + ' .lf-gph .lf-gd>summary{display:flex;align-items:center;min-height:44px;padding:0 4px;font:700 var(--ph-label)/1.2 var(--sp-ui);cursor:pointer}',
     PQ + ' .lf-gph .lf-gd>summary:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold);border-radius:10px}',

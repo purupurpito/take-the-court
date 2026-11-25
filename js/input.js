@@ -1260,7 +1260,9 @@
     // (en vertical el aviso tapa todo: lo de detrás, inert —ni se toca ni se lee— mientras dure; al girar a horizontal, como siempre)
     var unInert = null;
     function syncInert() {
-      var on = !!(ED && vert() && VB.Splat && VB.Splat.inertBehind);
+      // (1.24.0: también en horizontal: el editor tapa la pantalla entera y lo de detrás —pestañas de Controles, Volver— se seguía
+      //  pudiendo enfocar con el teclado y la auditoría lo medía debajo de la barra)
+      var on = !!(ED && VB.Splat && VB.Splat.inertBehind);
       if (on && !unInert) unInert = VB.Splat.inertBehind(root);
       else if (!on && unInert) { unInert(); unInert = null; }
     }

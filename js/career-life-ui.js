@@ -268,7 +268,7 @@
     if (qph()) {   // móvil (movil-aire §5.4): un encabezado «Material · Ahorros · ?» y filas de 52 con el precio en el botón (y lo que falta)
       h += '<div class="card lf-sph"><div class="lf-shd"><h3>Material</h3><span class="lf-sav">Ahorros <b>' + eur(money) + '</b></span>' + H.q('Ahorros', sx) + '</div>' + Lf().GEAR_KEYS.map(function (id) {
         var G = Lf().GEAR[id], lv = l.gear[id] | 0, pr = Lf().gearPrice(c, id), nm = Lf().gearName(c, id), mx = lv >= Lf().GEAR_MAX, poor = money < pr;
-        return '<div class="lf-item"><div><b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">' + esc(nm) + '</span><i class="lf-nv" aria-label="Nivel ' + lv + ' de ' + Lf().GEAR_MAX + '">Nv ' + lv + '/' + Lf().GEAR_MAX + '</i></b>' +
+        return '<div class="lf-item"><div><b><span class="lf-nm">' + esc(nm) + '</span><i class="lf-nv" aria-label="Nivel ' + lv + ' de ' + Lf().GEAR_MAX + '">Nv ' + lv + '/' + Lf().GEAR_MAX + '</i></b>' +
           '<small>' + esc(G.hint) + (lv ? ': +' + lv : '') + (!mx && poor ? ' · <span class="lf-short">faltan ' + eur(pr - money) + '</span>' : '') + '</small></div>' +
           (mx ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (poor ? ' aria-disabled="true"' : '') + ' aria-label="' + esc((lv ? 'Mejorar ' : 'Comprar ') + nm + ' por ' + eur(pr)) + '">' + eur(pr) + '</button>') + '</div>';
       }).join('') + '</div>';

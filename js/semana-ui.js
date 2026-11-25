@@ -23,7 +23,10 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function shown(n) { return String(n || '').replace(/_/g, ' '); }
   function S() { return VB.Semana || null; }
-  function sep(a) { return a.filter(Boolean).map(esc).join('<span class="sep sep-v"><span class="sr">, </span></span>'); }
+  // (1.24.0) cada dato en su <span class="sem-it">, con el «|» de delante dentro: en el móvil no se parte por dentro («Saca / el rival») ni
+  //  se queda un «|» huérfano al final de la línea; en PC no lleva estilo
+  var SEP = '<span class="sep sep-v"><span class="sr">, </span></span>';
+  function sep(a) { return a.filter(Boolean).map(function (x, i) { return '<span class="sem-it">' + (i ? SEP : '') + esc(x) + '</span>'; }).join(''); }
 
   /** Lista que se pinta: la cadena guardada y, en la semana en curso, tu mejor (aunque aún no la hayas compartido). */
   function groupList(st) {

@@ -1505,6 +1505,7 @@ kbd,.key{background:#fff7e8;color:var(--tk);border:1.5px solid var(--tk);border-
 .end-bd>span.l2{--bt:#cfdbe9}.end-bd>span.l3{--bt:#ffd23f}
 .end-bd b{color:var(--bt)}
 .end-bd small{color:var(--muted);font-size:11.5px}
+:root:is(.ph,.pv):not(#_):not(#_):not(#_) .end-bd small{font-size:12px}   /* (1.24.0, móvil: «nueva (bronce)» de la hoja de la Carrera cooperativa, a 12 como mínimo) */
 .end-bd .bd-ic{width:22px;height:22px;box-shadow:0 0 0 1.5px var(--bt)}
 .end-bd .bd-ic svg{width:16px;height:16px}
 @media (max-width:640px),(max-height:560px){.bd-grid{grid-template-columns:repeat(auto-fill,minmax(124px,1fr));gap:7px}.bd-t{min-height:52px;padding:6px 7px 6px 6px}.bd-tx b{font-size:13px}}
@@ -6068,6 +6069,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   #spSheets .semp-sc{font-size:34px}
   #spSheets .semp-i{gap:4px}
 }
+/* (1.24.0, móvil) el antetítulo del brochazo («SALVAR EL SET», en tinta) asomaba por encima de la pintura y no se leía: más aire arriba;
+   en vertical, la gota del brochazo pisaba el objetivo de debajo: más hueco entre los dos */
+:root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_) #spSheets .semp-tk.sp-ticket{padding-top:16px;padding-bottom:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_) #spSheets .semp-tk.sp-ticket{padding-top:24px}
+:root.pv:not(#_):not(#_):not(#_):not(#_) #spSheets .semp{row-gap:28px}
 /* hoja final: el bloque «Situación» con el mejor de hoy (o la racha que sube) en dorado */
 #end .rc-sit .rc-l.up{color:var(--sp-gold);font-weight:800}
 /* ==== fin SPLAT · RETOS · SEMANA ==== */
@@ -6725,8 +6731,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu.mj:is(.has-now-mj,.has-cont-mj) .mj-side{padding-top:calc(var(--ph-gt) + 8px)}
 /* antetítulo «PRIMERA VEZ» / «PARTIDO A MEDIAS»: pastilla con fondo en el canto del billete (antes asomaba por encima, sin fondo) */
 :root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir){position:relative}
-:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir) .sp-tk .sp-k{position:absolute;z-index:2;top:-10px;left:58px;padding:2px 8px 1px;border-radius:6px 9px 7px 8px;background:var(--sp-ink);color:var(--sp-gold);
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir,#btnStartTut) .sp-tk .sp-k{position:absolute;z-index:2;top:-10px;left:58px;padding:2px 8px 1px;border-radius:6px 9px 7px 8px;background:var(--sp-ink);color:var(--sp-gold);
   font:800 var(--ph-micro)/1.15 var(--sp-ui);letter-spacing:.08em;transform:rotate(-2deg);box-shadow:0 0 0 2px var(--sp-cream)}
+/* (1.24.0: «Aprende a jugar» del billete Tutorial de la primera vez, la misma chapa que «Primera vez»: en tinta sobre el filo no se leía) */
 :root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir) .sp-tk .sp-t{font-size:var(--ph-head);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 :root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir,#btnCont) .sp-tk .sp-s{font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Carrera: un escudo de 40 (el del rival, que es el título), sin «en/vs»; título en una línea con «…» */
@@ -8016,6 +8023,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpPlay #btnCareer .sp-s{font-size:13px;-webkit-line-clamp:unset;display:block;overflow:visible}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpPlay #btnOnline .sp-chip{font-size:12px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .mp-head .sp-back{bottom:var(--pv-gb);left:var(--pv-g)}
+/* (1.24.0) el formato «2v2 | 6v6» va a la derecha del título: la pastilla DIRECTO, que es adorno, se va en Jugar (se pisaban) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu[data-page="play"] .live{display:none}
 
 /* ================= CABECERA COMPACTA de Partido rápido, Entreno y Online: ‹ redondo de 44 + título de 1 línea, sobre una franja de
    tinta que llega al notch (el marcador 3D del pabellón no se lee detrás) ================= */
@@ -8177,7 +8186,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook .sp-t{display:none}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook svg.sp-ic{width:24px;height:24px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs .tb-k{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs .tb-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;overflow:visible;padding:6px 0 4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs .tb-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;overflow:visible;padding:6px 4px 4px}   /* (1.24.0: 4 px a los lados: las pestañas giradas asomaban 3 px y la fila se medía como «no cabe») */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs .tab{position:relative;flex-direction:column;justify-content:center;gap:3px;min-width:0;width:auto;--sp-tbh:58px;height:58px;min-height:58px;padding:4px 2px;--sp-tbs:13px;font-size:13px;letter-spacing:.02em}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs .tab svg{display:block;width:20px;height:20px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs .tab .tb-t{white-space:nowrap;overflow:visible;text-overflow:clip}
@@ -8285,6 +8294,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-prev .ol-fx .sp-tk-main{padding-bottom:10px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-sels{flex:1 1 auto;min-height:0;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 -6px;padding:4px 8px 10px 4px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-tip{flex:none;margin:0;font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline :is(.ol-beta,.ol-beta2){font-size:12px}   /* (1.24.0: la pegatina «Beta» del 6v6 salía a 11,8) */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-retry{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:5px 12px;border-radius:8px 11px 8px 10px;background:rgba(255,244,220,.12);color:var(--sp-cream);font:700 13px/1.15 var(--sp-ui)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-retry::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--sp-gold);animation:olLive 1.8s ease-out infinite}
 /* (ronda final) < 380 px: «CONEXIÓN» se pegaba a «PRECISA (v1)»: rótulo arriba y ‹ valor › debajo */
@@ -8305,6 +8315,12 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-p .ar{font-size:12px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mt-chips i{font-size:12px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline :is(.ol-st,.ol-tip){font-size:max(13px,1em)}
+/* (1.24.0) sala de varios (2 y 6 contra 6): «Salir» 1/3 a la izquierda y la principal (Empezar / Listo / Sacar de la sala) 2/3 a la
+   derecha, en una fila; antes Salir iba a todo el ancho encima y parecía la acción principal */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-mx~.ol-bar2{flex-direction:row;align-items:stretch}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-mx~.ol-bar2>.sp-btn{flex:1 1 0;width:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-mx~.ol-bar2>.sp-btn:not(.sp-dock-l){flex-grow:2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-mx .mx-tx small{font-size:13px}
 /* ayuda: el texto se desplaza, Entendido abajo */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-help{flex:0 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-help .hp-box{flex:0 1 auto;min-height:0;margin:0}
@@ -8314,6 +8330,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-acts{display:flex;flex-direction:column;align-items:stretch;gap:12px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-acts>.sn-row{order:-1;display:flex;align-items:center;justify-content:space-between;gap:12px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-acts>.sp-patch{--sp-ph:64px}
+/* (1.24.0) calidad del 1r 6v6: «AUTO» se salía por arriba del parche (H) y la línea de debajo se cortaba (V): parche más alto, rótulo a
+   22-24 y la línea corta del móvil (ui.js perfHTML) hasta en 2 líneas */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #setNote .sn-perf .sn-acts>.sp-patch{--sp-ph:62px;--sp-pt:22px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-perf .sn-acts>.sp-patch{--sp-ph:72px;--sp-pt:24px}
+:root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-perf .sn-acts>.sp-patch .sp-s{font-size:13px;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip}
 
 /* ---- INSTALAR: hoja anclada abajo con velo y lo de detrás inert (install.js); ✕ dentro; los pasos en una columna (dibujo de 72 a la
    izquierda, texto a la derecha); Ahora no / Entendido abajo; DIRECTO fuera mientras está abierta ---- */
@@ -8460,6 +8481,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook :is(.lk-pick,.lk-ven){gap:6px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook :is(.lk-pick,.lk-ven) .sp-tab{min-width:44px;min-height:44px;padding:0 10px;--sp-tbs:13px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-sx{display:none}
+/* (1.24.0) los papeles («Bloqueador | Universal») y la sede no caben en una fila a < 380: los papeles abreviados de horizontal («Bloq.», «Univ.») */
+@media (max-width:379px){
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-rl{display:none}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-ra{display:inline}
+}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{flex:none;position:static;display:block;width:auto}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{width:auto;max-width:none;margin:0}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tb-row{display:flex;justify-content:space-between;gap:2px;padding:2px 4px 4px;overflow:visible;scrollbar-width:none;-webkit-mask:none;mask:none}
@@ -8601,6 +8627,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tm{flex:1 1 0;min-width:0}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-sc{font-size:clamp(40px,13vw,56px);line-height:1}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-sub{font-size:13px;white-space:normal}
+:root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) :is(#menu,#spSheets) .sem-it{white-space:nowrap}   /* (1.24.0) «Saca el rival» entero en su línea */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-ch{display:flex;flex-wrap:wrap;gap:6px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-ch .sp-chip{--sp-chs:12.5px;white-space:nowrap}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tries{display:flex;align-items:center;gap:8px;min-height:44px;padding-right:0}

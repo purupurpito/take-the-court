@@ -492,7 +492,9 @@
     h.appendChild(cat); h.appendChild(p);
     h.classList.toggle('sp-rm', reduced());
     h.hidden = false; RT.classList.add('sp-sh-on');   // (los avisos cortos bajan para no tapar la ✕)
-    var unInert = V ? inertBehind(h) : null;   // (vertical: lo de detrás, cabecera y pestañas incluidas, no se toca ni se enfoca)
+    // (vertical: lo de detrás, cabecera y pestañas incluidas, no se toca ni se enfoca; 1.24.0: en horizontal también, en el móvil:
+    //  los botones de la portada que asomaban detrás de la hoja —Novedades, Ajustes— se podían enfocar con la hoja abierta)
+    var unInert = mob() ? inertBehind(h) : null;
     decorate(p); more(body);
     var api = {
       el: p, body: body, open: true,

@@ -8793,7 +8793,9 @@
     return '<div class="sp-panel sn-sheet sn-perf"><div class="sn-txt"><p class="sp-k">6 contra 6</p><h2 class="sp-h" id="snH">Calidad de imagen</h2>' +
       '<p class="sn-t" id="snT">Con 12 jugadores en la pista, el 6 contra 6 pide más al aparato. Con menos calidad, va más fluido.</p>' +
       '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Imagen.</small></div>' +
-      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">Recomendada · se ajusta sola (ahora: ' + (nm[st] || 'media') + ')</small></span></button>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">' +
+      // (1.24.0, móvil: la frase de PC no cabía en el parche; escrita más corta a mano, sin «…»)
+      (phMob() ? 'Se ajusta sola · ahora, ' + (nm[st] || 'media') : 'Recomendada · se ajusta sola (ahora: ' + (nm[st] || 'media') + ')') + '</small></span></button>' +
       '<div class="sn-row">' + ['high', 'medium', 'low'].map(function (v, i) { return '<button type="button" class="sp-btn sp-sm ' + (i === 2 ? 'sp-cream' : 'sp-teal') + '" data-shape="' + (i + 2) + '" data-sn="q-' + v + '"><span class="sp-l"><span class="sp-t">' + lb(v) + '</span>' + now(v) + '</span></button>'; }).join('') + '</div></div></div>';
   }
   function perfNote(o, cb) {
