@@ -1297,6 +1297,32 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
       ok(r.length > 1000 && !/Champions Cup (VEC|Asia)/.test(r) && /Copa de Campeones VEC/.test(r) && /Copa de Campeones Asia/.test(r), 'guardado viejo: «Champions Cup VEC/Asia» pasa a «Copa de Campeones VEC/Asia» al cargar');
       mem['make-the-cut.career6'] = raw0; C._reset();
     }
+    // guardado viejo con los clubes y la liga polaca de antes del 25-nov-2026 (riesgo de marca): al cargar, nombres y siglas nuevos en
+    // los clubes, las ligas, el historial y el buzón; las siglas de los demás clubes no se tocan
+    {
+      const OLD = [['Rezovia', 'Wisłok Rzeszów', 'RES', 'WIS'], ['Volley Trento', 'Adige Trento', 'TRE', 'ADI'], ['Xeneize Vóley', 'Vuelta de Rocha Vóley', 'XEN', 'VDR'],
+        ['Stingz Aichi', 'Hachi Aichi', 'STZ', 'HAC'], ['Arabi Doha', 'Corniche Doha', 'ARB', 'CRN'], ['Edmonton Golden Pandas', 'Edmonton Pumas', 'EGP', 'EPU']];
+      const raw0 = mem['make-the-cut.career6'], o = JSON.parse(raw0);
+      ok(OLD.every(([, nw]) => o.clubs.some(k => k.nameBase === nw)), 'los clubes nuevos están en el guardado (' + OLD.map(x => x[1]).join(', ') + ')');
+      const shorts0 = o.clubs.filter(k => !OLD.some(x => x[1] === k.nameBase)).map(k => k.short).join();
+      o.clubs.forEach(k => { const x = OLD.find(r => r[1] === k.nameBase); if (x) { k.nameBase = x[0]; k.name = k.name.replace(x[1], x[0]); k.short = x[2]; } });
+      o.leagues.forEach(L => { if (L.id === 'PL1') { L.name = 'PlusPlus Liga'; L.short = 'PPL'; } if (L.id === 'PL2') { L.name = 'PlusPlus Liga 2'; L.short = 'PP2'; } });
+      o.history.push({ season: 0, club: 1, clubName: 'Pierogarnia Kiwka Rezovia', lid: 'PL1', lgShort: 'PPL', country: 'Polonia', pos: 1, pts: 30 });
+      o.inbox.push({ id: 9998, t: 'Oferta de Rezovia', b: 'Te quieren Xeneize Vóley y Edmonton Golden Pandas para la PlusPlus Liga 2', read: false });
+      mem['make-the-cut.career6'] = JSON.stringify(o); C._reset();
+      const c1 = H.get(), r = JSON.stringify(c1 || {});
+      ok(r.length > 1000 && !OLD.some(x => r.includes(x[0])) && !/PlusPlus/.test(r) && /Te quieren Vuelta de Rocha Vóley y Edmonton Pumas para la Liga Bursztynowa 2/.test(r),
+        'guardado viejo: los nombres de club y de liga pasan a los nuevos al cargar (también en el buzón)');
+      ok(OLD.every(([, nw, , sh]) => c1.clubs.some(k => k.nameBase === nw && k.short === sh)) && c1.leagues.find(L => L.id === 'PL1').short === 'LBU' && c1.leagues.find(L => L.id === 'PL2').short === 'LB2' &&
+        c1.history.some(h => h.season === 0 && h.lgShort === 'LBU' && h.clubName === 'Pierogarnia Kiwka Wisłok Rzeszów'), 'guardado viejo: siglas nuevas en los clubes, las ligas y el historial');
+      ok(c1.clubs.filter(k => !OLD.some(x => x[1] === k.nameBase)).map(k => k.short).join() === shorts0, 'guardado viejo: las siglas de los demás clubes no cambian');
+      // Salón de la Fama con un club de antes
+      const lk = 'make-the-cut.legends', lg0 = mem[lk];
+      mem[lk] = JSON.stringify([{ name: 'Vieja', num: 7, score: 10, club: 'Seguros Tie-Break Dinamika Kazan', mode: 'hall', date: 1 }]);
+      ok(VB.CareerLife.legends()[0].club === 'Seguros Tie-Break Kaban Kazan', 'Salón de la Fama: el club de una ficha vieja se enseña con el nombre nuevo');
+      if (lg0 === undefined) delete mem[lk]; else mem[lk] = lg0;
+      mem['make-the-cut.career6'] = raw0; C._reset();
+    }
     // empezar en cada país: ofertas de su 2ª (o de su 1ª si no tiene)
     const bad = [];
     cos.forEach(x => {
