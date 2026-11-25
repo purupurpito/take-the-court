@@ -220,6 +220,10 @@
       // esto se vuelve a escribir (beat() solo manda los campos del parche; seats entero solo lo escribe el anfitrión al sacar a
       // alguien, y entonces cada plaza lleva el nombre tapado, que también vale)
       var F = VB.NameFilter;
+      // (name0 / gname0 / n0: el nombre tal cual llegó, solo para «Denunciar nombre» de js/report.js; nunca se enseña ni se reescribe)
+      if (typeof d.name === 'string') d.name0 = d.name;
+      if (typeof d.gname === 'string') d.gname0 = d.gname;
+      if (d.multi) for (var s0 in d.seats) { var v0 = d.seats[s0]; if (v0 && typeof v0 === 'object' && typeof v0.n === 'string') v0.n0 = v0.n; }
       if (F) {
         if (typeof d.name === 'string') d.name = F.shown(d.name, d.host);
         if (typeof d.gname === 'string' && d.gname) d.gname = F.shown(d.gname, d.guest);
@@ -443,6 +447,12 @@
           if (e.code === 'denied' && f.ban) return commitRoom(me.uid, {}, [seatPath(uid)], true).then(function () { return api.get(me.uid); }, gone);
           return gone(e);
         });
+      },
+      /** 1v1: el anfitrión devuelve su sala a 'open' sin invitado (js/report.js: alguien que tiene bloqueado ha entrado). null si ya no existe. */
+      unguest: function () {
+        if (!mine || !me) return Promise.resolve(null);
+        return commitRoom(me.uid, { guest: '', gname: '', state: 'open' }, ['guest', 'gname', 'state'], true).then(function () { mine.guest = ''; mine.gname = ''; mine.state = 'open'; return api.get(me.uid); },
+          function (e) { if (e.code === 'gone' || e.code === 'conflict' || /NOT_FOUND|no entity/i.test(e.message)) { mine = null; return null; } throw e; });
       },
       /** Al cerrar o recargar la pestaña (pagehide): lo mismo que close() (anfitrión) o leave(id) (invitado), sin esperar respuesta
        *  (fetch keepalive con el último token: no hay tiempo de renovarlo). Si el token ya no vale, la sala caduca sola (LIVE_MS). */

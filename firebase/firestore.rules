@@ -1,5 +1,6 @@
 rules_version = '2';
-// DESPLEGADO el 24-nov-2026 tal cual (online v3 de salas de varios, feedback y netlogs con exp). Ojo: hasta fusionar online-multi
+// DESPLEGADO el 24-nov-2026 tal cual (online v3 de salas de varios, feedback y netlogs con exp), SALVO repOk de feedback (denuncias,
+// 25-nov-2026, rama legal): eso está SIN DESPLEGAR. Ojo: hasta fusionar online-multi
 // en main, las reglas de main NO llevan el esquema v3: no despliegues las de main o quitarías las salas de varios.
 // Make the Cut: progreso de cada cuenta. Sin cifrar; solo lo lee y lo cambia su dueño.
 // users/{uid}/saves/{key}: data = JSON en texto (≤ 400 000 caracteres; js/account.js no sube más de 390 000); updatedAt = ms del dispositivo.
@@ -246,7 +247,26 @@ service cloud.firestore {
           && d.t == request.time
           && d.state == 'nuevo';
       }
-      allow create: if id.matches('[A-Za-z0-9]{16,32}') && fbOk(request.resource.data);
+      // DENUNCIAS (auditoría legal, 25-nov-2026; js/report.js, «Denunciar nombre»; SIN DESPLEGAR: hasta desplegarlas, la denuncia da 403 y
+      // el juego dice «No se ha podido enviar»). Aditivo: las sugerencias y bugs de arriba no cambian. kind 'report' y SOLO con sesión:
+      //   uid (quien denuncia = su cuenta), ru (uid denunciado, 1-128, no el suyo), rn (su nombre tal cual llegó, ≤ 40), room (código de
+      //   la sala, ≤ 12), ver (≤ 20), t (= hora del servidor), state 'nuevo' y exp (timestamp en el futuro y como mucho ahora + 200 días;
+      //   el cliente manda + 180: la borra una política TTL sobre feedback.exp, que hay que activar como la de netlogs). Lee y cambia el
+      //   estado solo admin(), con las mismas reglas de abajo.
+      function repOk(d) {
+        return d.keys().hasOnly(['kind', 'uid', 'ru', 'rn', 'room', 'ver', 't', 'state', 'exp'])
+          && d.keys().hasAll(['kind', 'uid', 'ru', 'rn', 'room', 'ver', 't', 'state', 'exp'])
+          && d.kind == 'report'
+          && request.auth != null && d.uid == request.auth.uid
+          && d.ru is string && d.ru.size() >= 1 && d.ru.size() <= 128 && d.ru != request.auth.uid
+          && d.rn is string && d.rn.size() <= 40
+          && d.room is string && d.room.size() <= 12
+          && d.ver is string && d.ver.size() <= 20
+          && d.t == request.time
+          && d.state == 'nuevo'
+          && d.exp is timestamp && d.exp > request.time && d.exp <= request.time + duration.value(200, 'd');
+      }
+      allow create: if id.matches('[A-Za-z0-9]{16,32}') && (fbOk(request.resource.data) || repOk(request.resource.data));
       allow get, list: if admin();
       allow update: if admin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'note'])
