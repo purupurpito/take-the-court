@@ -3,7 +3,7 @@
  "competitions": [
   {
    "real": "CEV Champions League (hombres y mujeres)",
-   "name": "Champions Cup VEC",
+   "name": "Copa de Campeones VEC",
    "short": "CCV",
    "note": "Libre: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. La…",
    "doubt": null,
@@ -403,9 +403,9 @@
   },
   {
    "real": "AVC Champions League (antes Asian Club Championship)",
-   "name": "Champions Cup Asia",
+   "name": "Copa de Campeones Asia",
    "short": "CCA",
-   "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Champions Cup Asia\" volleyball» 11-nov-2026: sin coincidencias.]",
+   "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones Asia\" volleyball» 11-nov-2026: sin coincidencias.]",
    "doubt": null,
    "searched": false
   },

@@ -1864,9 +1864,9 @@
   "competitions": [
     {
       "real": "CEV Champions League (hombres y mujeres)",
-      "name": "Champions Cup VEC",
+      "name": "Copa de Campeones VEC",
       "short": "CCV",
-      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Champions Cup VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. La que propuso Ferran («Champions Cup») con «VEC» detrás: la Champions de la CEV se llamó oficialmente «CEV (European) Champions Cup» hasta 2000, así que «Champions Cup» a secas se queda demasiado pegado. «VEC» es CEV del revés.",
+      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Copa de Campeones VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. La que propuso Ferran («Champions Cup») con «VEC» detrás: la Champions de la CEV se llamó oficialmente «CEV (European) Champions Cup» hasta 2000, así que «Champions Cup» a secas se queda demasiado pegado. «VEC» es CEV del revés.",
       "kind": "intl",
       "rank": 1
     },

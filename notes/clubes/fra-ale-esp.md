@@ -191,7 +191,7 @@ Reparto: 6 de la liga de hombres y 6 de la de mujeres.
 | Supercoupe de France / Super Coupe LNV | **Supercoupe Smash** | SCS | Antes «Super Smash», que es el nombre oficial de la liga T20 de críquet de Nueva Zelanda: cambiado. Sin búsqueda web del nombre nuevo. |
 | DVV-Pokal (las dos) | **Bundespokal Volley** | BPV | Copa nacional única de Alemania. |
 | Supercup de la VBL | **Hyper-Cup** | HYC | Opcional. |
-| CEV Champions League (las dos) | **Champions Cup VEC** | CCV | Unificado con elite-europa.json (allí ya se llama «Champions Cup VEC», CCV). |
+| CEV Champions League (las dos) | **Copa de Campeones VEC** | CCV | Unificado con elite-europa.json (allí ya se llama «Copa de Campeones VEC», CCV). |
 | CEV Cup (las dos) | **Copa VEC** | CVC | Unificado con elite-europa.json (sigla CVC). |
 | CEV Challenge Cup (las dos) | **Challenge VEC** | CHV | Unificado con elite-europa.json («Challenge VEC», CHV). |
 
@@ -213,7 +213,7 @@ Repaso adversarial del 11-nov-2026. **Aviso:** el cupo de búsquedas web de la s
 **Cambios hechos**
 
 - **Competiciones, unificadas con `elite-europa.json`:**
-  - «Champions Cup» (CHC) pasa a **Champions Cup VEC** (CCV).
+  - «Champions Cup» (CHC) pasa a **Copa de Campeones VEC** (CCV).
   - La Copa VEC cambia de sigla: de VEC a **CVC**.
   - «Challenge Trophy» (CHT) pasa a **Challenge VEC** (CHV).
 - **«Super Smash» pasa a «Supercoupe Smash» (SCS).** «Super Smash» es el nombre oficial de la liga T20 de críquet de Nueva Zelanda, así que incumplía la regla de no coincidir con una competición real. El nombre nuevo no está buscado.

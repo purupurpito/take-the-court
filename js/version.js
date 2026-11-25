@@ -575,6 +575,6 @@
       threeLine: 'three.js: Copyright © 2010-2023 Three.js Authors. Licencia MIT.',
       ofl: OFL
     },
-    note: 'Clubes, jugadores y patrocinadores son inventados. Cualquier parecido es casualidad.'
+    note: 'Clubes, jugadores, competiciones, árbitros y patrocinadores son ficticios. Cualquier parecido con personas, clubes o competiciones reales es pura coincidencia.'
   };
 })();
