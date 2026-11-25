@@ -42,7 +42,10 @@
   function cleanName(s) {
     s = String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>"'`]/g, '').replace(/\s+/g, ' ').trim();
     if (s.indexOf('@') >= 0) s = '';   // (nunca algo con pinta de correo)
-    return s.slice(0, 16) || 'Rival';
+    s = s.slice(0, 16);
+    var F = VB.NameFilter;   // (con insultos, también los guardados de antes: «Jugador NNNN», js/namefilter.js)
+    if (s && F) s = F.shown(s);
+    return s || 'Rival';
   }
   /** Texto corto de una lista de nombres (compañeros o rivales del online de varios): «Ana», «Ana y Luis», «Ana +3». */
   function listTxt(L) {

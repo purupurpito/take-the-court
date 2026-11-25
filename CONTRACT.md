@@ -45,7 +45,7 @@ apagado, `reset(g, {six: true})` lo enciende solo para las pruebas) y las prueba
 `tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
 Guardados nuevos: `make-the-cut.retos` (v1) y `make-the-cut.profile` (v1) sincronizan con `S4_SYNC = true` en account.js (encendido el 21-nov-2026;
 con `false` ellos, `make-the-cut.career6`, `make-the-cut.career.mode` (`cmode`) y `make-the-cut.legends` irían a `TRACK`, hora sin subir).
-`make-the-cut.semana` (El mismo 22-24), `make-the-cut.role6` y `make-the-cut.nick` son del aparato y tampoco van a `DOCS` ni a `TRACK`. `make-the-cut.retostab` (pestaña de Retos),
+`make-the-cut.semana` (El mismo 22-24), `make-the-cut.role6`, `make-the-cut.nick`, `make-the-cut.nickv`, `make-the-cut.netlogexp` y `make-the-cut.anon` (número del nombre anónimo, 24-nov-2026) son del aparato y tampoco van a `DOCS` ni a `TRACK`. `make-the-cut.retostab` (pestaña de Retos),
 `make-the-cut.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `make-the-cut.career(6).prev` (la Carrera local
 que pierde ante la de la cuenta) NUNCA van a `DOCS` ni a `TRACK`. `record.byD` (`{easy|normal|hard|expert:[g,p]}`) va dentro de
 `make-the-cut.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `make-the-cut.settings`. Dentro de las Carreras (sin
@@ -81,7 +81,7 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 ## 2. Restricciones técnicas
 
 - Scripts clásicos (`<script src>`), SIN módulos ES, sin import/export, sin bundler. Un único espacio global `window.VB`.
-- Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/splat.js` (SPLAT, 17-nov-2026) → `js/account.js` → `js/sim.js` → `js/ai.js` →
+- Orden de carga (index.html, sprint 2-4): `vendor/three/three.min.js` (0.149.0; antes de cdnjs) → `js/version.js` → `js/splat.js` (SPLAT, 17-nov-2026) → (`js/update.js` → `js/sw-reg.js`) → `js/account.js` → `js/sim.js` → `js/ai.js` →
   `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/senas.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
   `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/resume.js` (retomar el partido) → `js/main.js` (main arranca).
@@ -89,10 +89,43 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
   `tools/build-pages.js` falla si `CHANGELOG[0].v !== VERSION`, si falta `pages/og.png` o si no hay exactamente un `rel="icon"`.
-- Three.js: `https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js` (verificado 200; r149 es el último sin aviso de deprecación del build UMD).
+- **Páginas legales (Google Play, 24-nov-2026):** `pages/privacidad.html` y `pages/borrar-cuenta.html` (es + en en `#en`) se publican
+  junto al juego. Con `STRICT_POLICY=1`, build-pages falla si faltan o si quedan huecos `Ferran Sanchís Armesto` / `help@takethecourt.com`.
+  borrar-cuenta.html repite las llamadas de `deleteAccount()` (js/account.js): si cambian `DOCS` o el borrado, cambia también la
+  página (`tools/policytest.js` las compara). Orden del borrado (24-nov-2026): entrada de 5 min como mucho (auth_time) antes de
+  borrar nada; si falla la lista o algún DELETE (partidas y sala propia), no se borra la cuenta (error 'partial'). account.js deja de
+  subir si otra pestaña quita la sesión (evento `storage` y comprobación en push()). Lo que diga el código sobre datos (netlog, online, cuenta) tiene que cuadrar con la
+  política: ver notes/playstore/privacidad.md. Ajustes › Info › «Privacidad» (`data-go="priv"`) la abre en otra pestaña.
+- **App de Android (TWA, 24-nov-2026):** `android/` es el proyecto de Bubblewrap que abre https://takethecourt.com a pantalla completa
+  (paquete `com.takethecourt.app`). Solo se edita `android/twa-manifest.json` (luego `bubblewrap update`); `display`, `orientation` y
+  colores tienen que ser los del manifest de build-pages. `pages/.well-known/assetlinks.json` lleva el mismo paquete y las huellas
+  SHA-256 (huecos hasta que existan las claves). Las claves nunca en el repo. Prueba: `node tools/twatest.js`; pasos: notes/playstore/android.md.
+  Icono adaptable: `pages/icon-maskable.png` = `notes/playstore/graficos/icono-512.png`, en el manifest de la web con `purpose: 'maskable'`.
+- **Nombres y caducidad de los informes (Google Play, 24-nov-2026; notes/net.md «Caducidad de los informes» y «Nombres»):**
+  `js/namefilter.js` (`VB.NameFilter`, de **net**, puro; index.html lo carga tras account.js): nombre por defecto «Jugador NNNN»
+  (`make-the-cut.anon`, del aparato) en vez del personaje o el usuario; filtro básico de palabras `bad()` al elegir tu nombre y
+  `shown(nombre, uid)` al enseñar los de otros (netroom `room()` con las plazas `seats.<uid>.n` de las salas de varios, `cleanName`
+  de net.js/netfluid.js/nethost.js/career-coop.js/netrec.js/semana.js y `theirName` del lobby para todo nombre que llega de otro:
+  sala, «pre», plazas, `lb-hi`, `lb`, `go`, vuelta; tu nombre al mandarlo, `myName()`/`ownName()`: apodo válido o «Jugador NNNN»). Prueba: `node tools/nametest.js`. `js/netlog.js` manda `exp` = ahora + 90 días (TTL de Firestore que
+  activa el responsable); con las reglas de antes, 403 y reintento sin `exp`; al cerrar la pestaña solo con `exp` si se sabe que se
+  acepta (`EXP_RULES`, true desde 1.23.0, o `make-the-cut.netlogexp`, del aparato). El prefail (fallo antes del partido) lleva
+  `exp` igual. Reglas: `exp` opcional, en el futuro y como mucho +100 días (desplegadas el 24-nov-2026). Los informes los baja cada
+  día una tarea programada al PC del responsable y los borra de Firestore; las copias locales se borran a los 90 días. `VB.NameFilter.migrateNick()`: un apodo guardado igual al personaje o al usuario de la cuenta (lo dejaba «Guardar» en
+  1.22.0 sin tocar nada) se borra una vez (marca `make-the-cut.nickv`, del aparato). Prueba: `node tools/netlogtest.js` (emulador con las reglas de origin/main y las de este árbol).
+- Three.js: `vendor/three/three.min.js` (npm `three@0.149.0`, byte a byte el que servía cdnjs; vendor/README.md). r149 es el último sin aviso de deprecación del build UMD.
+- **Sin red (Google Play, 24-nov-2026; notes/offline.md):** three.js y las fuentes en `vendor/` (fuentes: `vendor/fonts/fonts.css`, los woff2 de Google
+  Fonts con sus OFL). build-pages copia `vendor/` y escribe `_site/sw.js` desde la plantilla `sw.js` con la lista de archivos y su sha-256
+  (caché `ttc-<VERSION>-<hash>`); `js/sw-reg.js` lo registra solo en https://takethecourt.com y localhost (nunca file://, ni el puente).
+  Sin skipWaiting al instalar: «Reiniciar» de js/update.js pasa por `VB.SW.apply()`; si el que espera es el de la versión que ya corre
+  la página (`window.__vbBuild.sw` = su hash, se lo pregunta con `{type:'hash'}`), sw-reg.js lo activa sin recargar. El hash del index
+  se calcula sin el `<script>window.__vbBuild=…</script>` (sha/fecha): mismos archivos → mismo sw.js. Los archivos no se pueden
+  reescribir por el camino (Cloudflare en solo DNS). El service worker solo contesta GET del mismo origen
+  que están en la lista (páginas: red primero; resto: caché); version.json, Firebase/Google, netlogs y otros orígenes pasan sin tocar.
+  Un archivo nuevo que el juego cargue fuera del index (fetch, img, script dinámico) NO entra en la lista solo: añadirlo en build-pages.
+  Prueba: `node tools/offlinetest.js`.
   API r149: `outputEncoding`/`sRGBEncoding`, `CapsuleGeometry` disponible, `THREE.ColorManagement.legacyMode = false` (lo pone main.js:
   los hex de materiales son sRGB; **toda textura de color de canvas debe llevar `tex.encoding = THREE.sRGBEncoding`**).
-- Cero peticiones de red en tiempo de ejecución salvo three.js y Google Fonts. Texturas procedurales (canvas) o data URIs.
+- Cero peticiones a otras webs para arrancar (three.js y las fuentes salen de `vendor/` desde el 24-nov-2026). Texturas procedurales (canvas) o data URIs.
 - `index.html` sin `<!doctype>/<html>/<head>/<body>`; empieza por `<title>Take the Court</title>`. Debe funcionar en `file://` y como Artifact.
 - Sim (`sim.js`, `ai.js`) pura: sin DOM, sin THREE, sin `window` salvo vía el objeto VB
   (`var root = (typeof window!=='undefined')?window:globalThis; var VB = root.VB = root.VB || {}`).
@@ -151,7 +184,7 @@ main.js convierte con `VB.CameraRig.getBasis()` = `{fx, fy, rx, ry}` (adelante y
 | `cpuBusy` | fracción ocupada del hilo principal en la ventana: máx.(JS del juego / intervalo, suma de tareas largas / 2 s; PerformanceObserver `longtask`). Decide si la escala de render ayuda |
 | `fixShadowDepth()` | pone un `customDepthMaterial` compartido por variante a `SkinnedMesh`/`InstancedMesh` (evita recompilar el material de profundidad 4 veces por frame). Llamarlo si se crean casters nuevos después de `onGameStart`/`setQuality` |
 | `bootInfo` | tiempos del arranque por módulo en ms (`{t0, renderer, yield, Arena, FX, …, quality, end}`; UI-07) |
-| `window.__vbFontFaces` | lo deja el script en línea de index.html: número de caras de Google Fonts cargadas DE VERDAD (0 si falla la red). Para comprobar fuentes, usar esto o buscar en `document.fonts` una cara con `status === 'loaded'`; nunca `document.fonts.check()` (da true sin ninguna cara) |
+| `window.__vbFontFaces` | lo deja el script en línea de index.html: número de caras de `vendor/fonts` (antes Google Fonts) cargadas DE VERDAD (0 si fallan). Para comprobar fuentes, usar esto o buscar en `document.fonts` una cara con `status === 'loaded'`; nunca `document.fonts.check()` (da true sin ninguna cara) |
 
 **Sprint 5 en `VB.ctx`** (main.js): `reduceMotion` (booleano, propiedad PROPIA de ctx: `settings.lessMotion` 'on'/'off', o con 'auto'
 `prefers-reduced-motion`; lo leen ui.js `rm()`, camera.js y fx.js), `renderScale` (escala de render vigente), `actions.resetSettings(keys[])`
@@ -406,7 +439,7 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   memPair/BcLink más `offer()/answer(sdp)/accept(sdp)`, `state`, `onstate`, `onclose`, `info()` (solo el TIPO de par, nunca la IP).
 - `js/netlobby.js` → `VB.NetLobby`: la página Online (`open(host)`, `leave()`, `back()`, `side(el, d)`, `focus()`, `menuOn()`), la
   conexión (señalización, «pre» con nombre y atributos del invitado, `ctx.actions.startOnline`) y la renegociación si la conexión se cae
-  en pleno partido; en `pagehide` suelta la sala o el hueco. Guardados por aparato (nunca a `DOCS`): `make-the-cut.nick` (tu nombre en el online) y `make-the-cut.netroom` (última
+  en pleno partido; en `pagehide` suelta la sala o el hueco. Guardados por aparato (nunca a `DOCS`): `make-the-cut.nick` (tu nombre en el online, solo si lo escribes), `make-the-cut.anon` (número de «Jugador NNNN», js/namefilter.js) y `make-the-cut.netroom` (última
   configuración de sala). `MENU_ON` (`true` desde la fase 4: la tarjeta Online de Jugar sale para todo el mundo; con `false` solo con `?online=1`).
 - Toques en ficheros de **ui_main** hechos por esta fase (pedidos por el orquestador; mínimos): `index.html` (scripts nuevos, tarjeta
   `#btnOnline` oculta en Jugar, página `#mpOnline` con `.ol-body`), `js/ui.js` (página `'online'` en `pageEl/pageFocus/setPage/menuGo`,

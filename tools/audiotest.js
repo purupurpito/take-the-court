@@ -1996,6 +1996,8 @@ function enduiRoot() {
   fs.rmSync(dst, { recursive: true, force: true }); fs.mkdirSync(js, { recursive: true });
   fs.copyFileSync(path.join(ROOT, 'index.html'), path.join(dst, 'index.html'));
   for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (/\.js$/.test(f)) fs.copyFileSync(path.join(ROOT, 'js', f), path.join(js, f));
+  // (desde la rama playstore, three.js y las fuentes van en vendor/ y no en un CDN: sin copiarlo, la copia arranca sin THREE)
+  if (fs.existsSync(path.join(ROOT, 'vendor'))) fs.cpSync(path.join(ROOT, 'vendor'), path.join(dst, 'vendor'), { recursive: true });
   fs.copyFileSync(FILE, path.join(js, 'audio.js'));
   let ui = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8').replace(/\r\n/g, '\n');
   const wired = ui.indexOf("VB.Audio.ui('count'") >= 0, missing = [];

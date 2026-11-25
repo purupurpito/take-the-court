@@ -6463,7 +6463,12 @@
     if (g === 'ctl') openPanel('ctl', { tab: device() });
     else if (g === 'news' || g === 'credits') openAbout(g);
     else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
+    else if (g === 'priv') openPrivacy();
   }
+  /** Google Play (24-nov-2026): «Privacidad» abre la política (pages/privacidad.html) en otra pestaña. En Pages (window.__vbBuild, lo pone
+   *  tools/build-pages.js) está al lado de index.html; en local (file://, Artifact) se abre la publicada en takethecourt.com. */
+  function privacyUrl() { return window.__vbBuild ? 'privacidad.html' : 'https://takethecourt.com/privacidad.html'; }
+  function openPrivacy() { try { window.open(privacyUrl(), '_blank', 'noopener'); } catch (e) { } }
   /** Nombre de la sede (arena.js: ajuste `arena` o ?map=): Palau del Mar / Platja Llarga. */
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }
   /** Pone el nombre de la sede en los textos fijos del HTML (antetítulo del menú, tarjeta de presentación, cortinilla,

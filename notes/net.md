@@ -301,9 +301,10 @@ Las huellas de siempre no cambian (no se toca `sim.js` ni `net.js`).
   Empieza el partido…». Si no conectan en 30 s: «No se ha podido conectar directamente con <nombre>: vuestras redes no lo permiten.
   Probad otra vez o desde otra red.» (el anfitrión reabre su sala; el invitado vuelve a la lista). «Salir de la sala» / Esc la cierran.
   Enlace directo: `?sala=CÓDIGO` abre Online y entra en esa sala.
-- **Nombre** (decisión 6): `make-the-cut.nick` si lo has cambiado («Tu nombre», 2-16, sin controles ni `<`, `>`, comillas; nunca con @); si
-  no, el nombre de tu jugador de la Carrera activa; si no, el usuario de una cuenta «usuario y contraseña»; si no, «Jugador 1234» (del
-  uid). Nunca el correo (`netInfo()` no lo da). Es lo único que el rival ve de ti: en la lista, en la sala, en el HUD y en la flechita.
+- **Nombre** (decisión 6; cambiado el 24-nov-2026, ver «Nombres: anónimo por defecto y filtro»): `make-the-cut.nick` si lo has escrito
+  («Tu nombre», 2-16, sin controles ni `<`, `>`, comillas; nunca con @; sin insultos); si no, «Jugador NNNN», el mismo en el aparato
+  (`make-the-cut.anon`). ~~el nombre de tu jugador de la Carrera activa; el usuario de una cuenta «usuario y contraseña»~~ ya no.
+  Nunca el correo (`netInfo()` no lo da). Es lo único que el rival ve de ti: en la lista, en la sala, en el HUD y en la flechita.
 - **Atributos** (decisión 3): cada uno juega con los de SU jugador de la Carrera activa (`VB.Career.mode()` → `player.st` e
   `VB.Badges.forPlayer`), sin la fatiga ni la química de la Carrera; sin Carrera, los de su n.º 1 del escuadrón de Partido rápido
   (`VB.Prog.attrs()[0][0]`, `VB.Badges.forSquad()[0][0]`); si tampoco, neutros. «Igualado»: `even: true` (neutros y sin insignias).
@@ -1239,7 +1240,8 @@ Ferran: «hay gente probando el online; pon logs para comprobar cómo van las pa
 con subidas a 150»), y «lo primordial es el mejor ping; no me preocupan las trampas, pon cosas client-based».
 
 - **Durante el partido no sale nada nuevo por la red.** `js/netlog.js` junta el informe en memoria y lo guarda UNA vez al acabar (o al
-  cerrar la pestaña, con keepalive) en `netlogs/{uid}_{id}` = `{uid, ver, t, j}` (j = JSON). El partido ya era P2P (WebRTC con STUN,
+  cerrar la pestaña, con keepalive) en `netlogs/{uid}_{id}` = `{uid, ver, t, j}` (j = JSON; desde el 24-nov-2026 también `exp`, ver
+  «Caducidad de los informes»). El partido ya era P2P (WebRTC con STUN,
   sin servidor en medio; Firestore solo en el lobby y la señalización).
 - **Ventanas de 10 s:** ping de la app (pings de control por el canal fiable, procesados en frames: suma un frame de espera de cada lado,
   los tirones de las dos máquinas y las retransmisiones) y ping de la red (WebRTC `currentRoundTripTime`), [mín, media, p95, máx]; fps,
@@ -1579,3 +1581,58 @@ Detalle, medidas y antes/después: notes/online-multi-requests.md («Revisión»
 Pendiente: prueba en teléfonos de verdad (anfitrión de 6v6 en móvil; rollback de Precisa-N en móvil; la vuelta tras recargar con el
 móvil matando la pestaña) y en redes de verdad (4G/5G, wifi de casa con NAT, redes de empresa); TURN (sin él, una plaza que no conecta
 la lleva la IA); migración del anfitrión (si se va, el partido acaba y no cuenta); Carrera de pista en cooperativo.
+
+## Caducidad de los informes (Google Play, 24-nov-2026)
+Para poder decir en la política «los informes de red se borran a los 90 días» (notes/playstore/README.md, «Decisiones» 3).
+
+- **Cliente** (`js/netlog.js`): cada informe lleva `exp` = ahora + 90 días (`timestampValue`, `KEEP_MS`). Si la escritura da 403 con
+  `exp` (las reglas desplegadas hasta ahora solo admiten `{uid, ver, t, j}`), se repite UNA vez sin `exp` y el resto de la página va
+  sin `exp` (`noExp`, hasta recargar). Así los informes se siguen guardando antes de desplegar las reglas nuevas.
+  - **Al cerrar la pestaña** (`pagehide`, keepalive) no hay reintento: la página ya no existe cuando llega el 403. Por eso ahí solo va
+    `exp` si se sabe que las reglas lo aceptan: `EXP_RULES = true` (desde 1.23.0: reglas desplegadas el 24-nov-2026) o un informe con `exp` ya guardado en este aparato (`make-the-cut.netlogexp` = '1', del aparato; un 403 con `exp` la
+    borra). Si no, va sin `exp` (lo aceptan las dos reglas): se guarda, pero sin caducidad.
+- **Reglas** (`firebase/firestore.rules`, bloque netlogs, DESPLEGADAS el 24-nov-2026): `exp` opcional; si está, timestamp en el futuro y como
+  mucho ahora + 100 días (un reloj atrasado da una caducidad antes; nunca más de 100 días). Los clientes de antes (sin `exp`) siguen
+  funcionando. Cuando ya no queden clientes 1.22.0, hacer `exp` obligatorio (`hasAll` con `'exp'`).
+- **Fallo antes del partido** (prefail, `put()` de js/netlog.js): lleva `exp` igual que el informe del partido y el mismo reintento
+  sin `exp` con un 403.
+- **Desde el 24-nov-2026** una tarea programada baja cada día los netlogs al PC del responsable y los borra de Firestore; las copias
+  locales se borran a los 90 días (la página de privacidad lo dice). El TTL queda como red de seguridad.
+- **Informes sin `exp` después de desplegar** (no los borra el TTL): los de clientes 1.22.0 aún en caché, los de un aparato con el
+  reloj adelantado más de 10 días (403 → reintento sin `exp`) y el primer informe cerrado con la pestaña antes de saber nada (hasta
+  `EXP_RULES = true`). Borrarlos a mano de vez en cuando (visor `netlogs.html`: los que no tienen `exp` y tienen más de 90 días).
+- **Política TTL** (la activa el responsable; no se puede desde las reglas ni desde el cliente):
+  `gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`
+  o en la Consola: Firestore › Time-to-live (TTL) › Crear política › grupo `netlogs`, campo `exp`. Google borra los documentos
+  caducados normalmente en las 24 h siguientes (sin garantía exacta). **Comprobar** si el TTL está disponible en el plan Spark
+  (gratis): no lo sé seguro. Los borrados del TTL cuentan como borrados de documentos en la cuota.
+- **Informes de antes**: no llevan `exp` y el TTL no los toca. Borrarlos a mano antes de publicar las páginas que dicen «90 días».
+- **Orden**: mejor las reglas ANTES que la web. Con la web primero tampoco se pierde nada (el reintento y, al cerrar la pestaña, el
+  envío sin `exp`), pero salen más informes sin caducidad. El TTL y el borrado de los viejos, antes de publicar las páginas.
+- Prueba: `node tools/netlogtest.js` (unidad: `exp`, reintento y memoria; emulador: reglas de origin/main y de este árbol, con el
+  cliente de verdad en las dos).
+
+## Nombres: anónimo por defecto y filtro (Google Play, 24-nov-2026)
+`js/namefilter.js` (`VB.NameFilter`, puro; index.html lo carga tras account.js y antes de net.js).
+
+- **Por defecto «Jugador NNNN»**, el mismo en el aparato (`make-the-cut.anon`, del aparato: nunca a `DOCS`). Ya no el nombre del
+  personaje de la Carrera ni el usuario de la cuenta. Otro nombre solo si lo escribes en «Tu nombre en el online»
+  (`make-the-cut.nick`; los guardados se respetan). El campo empieza con lo que escribiste y enseña el anónimo de fondo; guardarlo
+  vacío vuelve al anónimo. La situación de la semana usa el mismo: «Jugador_NNNN» (antes «Jugador_» y 3 letras al azar).
+- **Filtro** `bad(nombre)`: lista corta (español, catalán, inglés). Normaliza tildes (la ñ se queda: «cono» no es «coño»), l·l,
+  números como letras, letras repetidas, separadores («p.u.t.a», «pu-ta») y palabras pegadas en mayúsculas. Las palabras que son
+  también nombres o palabras normales van por palabra entera (TOK); las inequívocas también dentro de otras (SUB); en parejas o
+  tríos de palabras, solo si empiezan por una inequívoca («Paco Jones» no salta).
+  - Al escribir tu nombre: «Ese nombre no vale: elige otro.» Un apodo guardado de antes con insultos no se usa (sale el anónimo).
+  - Al enseñar nombres de otros, `shown(nombre, uid)` → «Jugador NNNN» (número del uid): salas (`js/netroom.js` `room()`, solo al
+    leer), saludo (`cleanName` de `js/net.js` y `js/netfluid.js`), «pre» y vuelta tras recargar (`theirName` en js/netlobby.js),
+    récord online (`js/netrec.js`, también lo guardado) y enlace de la semana (`js/semana.js`). El informe de red guarda los
+    nombres ya tapados.
+  - Online de varios (fusión con 1.23.0): las plazas de la sala (`seats.<uid>.n`, en `room()` con el número de su uid), todo lo que
+    llega por el lobby de varios (`theirName`: oferta a cada plaza, `lb-hi`, la lista `lb` del anfitrión, `go`, vuelta tras recargar),
+    el 6v6 (`cleanName` de js/nethost.js: saludo de cada invitado y `names` del anfitrión), la Carrera coop (`cleanName` de
+    js/career-coop.js y el nombre del anfitrión en la vista del invitado) y Precisa-N (`cleanName` de js/net.js). Tu nombre al
+    mandarlo: `myName()` o `ownName(n)` (el que te pasen si vale; si no, `myName()`).
+  - Básico: no entiende contexto ni otros alfabetos. Las reglas de Firestore no lo comprueban (no hay servidor de juego).
+- Prueba: `node tools/nametest.js` (102 insultos escritos de muchas formas; 413 nombres, apellidos y palabras normales, con
+  variantes, y unas 20 000 parejas que no deben saltar; nombre anónimo; los sitios por donde pasan los nombres).

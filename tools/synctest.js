@@ -85,8 +85,8 @@ const S4 = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6
     ok('apagado: ninguna clave S4 en DOCS', Object.keys(S4).every(k => !d[k]) && b.A._s4Sync === false && b.A.S4_SYNC === false);
     ok('apagado: las 5 en TRACK; look ya en DOCS (LOOK_SYNC = true desde el 15-nov-2026)', Object.keys(S4).every(k => t[k]) && !t['make-the-cut.look'] && d['make-the-cut.look'] === 'look' && b.A._lookSync === true);
     const DEV = ['make-the-cut.squad.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev', 'make-the-cut.devid', 'make-the-cut.retostab', 'make-the-cut.profile.bak', 'make-the-cut.retos.bak',
-      'make-the-cut.semana', 'make-the-cut.role6', 'make-the-cut.nick', 'make-the-cut.seen', 'make-the-cut.device', 'make-the-cut.look.bak', 'make-the-cut.gym.bak'];
-    ok('nunca en DOCS ni TRACK (apagado): .bak, .prev, devid, retostab, semana, role6, nick, seen, device', DEV.every(k => !d[k] && !t[k]));
+      'make-the-cut.semana', 'make-the-cut.role6', 'make-the-cut.nick', 'make-the-cut.nickv', 'make-the-cut.netlogexp', 'make-the-cut.anon', 'make-the-cut.seen', 'make-the-cut.device', 'make-the-cut.look.bak', 'make-the-cut.gym.bak'];
+    ok('nunca en DOCS ni TRACK (apagado): .bak, .prev, devid, retostab, semana, role6, nick, anon, seen, device', DEV.every(k => !d[k] && !t[k]));
     b.LS.setItem('make-the-cut.profile', '{"v":1}'); b.LS.setItem('make-the-cut.career6', '{"x":1}');
     const meta = JSON.parse(b.LS.getItem('make-the-cut.account.meta'));
     ok('escribir una clave S4 apunta la hora (make-the-cut.account.meta) sin subirla', meta['make-the-cut.profile'] > 0 && meta['make-the-cut.career6'] > 0);

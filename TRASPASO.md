@@ -839,6 +839,21 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `vestuxaudit.js`, `vestuxprobe.js` y `vestuxwp6.js`. Plan y lista final en notes/vestuario-plan.md §4; detalle en notes/players.md § Vestuario.
 - Imprescindibles 1.22.0 (rama investigacion): `node tools/hitwhytest.js`, `jugaryatest.js`, `cortostest.js`, `a11ymarktest.js`,
   `touchedittest.js [568x320]`, `resumetest.js [--node|--browser]`, `turntest.js` y `variedadtest.js [segundos] [--base <ref>]` (13 min).
+- Google Play (rama playstore, 24-nov-2026): `node tools/policytest.js` (páginas legales) y `node tools/twatest.js` (app de Android en
+  `android/` y `pages/.well-known/assetlinks.json`; `STRICT_TWA=1` antes de publicar la app). Pasos del responsable en notes/playstore/android.md.
+- Nombres y netlogs (rama playstore, 24-nov-2026): `node tools/nametest.js` (nombre anónimo «Jugador NNNN» por defecto y filtro
+  básico de palabras, js/namefilter.js) y `node tools/netlogtest.js` (los informes llevan `exp` a 90 días; con las reglas de antes,
+  reintento sin `exp`). Reglas con `exp` (y online v3 y feedback) DESPLEGADAS el 24-nov-2026: en la fusión con online-multi (1.23.0)
+  `EXP_RULES = true` y el prefail también lleva `exp`. Los netlogs los baja cada día una tarea programada al PC del responsable y los
+  borra de Firestore (copias locales borradas a los 90 días; la página de privacidad ya lo dice). El filtro de nombres cubre también
+  las salas de varios, el 6v6 y la Carrera coop (tools/nametest.js). Pasada de revisión (24-nov): el filtro pilla «Puto1», «zorra2024» y «xXPutaXx»; un apodo guardado sin querer en
+  1.22.0 igual al personaje o al usuario se borra una vez (`migrateNick`).
+- Sin red (rama playstore, 24-nov-2026): `node tools/offlinetest.js` (service worker, vendor/, publicación con «Reiniciar»; ~2 min).
+  Diseño en notes/offline.md. Desde entonces el juego no pide nada a cdnjs ni a Google Fonts (lo de «file://» de arriba es historia).
+  Pasada de revisión (24-nov): un service worker que espera y es de la versión que ya corre la página se activa solo (antes una
+  recarga sin red volvía al index anterior); un build con los mismos archivos da el mismo sw.js (el hash del index no cuenta
+  `__vbBuild`); si la instalación falla, aviso en consola y no reintenta en 12 h; `pages/icon-maskable.png` publicado y en el
+  manifest (twatest falla si falta). Cloudflare de takethecourt.com tiene que seguir en solo DNS.
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

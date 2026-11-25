@@ -57,6 +57,9 @@
  *   de playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas. La rama online-multi se numeró
  *   1.22.0 sin publicar; la investigacion salió antes como 1.22.0, así que esta es 1.23.0: el online decide si dos versiones juegan
  *   juntas SOLO por este número (salas: v = PROTO|VB.VERSION; sesiones: el saludo compara VB.VERSION).
+ *   Fusión de la rama playstore (24-nov-2026): jugar sin red (sw.js + js/sw-reg.js, solo en la web publicada; notes/offline.md),
+ *   privacidad y borrar la cuenta, app de Android (TWA, android/), nombre anónimo «Jugador NNNN» y filtro de nombres
+ *   (js/namefilter.js, también en salas de varios, coop y 6v6) y caducidad de los informes de red (exp, EXP_RULES = true).
  */
 (function () {
   'use strict';
@@ -75,7 +78,8 @@
         'Al crear la sala eliges el formato: 1 contra 1, 2 contra 2 o 6 contra 6.',
         'Sala de espera con sitios: elige el tuyo, mira el ping de cada uno y pulsa «Listo».',
         'Carrera cooperativa de playa: juega la liga y el Open con otra persona como tu pareja.',
-        'Tu pareja sube de nivel con su propio jugador, y la Carrera sigue siendo tuya.'
+        'Tu pareja sube de nivel con su propio jugador, y la Carrera sigue siendo tuya.',
+        'Juega sin conexión: tras abrirlo una vez con red, va sin internet (salvo el online).'
       ]
     },
     {

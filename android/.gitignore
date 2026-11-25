@@ -1,0 +1,19 @@
+# Claves de firma: NUNCA en el repo (van fuera, con copia en dos sitios; ver notes/playstore/android.md)
+*.keystore
+*.jks
+*.p12
+*.pem
+keystore.properties
+# Lo que sale de compilar (bubblewrap build / gradlew)
+.gradle/
+build/
+app/build/
+*.apk
+*.aab
+*.idsig
+local.properties
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+captures/

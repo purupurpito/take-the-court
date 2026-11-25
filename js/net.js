@@ -83,7 +83,9 @@
     var out = '', cs = Array.from(s);
     for (var i = 0; i < cs.length && out.length + cs[i].length <= 16; i++) out += cs[i];
     s = out.trim();
-    return s.length >= 2 ? s : '';
+    if (s.length < 2) return '';
+    var F = VB.NameFilter;   // (con insultos: «Jugador NNNN», js/namefilter.js)
+    return F ? F.shown(s) : s;
   }
   function q16(v) { v = +v || 0; v = v > 1 ? 1 : v < -1 ? -1 : v; return Math.round(v * 32767); }
   function bitsOf(inp) {

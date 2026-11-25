@@ -55,7 +55,8 @@
   function num(v) { return typeof v === 'number' && isFinite(v); }
   function copy(o) { return JSON.parse(JSON.stringify(o)); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
-  function cleanName(s) { return String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 18); }
+  /** Nombre limpio (18 como mucho); con insultos, «Jugador NNNN» (VB.NameFilter.shown): también los de la pareja que llegan por la red. */
+  function cleanName(s) { s = String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 18); var F = VB.NameFilter; return s && F ? F.shown(s) : s; }
   function normCode(s) { return String(s || '').toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 6); }
   function isHall(c) { return !!(c && c.mode === 'hall'); }
   function log(m, e) { try { console.error('CareerCoop ' + m, e); } catch (e2) { } }
@@ -210,11 +211,12 @@
     delete v.lock;   // (el candado de un partido a medias es del anfitrión: nunca llega al invitado)
     if (!p2 || !me) return v;
     v.player = p2;
+    var F = VB.NameFilter, hn = F && typeof me.name === 'string' && me.name ? F.shown(me.name) : me.name;   // (el del anfitrión, con insultos tapado)
     if (v.mate) {
       var m = v.mate;
-      v.mate = Object.assign({}, m, { name: me.name, num: me.num, st: me.st, roleKey: me.roleKey, role: me.role, chem: o.chem | 0, form: 0, age: me.age });
+      v.mate = Object.assign({}, m, { name: hn, num: me.num, st: me.st, roleKey: me.roleKey, role: me.role, chem: o.chem | 0, form: 0, age: me.age });
     }
-    o.view = 'guest'; o.host = { name: me.name, num: me.num | 0, lvl: me.lvl | 0 };
+    o.view = 'guest'; o.host = { name: hn, num: me.num | 0, lvl: me.lvl | 0 };
     // (sus números, no los del anfitrión: temporada, total del cooperativo y notas de esta temporada; la confianza del entrenador y lo
     //  demás del club son del equipo y se ven tal cual)
     var sea = v.season | 0, cnt = function (x) { var z = zeros(); for (var k in z) if (x && num(x[k])) z[k] = x[k] | 0; z.sim = 0; z.bench = 0; return z; };

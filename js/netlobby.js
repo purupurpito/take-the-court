@@ -111,15 +111,29 @@
     var C = VB.Career; if (!C) return null;
     try { var m = C.mode ? C.mode() : 'beach', E = C[m === 'hall' ? 'hall' : 'beach'], c = E && E.get ? E.get() : null; return c && c.player ? c.player : null; } catch (e) { return null; }
   }
+  /** Nombre por defecto (Google Play, 24-nov-2026): «Jugador NNNN», el mismo siempre en este aparato (VB.NameFilter.anonName,
+   *  'make-the-cut.anon'). Ya NO sale el nombre del personaje de la Carrera ni el usuario de la cuenta: solo lo que escribas a mano. */
   function defaultName() {
-    var p = careerPlayer(), n = p && NR().cleanName(p.name);
-    if (n) return n;
-    var inf = !EMU && VB.Account && VB.Account.netInfo ? VB.Account.netInfo() : null;
-    if (inf && inf.kind === 'user' && NR().cleanName(inf.user)) return NR().cleanName(inf.user);
-    var uid = inf ? inf.uid : String(Q.netuid || 'x'), h = 0; for (var i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0;
-    return 'Jugador ' + (1000 + h % 9000);
+    var F = VB.NameFilter;
+    if (F && F.anonName) return F.anonName();
+    return 'Jugador ' + (1000 + Math.floor(Math.random() * 9000));   // (sin namefilter.js: no pasa en el juego)
   }
-  function myName() { if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name) || 'Jugador'; return NR().cleanName(ls(NICK)) || defaultName(); }
+  /** Tu nombre en el online: el que escribiste en «Tu nombre en el online» si vale (2-16, sin @ ni insultos); si no, el anónimo. */
+  function myName() {
+    if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name) || 'Jugador';
+    var F = VB.NameFilter; if (F && F.migrateNick) F.migrateNick();
+    var n = NR().cleanName(ls(NICK));
+    return (n && !(F && F.bad(n)) ? n : '') || defaultName();
+  }
+  /** Lo que escribiste a mano ('' si juegas con el anónimo): el campo «Tu nombre en el online» empieza con esto y, vacío, enseña el
+   *  anónimo de fondo; guardarlo vacío vuelve al anónimo. */
+  function typedName() { if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name); var F = VB.NameFilter; if (F && F.migrateNick) F.migrateNick(); var n = NR().cleanName(ls(NICK)); return n && !(F && F.bad(n)) ? n : ''; }
+  /** Nombre que llega de otro (sala, «pre», vuelta tras recargar): limpio y, si lleva un insulto, «Jugador NNNN» (seed = su uid). */
+  function theirName(n, seed) { var c = NR().cleanName(n), F = VB.NameFilter; return c && F ? F.shown(c, seed) : c; }
+  /** Tu nombre para mandarlo (salas de varios, coop, saludos): el que te pasen si vale (2-16, sin @ ni insultos); si no, myName()
+   *  (tu apodo o «Jugador NNNN»). */
+  function ownName(n) { var c = n ? NR().cleanName(n) : '', F = VB.NameFilter; return c && !(F && F.bad(c)) ? c : myName(); }
+  function rivalUid() { var r = L.room; return r ? (L.role === 'host' ? r.guest : r.host) || '' : ''; }
   function sanAttrs(st) {
     if (!st || typeof st !== 'object') return null;
     var K = VB.ATTR_KEYS || ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'], o = {}, any = false;
@@ -318,7 +332,7 @@
   function hostConnect(r) {
     abortConn();
     var conn = L.conn = { guest: r.guest, t0: Date.now(), gen: nextGen(), pre: false };
-    L.rival = NR().cleanName(r.gname) || 'Rival'; L.status = 'connecting'; L.fail = ''; render();
+    L.rival = theirName(r.gname, r.guest) || 'Rival'; L.status = 'connecting'; L.fail = ''; render();
     sound('click');
     var link = newLink(), id = L.room.id;
     withTurn(function () { return link.offer(); }).then(function (sdp) {
@@ -369,7 +383,7 @@
     api().join(id, myName()).then(function (r) {
       L.busy = false;
       if (r && r.multi) { mJoined(r); return; }   // (online de varios: te has sentado en una sala de 2v2 / 6v6)
-      L.room = r; L.role = 'guest'; L.rival = NR().cleanName(r.name) || 'Rival'; L.status = 'connecting'; L.fail = ''; L.started = false;
+      L.room = r; L.role = 'guest'; L.rival = theirName(r.name, r.host) || 'Rival'; L.status = 'connecting'; L.fail = ''; L.started = false;
       setView('room'); sound('click'); turnReady();   // (TURN: se piden ya, mientras llega la oferta)
       L.gotOffer = false;
       guestListen(0);
@@ -470,7 +484,7 @@
   function myJsetAim() { var C = ctx(); return !!(C && C.settings && C.settings.jsetAim === true); }
   function begin(pre, st) {
     var C = ctx(); if (!C || !C.actions || !C.actions.startOnline) { connFail(); return; }
-    var r = L.room, opts = null, rivalName = NR().cleanName(pre.name) || L.rival || 'Rival';
+    var r = L.room, opts = null, rivalName = theirName(pre.name, rivalUid()) || L.rival || 'Rival';
     L.rival = rivalName;
     // Online V2: conexión de la sala. El invitado comprueba que el anfitrión juega con la que anuncia la sala (sin model = Precisa)
     var model = roomModel(r);
@@ -975,7 +989,7 @@
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis exactamente lo mismo, con algún tirón si hay mucho ping. Fluida (v2): tu equipo responde al instante y el rival se ve una pizca en diferido.'],
     ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
-    ['Privacidad', 'El juego solo enseña tu nombre, nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
+    ['Privacidad', 'El juego solo enseña tu nombre (si no eliges uno, «Jugador» y un número), nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
   ];
   /** Pegatina redonda de la sede (sombrilla en la playa, pabellón en pista). */
   var VEN_IC = {
@@ -1025,7 +1039,7 @@
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis lo mismo. Fluida (v2): tu equipo responde al instante.'],
     ['Si se corta', 'El partido espera a tu rival; a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. Sin experiencia ni insignias; tu primer partido da la gorra «Online Beta Tester».'],
-    ['Privacidad', 'Solo se ve tu nombre, nunca tu correo. La conexión es directa: el aparato de tu rival conoce tu dirección de red.']
+    ['Privacidad', 'Solo se ve tu nombre (o «Jugador» y un número), nunca tu correo. La conexión es directa: el aparato de tu rival conoce tu dirección de red.']
   ];
   var HP_PER = 2;   // (3 con ancho ≥ 800: html.ph-w)
   function hpPer() { return document.documentElement.classList.contains('ph-w') ? 3 : HP_PER; }
@@ -1071,10 +1085,10 @@
     if (!L.osk && ph()) return '<div class="ol-edit sp-panel" data-nav data-kb-pin><span class="oe-l">' + (code ? 'Código de la sala' : 'Tu nombre en el online') + '</span>' +
       '<button class="sp-x" type="button" data-a="editX" aria-label="Cancelar">' + IC.x + '</button><div class="oe-f" data-kb-row>' +
       (code ? '<input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="codeOk"><span class="sp-t">Entrar</span></button>'
-        : '<input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button>') + '</div></div>';
+        : '<input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(typedName()) + '" placeholder="' + esc(defaultName()) + '"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button>') + '</div></div>';
     if (!L.osk) {
       if (code) return '<div class="ol-edit"><input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="codeOk"><span class="sp-t">Entrar</span></button></div>';
-      return '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button></div>';
+      return '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(typedName()) + '" placeholder="' + esc(defaultName()) + '"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button></div>';
     }
     var o = L.osk, h = '<div class="ol-osk sp-panel' + (code ? ' code' : '') + '"><div class="osk-show"><span class="osk-lbl">' + (code ? 'Código' : 'Tu nombre') + '</span>' +
       '<b class="osk-val" aria-live="polite">' + esc(o.v) + '<i class="osk-car" aria-hidden="true"></i></b><span class="osk-tip">A escribe. B cancela.</span></div>';
@@ -1346,9 +1360,13 @@
     var inp = L.host && L.host.querySelector('#olIn'), v = inp ? inp.value : L.osk ? L.osk.v : '', k = L.edit;
     L.osk = null;
     if (k === 'name') {
-      var n = NR().cleanName(v);
+      var n = NR().cleanName(v), F = VB.NameFilter;
+      // vacío = volver al nombre anónimo («Jugador NNNN»)
+      if (!String(v || '').trim()) { ls(NICK, null); L.msg = ''; L.edit = ''; render(true); focusA('name'); return; }
       if (!n) { L.msg = 'El nombre tiene que tener entre 2 y 16 caracteres (y no puede ser un correo).'; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
-      ls(NICK, n); L.msg = ''; L.edit = ''; render(true); focusA('name');
+      if (F && F.bad(n)) { L.msg = F.MSG; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
+      ls(NICK, n); if (F && F.NICKV) ls(F.NICKV, '1');   // escrito tras 1.22.0: elegido de verdad, el paso de migrateNick ya no lo toca
+      L.msg = ''; L.edit = ''; render(true); focusA('name');
     } else if (k === 'code') { L.edit = ''; render(true); joinCode(v); }
   }
   function focusSel(sel, kf) {
@@ -1393,7 +1411,7 @@
     else if (a === 'name' || a === 'code') {
       L.edit = a; L.msg = '';
       // (con mando: teclado en pantalla, con el foco en la primera letra)
-      if (padNow()) { var v0 = a === 'name' ? myName() : ''; L.osk = { v: v0, col: 0, up: !v0, auto: !v0 }; render(true); focusSel('.osk-k[data-r="1"][data-i="0"]', true); }
+      if (padNow()) { var v0 = a === 'name' ? typedName() : ''; L.osk = { v: v0, col: 0, up: !v0, auto: !v0 }; render(true); focusSel('.osk-k[data-r="1"][data-i="0"]', true); }
       else { L.osk = null; render(true); }
     }
     else if (a === 'osk') oskKey(b.getAttribute('data-id'));
@@ -1524,7 +1542,7 @@
   function Mx(o) {
     return { o: o, role: o.role, room: o.room, coop: !!o.coop, mock: !!o.mock, myU: o.mock ? 'mockMe' : api().uid() || '', peers: {}, links: {}, ro: { v: 0, m: [], ko: null },
       hi: {}, tm: {}, started: false, attached: false, closed: false, gen: 0, buf: {}, hostLink: null, heard: {}, lastPing: 0, roAt: 0, roDirty: false, ban: {}, cnt: 0, away: {},
-      status: o.role === 'host' ? 'wait' : 'connecting', gotOffer: false, nm: (o.name && NR().cleanName(o.name)) || myName(), lk: o.look ? saneLook(o.look) : null };
+      status: o.role === 'host' ? 'wait' : 'connecting', gotOffer: false, nm: ownName(o.name), lk: o.look ? saneLook(o.look) : null };
   }
   function mxEvery(E, k, ms, f) { clearInterval(E.tm[k]); E.tm[k] = setInterval(f, ms); }
   function mxAfter(E, k, ms, f) { clearTimeout(E.tm[k]); E.tm[k] = setTimeout(f, ms); }
@@ -1646,7 +1664,7 @@
   }
   /** Oferta para un invitado recién sentado (en paralelo con los demás: cada pareja con sus temporizadores 'sig:'/'connT:'+uid). */
   function mxConnect(E, u, n) {
-    var p = E.peers[u] = { u: u, n: NR().cleanName(n) || 'Jugador', gen: nextGen(), t0: Date.now(), open: false, ok: false, ans: false, link: null };
+    var p = E.peers[u] = { u: u, n: theirName(n, u) || 'Jugador', gen: nextGen(), t0: Date.now(), open: false, ok: false, ans: false, link: null };
     var link = new VB.NetRtc.Link({ iceServers: iceOpt(), onstate: function (s) { if (E.peers[u] === p) mxLinkState(E, u, s); } });
     p.link = E.links[u] = link;
     if (!mxMem(E, u)) E.ro.m.push({ u: u, n: p.n, c: -1, r: false, ok: 0, p: 0 });
@@ -1761,7 +1779,7 @@
       if (!x || typeof x.u !== 'string' || x.u.length > 128 || used[x.u]) return;
       var c = Math.floor(+x.c); if (!(c >= 0 && c < n)) c = -1;
       used[x.u] = 1;
-      out.m.push({ u: x.u, n: NR().cleanName(x.n) || 'Jugador', c: c, r: !!x.r && c >= 0, p: Math.max(0, Math.min(9999, x.p | 0)), h: x.h ? 1 : 0, ok: x.ok ? 1 : 0 });
+      out.m.push({ u: x.u, n: theirName(x.n, x.u) || 'Jugador', c: c, r: !!x.r && c >= 0, p: Math.max(0, Math.min(9999, x.p | 0)), h: x.h ? 1 : 0, ok: x.ok ? 1 : 0 });
     });
     return out;
   }
@@ -1829,7 +1847,7 @@
         var st = c.st && typeof c.st === 'object' ? c.st : {};
         E.hi[u] = { st: { attrs: sanAttrs(st.attrs), badges: sanBadges(st.badges), aimSet: st.aimSet !== false, jsetAim: st.jsetAim === true }, look: E.coop ? saneLook(c.look) : trimLook(c.look) };
         var first = !p.ok; p.ok = true; mxStop(E, 'connT:' + u);
-        if (m) { m.n = NR().cleanName(c.n) || p.n; m.ok = 1; if (m.c < 0 && first) m.c = mxPrefChair(E, u, ROLE6_K.indexOf(c.pr) >= 0 ? c.pr : ''); }
+        if (m) { m.n = theirName(c.n, u) || p.n; m.ok = 1; if (m.c < 0 && first) m.c = mxPrefChair(E, u, ROLE6_K.indexOf(c.pr) >= 0 ? c.pr : ''); }
         mxCnt(E); mxBump(E);
         if (E.coop) { mxSend(p.link, mxHi(E)); coopReady(E, u); }
         return;
@@ -1843,7 +1861,7 @@
     // invitado: lo que manda el anfitrión
     if (c.k === 'lb') { var ro = mxSaneRo(E, c.ro); if (ro) { E.ro = ro; E.o.onChange(E); } return; }
     if (c.k === 'lb-ping') { if (E.hostLink) mxSend(E.hostLink, { k: 'lb-pong', t: c.t }); return; }
-    if (c.k === 'lb-hi') { E.hi.host = { n: NR().cleanName(c.n) || '', look: E.coop ? saneLook(c.look) : trimLook(c.look) }; if (E.coop) coopReady(E, E.room.host); return; }
+    if (c.k === 'lb-hi') { E.hi.host = { n: theirName(c.n, E.room && E.room.host) || '', look: E.coop ? saneLook(c.look) : trimLook(c.look) }; if (E.coop) coopReady(E, E.room.host); return; }
     if (c.k === 'lb-out') { mxEnd(E, c.why === 'kick' || c.why === 'nostart' || c.why === 'mismatch' ? c.why : 'out'); return; }
     if (c.k === 'lb-bye') { mxEnd(E, 'hostLeft'); return; }
     if (c.k === 'lb-go' && !E.started && E.o.onGo) E.o.onGo(c, E);
@@ -2039,7 +2057,7 @@
     });
   }
   function mJoined(r) {
-    L.room = r; L.role = 'guest'; L.rival = NR().cleanName(r.name) || 'Rival'; L.fail = ''; L.started = false; L.status = 'connecting'; L.pick = '';
+    L.room = r; L.role = 'guest'; L.rival = theirName(r.name, r.host) || 'Rival'; L.fail = ''; L.started = false; L.status = 'connecting'; L.pick = '';
     L.mx = Mx({ role: 'guest', room: r, onChange: mChange, onNote: mNote, onEnd: mEnd, onGo: mGuestGo });
     mxGuestInit(L.mx);
     setView('room'); sound('click');
@@ -2077,7 +2095,7 @@
     var ps = perSide(r), humans = [];
     for (var s = 0; s < n; s++) {
       var h = H[s] || {};
-      humans.push({ team: h.team === 1 && r.mode !== 'coop' ? 1 : 0, idx: Math.max(0, Math.min(ps - 1, h.idx | 0)), name: NR().cleanName(h.name) || 'Jugador ' + (s + 1),
+      humans.push({ team: h.team === 1 && r.mode !== 'coop' ? 1 : 0, idx: Math.max(0, Math.min(ps - 1, h.idx | 0)), name: theirName(h.name) || 'Jugador ' + (s + 1),
         look: s === seat ? mxLook(E) : saneLook(Array.isArray(c.looks) ? c.looks[s] : null) });
     }
     E.started = true; L.started = true; L.status = 'play';
@@ -2371,7 +2389,7 @@
     if (coopBusy(cfg)) return false;
     var me = CO = { role: 'host', cfg: cfg, ready: false, E: null, link: null };
     coopSheet({ title: cfg.title || 'Carrera cooperativa', text: 'Abriendo la sala…', ctas: [['cancel', 'Cancelar', 'sp-danger']] });
-    api().open({ name: NR().cleanName(cfg.name) || myName(), mode: 'coop', cap: 2, fmt: '2v2', venue: cfg.venue === 'hall' ? 'hall' : 'beach', map: '', bo: 1, pts: 21, even: false }).then(function (r) {
+    api().open({ name: ownName(cfg.name), mode: 'coop', cap: 2, fmt: '2v2', venue: cfg.venue === 'hall' ? 'hall' : 'beach', map: '', bo: 1, pts: 21, even: false }).then(function (r) {
       if (CO !== me) { api().close(); return; }
       if (!r || !r.multi) throw { code: 'denied' };
       me.E = Mx({ role: 'host', room: r, coop: true, name: cfg.name, look: cfg.look, onChange: coopRender, onEnd: coopEnded });
@@ -2389,7 +2407,7 @@
       if (CO !== me) return null;
       if (!r) throw { code: 'nocode' };
       if (r.mode !== 'coop') throw { code: 'notcoop' };
-      return api().join(r.id, NR().cleanName(cfg.name) || myName()).then(function (r2) {
+      return api().join(r.id, ownName(cfg.name)).then(function (r2) {
         if (CO !== me) { api().leave(r2.id); return; }
         me.E = Mx({ role: 'guest', room: r2, coop: true, name: cfg.name, look: cfg.look, onChange: coopRender, onEnd: coopEnded, onGo: noop });
         mxGuestInit(me.E); coopRender(me.E);
@@ -2576,7 +2594,7 @@
   function rejoin(r, b) {
     var C = ctx();
     try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
-    L.role = 'guest'; L.room = r; L.rival = NR().cleanName(b.rival) || r.name || 'Rival'; L.gen = b.gen | 0; L.started = true; L.status = 'play';
+    L.role = 'guest'; L.room = r; L.rival = theirName(b.rival, r.host) || theirName(r.name, r.host) || 'Rival'; L.gen = b.gen | 0; L.started = true; L.status = 'play';
     var link = newLink();
     link.onclose = function () { matchClosed(link); };
     var ok = C.actions.startOnline({ slot: 1, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) }, model: backModel(r, b) });
@@ -2612,7 +2630,7 @@
   function rejoinHost(r, b) {
     var C = ctx();
     try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
-    L.role = 'host'; L.room = r; L.rival = NR().cleanName(b.rival) || NR().cleanName(r.gname) || 'Rival'; L.gen = Math.max(L.gen, b.gen | 0); L.started = true; L.status = 'play';
+    L.role = 'host'; L.room = r; L.rival = theirName(b.rival, r.guest) || theirName(r.gname, r.guest) || 'Rival'; L.gen = Math.max(L.gen, b.gen | 0); L.started = true; L.status = 'play';
     every('beat', NR().BEAT_MS, hostBeat); hostBeat();
     var link = newLink();
     link.onclose = function () { matchClosed(link); };
@@ -2676,7 +2694,7 @@
       var H = n.humans.map(function (h) { return { team: h.team, idx: h.idx, role: h.role || '', name: h.name || '', look: h.look || null }; });
       ss(BACK, JSON.stringify({ multi: 1, id: E.room.id, uid: api().uid() || '', gen: E.gen | 0, seat: n.seat, humans: H, model: n.model === 'host' ? 'host' : 'precisa',
         fmt: E.room.fmt === '6v6' ? '6v6' : '2v2', coop: E.room.mode === 'coop' ? 1 : 0, cc: n.coopCareer ? 1 : 0, ep: n.epoch | 0, expect: n.expect || null,
-        host: NR().cleanName(E.room.name) || '', t: Date.now() }));
+        host: theirName(E.room.name, E.room.host) || '', t: Date.now() }));
       return !!ss(BACK);   // (sessionStorage puede fallar: entonces se sale como antes)
     } catch (e) { }
     return false;
@@ -2736,7 +2754,7 @@
       if (!signedIn() || !C || C.state !== 'menu' || !C.actions || !C.actions.startOnline || !U || !U.menuIdle || !U.menuIdle() || L.room || L.mx || CO || BK) return;
       clearInterval(wait);
       var me = BK = { b: b, E: null, go: false, t0: Date.now() };
-      bkSheet('Buscando la sala de ' + (NR().cleanName(b.host) || 'quien la creó') + '…');
+      bkSheet('Buscando la sala de ' + (theirName(b.host) || 'quien la creó') + '…');
       api().get(b.id).then(function (r) {
         if (BK !== me) return;
         if (!r) { bkFail('gone'); return; }
@@ -2752,7 +2770,7 @@
     var E = Mx({ role: 'guest', room: r, coop: r.mode === 'coop', onChange: noop, onNote: noop, onEnd: function (why, E2) { if (BK && BK.E === E2) BK = null; } });
     E.started = true; E.back = b; E.backGo = false; E.gen = b.gen | 0; E.status = 'back'; E.tJoin = Date.now();
     me.E = E;
-    bkSheet('Reconectando con la sala de ' + (NR().cleanName(r.name) || NR().cleanName(b.host) || 'quien la creó') + '. Mientras, tu jugador lo lleva la IA.');
+    bkSheet('Reconectando con la sala de ' + (theirName(r.name, r.host) || theirName(b.host) || 'quien la creó') + '. Mientras, tu jugador lo lleva la IA.');
     mxGuestListen(E, E.gen);
     mxEvery(E, 'bkRoom', HOST_CHK_MS, function () {   // (la sala desaparece mientras esperas: quien la creó se ha ido)
       if (BK !== me || E.backGo) { mxStop(E, 'bkRoom'); return; }
@@ -2770,7 +2788,7 @@
     for (var k = 0; k < b.humans.length; k++) {
       var h = b.humans[k] || {};
       humans.push({ team: h.team === 1 && !coop ? 1 : 0, idx: Math.max(0, Math.min(ps - 1, h.idx | 0)), role: ROLE6_K.indexOf(h.role) >= 0 ? h.role : '',
-        name: NR().cleanName(h.name) || 'Jugador ' + (k + 1), look: saneLook(h.look) || (k === b.seat ? myLook() : null) });
+        name: theirName(h.name) || 'Jugador ' + (k + 1), look: saneLook(h.look) || (k === b.seat ? myLook() : null) });
     }
     var ep = Math.max(0, Math.min(1e6, b.ep | 0));
     // (modelo anfitrión: la sesión vieja de esta plaza ya no existe; su adiós hace que el saludo de la nueva la readmita con la foto)
@@ -2798,7 +2816,7 @@
     if (why === 'gone') {   // (quien creó la sala se fue: el partido no cuenta, tampoco para tu récord)
       try { var R = VB.NetRec; if (R && R.resume && R.resume()) { R.begin(me.b.host || 'Rival'); R.end(me.b.host || 'Rival', { why: 'hostGone', win: false }, false, null); } } catch (e) { }
     }
-    var who = NR().cleanName(me.b.host) || 'Quien creó la sala';
+    var who = theirName(me.b.host) || 'Quien creó la sala';
     var txt = why === 'gone' ? who + ' ha cerrado la sala: el partido no cuenta.' : why === 'noconn' ? 'No se ha podido volver a conectar con la sala de ' + who + '.' :
       why === 'net' ? errText({ code: 'net' }) : 'Ya no se puede volver a esa partida.';
     coopSheet({ title: 'Volver a la partida', text: txt, bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] });

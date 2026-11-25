@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#15102a">
+<meta name="description" content="Qué datos usa Take the Court, para qué, cuánto tiempo y cómo borrar tu cuenta.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Privacidad · Take the Court</title>
+<!-- TAKE THE COURT — pages/privacidad.html (owner: ui_main, Google Play, 24-nov-2026). Política de privacidad pública
+     (https://takethecourt.com/privacidad.html). Español arriba y la misma política en inglés en #en. Cada frase sale del inventario
+     de datos del código de la 1.22.0 (notes/playstore/privacidad.md): si cambia lo que el juego guarda o envía, hay que cambiar esto.
+     Ferran Sanchís Armesto y help@takethecourt.com los rellena el dueño; STRICT_POLICY=1 node tools/build-pages.js falla mientras queden.
+     Sin scripts ni fuentes externas (la página no manda nada a nadie). tools/policytest.js la comprueba. -->
+<style>
+:root{--ink:#15102a;--ink2:#2f2560;--cream:#fff4dc;--cream2:#fffaf0;--gold:#ffcb3d;--teal:#1bb5a5;--kit:#ff5a2c;--danger:#ff4a5c;--mut:#5d5378;
+  --pop:"Titan One","Bowlby One","Arial Black",Impact,system-ui,sans-serif;--ui:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;min-height:100vh;background:var(--ink);color:var(--ink);font:16px/1.55 var(--ui);overflow-wrap:break-word;
+  background-image:radial-gradient(circle at 8% 6%,rgba(255,90,44,.35) 0 60px,transparent 61px),radial-gradient(circle at 94% 18%,rgba(27,181,165,.32) 0 90px,transparent 91px),
+  radial-gradient(circle at 88% 70%,rgba(255,203,61,.18) 0 70px,transparent 71px),radial-gradient(circle at 4% 92%,rgba(166,234,44,.16) 0 80px,transparent 81px);background-attachment:fixed}
+a{color:var(--ink2);font-weight:700;text-decoration-thickness:2px;text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:6px}
+.top{position:sticky;top:0;z-index:2;display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 16px;
+  background:rgb(21,16,42);box-shadow:0 3px 0 var(--kit)}
+.brand{display:inline-flex;align-items:center;min-height:44px;color:var(--cream);font:400 18px/1 var(--pop);letter-spacing:.02em;text-decoration:none;text-shadow:2px 2px 0 var(--kit)}
+.brand::before{content:"";width:12px;height:12px;margin-right:10px;border-left:3px solid var(--gold);border-bottom:3px solid var(--gold);transform:rotate(45deg)}
+.langs{display:flex;gap:8px}
+.langs a{display:inline-flex;align-items:center;justify-content:center;min-width:48px;min-height:44px;padding:0 12px;border-radius:12px 16px 11px 15px;background:var(--cream);color:var(--ink);
+  font:700 14px/1 var(--ui);text-decoration:none;box-shadow:0 0 0 2.5px var(--ink),2px 3px 0 2.5px var(--kit)}
+[id]{scroll-margin-top:84px}
+main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
+.doc{margin:0 0 34px}
+.hero{margin:6px 0 18px;color:var(--cream)}
+.hero .k{display:inline-block;margin:0 0 8px;padding:3px 10px;border-radius:8px 11px 8px 10px;background:var(--gold);color:var(--ink);font:700 13px/1.3 var(--ui);letter-spacing:.05em;text-transform:uppercase}
+.hero h1{margin:0 0 6px;font:400 clamp(28px,7vw,40px)/1.1 var(--pop);text-shadow:3px 3px 0 var(--kit)}
+.hero p{margin:0;color:#d9d0f0}
+.card{position:relative;margin:0 0 16px;padding:16px 18px;background:var(--cream2);border-radius:18px 24px 20px 26px/22px 18px 26px 20px;box-shadow:0 0 0 3px var(--ink),4px 5px 0 3px var(--kit)}
+.card:nth-of-type(3n+2){box-shadow:0 0 0 3px var(--ink),4px 5px 0 3px var(--teal)}
+.card:nth-of-type(3n){box-shadow:0 0 0 3px var(--ink),4px 5px 0 3px var(--gold)}
+.card h2{margin:0 0 8px;font:400 21px/1.2 var(--pop);color:var(--ink)}
+.card h3{margin:14px 0 4px;font:700 17px/1.3 var(--ui)}
+.card p,.card ul{margin:0 0 10px}
+.card>:last-child{margin-bottom:0}
+.card ul{padding-left:22px}
+.card li{margin:0 0 6px}
+.sum{background:var(--cream)}
+.sum ul{list-style:none;padding:0}
+.sum li{position:relative;padding-left:26px}
+.sum li::before{content:"";position:absolute;left:2px;top:.45em;width:12px;height:12px;border-radius:50% 40% 55% 45%;background:var(--teal);box-shadow:0 0 0 2px var(--ink)}
+.note{padding:10px 12px;border-radius:10px 14px 10px 13px;background:#ffe6a6;box-shadow:inset 0 0 0 2px var(--ink)}
+.who{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 0 10px}
+.who div{padding:10px 12px;border-radius:10px 13px 11px 12px;background:#fff;box-shadow:inset 0 0 0 2px var(--ink)}
+.who b{display:block}
+.mut{color:var(--mut);font-size:14px}
+.foot{margin-top:6px;color:#d9d0f0;font-size:14px;text-align:center}
+.foot a{color:var(--cream)}
+.back{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin:6px 0 18px;padding:0 22px;border-radius:14px 18px 13px 17px;
+  background:var(--kit);color:#fff6e4;font:400 17px/1 var(--pop);text-decoration:none;text-shadow:2px 2px 0 var(--ink);box-shadow:0 0 0 3px var(--ink),3px 4px 0 3px var(--ink)}
+@media (min-width:600px){.who{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-height:420px) and (orientation:landscape){.top{position:static}[id]{scroll-margin-top:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./">Take the Court</a>
+  <nav class="langs" aria-label="Idioma / Language"><a href="#es" hreflang="es" lang="es" aria-label="Español">ES</a><a href="#en" hreflang="en" lang="en" aria-label="English">EN</a></nav>
+</header>
+<main>
+
+<article class="doc" id="es" lang="es">
+  <div class="hero">
+    <p class="k">Política de privacidad</p>
+    <h1>Tu privacidad en Take the Court</h1>
+    <p>En vigor desde el 24 de noviembre de 2026.</p>
+  </div>
+
+  <section class="card sum" aria-labelledby="es-sum">
+    <h2 id="es-sum">En corto</h2>
+    <ul>
+      <li>Puedes jugar a todo sin cuenta, salvo el online. Sin cuenta, tu progreso se queda en tu dispositivo y no lo guardamos en ningún servidor.</li>
+      <li>La cuenta es opcional. Sirve para guardar el progreso en la nube y para jugar online.</li>
+      <li>No hay publicidad, ni analítica, ni compras con dinero real, ni cookies de seguimiento.</li>
+      <li>No vendemos tus datos ni los usamos para nada más que el juego.</li>
+      <li>Puedes borrar la cuenta cuando quieras desde el juego o desde <a href="borrar-cuenta.html">esta página</a>.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="es-1">
+    <h2 id="es-1">Quién es el responsable</h2>
+    <p>El responsable de tus datos es <b>Ferran Sanchís Armesto</b>, en España.</p>
+    <p>Para cualquier duda o petición sobre tus datos, escribe a <a href="mailto:help@takethecourt.com">help@takethecourt.com</a>.</p>
+  </section>
+
+  <section class="card" aria-labelledby="es-2">
+    <h2 id="es-2">Qué datos usamos y para qué</h2>
+
+    <h3>En tu dispositivo (con cuenta o sin ella)</h3>
+    <p>El juego guarda en el almacenamiento de tu navegador para takethecourt.com (en la app de Android, el de Chrome) tu progreso: jugadores, Carreras, perfil, Vestuario, récords, retos y ajustes. También tu nombre del online (o el número de tu nombre anónimo) y una lista de tus 10 últimos rivales online (nombre, resultado y fecha). Además guarda una copia de los archivos del juego para poder jugar sin conexión (no lleva datos tuyos). Esto no sale del dispositivo, salvo lo que se explica más abajo.</p>
+
+    <h3>Al abrir el juego</h3>
+    <p>Como en cualquier web, estos servicios reciben tu dirección IP, los datos de tu navegador y la página que pides: GitHub Pages (aloja la web, con la librería 3D y las letras del juego) y Cloudflare (gestiona el dominio). Al abrir el panel «Cuenta» sin haber entrado, el juego carga además el inicio de sesión de Google (Firebase) para tenerlo listo, y Google recibe esos mismos datos. Nosotros no usamos esos datos. Cada servicio los guarda en sus registros según sus propias normas.</p>
+
+    <h3>Si creas una cuenta</h3>
+    <ul>
+      <li><b>Datos para entrar:</b> tu correo y tu contraseña, o un nombre de usuario y una contraseña. La contraseña la guarda Firebase (de Google) cifrada; nosotros nunca la vemos. Si entras con Google, Google nos da tu correo, tu nombre y un identificador; el juego solo usa el correo (o el nombre si no hay correo) para enseñarlo en el panel de la cuenta. La foto no se usa.</li>
+      <li><b>Identificador de cuenta:</b> un código que crea Firebase para saber qué datos son tuyos.</li>
+      <li><b>Progreso en la nube:</b> jugadores, Carreras (también el nombre que le pongas a tu personaje), perfil, Vestuario, récord, retos y ajustes. El perfil lleva además un identificador aleatorio de cada dispositivo, para no contar dos veces lo jugado en varios. Se sube solo, poco después de cada cambio, para que lo tengas en todos tus dispositivos.</li>
+      <li><b>Sesión:</b> tu correo o usuario y las claves de la sesión se guardan en tu dispositivo, sin cifrar, como es habitual en las webs. Al cerrar sesión se borran del dispositivo.</li>
+      <li><b>Cambiar la contraseña:</b> si lo pides, Firebase te manda un correo.</li>
+    </ul>
+
+    <h3>Si juegas online (solo con cuenta)</h3>
+    <ul>
+      <li><b>Nombre visible</b> (de 2 a 16 caracteres). Si no escribes uno, sales como «Jugador» y un número, el mismo siempre en ese dispositivo: no se usa el nombre de tu cuenta ni el de tu personaje. Lo ven tu rival y cualquier jugador con cuenta que abra la lista de salas. Puedes cambiarlo en el online, en «Tu nombre en el online» (si lo dejas vacío, vuelves al anónimo). No pongas tu nombre real ni otros datos personales. Un filtro básico de palabras no deja poner nombres con insultos, y el juego enseña como «Jugador» y un número los nombres con insultos que lleguen de otros jugadores. El filtro no es perfecto: si ves un nombre ofensivo, escríbenos.</li>
+      <li><b>Sala:</b> código, nombres visibles del anfitrión y de quien entra, sus identificadores de cuenta y las opciones del partido. Cualquier jugador con cuenta puede ver las salas, también las que ya están en juego, con esos nombres e identificadores. La sala se borra al cerrarla y al borrar la cuenta. Si el juego se cierra de golpe, se borra cuando otro jugador abre la lista de salas, a partir de 5 minutos sin señal; si nadie la abre, puede quedarse más tiempo.</li>
+      <li><b>Conexión directa con tu rival:</b> para conectaros, vuestros dispositivos intercambian sus direcciones IP y puertos a través de nuestra base de datos y de servidores STUN de Google y de Cloudflare. Esos datos se borran de la base de datos al conectar o al salir. Tu rival podría ver tu dirección IP con herramientas técnicas, aunque el juego no la enseña. La conexión va cifrada. Durante el partido, tu rival recibe también tu nombre visible, tu aspecto (Vestuario y colores), los atributos e insignias de tu jugador y tus jugadas. Ahora mismo no usamos servidores de retransmisión.</li>
+      <li><b>Informe de red de cada partido online:</b> al acabar, se guarda un informe técnico para mejorar el online. Lleva tu identificador de cuenta, la versión del juego, la fecha, tu nombre visible y el de tu rival, el navegador y el sistema (y sus versiones), si es un móvil, el tamaño de la pantalla, los núcleos y la memoria del dispositivo, el tipo y la calidad de la red, el ajuste de calidad gráfica, el tipo de conexión, el ping, las imágenes por segundo, las esperas y el resultado. No guarda tu IP ni tu correo. Solo lo puede leer el responsable. Se guarda en un ordenador del responsable y se borra solo a los 90 días. Ahora mismo no se puede desactivar en el juego: si no quieres que se guarde, no juegues online o escríbenos para oponerte.</li>
+    </ul>
+
+    <h3>Si compartes algo</h3>
+    <p>Si compartes el código de una sala, el enlace solo lleva el código. Si compartes la «situación de la semana», el enlace lleva tu nombre del online (o «Jugador» y un número) y tus resultados (y los de los amigos de esa cadena). Tú eliges con quién lo compartes con el menú de tu dispositivo. Nosotros no lo guardamos.</p>
+
+    <h3>Lo que no hacemos</h3>
+    <p>No usamos la cámara, el micrófono, la ubicación ni tus contactos. No hay anuncios, ni analítica, ni informes de fallos, ni pagos. La tienda del juego usa dinero inventado. No usamos cookies: el almacenamiento del navegador solo guarda lo necesario para que el juego funcione.</p>
+  </section>
+
+  <section class="card" aria-labelledby="es-3">
+    <h2 id="es-3">Por qué podemos usarlos</h2>
+    <ul>
+      <li><b>Cuenta, nube y online:</b> para darte el servicio que pides al crear la cuenta (art. 6.1.b del RGPD).</li>
+      <li><b>Informes de red y registros técnicos de los servicios:</b> nuestro interés legítimo en que el juego funcione bien, sea seguro y el online mejore (art. 6.1.f del RGPD). Puedes oponerte.</li>
+      <li><b>Lo que se guarda solo en tu dispositivo:</b> es lo estrictamente necesario para que el juego funcione.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="es-4">
+    <h2 id="es-4">Cuánto tiempo los guardamos</h2>
+    <ul>
+      <li><b>Cuenta y progreso en la nube:</b> hasta que borras la cuenta.</li>
+      <li><b>Salas del online:</b> lo que dura la sala (mira arriba).</li>
+      <li><b>Datos para conectar con tu rival:</b> se borran al conectar o al salir.</li>
+      <li><b>Informes de red:</b> 90 días. El informe pasa por la base de datos solo hasta que lo descargamos (normalmente menos de un día; algo más si el ordenador del responsable está apagado), se guarda en un ordenador del responsable y un proceso automático lo borra a los 90 días. Al borrar la cuenta no se borran antes de tiempo; si nos lo pides, borramos los tuyos ya.</li>
+      <li><b>Datos de tu dispositivo:</b> hasta que los borras tú, borrando los datos del sitio en el navegador o desinstalando la app. En Ajustes puedes borrar tus Carreras.</li>
+      <li><b>Registros de los servicios</b> (GitHub, Cloudflare, Google): según las normas de cada uno.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="es-5">
+    <h2 id="es-5">Con quién se comparten</h2>
+    <p>No vendemos ni cedemos tus datos. Usamos estos servicios para que el juego funcione:</p>
+    <div class="who">
+      <div><b>Google</b>Firebase Authentication (la cuenta: correo o usuario, contraseña cifrada e identificador), Cloud Firestore (el progreso en la nube, en la Unión Europea, región eur3), inicio de sesión con Google y un servidor STUN.</div>
+      <div><b>GitHub</b>Aloja la web (GitHub Pages).</div>
+      <div><b>Cloudflare</b>Gestiona el dominio y tiene un servidor STUN.</div>
+      <div><b>Otros jugadores</b>Solo en el online, lo que se cuenta arriba: nombre visible, aspecto, jugador y la dirección IP para la conexión directa.</div>
+    </div>
+    <p>Solo daríamos datos a una autoridad si la ley nos obliga.</p>
+  </section>
+
+  <section class="card" aria-labelledby="es-6">
+    <h2 id="es-6">Transferencias fuera de la UE</h2>
+    <p>El progreso en la nube y las salas se guardan en la Unión Europea (Cloud Firestore, región eur3). La cuenta (Firebase Authentication) la trata Google también fuera de la UE, igual que los registros de acceso de Google, GitHub y Cloudflare, que son empresas de Estados Unidos. Esas transferencias se basan en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas contractuales tipo de la Comisión Europea.</p>
+  </section>
+
+  <section class="card" aria-labelledby="es-7">
+    <h2 id="es-7">Seguridad</h2>
+    <p>Todo viaja cifrado (HTTPS, y la conexión con tu rival con DTLS). Las reglas de la base de datos solo te dejan leer y escribir tu progreso a ti. El contenido no lleva un cifrado propio del juego; Google lo cifra al guardarlo.</p>
+  </section>
+
+  <section class="card" aria-labelledby="es-8">
+    <h2 id="es-8">Tus derechos</h2>
+    <p>Puedes pedir acceder a tus datos, corregirlos, borrarlos, llevártelos (portabilidad), limitar su uso u oponerte a él.</p>
+    <ul>
+      <li><b>Borrar la cuenta:</b> en el juego, en «Cuenta» › «Borrar la cuenta», o en <a href="borrar-cuenta.html">la página para borrar la cuenta</a>.</li>
+      <li><b>Todo lo demás:</b> escribe a <a href="mailto:help@takethecourt.com">help@takethecourt.com</a>. Te contestamos en un mes como mucho.</li>
+      <li>Si crees que no hemos tratado bien tus datos, puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" rel="noopener">www.aepd.es</a>).</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="es-9">
+    <h2 id="es-9">Menores</h2>
+    <p>La cuenta y el online son para mayores de 14 años, la edad a partir de la cual en España se puede dar el consentimiento sin permiso de la familia. Sin cuenta se puede jugar a todo lo demás y no guardamos nada en servidores.</p>
+    <p>No pedimos la edad ni la comprobamos. Si eres madre, padre o tutor y crees que un menor de 14 años ha creado una cuenta, escríbenos y la borramos.</p>
+  </section>
+
+  <section class="card" aria-labelledby="es-10">
+    <h2 id="es-10">Cambios</h2>
+    <p>Si cambia lo que hace el juego con tus datos, cambiaremos esta página y su fecha. Si el cambio es importante, lo avisaremos también en el juego.</p>
+  </section>
+
+  <p><a class="back" href="./">Volver al juego</a></p>
+</article>
+
+<article class="doc" id="en" lang="en">
+  <div class="hero">
+    <p class="k">Privacy policy</p>
+    <h1>Your privacy in Take the Court</h1>
+    <p>Effective from 24 November 2026. This is an English translation of the Spanish policy above.</p>
+  </div>
+
+  <section class="card sum" aria-labelledby="en-sum">
+    <h2 id="en-sum">In short</h2>
+    <ul>
+      <li>You can play everything without an account, except online play. Without an account, your progress stays on your device and we do not store it on any server.</li>
+      <li>The account is optional. It saves your progress in the cloud and lets you play online.</li>
+      <li>No ads, no analytics, no real-money purchases and no tracking cookies.</li>
+      <li>We do not sell your data or use it for anything other than the game.</li>
+      <li>You can delete your account at any time from the game or from <a href="borrar-cuenta.html">this page</a>.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="en-1">
+    <h2 id="en-1">Data controller</h2>
+    <p>The controller of your data is <b>Ferran Sanchís Armesto</b>, based in Spain.</p>
+    <p>For any question or request about your data, write to <a href="mailto:help@takethecourt.com">help@takethecourt.com</a>.</p>
+  </section>
+
+  <section class="card" aria-labelledby="en-2">
+    <h2 id="en-2">What data we use and why</h2>
+
+    <h3>On your device (with or without an account)</h3>
+    <p>The game keeps your progress in your browser storage for takethecourt.com (in the Android app, Chrome's storage): players, Careers, profile, Locker room, records, challenges and settings. It also keeps your online name (or the number of your anonymous name) and a list of your last 10 online opponents (name, result and date). It also keeps a copy of the game files so you can play offline (it holds no data about you). This does not leave your device, except as explained below.</p>
+
+    <h3>When you open the game</h3>
+    <p>As with any website, these services receive your IP address, browser details and the page requested: GitHub Pages (hosts the website, including the game's 3D library and fonts) and Cloudflare (runs the domain). When you open the "Cuenta" (Account) panel while signed out, the game also loads Google sign-in (Firebase) so it is ready, and Google receives the same data. We do not use that data. Each service keeps it in its logs under its own terms.</p>
+
+    <h3>If you create an account</h3>
+    <ul>
+      <li><b>Sign-in data:</b> your email and password, or a username and password. The password is stored hashed by Firebase (Google); we never see it. If you sign in with Google, Google gives us your email, name and an identifier; the game only uses the email (or the name if there is no email) to show it in the account panel. The photo is not used.</li>
+      <li><b>Account identifier:</b> a code created by Firebase to know which data is yours.</li>
+      <li><b>Cloud progress:</b> players, Careers (including the name you give your character), profile, Locker room, record, challenges and settings. The profile also holds a random identifier for each device, so games played on several devices are not counted twice. It uploads automatically shortly after each change, so you have it on all your devices.</li>
+      <li><b>Session:</b> your email or username and session tokens are stored on your device, unencrypted, as is usual on websites. Signing out removes them from the device.</li>
+      <li><b>Password reset:</b> if you ask for it, Firebase sends you an email.</li>
+    </ul>
+
+    <h3>If you play online (account required)</h3>
+    <ul>
+      <li><b>Display name</b> (2 to 16 characters). If you do not type one, you appear as "Jugador" plus a number, always the same on that device: your account name and your character's name are not used. Your opponent and any signed-in player who opens the room list can see it. You can change it in the online menu ("Tu nombre en el online"; leave it empty to go back to the anonymous one). Do not use your real name or other personal data. A basic word filter does not allow names with insults, and the game shows names with insults received from other players as "Jugador" plus a number. The filter is not perfect: if you see an offensive name, write to us.</li>
+      <li><b>Room:</b> code, display names of the host and the guest, their account identifiers and the match options. Any signed-in player can see the rooms, including those already in play, with those names and identifiers. The room is deleted when it is closed and when you delete your account. If the game closes suddenly, it is deleted when another player opens the room list, after 5 minutes without a signal; if nobody does, it may stay longer.</li>
+      <li><b>Direct connection with your opponent:</b> to connect, both devices exchange their IP addresses and ports through our database and through STUN servers run by Google and Cloudflare. That data is deleted from the database on connecting or leaving. Your opponent could see your IP address with technical tools, although the game does not show it. The connection is encrypted. During the match your opponent also receives your display name, your look (Locker room and colours), your player's attributes and badges, and your moves. We do not use relay servers at the moment.</li>
+      <li><b>Network report for each online match:</b> at the end, a technical report is stored to improve online play. It contains your account identifier, game version, date, your display name and your opponent's, browser and operating system (and versions), whether it is a mobile device, screen size, device cores and memory, network type and quality, graphics quality setting, connection type, ping, frames per second, waits and result. It does not store your IP address or your email. Only the controller can read it. It is stored on a computer of the controller and deleted automatically after 90 days. At the moment it cannot be turned off in the game: if you do not want it stored, do not play online, or write to us to object.</li>
+    </ul>
+
+    <h3>If you share something</h3>
+    <p>If you share a room code, the link only contains the code. If you share the "situación de la semana" (weekly standing), the link contains your online name (or "Jugador" plus a number) and results (and those of the friends in that chain). You choose who to share it with through your device's share menu. We do not store it.</p>
+
+    <h3>What we do not do</h3>
+    <p>We do not use the camera, microphone, location or your contacts. There are no ads, analytics, crash reports or payments. The in-game shop uses made-up money. We do not use cookies: browser storage only keeps what the game needs to work.</p>
+  </section>
+
+  <section class="card" aria-labelledby="en-3">
+    <h2 id="en-3">Legal basis</h2>
+    <ul>
+      <li><b>Account, cloud and online play:</b> to provide the service you ask for when you create an account (Art. 6(1)(b) GDPR).</li>
+      <li><b>Network reports and technical logs of the services:</b> our legitimate interest in the game working well, being secure and improving online play (Art. 6(1)(f) GDPR). You can object.</li>
+      <li><b>Data kept only on your device:</b> strictly necessary for the game to work.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="en-4">
+    <h2 id="en-4">How long we keep data</h2>
+    <ul>
+      <li><b>Account and cloud progress:</b> until you delete your account.</li>
+      <li><b>Online rooms:</b> as long as the room lasts (see above).</li>
+      <li><b>Connection data with your opponent:</b> deleted on connecting or leaving.</li>
+      <li><b>Network reports:</b> 90 days. A report stays in the database only until we download it (usually less than a day; somewhat longer if the controller's computer is off), is then stored on a computer of the controller and an automatic process deletes it after 90 days. Deleting your account does not delete them earlier; if you ask us, we delete yours straight away.</li>
+      <li><b>Data on your device:</b> until you delete it, by clearing the site data in your browser or by uninstalling the app. You can delete your Careers in Settings.</li>
+      <li><b>Service logs</b> (GitHub, Cloudflare, Google): according to each provider's terms.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="en-5">
+    <h2 id="en-5">Who we share data with</h2>
+    <p>We do not sell or hand over your data. We use these services to run the game:</p>
+    <div class="who">
+      <div><b>Google</b>Firebase Authentication (the account: email or username, hashed password and identifier), Cloud Firestore (cloud progress, in the European Union, eur3 region), Google sign-in and a STUN server.</div>
+      <div><b>GitHub</b>Hosts the website (GitHub Pages).</div>
+      <div><b>Cloudflare</b>Runs the domain and has a STUN server.</div>
+      <div><b>Other players</b>Online only, as described above: display name, look, player and the IP address for the direct connection.</div>
+    </div>
+    <p>We would only give data to an authority if the law requires it.</p>
+  </section>
+
+  <section class="card" aria-labelledby="en-6">
+    <h2 id="en-6">Transfers outside the EU</h2>
+    <p>Cloud progress and rooms are stored in the European Union (Cloud Firestore, eur3 region). The account (Firebase Authentication) is also processed by Google outside the EU, as are the access logs of Google, GitHub and Cloudflare, which are US companies. Those transfers rely on the EU-US Data Privacy Framework or on the European Commission's standard contractual clauses.</p>
+  </section>
+
+  <section class="card" aria-labelledby="en-7">
+    <h2 id="en-7">Security</h2>
+    <p>Everything travels encrypted (HTTPS, and DTLS for the connection with your opponent). Database rules only let you read and write your own progress. The content has no game-specific encryption; Google encrypts it at rest.</p>
+  </section>
+
+  <section class="card" aria-labelledby="en-8">
+    <h2 id="en-8">Your rights</h2>
+    <p>You can ask to access, correct, delete or take your data with you (portability), and to restrict or object to its use.</p>
+    <ul>
+      <li><b>Delete your account:</b> in the game, under "Cuenta" › "Borrar la cuenta", or on <a href="borrar-cuenta.html#en">the account deletion page</a>.</li>
+      <li><b>Anything else:</b> write to <a href="mailto:help@takethecourt.com">help@takethecourt.com</a>. We reply within one month at the latest.</li>
+      <li>If you think we have not handled your data properly, you can complain to the Spanish Data Protection Agency (<a href="https://www.aepd.es" rel="noopener">www.aepd.es</a>).</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="en-9">
+    <h2 id="en-9">Children</h2>
+    <p>Accounts and online play are for people aged 14 or over, the age from which consent can be given without parental permission in Spain. Without an account you can play everything else and we store nothing on servers.</p>
+    <p>We do not ask for or check age. If you are a parent or guardian and think a child under 14 has created an account, write to us and we will delete it.</p>
+  </section>
+
+  <section class="card" aria-labelledby="en-10">
+    <h2 id="en-10">Changes</h2>
+    <p>If what the game does with your data changes, we will update this page and its date. If the change is important, we will also announce it in the game.</p>
+  </section>
+
+  <p><a class="back" href="./">Back to the game</a></p>
+</article>
+
+<p class="foot"><a href="borrar-cuenta.html">Borrar la cuenta</a> · <a href="#es">Español</a> · <a href="#en">English</a></p>
+</main>
+</body>
+</html>

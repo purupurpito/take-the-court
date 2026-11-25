@@ -1,0 +1,7 @@
+# twa-manifest.json se compara byte a byte con manifest-checksum.txt (bubblewrap build): que git no le toque los finales de línea
+twa-manifest.json -text
+manifest-checksum.txt -text
+*.bat text eol=crlf
+gradlew text eol=lf
+*.jar binary
+*.png binary

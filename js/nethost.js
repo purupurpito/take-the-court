@@ -82,7 +82,9 @@
   function enumOf(tab, i) { return i < tab.length ? tab[i] : undefined; }
   function i16(v) { v = Math.round(v); return v !== v ? 0 : v > 32767 ? 32767 : v < -32768 ? -32768 : v; }
   function u8(v) { v = Math.round(v); return v !== v || v < 0 ? 0 : v > 255 ? 255 : v; }
-  function cleanName(n) { n = String(n == null ? '' : n).replace(/[\u0000-\u001f<>]/g, '').trim(); return n.slice(0, 24); }
+  /** Nombre que llega de otro (saludo, names del anfitrión): sin controles ni < >, 24 como mucho y, con insultos, «Jugador NNNN»
+   *  (VB.NameFilter.shown, js/namefilter.js). */
+  function cleanName(n) { n = String(n == null ? '' : n).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24); var F = VB.NameFilter; return n && F ? F.shown(n) : n; }
   function isPlayer(v) { return v && typeof v === 'object' && !Array.isArray(v) && typeof v.id === 'number' && (v.team === 0 || v.team === 1) && v.st !== undefined; }
   function encEv(e) {
     var o = {}, k, v;
