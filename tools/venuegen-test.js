@@ -419,12 +419,12 @@ const byCCb = {}; beachQ.forEach((s, i) => (byCCb[s.cc] = byCCb[s.cc] || []).pus
 section('OVERRIDES');
 {
   const m = miniCtx(), Gm = m.VB().VenueGen, O = Gm.OVERRIDES;
-  const PLAN = { 'IT:MIL': 'H1', 'IT:PAD': 'H2', 'IT:CIS': 'H3', 'IT:GRO': 'H4', 'IT:PRA': 'H5', 'IT:CUN': 'H6', 'IT:BER': 'H7', 'IT:FIR': 'H8', 'IT:PER': 'H9' };
+  const PLAN = { 'IT:NAV': 'H1', 'IT:PAD': 'H2', 'IT:PON': 'H3', 'IT:GRO': 'H4', 'IT:PRA': 'H5', 'IT:CUN': 'H6', 'IT:BER': 'H7', 'IT:FIR': 'H8', 'IT:PER': 'H9' };
   for (const k in PLAN) O[k] = { arch: PLAN[k] };
   O['IT:BUS'] = { arch: 'H9' };                    // t2: H9 solo en tier 3 → rechazado
   O['IT:MAC'] = { arch: 'H3', roof: 'dome' };      // techo que no es de H3 → rechazado, techo de H3
-  O['IT:TRE:b'] = { scen: 'port' };
-  O['IT:MIL:b'] = { hour: 'noche' };               // t2: noche solo en tier 3 → rechazado
+  O['IT:ADI:b'] = { scen: 'port' };
+  O['IT:NAV:b'] = { hour: 'noche' };               // t2: noche solo en tier 3 → rechazado
   const W = Gm._.world().hall, Wb = Gm._.world().beach, bad = [];
   const WIN = { H1: ['band', 'none'], H2: ['skylight'], H3: ['band', 'none', 'skylight'], H4: ['band'], H5: ['arches'], H6: ['glass'], H7: ['ring'], H8: ['none'], H9: ['none'] };
   const chk = (key, arch) => {
@@ -446,9 +446,9 @@ section('OVERRIDES');
   const errs = Gm._.overrideErrors;
   ok(W['IT:BUS'].arch !== 'H9' && errs.some(x => /^IT:BUS\.arch/.test(x)), 'override imposible (H9 en tier 2) rechazado y anotado');
   ok(errs.some(x => /^IT:MAC\.roof/.test(x)), 'override de techo que no es del arquetipo rechazado y anotado');
-  ok(Wb['IT:TRE'].p.scen === 'port' && Wb['IT:TRE'].arch === 'port' && Wb['IT:TRE'].p.surf === 0 && Wb['IT:TRE'].p.backdrop.split('+').every(x => x === 'city' || x === 'mountain'),
-    'override de playa (scen: port): telón y oleaje de puerto (' + Wb['IT:TRE'].p.backdrop + ', surf ' + Wb['IT:TRE'].p.surf + ')');
-  ok(!Wb['IT:MIL'].night && errs.some(x => /^IT:MIL:b\.hour/.test(x)), 'override de noche en tier 2 rechazado');
+  ok(Wb['IT:ADI'].p.scen === 'port' && Wb['IT:ADI'].arch === 'port' && Wb['IT:ADI'].p.surf === 0 && Wb['IT:ADI'].p.backdrop.split('+').every(x => x === 'city' || x === 'mountain'),
+    'override de playa (scen: port): telón y oleaje de puerto (' + Wb['IT:ADI'].p.backdrop + ', surf ' + Wb['IT:ADI'].p.surf + ')');
+  ok(!Wb['IT:NAV'].night && errs.some(x => /^IT:NAV:b\.hour/.test(x)), 'override de noche en tier 2 rechazado');
   ok(errs.length === 3, 'solo los 3 overrides imposibles se anotan (' + errs.length + ': ' + errs.join(' | ') + ')');
   // la tabla de serie no lleva overrides imposibles
   ok(G._.overrideErrors.length === 0, 'OVERRIDES de serie: 0 errores');

@@ -1419,15 +1419,15 @@
     'IT:PRA': { arch: 'H3', stands: 'one' },   // = IT:VAL (H6 cristalera, misma pista crema sobre azul); con gradas en U, = IT:MOD
     'PL:JAS': { arch: 'H7' },     // = PL:ZAW (H6 cristalera nublada, Jastrzębie y Zawiercie con los mismos colores)
     'BR:GRU': { arch: 'H7' },     // = BR:CEL (H6 cristalera, azul sobre amarillo)
-    'RU:PLA': { arch: 'H3' },     // = RU:DYM (H6 cristalera de noche con sodio)
-    'JP:LAF': { arch: 'H3', light: 'led' },   // = JP:RIO (H5 madera con telón); con sodio, verde menta sobre gris como JP:BRH
+    'RU:PLA': { arch: 'H3' },     // = RU:PET (H6 cristalera de noche con sodio)
+    'JP:LAF': { arch: 'H3', light: 'led' },   // = JP:NAG (H5 madera con telón); con sodio, verde menta sobre gris como JP:BRH
     'BR:CDG': { arch: 'H4' },     // = BR:MOC (H5 madera con mural; BR no tenía ninguna H4)
     // ES tiene cinco clubes azul sobre amarillo (LAG, TAM, BND, SRQ, CHT): cada uno con su arquetipo (H2, H4, H5, H1, H3)
     'ES:BND': { arch: 'H5' },
     'ES:SRQ': { arch: 'H1' },
     'ES:CHT': { arch: 'H3' },
     // segunda revisión (gemelas en el umbral: Hamming 10-14 con casi el mismo color)
-    'AR:PIN': { arch: 'H5', light: 'led', stands: 'U' }, // H5: AR:LOB (misma ciudad) ya es H4. = AR:NUN (H2 bóveda con sodio, pista roja sobre madera naranja, pared marrón; misma liga)
+    'AR:PIN': { arch: 'H5', light: 'led', stands: 'U' }, // H5: AR:LOB (misma ciudad) ya es H4. = AR:VNU (H2 bóveda con sodio, pista roja sobre madera naranja, pared marrón; misma liga)
     'IT:CHI': { arch: 'H3' },     // = IT:VER (H8/H9 de noche con LED, azul sobre naranja: con otra luz seguían gemelas)
     'PL:MUR': { arch: 'H3' }      // = PL:WAR (H8/H9 de noche con luces de espectáculo, azul sobre amarillo)
   };
