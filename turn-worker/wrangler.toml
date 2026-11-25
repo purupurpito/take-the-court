@@ -1,5 +1,5 @@
 # TAKE THE COURT — Worker de credenciales TURN (Imprescindible 4.1). Pasos en README.md.
-# Los SECRETOS (TURN_KEY_ID, TURN_KEY_API_TOKEN) NO van aquí: `npx wrangler secret put ...`.
+# Los SECRETOS (TURN_KEY_ID, TURN_KEY_API_TOKEN, CF_ANALYTICS_TOKEN) NO van aquí: `npx wrangler secret put ...`.
 name = "ttc-turn"
 main = "src/worker.mjs"
 compatibility_date = "2026-11-01"
@@ -14,8 +14,30 @@ routes = [
 FIREBASE_PROJECT = "make-the-cut-vb"
 # Orígenes que pueden pedir credenciales: el juego publicado, el puente viejo y pruebas con un servidor local.
 ALLOWED_ORIGINS = "https://takethecourt.com,https://www.takethecourt.com,https://purupurpito.github.io,http://localhost:8080,http://127.0.0.1:8080"
-# Vida de las credenciales en segundos (2 h).
-TTL = "7200"
+# Vida de las credenciales en segundos (1 h: tras un corte, las ya dadas dejan de valer pronto).
+TTL = "3600"
+# Tope de gasto (README, «Los dos cortes»). ACCOUNT_ID: el Account ID de Cloudflare (32 caracteres hex; panel → cuenta → Overview,
+# columna derecha). No es secreto, pero mientras esté vacío el Worker NO da credenciales (fail-safe: sin él no puede leer el consumo).
+ACCOUNT_ID = ""
+# Credenciales como mucho por mes (UTC). Al llegar, 503 {off:true} hasta el mes siguiente.
+MAX_CREDS_MONTH = "20000"
+# Consumo TURN del mes (GB = 1e9 bytes de egressBytes, lo que factura Cloudflare) a partir del cual se apaga. Gratis: 1000 GB/mes.
+USAGE_CUTOFF_GB = "800"
+# "false" = apagado a mano (503 a todo) sin borrar nada.
+ENABLED = "true"
+
+# Contador del mes e interruptor: un Durable Object con SQLite (vale en el plan gratuito de Workers).
+[[durable_objects.bindings]]
+name = "BUDGET"
+class_name = "TurnBudget"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TurnBudget"]
+
+# Lectura del consumo real (API GraphQL de analíticas) cada 15 min.
+[triggers]
+crons = ["*/15 * * * *"]
 
 # Límite por cuenta y por IP (Workers Rate Limiting): 20 peticiones por minuto por uid y otras 20 por IP (CF-Connecting-IP). Si da problemas al desplegar, borra este bloque:
 # el Worker usa entonces un límite sencillo por instancia (20 cada 10 min).

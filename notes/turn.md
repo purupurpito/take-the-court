@@ -11,14 +11,19 @@ redes de empresa). Hasta ahora el lobby solo podía decir «vuestras redes no lo
 ## Piezas
 
 - **`turn-worker/`** (Worker de Cloudflare `ttc-turn`, `turn.takethecourt.com`): `POST /ice` con el ID token de Firebase →
-  credenciales de Cloudflare Realtime TURN de 2 h (`generate-ice-servers`), solo las entradas TURN y sin el puerto 53. Comprueba el
+  credenciales de Cloudflare Realtime TURN de 1 h (`generate-ice-servers`), solo las entradas TURN y sin el puerto 53. Comprueba el
   token sin SDK (RS256, claves públicas de `securetoken@system.gserviceaccount.com`, `iss`/`aud` = `make-the-cut-vb`). Secretos
   `TURN_KEY_ID` y `TURN_KEY_API_TOKEN` con `wrangler secret put` (nunca en el repo). CORS solo para takethecourt.com, el puente de
   github.io y localhost:8080; **sin Origin, 403** (22-nov-2026, revisión de la rama: antes las peticiones sin Origin pasaban con
   token). Límite por uid **y por IP** (`CF-Connecting-IP`; binding de Rate Limiting; sin él, uno sencillo por instancia): las cuentas se
-  crean gratis por REST con la clave pública, así que el uid solo no frena. **Pendiente de Ferran antes de desplegar: alerta (o tope)
-  de gasto de Realtime TURN en Cloudflare** (turn-worker/README.md, paso 1). No hecho: exigir antigüedad de cuenta o sala online
+  crean gratis por REST con la clave pública, así que el uid solo no frena. No hecho: exigir antigüedad de cuenta o sala online
   activa (el ID token no trae la fecha de creación de la cuenta; haría falta Firestore o la Admin API).
+  **Tope de gasto propio (25-nov-2026, rama `turn-tope`)**: Ferran no quiere pagar nunca y Cloudflare no tiene tope (1.000 GB/mes
+  gratis, luego 0,05 $/GB), así que el Worker se corta solo: (1) Durable Object `TurnBudget` (SQLite) que cuenta las credenciales
+  del mes UTC: con `MAX_CREDS_MONTH` (20000) → 503 `{off:true}` sin llamar a Cloudflare; (2) cron cada 15 min que lee
+  `callsTurnUsageAdaptiveGroups.sum.egressBytes` del mes por la API GraphQL de analíticas: ≥ `USAGE_CUTOFF_GB` (800) → apagado
+  hasta el mes siguiente; sin token / `ACCOUNT_ID`, o 6 h sin una lectura buena → apagado (fail-safe), y se enciende solo. TTL
+  bajado a 1 h. Detalle en `turn-worker/README.md`, «Los dos cortes».
 - **`js/netconfig.js`**: `VB.NET_TURN_URL = ''` (apagado). Encenderlo = poner `'https://turn.takethecourt.com/ice'`.
 - **`js/netrtc.js`**: `turnPrep(auth)` pide las credenciales (como mucho 2 s: si tarda, se sigue con STUN y la respuesta tardía vale
   para la siguiente negociación), las guarda en `VB.NET_ICE = {turn, relayOnly:false, exp}` y las reutiliza hasta 10 min antes de
@@ -50,6 +55,7 @@ no habrían conectado sin TURN.
 
 ## Pruebas
 
-`node tools/turntest.js` (57 comprobaciones, Node, sin red): cliente apagado/encendido/caché/lento/errores, Worker con tokens buenos y
-malos, CORS, límites, Cloudflare caído y que no hay secretos en el repo. `npx wrangler@4 deploy --dry-run` en `turn-worker/` valida el
+`node tools/turntest.js` (100 comprobaciones, Node, sin red): cliente apagado/encendido/caché/lento/errores, Worker con tokens buenos y
+malos, CORS, límites, Cloudflare caído, tope de credenciales, cambio de mes, corte por consumo con un GraphQL de mentira, fail-safe de
+6 h, 503 → el cliente sigue con STUN, y que no hay secretos en el repo. `npx wrangler@4 deploy --dry-run` en `turn-worker/` valida el
 `wrangler.toml` sin desplegar.
