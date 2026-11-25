@@ -179,7 +179,26 @@ console.log('\nSalas, saludo, récord y enlace de la semana');
     const hs = rd('js/nethost.js'), cc = rd('js/career-coop.js');
     check('6v6 (nethost.js): cleanName (saludo de cada invitado y names del anfitrión) pasa por VB.NameFilter.shown', /function cleanName\(n\) \{[^\n]*F\.shown\(n\)/.test(hs) && /this\.names = c\.names\.map\(cleanName\)/.test(hs) && /pe\.name = cleanName\(c\.name\)/.test(hs));
     check('coop (career-coop.js): cleanName pasa por VB.NameFilter.shown y el nombre del anfitrión en la vista del invitado también', /function cleanName\(s\) \{[^\n]*F\.shown\(s\)/.test(cc) && /o\.host = \{ name: hn,/.test(cc) && /hn = F && [^\n]*F\.shown\(me\.name\)/.test(cc));
+    check('coop: el resumen tras el partido (guestSum) tapa el nombre del anfitrión en cs.mate y rec.host, y onSum lo tapa al llegar',
+      /hn = g\.player && F && [^\n]*F\.shown\(g\.player\)/.test(cc) && /host: hr && F \? F\.shown\(hr\) : hr/.test(cc) && /d\.cs\.mate = Fn\.shown\(d\.cs\.mate\)/.test(cc));
+    check('coop: la vista del invitado no lleva coop.old (parejas de antes)', /if \(o\) delete o\.old;/.test(cc));
     check('coop: tu nombre sale de NetLobby.myName (apodo o «Jugador NNNN»)', /function myName\(\) \{ var N = VB\.NetLobby;[^\n]*N\.myName\(\)/.test(cc));
+  }
+  // coop de verdad (vm): el resumen que el anfitrión manda tras cada partido no lleva su nombre con insultos
+  {
+    let cx = null; try { cx = load(['js/namefilter.js', 'js/career-coop.js']); } catch (e) { cx = null; }
+    if (cx) cx.VB.Career = { beach: {} };   // (sin la Carrera: endX no tiene tabla ni siguiente partido)
+    const CC = cx && cx.VB.CareerCoop, NF = cx && cx.VB.NameFilter;
+    if (!CC || !CC.guestSum) check('coop: career-coop.js carga sin el resto del juego', false);
+    else {
+      const c = { seed: 7, season: 1, player: { name: 'Cabron Perez', num: 9, lvl: 3, st: {} }, coop: { v: 1, p2: { name: 'Ana', num: 4, lvl: 2, st: {} } } };
+      const g = CC.guestSum(c, { coop: { xp: 1, lvl: 2, pts: 0, nota: 6 }, badges: [] }, { player: 'Cabron Perez', num: 9 });
+      const s = JSON.stringify(g);
+      check('coop (vm): guestSum tapa el nombre del anfitrión con insultos en cs.mate y rec.host, y no lo lleva en ningún sitio',
+        NF.bad('Cabron Perez') && g && /^Jugador \d{4}$/.test(g.cs.mate) && /^Jugador \d{4}$/.test(g.rec.host) && s.indexOf('Cabron') < 0, g && [g.cs.mate, g.rec.host]);
+      const ok = CC.guestSum(Object.assign({}, c, { player: { name: 'Pau', num: 9 } }), { coop: { xp: 1 }, badges: [] }, { player: 'Pau', num: 9 });
+      check('coop (vm): un nombre normal sale tal cual', ok && ok.cs.mate === 'Pau' && ok.rec.host === 'Pau', ok && [ok.cs.mate, ok.rec.host]);
+    }
   }
   // saludo (net.js y netfluid.js): cleanName tapa
   {

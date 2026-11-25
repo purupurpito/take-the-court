@@ -75,7 +75,12 @@ if (SRC['privacidad.html']) {
     ['identificador aleatorio del dispositivo en el perfil', /identificador aleatorio de cada dispositivo/, /random identifier for each device/],
     ['sesión sin cifrar en el dispositivo', /sin cifrar/, /unencrypted/],
     ['sin anuncios, analítica ni compras', /No hay anuncios, ni analítica/, /no ads, analytics/i],
-    ['enlace a la página de borrar la cuenta', /href="borrar-cuenta\.html"/, /href="borrar-cuenta\.html#en"/]
+    ['enlace a la página de borrar la cuenta', /href="borrar-cuenta\.html"/, /href="borrar-cuenta\.html#en"/],
+    // (25-nov-2026) online de varios, Carrera cooperativa e informe de fallo antes del partido (prefail)
+    ['salas de varios: nombres de todos los sentados', /salas de 2 contra 2 y de 6 contra 6, los de todos los que se sientan/, /2 vs 2 and 6 vs 6 rooms, those of everyone who takes a seat/],
+    ['salas de varios: el anfitrión recibe la IP de todos los invitados', /el anfitrión recibe la dirección IP de todos los invitados/, /the host receives the IP address of every guest/],
+    ['Carrera cooperativa: lo que ve la pareja y lo que guarda el anfitrión (uid, nombre, jugador; hasta 3; no se borra con tu cuenta)', /Carrera cooperativa:<\/b>[^<]*identificador de cuenta[^<]*hasta las 3 últimas parejas[^<]*no se borra de su Carrera/, /Co-op Career:<\/b>[^<]*account identifier[^<]*last 3 partners[^<]*does not delete this from their Career/],
+    ['informe de fallo de conexión antes del partido (sin nombres ni direcciones)', /fallo de conexión antes del partido:<\/b>[^<]*sin direcciones ni puertos[^<]*No lleva nombres/, /connection failure before a match:<\/b>[^<]*no addresses or ports[^<]*no names/]
   ];
   for (const [n, rEs, rEn] of need) check(rEs.test(es) && rEn.test(en), 'privacidad: ' + n + ' (es y en)');
   // three.js y las fuentes van en vendor/ desde el 24-nov-2026 (notes/offline.md): ni el juego ni la política hablan de cdnjs ni de
@@ -156,23 +161,27 @@ const SITE = path.join(tmp, 'site');
 
 // ---------------------------------------------------------------- deleteAccount de account.js en vm (referencia)
 /** Firestore de pega común: lista {squad, career, zzz}; DELETE 200; securetoken renueva a tok2; accounts:delete 200 o mode 'old' → 400.
- *  mode 'room': rooms/u1 existe; 'fail': DELETE de saves/career da 503; 'listfail': la lista da 503. */
+ *  mode 'room': rooms/u1 existe y es una sala de varios con seats.g2 (y el aparato apunta g3 en make-the-cut.netroom.pairs: mira
+ *  pairsFor); 'gonepairs': sin sala pero con g4 apuntado; 'fail': DELETE de saves/career da 503; 'listfail': la lista da 503. */
 function fakeResp(u, m, mode) {
   const J = (status, j) => ({ status, j });
   if (mode === 'fail' && m === 'DELETE' && /\/saves\/career$/.test(u)) return J(503, { error: { message: 'UNAVAILABLE' } });
   if (mode === 'listfail' && m === 'GET' && /\/saves\?pageSize=50$/.test(u)) return J(503, { error: { message: 'UNAVAILABLE' } });
-  if (mode === 'room' && m === 'GET' && /\/rooms\/u1$/.test(u)) return J(200, { name: 'projects/make-the-cut-vb/databases/(default)/documents/rooms/u1', fields: {} });
+  if (mode === 'room' && m === 'GET' && /\/rooms\/u1$/.test(u)) return J(200, { name: 'projects/make-the-cut-vb/databases/(default)/documents/rooms/u1', fields: { cap: { integerValue: '4' }, seats: { mapValue: { fields: { g2: { mapValue: { fields: { n: { stringValue: 'Ana' } } } } } } } } });
   if (/securetoken\.googleapis\.com/.test(u)) return J(200, { id_token: 'tok2', refresh_token: 'r2', expires_in: '3600' });
   if (/identitytoolkit\.googleapis\.com/.test(u)) return mode === 'old' ? J(400, { error: { message: 'CREDENTIAL_TOO_OLD_LOGIN_AGAIN' } }) : J(200, { kind: 'identitytoolkit#DeleteAccountResponse' });
   if (m === 'GET' && /\/saves\?pageSize=50$/.test(u)) return J(200, { documents: ['squad', 'career', 'zzz'].map(n => ({ name: 'projects/make-the-cut-vb/databases/(default)/documents/users/u1/saves/' + n, fields: {} })) });
   if (m === 'DELETE') return J(200, {});
   return J(404, {});
 }
+/** Lo que js/netroom.js habría dejado en make-the-cut.netroom.pairs en cada modo ('ok': de OTRO anfitrión, no se toca). */
+function pairsFor(mode) { return mode === 'room' ? { h: 'u1', u: ['g3', 'g2'] } : mode === 'gonepairs' ? { h: 'u1', u: ['g4'] } : mode === 'ok' ? { h: 'otro', u: ['g9'] } : null; }
 const norm = c => c.method + ' ' + c.url.replace(/key=[^&]+/, 'key=K') + ' ' + (c.auth || '') + (c.body ? ' ' + c.body : '');
 /** opts.gone: antes de llamar, otra pestaña (o borrar-cuenta.html) quita la sesión; se sube con _push en vez de borrar. */
 async function vmDelete(session, mode, opts) {
   class Storage { constructor() { this._m = new Map(); } getItem(k) { return this._m.has(k) ? this._m.get(k) : null; } setItem(k, v) { this._m.set(k, String(v)); } removeItem(k) { this._m.delete(k); } }
   const LS = new Storage(), SS = new Storage(); LS._m.set('make-the-cut.account', JSON.stringify(session));
+  if (pairsFor(mode)) LS._m.set('make-the-cut.netroom.pairs', JSON.stringify(pairsFor(mode)));
   const calls = [];
   async function fetch(u, opt) {
     opt = opt || {}; const m = opt.method || 'GET', h = opt.headers || {};
@@ -251,7 +260,7 @@ async function browser() {
       ['token caducado', { user: 'prueba', kind: 'user', uid: 'u1', rt: 'r1', it: 'old', ie: Date.now() - 1000 }]]) {
       console.log('2c) borrar con sesión (' + label + ')');
       const ref = await vmDelete(ses, 'ok');
-      await E(`localStorage.setItem('make-the-cut.account', ${JSON.stringify(JSON.stringify(ses))}); localStorage.removeItem('make-the-cut.account.out'); sessionStorage.setItem('pt.mode','ok'); 1`);
+      await E(`localStorage.setItem('make-the-cut.account', ${JSON.stringify(JSON.stringify(ses))}); localStorage.removeItem('make-the-cut.account.out'); localStorage.setItem('make-the-cut.netroom.pairs', ${JSON.stringify(JSON.stringify(pairsFor('ok')))}); sessionStorage.setItem('pt.mode','ok'); 1`);
       await nav(fileUrl('borrar-cuenta.html'));
       st = await JE(`{ses: !document.getElementById('dSes').hidden, who: document.getElementById('who').textContent, dis: document.getElementById('del').disabled}`);
       check(st.ses && st.who === ses.user && st.dis, label + ': «Has entrado como ' + ses.user + '» y el botón apagado');
@@ -302,7 +311,7 @@ async function browser() {
       for (const [label, ses, mode, code, re] of cases) {
         console.log('2d) ' + label);
         const ref = await vmDelete(ses, mode);
-        await E(`localStorage.setItem('make-the-cut.account', ${JSON.stringify(JSON.stringify(ses))}); localStorage.removeItem('make-the-cut.account.out'); sessionStorage.setItem('pt.mode','${mode}'); 1`);
+        await E(`localStorage.setItem('make-the-cut.account', ${JSON.stringify(JSON.stringify(ses))}); localStorage.removeItem('make-the-cut.account.out'); var p = ${JSON.stringify(JSON.stringify(pairsFor(mode)))}; if (p !== 'null') localStorage.setItem('make-the-cut.netroom.pairs', p); else localStorage.removeItem('make-the-cut.netroom.pairs'); sessionStorage.setItem('pt.mode','${mode}'); 1`);
         await nav(fileUrl('borrar-cuenta.html'));
         await typeIn('BORRAR'); await E(`document.getElementById('del').click(), 1`);
         const t0 = Date.now(); while (Date.now() - t0 < 5000 && !(await E(`!document.getElementById('dDone').hidden || /\\S/.test(document.getElementById('msg').textContent.replace('Borrando…',''))`))) await sleep(100);
@@ -317,6 +326,8 @@ async function browser() {
           check(!ref.err && st.done && !st.ses, label + ': cuenta borrada', st);
           const iDel = ['sig/offer', 'sig/answer', 'rooms/u1 '].map(k => got.some(x => x.indexOf('DELETE') === 0 && x.indexOf(k) > 0));
           check(iDel.every(Boolean) && got.some(x => /accounts:delete/.test(x)), label + ': borra sig/offer, sig/answer, la sala y la cuenta');
+          const pr = ['o_g2', 'a_g2', 'o_g3', 'a_g3'].filter(k => !got.some(x => x.indexOf('DELETE') === 0 && x.indexOf('rooms/u1/sig/' + k + ' ') > 0));
+          check(!pr.length, label + ': sala de varios: borra también sig/o_ y a_ del invitado sentado (g2) y del apuntado en el aparato (g3)', pr);
         }
       }
     }
@@ -354,6 +365,18 @@ async function browser() {
     check(!r.err && !r.calls.length, 'sin sesión en el almacenamiento: _push no hace ninguna llamada (no recrea partidas de una cuenta borrada)', r.calls);
     const src = fs.readFileSync(path.join(ROOT, 'js', 'account.js'), 'utf8');
     check(/addEventListener\('storage'/.test(src), 'account.js escucha el evento storage');
+  }
+  console.log('1d) borrar la cuenta: señalización por pareja de las salas de varios (vm)');
+  {
+    const ses = { user: 'prueba', kind: 'user', uid: 'u1', rt: 'r1', it: 'tok', ie: Date.now() + 3600e3 };
+    const dels = r => r.calls.filter(x => /^DELETE .*\/rooms\//.test(x)).map(x => x.split(' ')[1].replace(/^.*\/documents\//, '').replace(/\?.*$/, ''));
+    const room = await vmDelete(ses, 'room'), rd = dels(room);
+    const want = ['rooms/u1', 'rooms/u1/sig/offer', 'rooms/u1/sig/answer', 'rooms/u1/sig/o_g2', 'rooms/u1/sig/a_g2', 'rooms/u1/sig/o_g3', 'rooms/u1/sig/a_g3'];
+    check(!room.err && want.every(k => rd.indexOf(k) >= 0) && rd.length === want.length, 'sala de varios: borra offer, answer, o_/a_ de g2 (seats) y g3 (apuntado) y la sala', rd);
+    const ok = await vmDelete(ses, 'ok');
+    check(!ok.err && !dels(ok).length, 'sin sala y con parejas de OTRO anfitrión apuntadas: no borra nada de rooms', dels(ok));
+    const gp = await vmDelete(ses, 'gonepairs'), gd = dels(gp);
+    check(!gp.err && gd.sort().join() === 'rooms/u1/sig/a_g4,rooms/u1/sig/answer,rooms/u1/sig/o_g4,rooms/u1/sig/offer' && gp.calls.some(x => /accounts:delete/.test(x)), 'sin sala pero con g4 apuntado (sala barrida): borra sus o_/a_ (y offer/answer por si acaso), no la sala, y la cuenta', gd);
   }
   try {
     if (process.env.NOCDP === '1') console.log('2) NOCDP=1: sin navegador');

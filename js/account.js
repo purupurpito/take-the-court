@@ -486,6 +486,15 @@
     if (j.iat && Math.abs(now - j.iat) > 3700) age = j.iat - j.at;   // reloj del aparato desajustado: lo que dice el propio token
     return age <= FRESH_S;
   }
+  /** Documentos de señalización por pareja (o_<uid>, a_<uid>) de tu sala: invitados de r.seats (documento REST de rooms/{uid}) y
+   *  los que js/netroom.js guarda en make-the-cut.netroom.pairs para este uid. Solo uids que casan con la regla pair(). */
+  function pairSig(r) {
+    var u = [], f = r && r.fields && r.fields.seats && r.fields.seats.mapValue && r.fields.seats.mapValue.fields;
+    if (f && typeof f === 'object') u = Object.keys(f);
+    try { var v = JSON.parse(LS.getItem('make-the-cut.netroom.pairs') || 'null'); if (v && v.h === acc.uid && Array.isArray(v.u)) v.u.forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); } catch (e) { }
+    var out = []; u.filter(function (x) { return typeof x === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(x); }).slice(0, 80).forEach(function (x) { out.push('o_' + x, 'a_' + x); });
+    return out;
+  }
   function deleteAccount() {
     if (!acc) return Promise.resolve();
     var fails = 0;
@@ -497,8 +506,11 @@
       var names = Object.keys(remote || {});
       Object.keys(DOCS).forEach(function (k) { if (names.indexOf(DOCS[k]) < 0) names.push(DOCS[k]); });
       var room = fs('GET', 'rooms/' + acc.uid).then(function (r) {
-        if (!r) return;   // sin sala
-        return Promise.all(['offer', 'answer'].map(function (k) { return del('rooms/' + acc.uid + '/sig/' + k); })).then(function () { return del('rooms/' + acc.uid); });
+        // salas de varios (v3): también la señalización por pareja sig/o_<uid> y sig/a_<uid> (SDP con direcciones) de cada invitado
+        // sentado y de los que netroom apuntó en el aparato (los que ya salieron); Firestore no borra subcolecciones con la sala
+        var sig = ['offer', 'answer'].concat(pairSig(r));
+        if (!r && sig.length === 2) return;   // sin sala ni parejas apuntadas
+        return Promise.all(sig.map(function (k) { return del('rooms/' + acc.uid + '/sig/' + k); })).then(function () { if (r) return del('rooms/' + acc.uid); });
       }, function () { fails++; });
       return Promise.all(names.map(function (n) { return del(docPath(n)); }).concat([room]));
     })

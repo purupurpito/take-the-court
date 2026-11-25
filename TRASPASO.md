@@ -547,6 +547,13 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
+- **Revisión de la fusión de playstore (25-nov-2026, sin publicar):** (1) borrar la cuenta (js/account.js y pages/borrar-cuenta.html,
+  mismas llamadas) borra también `rooms/{uid}/sig/o_<uid>` y `a_<uid>` de cada invitado de `seats` y de los apuntados en
+  `make-the-cut.netroom.pairs`, aunque la sala ya no exista (policytest 1d y 2d). (2) Cooperativo: `guestSum` y `onSum` tapan el
+  nombre del personaje del anfitrión con insultos (cs.mate y rec.host; nametest en vm). (3) `guestView` ya no manda `coop.old` (uid,
+  nombre y números de las parejas de antes) a la pareja actual (cooptest). privacidad.html (es y en), borrar-cuenta.html y
+  notes/playstore/seguridad-datos.md cuentan las salas de varios (nombres de todos, el anfitrión ve la IP de todos), el cooperativo
+  (lo que guarda el anfitrión, hasta 3 parejas, no se borra con la cuenta de la pareja) y el informe prefail; policytest lo vigila.
 - **Revisión de la fusión 1.23.0: candado de la Carrera e invitado del cooperativo (24-nov-2026, sin publicar):** con la Carrera del
   anfitrión en memoria (`VB.Career._useStore`), el candado de main (`careerLockFix`, que el hub llama en cada render) comparaba la foto de
   la Carrera PROPIA del invitado (`make-the-cut.resume.career`) con el partido del anfitrión: la borraba y, al salir del cooperativo,

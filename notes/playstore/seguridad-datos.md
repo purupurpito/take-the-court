@@ -13,14 +13,18 @@ La Consola puede cambiar el texto o el orden de las preguntas: si algo no cuadra
 El formulario tiene que decir la verdad el día que se envía. Había tres cosas que impedían contestar «sí» con la conciencia
 tranquila en la parte de borrado; las tres tienen ya arreglo en el código (24-nov-2026). La 1 necesita además un paso del dueño:
 
-1. **Los netlogs caducan a los 90 días (cuando el dueño active el TTL).** Desde el 24-nov-2026 cada informe lleva
-   `exp` = ahora + 90 días (js/netlog.js, `KEEP_MS`) y las reglas lo admiten (firebase/firestore.rules, bloque netlogs; SIN
-   DESPLEGAR). Falta que el dueño: (a) despliegue las reglas, (b) active la política TTL de Firestore sobre `netlogs.exp`
+1. **Los netlogs se van de Firestore en menos de un día y se borran a los 90.** Desde el 24-nov-2026 cada informe (también el
+   prefail) lleva `exp` = ahora + 90 días (js/netlog.js, `KEEP_MS`, `EXP_RULES = true`) y las reglas que lo admiten están
+   DESPLEGADAS (24-nov-2026). Una tarea programada en el PC del responsable descarga los informes cada día y los borra de
+   Firestore; las copias locales se borran a los 90 días. Lo de abajo queda como red de seguridad: (a) ~~desplegar las reglas~~ hecho, (b) activar la política TTL de Firestore sobre `netlogs.exp`
    (`gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`, o en la Consola: Firestore › TTL; notes/net.md
-   «Caducidad de los informes») y (c) borre a mano los informes de antes, que no llevan `exp` y el TTL no toca. Hasta entonces las
-   páginas dirían algo que aún no es verdad. Borrar la cuenta sigue sin borrarlos al momento (no hay regla `delete` ni Cloud
+   «Caducidad de los informes») y (c) los informes de antes no llevan `exp` y el TTL no los toca (la descarga diaria sí se los lleva).
+   Borrar la cuenta sigue sin borrarlos al momento (no hay regla `delete` ni Cloud
    Function); las dos páginas lo dicen: «90 días» y, si se pide por correo, se borran antes.
 2. ~~`rooms/{uid}` puede quedarse~~ **Arreglado (24-nov-2026):** `deleteAccount()` borra también `rooms/{uid}` y su `sig/` si existe.
+   Desde el 25-nov-2026 también la señalización por pareja de las salas de varios (`sig/o_<uid>` y `sig/a_<uid>`, SDP con
+   direcciones) de cada invitado de `seats` y de los que js/netroom.js apuntó en el aparato (`make-the-cut.netroom.pairs`), aunque
+   la sala ya no exista (tools/policytest.js 1d).
 3. ~~Errores ignorados al borrar documentos~~ **Arreglado (24-nov-2026):** si falla la lista o cualquier DELETE, no se borra la
    cuenta y el juego (y borrar-cuenta.html) dicen «No se ha podido borrar todo. La cuenta sigue: prueba otra vez.». Antes de borrar
    nada se mira que la entrada sea de hace 5 min como mucho (auth_time del token). Una pestaña del juego abierta deja de subir
@@ -264,6 +268,14 @@ Todo **No** (grabaciones de voz, archivos de música, otro audio). El sonido se 
 ---
 
 ## 3. Direcciones IP y el online entre pares (WebRTC)
+
+**Salas de varios (1.23.0, 2v2 de 4 plazas y 6v6) y Carrera cooperativa**: estrella con el anfitrión en el centro. Cada invitado
+negocia solo con el anfitrión (`rooms/{uid}/sig/o_<uid>` y `a_<uid>`), así que el anfitrión recibe la IP de todos los
+invitados y reenvía las jugadas; un invitado no recibe la de los otros. La sala lista los nombres y uids de todos los sentados
+(`seats`). En el cooperativo la pareja ve el nombre del personaje del anfitrión (tapado si lleva insultos), su nivel, atributos
+y la marcha de su Carrera; el anfitrión guarda en su Carrera (y en su nube) el uid, el nombre, el jugador y los números de hasta 3
+parejas (`c.coop.old`, que desde el 25-nov ya no se manda a la pareja actual). Eso no se borra con la cuenta de la pareja.
+Los fallos de conexión antes del partido dejan un informe prefail sin nombres ni direcciones. Todo esto lo cuenta privacidad.html.
 
 **Qué pasa**: en el online 1 contra 1 la conexión es directa entre los dos móviles. Para negociarla, cada lado consulta servidores
 STUN (`stun.l.google.com`, `stun.cloudflare.com`, js/netrtc.js:25) y manda al otro una SDP con sus direcciones IP y puertos a

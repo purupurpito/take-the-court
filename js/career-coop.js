@@ -209,6 +209,7 @@
   function guestView(c) {
     var v = copy(c), o = v.coop, p2 = o && o.p2, me = v.player;
     delete v.lock;   // (el candado de un partido a medias es del anfitrión: nunca llega al invitado)
+    if (o) delete o.old;   // (las parejas de antes, con su uid de cuenta, nombre y números: son de terceros, nunca salen del anfitrión)
     if (!p2 || !me) return v;
     v.player = p2;
     var F = VB.NameFilter, hn = F && typeof me.name === 'string' && me.name ? F.shown(me.name) : me.name;   // (el del anfitrión, con insultos tapado)
@@ -257,10 +258,11 @@
     s.xp = q.xp | 0; s.lvlUp = q.lvlUp | 0; s.lvl = q.lvl | 0; s.ptsGained = q.pts | 0; s.nota = q.nota; s.me = Object.assign({ nota: q.nota }, q.me || {});
     s.badges = slot1(sum.badges);
     ['life', 'rt', 'amb', 'study', 'train', 'auto', 'coach', 'chem', 'mateForm', 'mateForm0', 'inj', 'coop', 'offers', 'part'].forEach(function (k) { delete s[k]; });
-    var g = copy(cs || {}), hn = g.player, hnum = g.num;
+    var g = copy(cs || {}), F = VB.NameFilter, hn = g.player && F && typeof g.player === 'string' ? F.shown(g.player) : g.player, hnum = g.num;   // (como guestView: insultos tapados)
     g.player = p2.name; g.num = p2.num | 0; g.mate = hn || ''; g.mateNum = hnum | 0;
     var k = KB() && KB().myClub ? KB().myClub(c) : null;
-    return { t: 'sum', sum: s, cs: g, x: endX(c, p2), rec: { cid: c.seed >>> 0, host: c.player ? c.player.name : '', club: k ? k.name : '', season: c.season | 0, p2: p2 } };
+    var hr = c.player && typeof c.player.name === 'string' ? c.player.name : '';
+    return { t: 'sum', sum: s, cs: g, x: endX(c, p2), rec: { cid: c.seed >>> 0, host: hr && F ? F.shown(hr) : hr, club: k ? k.name : '', season: c.season | 0, p2: p2 } };
   }
   /** Lo que llega del otro aparato y acaba en el DOM: copia sin «<» ni «>» en ningún texto (los números siguen siendo números). */
   function cleanDeep(o, d) {
@@ -507,7 +509,8 @@
   function onSum(m) {
     var d = cleanDeep({ sum: m.sum, cs: m.cs, x: m.x, rec: m.rec });
     if (!d || !d.sum || typeof d.sum !== 'object' || !d.cs || typeof d.cs !== 'object') return;
-    var r = d.rec;
+    var r = d.rec, Fn = VB.NameFilter;
+    if (Fn && typeof d.cs.mate === 'string' && d.cs.mate) d.cs.mate = Fn.shown(d.cs.mate);   // (un anfitrión de antes manda el nombre tal cual)
     if (r && r.p2 && typeof r.p2 === 'object' && r.p2.st) saveP2Rec({ cid: r.cid >>> 0, host: cleanName(r.host), club: String(r.club || '').slice(0, 60), season: r.season | 0, at: Date.now(), p2: r.p2 });
     if (S.match && S.match.seat === 1) { S.match.gsum = { sum: d.sum, cs: d.cs, x: d.x && typeof d.x === 'object' ? d.x : null }; matchWatch(); }
   }

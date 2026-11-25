@@ -14,7 +14,8 @@
      «Borrar mi cuenta» tras escribir BORRAR. Hace LAS MISMAS llamadas que deleteAccount() de js/account.js (no carga account.js: ese
      módulo sincroniza y sube al cargar): 0) entrada reciente (auth_time del token de 5 min como mucho; si no, pide volver a entrar sin
      borrar nada), 1) lista users/{uid}/saves?pageSize=50 (si falla, no borra nada), 2) DELETE de cada documento listado, de las 11
-     claves de DOCS y de la sala propia (rooms/{uid}/sig/offer y answer y rooms/{uid}, solo si existe); si falla alguno, NO borra la
+     claves de DOCS y de la sala propia (rooms/{uid}/sig/offer y answer, en salas de varios también sig/o_<uid> y a_<uid> de cada
+     invitado de seats y de make-the-cut.netroom.pairs, y rooms/{uid}, solo si existe); si falla alguno, NO borra la
      cuenta (error «No se ha podido borrar todo»), 3) token (renovado si caduca en menos de 1 min) y accounts:delete de Identity
      Toolkit, 4) cierra la sesión como signOut() (quita 'make-the-cut.account' y apunta 'make-the-cut.account.out').
      tools/policytest.js compara estas llamadas con las de account.js en vm: si cambia deleteAccount() o DOCS, cambia esto también. -->
@@ -134,7 +135,7 @@ input{display:block;width:100%;max-width:320px;height:52px;padding:0 14px;border
     <ul>
       <li>La cuenta: correo o nombre de usuario, contraseña y, si la tenías, la unión con Google.</li>
       <li>Todo el progreso guardado en la nube: jugadores, Carreras, perfil, Vestuario, récord, retos y ajustes.</li>
-      <li>Tu sala del online, si tenías una.</li>
+      <li>Tu sala del online, si tenías una, con los datos de conexión que queden en ella (también los de cada invitado en las salas de varios).</li>
     </ul>
   </section>
 
@@ -142,9 +143,10 @@ input{display:block;width:100%;max-width:320px;height:52px;padding:0 14px;border
     <h2 id="es-keep">Qué se queda y cuánto tiempo</h2>
     <ul>
       <li><b>Lo guardado en tu dispositivo:</b> se queda hasta que lo borres tú (borrando los datos del sitio en el navegador o desinstalando la app). Así puedes seguir jugando sin cuenta.</li>
-      <li><b>Informes de red de tus partidos online</b> (nombre visible, el de tu rival y datos técnicos del dispositivo y la red): se borran solos a los 90 días de cada partido. Borrar la cuenta desde el juego o desde esta página no los borra antes. Si los quieres borrar ya, pídenoslo por correo y lo haremos en 30 días como mucho. Si pides el borrado por correo, los borramos a la vez.</li>
+      <li><b>Informes de red de tus partidos online y de los fallos de conexión antes de un partido</b> (nombre visible, el de tu rival y datos técnicos del dispositivo y la red): se borran solos a los 90 días de cada partido. Borrar la cuenta desde el juego o desde esta página no los borra antes. Si los quieres borrar ya, pídenoslo por correo y lo haremos en 30 días como mucho. Si pides el borrado por correo, los borramos a la vez.</li>
       <li><b>Otros dispositivos con la sesión abierta:</b> durante una hora como mucho aún pueden volver a subir partidas antes de notar que la cuenta ya no existe. Cierra sesión en ellos antes de borrar. Si ya ha pasado, escríbenos y lo borramos.</li>
       <li><b>Tu nombre visible en lo que guardan otros jugadores:</b> en su informe de red de ese partido (90 días) y en la lista de sus últimos 10 rivales en su dispositivo. Si no elegiste un nombre, es «Jugador» y un número.</li>
+      <li><b>Tu jugador en la Carrera cooperativa de otro jugador:</b> tu identificador de cuenta, tu nombre visible, tu jugador y tus números se quedan en la Carrera del anfitrión (es suya) hasta que la borra o borra su cuenta.</li>
       <li><b>Copias y registros de Google</b> (Firebase): se borran según sus plazos.</li>
     </ul>
     <p>Más detalles en la <a href="privacidad.html">política de privacidad</a>.</p>
@@ -190,7 +192,7 @@ input{display:block;width:100%;max-width:320px;height:52px;padding:0 14px;border
     <ul>
       <li>The account: email or username, password and, if you had it, the link with Google.</li>
       <li>All progress saved in the cloud: players, Careers, profile, Locker room, record, challenges and settings.</li>
-      <li>Your online room, if you had one.</li>
+      <li>Your online room, if you had one, with any connection data left in it (also each guest's, in rooms for several players).</li>
     </ul>
   </section>
 
@@ -198,9 +200,10 @@ input{display:block;width:100%;max-width:320px;height:52px;padding:0 14px;border
     <h2 id="en-keep">What remains and for how long</h2>
     <ul>
       <li><b>Data on your device:</b> stays until you delete it (by clearing the site data in your browser or uninstalling the app), so you can keep playing without an account.</li>
-      <li><b>Network reports of your online matches</b> (display name, your opponent's and technical device and network data): they are deleted automatically 90 days after each match. Deleting the account from the game or this page does not delete them earlier. If you want them deleted now, ask us by email and we will do it within 30 days at the latest. If you request deletion by email, we delete them at the same time.</li>
+      <li><b>Network reports of your online matches and of connection failures before a match</b> (display name, your opponent's and technical device and network data): they are deleted automatically 90 days after each match. Deleting the account from the game or this page does not delete them earlier. If you want them deleted now, ask us by email and we will do it within 30 days at the latest. If you request deletion by email, we delete them at the same time.</li>
       <li><b>Other devices still signed in:</b> for up to one hour they may upload saves again before noticing the account no longer exists. Sign out on them before deleting. If it already happened, write to us and we will delete it.</li>
       <li><b>Your display name in other players' data:</b> in their network report for that match (90 days) and in the list of their last 10 opponents on their device. If you did not choose a name, it is "Jugador" plus a number.</li>
+      <li><b>Your player in another player's co-op Career:</b> your account identifier, display name, player and numbers stay in the host's Career (it is theirs) until they delete it or their account.</li>
       <li><b>Google backups and logs</b> (Firebase): deleted according to their own periods.</li>
     </ul>
     <p>More details in the <a href="privacidad.html#en">privacy policy</a>.</p>
@@ -288,6 +291,15 @@ input{display:block;width:100%;max-width:320px;height:52px;padding:0 14px;border
     if (j.iat && Math.abs(now - j.iat) > 3700) age = j.iat - j.at;
     return age <= FRESH_S;
   }
+  /** Documentos de señalización por pareja (o_<uid>, a_<uid>) de tu sala: invitados de r.seats (documento REST de rooms/{uid}) y
+   *  los que js/netroom.js guarda en make-the-cut.netroom.pairs para este uid. Solo uids que casan con la regla pair(). */
+  function pairSig(r) {
+    var u = [], f = r && r.fields && r.fields.seats && r.fields.seats.mapValue && r.fields.seats.mapValue.fields;
+    if (f && typeof f === 'object') u = Object.keys(f);
+    try { var v = JSON.parse(LS.getItem('make-the-cut.netroom.pairs') || 'null'); if (v && v.h === acc.uid && Array.isArray(v.u)) v.u.forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); } catch (e) { }
+    var out = []; u.filter(function (x) { return typeof x === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(x); }).slice(0, 80).forEach(function (x) { out.push('o_' + x, 'a_' + x); });
+    return out;
+  }
   function deleteAccount() {
     var fails = 0;
     function del(path) { return fs('DELETE', path).catch(function () { fails++; }); }
@@ -298,8 +310,11 @@ input{display:block;width:100%;max-width:320px;height:52px;padding:0 14px;border
       var names = Object.keys(remote || {});
       DOCS.forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); });
       var room = fs('GET', 'rooms/' + acc.uid).then(function (r) {
-        if (!r) return;
-        return Promise.all(['offer', 'answer'].map(function (k) { return del('rooms/' + acc.uid + '/sig/' + k); })).then(function () { return del('rooms/' + acc.uid); });
+        // salas de varios (v3): también la señalización por pareja sig/o_<uid> y sig/a_<uid> (SDP con direcciones) de cada invitado
+        // sentado y de los que netroom apuntó en el aparato (los que ya salieron); Firestore no borra subcolecciones con la sala
+        var sig = ['offer', 'answer'].concat(pairSig(r));
+        if (!r && sig.length === 2) return;   // sin sala ni parejas apuntadas
+        return Promise.all(sig.map(function (k) { return del('rooms/' + acc.uid + '/sig/' + k); })).then(function () { if (r) return del('rooms/' + acc.uid); });
       }, function () { fails++; });
       return Promise.all(names.map(function (n) { return del(docPath(n)); }).concat([room]));
     })

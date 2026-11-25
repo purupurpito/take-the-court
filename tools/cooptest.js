@@ -421,6 +421,8 @@ const link = () => ({ state: 'open', q: [], poll() { const o = this.q; this.q = 
     B.CC.adopt(cc, { id: 'luis', name: 'Luis' }, 2);
     const gvL = B.CC.guestView(cc);
     ok(!('lock' in B.CC.guestView(Object.assign({}, cc, { lock: { cm: 'beach|x|1', x: 1 } }))), 'el candado del anfitrión (c.lock) no llega al invitado');
+    ok(cc.coop.old && cc.coop.old.ana && !('old' in gvL.coop) && JSON.stringify(gvL).indexOf('"ana"') < 0 && gvL.coop.uid2 === 'luis',
+      'la vista del invitado no lleva las parejas de antes (coop.old: uid de cuenta, nombre y números de otros); el anfitrión sí las guarda');
     ok(k0 === 9 && !cc.coop.ss2 && gvL.stats.played === 0 && gvL.stats.kills === 0, 'otro invitado no hereda la temporada del anterior (ss2): 0 jugados, 0 remates');
     B.CC.adopt(cc, { id: 'ana', name: 'Ana' }, 3);
     ok(cc.coop.ss2 && cc.coop.ss2.st.kills === 9 && cc.coop.ss2.st.played === 1, 'Ana vuelve: recupera su temporada');
