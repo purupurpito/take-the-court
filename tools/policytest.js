@@ -109,9 +109,9 @@ if (SRC['privacidad.html']) {
   const thirdIdx = /cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(idxSrc);
   check(!thirdIdx, 'index.html no pide nada a cdnjs ni a Google Fonts (three.js y fuentes en vendor/)');
   check(!/Google Fonts|cdnjs/.test(s), 'privacidad: no nombra Google Fonts ni cdnjs (ya no se usan)');
-  check(!/\bTURN\b|turn\.takethecourt/.test(s), 'privacidad: no presenta como activo el TURN (apagado en netconfig.js)');
+  check(/retransmisión \(TURN\) de Cloudflare[\s\S]*caducan en 1 hora/.test(s) && /Cloudflare relay server \(TURN\)[\s\S]*expire after 1 hour/.test(s), 'privacidad: cuenta el TURN de Cloudflare (encendido el 25-nov-2026), en es y en');
   const ncfg = fs.readFileSync(path.join(ROOT, 'js', 'netconfig.js'), 'utf8');
-  check(/VB\.NET_TURN_URL\s*=\s*''/.test(ncfg), 'netconfig.js: el TURN sigue apagado (si se enciende, hay que cambiar «no usamos servidores de retransmisión»)');
+  check(/VB\.NET_TURN_URL\s*=\s*'https:\/\/turn\.takethecourt\.com\/ice'/.test(ncfg), 'netconfig.js: TURN encendido con el Worker (la política lo cuenta)');
   // lo que la página promete de los informes y del nombre, frente al código (el TTL lo activa el responsable: notes/net.md)
   const nlog = fs.readFileSync(path.join(ROOT, 'js', 'netlog.js'), 'utf8'), rules = fs.readFileSync(path.join(ROOT, 'firebase', 'firestore.rules'), 'utf8');
   check(/var KEEP_MS = 90 \* 86400000;/.test(nlog) && /f\.exp = \{ timestampValue: new Date\(now \+ KEEP_MS\)/.test(nlog), 'netlog.js: cada informe lleva exp = ahora + 90 días (lo que dice «90 días»)');
