@@ -1114,7 +1114,7 @@
         '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div></div>';
     } else if (v === 'nortc') {
       // (con «Copiar enlace»: para abrir el juego en el otro navegador sin teclear la dirección)
-      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Ábrelo en Chrome o Safari actualizados (en el iPhone, sin el modo Aislamiento).</p>' +
+      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p>' +
         '<div class="ol-ctas" data-nav>' + row('copylink', 'Copiar enlace', '', '', { color: 'sp-gold', shape: 1 }) + '</div></div>';
     } else if (v === 'help') {
       var pg = Math.max(0, Math.min(hpPages() - 1, L.hpPage | 0)), last = pg >= hpPages() - 1, dots = '';
@@ -1193,7 +1193,8 @@
       h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p></div>' +
         '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', 'Entrar o crear una cuenta', '', { color: 'sp-kit', shape: 0 }) + '</div>';
     } else if (v === 'off') {
-      h = '<div class="ol-card sp-panel"><h3>El online aún no está activado en el servidor</h3><p>Todavía no se puede jugar online. Vuelve a probar dentro de un rato.</p></div>' +
+      h = '<div class="ol-card sp-panel"><h3>El online aún no está activado en el servidor</h3><p>Todavía no se puede jugar online. Vuelve a probar dentro de un rato.</p>' +
+        (pvv() ? '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span>' : '') + '</div>' +   // (ronda final: en vertical, como en horizontal)
         '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div>';
     } else if (v === 'nortc') {
       h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p></div>' +

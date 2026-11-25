@@ -1011,10 +1011,12 @@
     if (on && pr >= 2 && nerv) h += '<p>' + esc(pr >= 3 ? (f.r === 'f' ? 'Presión alta: tu primera final.' : 'Presión alta: partido grande y poca experiencia.') : 'Presión: aún te pesan los nervios.') + '</p>';
     else if (on && n.car.caps < 3) h += '<p>' + esc(n.car.caps ? 'Aún te pesan los nervios.' : 'Tu debut: los nervios te restan un poco.') + '</p>';
     if (!on) h += '<p>El seleccionador no te pone en este partido.</p>';
-    if (w.kind === 'q') h += '<p class="muted">' + esc('Si no lo juegas antes de la jornada ' + w.exp + ' del club, se simula.') + '</p>';
-    else if (c.phase === 'off') h += '<p class="muted">Si firmas antes de acabar, el resto del torneo se simula.</p>';
+    // (ronda final: class nt-exp = el aviso de que se simula sigue a la vista en la franja del móvil, que esconde los demás <p>)
+    if (w.kind === 'q') h += '<p class="muted nt-exp">' + esc(ph ? 'Se simula si no lo juegas antes de la J' + w.exp + ' del club.' : 'Si no lo juegas antes de la jornada ' + w.exp + ' del club, se simula.') + '</p>';
+    else if (c.phase === 'off') h += '<p class="muted nt-exp nt-warn">Si firmas antes de acabar, el resto del torneo se simula.</p>';
     // (sin parche: en Partido la acción principal es la jornada del club; el parche «Jugar» está en Club › Selección)
-    var b = on ? '<button data-act="nt-play" aria-label="Jugar con la selección">Jugar</button><button data-act="nt-sim">Simular</button>' : '<button data-act="nt-sim">Simular</button>';
+    // (ronda final: en fin de temporada no hay jornada del club: «Jugar» de la selección también en la franja del móvil, class nt-keep)
+    var b = on ? '<button data-act="nt-play"' + (c.phase === 'off' ? ' class="nt-keep"' : '') + ' aria-label="Jugar con la selección">Jugar</button><button data-act="nt-sim">Simular</button>' : '<button data-act="nt-sim">Simular</button>';
     return h + '<div class="acts">' + b + '<button data-act="nt-go">Ver torneo</button></div></div>';
   }
   /** CSS propio: tu país en la tabla del grupo, como tu fila en las tablas del hub (career-ui.js, tr.me). */

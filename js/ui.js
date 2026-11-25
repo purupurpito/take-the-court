@@ -7570,7 +7570,7 @@
       case 'streak': return 'racha de ' + n;
       case 'clean': return 'sin ceder set';
       case 'tidy': return n === 0 ? 'sin errores' : '≤' + n + (n === 1 ? ' error' : ' errores');
-      case 'comeback': return 'remonta ' + n;
+      case 'comeback': return 'remonta ' + n + ' puntos en un set';
       case 'rally': return 'jugada de ' + n + ' toques';
       case 'mastery': return '≥' + n + ' fintas o colocados';
     }

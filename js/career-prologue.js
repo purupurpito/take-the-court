@@ -838,15 +838,16 @@
       PQ + ' .pro-who{margin-bottom:4px}' + PQ + ' .pro-lbl{margin-top:6px}',
       PQ + ' .card.x-go.pro-bar:empty{display:none}',
       // móvil bajo (≤ 345 de alto): la presentación sin adornos para que las tres formas de ser quepan sobre la barra (la letra no baja)
-      PS + ' .pro-panel{margin-top:var(--ph-s3,12px);padding-top:var(--ph-s3,12px)}' + PS + ' .pro-who .pro-av{width:36px;height:36px;font-size:17px}' + PS + ' .pro-who small+small{display:none}' + PS + ' .pro-lbl{margin-top:2px}',
+      PS + ' .pro-panel{margin-top:var(--ph-s3,12px);padding-top:var(--ph-s3,12px)}' + PS + ' .pro-who .pro-av{width:36px;height:36px;font-size:17px}' + PS + ' .pro-lbl{margin-top:2px}',
       // ==== movil-aire, paquete carrera-flujo (24-nov-2026; notes/movil-aire.md §5.5). Solo html.ph; PC igual.
       // presentación: tu ficha en una línea (avatar 36), el premio como chip en la pregunta, formas de ser con 10 de hueco y 2 líneas
       PQ + ' .pro-panel.p1 .pro-who{gap:10px;margin:0 0 6px}',
       PQ + ' .pro-panel.p1 .pro-who .pro-av{width:36px;height:36px;font-size:17px}',
-      PQ + ' .pro-panel.p1 .pro-who>div{display:flex;align-items:baseline;gap:4px 10px;min-width:0;flex-wrap:nowrap}',
+      PQ + ' .pro-panel.p1 .pro-who>div{display:flex;align-items:baseline;gap:2px 10px;min-width:0;flex-wrap:wrap}',
       PQ + ' .pro-panel.p1 .pro-who>div>b{flex:none;font-size:var(--ph-row,16px)}',
-      PQ + ' .pro-panel.p1 .pro-who>div>small{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-cap,13px)}',
-      PQ + ' .pro-panel.p1 .pro-who>div>small+small{display:none}',
+      PQ + ' .pro-panel.p1 .pro-who>div>small{min-width:0;white-space:normal;overflow:visible;text-overflow:clip;font-size:var(--ph-cap,13px)}',
+      // (ronda final) el instituto vuelve en el apaisado, en su propia línea bajo nombre y datos (antes se escondía)
+      PQ + ' .pro-panel.p1 .pro-who>div>small+small{display:block;flex:1 0 100%}',
       PQ + ' .pro-lbl{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:4px 0 8px}',
       PQ + ' .pro-gchip{display:inline-block;padding:2px 9px;border-radius:7px 10px 8px 11px;background:var(--sp-ink,#15102a);color:var(--sp-gold,#ffcb3d);font:700 var(--ph-cap,13px)/1.3 var(--sp-ui,sans-serif);letter-spacing:0}',
       PQ + ' .pro-panel .roles.pro-pers{gap:10px}',

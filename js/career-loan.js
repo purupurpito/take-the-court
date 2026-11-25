@@ -47,7 +47,7 @@
   function obj(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
   function copy(o) { return o == null ? null : JSON.parse(JSON.stringify(o)); }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
-  function eur(v) { return String(Math.round(+v || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function eur(v) { return String(Math.round(+v || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
   function dec(v) { return v == null || !isFinite(v) ? '—' : (Math.round(v * 10) / 10).toFixed(1).replace('.', ','); }
   /** Ordinal corto (estilo de Ferran): 1r, 2º, 3r, 4º… Nunca «1.er». */
   function ordn(n) { return n + (n === 1 || n === 3 ? 'r' : 'º'); }

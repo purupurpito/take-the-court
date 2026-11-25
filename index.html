@@ -5614,7 +5614,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier:nth-child(2){--rt-tt:-.5deg}
 @media (max-height:380px){
   :root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier .rt-tl{display:none}
-  :root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier .rt-ts{display:block;white-space:nowrap}
+  :root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier .rt-ts{display:block;white-space:normal;line-height:1.15}
 }
 /* (.ph-s: con 3 medallas de 40 no caben billete + medallas + parche a lo ancho en 320 de alto; las medallas ocupan la columna derecha
    entera y el parche va bajo el billete, todo a la vista sin desplazar) */
@@ -5894,6 +5894,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 .sem-sc i{font-style:normal;margin:0 .06em;color:var(--sp-gold)}
 :root:not(#_):not(#_):not(#_) #menu .sem-sub{margin:2px 0 0;font:800 clamp(11px,1.9vh,14px)/1.2 var(--sp-ui);color:var(--sp-ink);letter-spacing:0}
 :root.ph:not(#_):not(#_):not(#_) #menu .sem-ch .sem-cx{display:none}
+/* (ronda final) «Atributos parejos» es una condición del reto: también en el móvil (las pegatinas ya parten a otra línea) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .sem-ch .sem-cx{display:inline-flex}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .sem-ch{flex-wrap:wrap}
 :root:not(#_):not(#_):not(#_) #menu .sem-ch{display:flex;flex-wrap:wrap;gap:5px 6px;margin:4px 0 0;padding:0 2px}
 :root:not(#_):not(#_):not(#_) #menu .sem-ch .sp-chip{--sp-chs:clamp(12px,1.7vh,14px);--sp-tilt:-2deg;white-space:nowrap}
 :root:not(#_):not(#_):not(#_) #menu .sem-ch .sp-chip:nth-child(2n){--sp-tilt:2deg}
@@ -7079,6 +7082,13 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) .vte .vte-act .vte-ok .vte-ic{width:30px}
 :root.ph:not(#_):not(#_):not(#_) .vte .vte-act .vte-ok .sp-t{font:400 15px/1 var(--sp-pop,system-ui,sans-serif);color:var(--sp-ink,#15102a);text-shadow:none;letter-spacing:.02em}
 :root.ph:not(#_):not(#_):not(#_) .vte .vte-act .sp-btn:is(:focus-visible,.kf){outline:3px solid var(--sp-gold,#ffcb3d);outline-offset:3px}
+/* (ronda final) Zurdos y Restablecer vuelven a llevar su texto (solo icono no se sabía qué hacían, y el ⇄ de Zurdos es el mismo que el de
+   cambiar de jugador): icono arriba y palabra debajo en 44-48 de alto; los dos deslizadores, con 10 px entre ellos («100 %» y «Opacidad» no se pegan) */
+:root.ph:not(#_):not(#_):not(#_) .vte .vte-sl{gap:10px}
+:root.ph:not(#_):not(#_):not(#_) .vte .vte-act :is(.vte-mir,.vte-rst){width:auto;min-width:54px;height:46px;min-height:44px;padding:2px 8px;flex-direction:column;justify-content:center;gap:1px;border-radius:12px 14px 11px 13px}
+:root.ph:not(#_):not(#_):not(#_) .vte .vte-act :is(.vte-mir,.vte-rst) .vte-ic{width:24px;height:22px}
+:root.ph:not(#_):not(#_):not(#_) .vte .vte-act :is(.vte-mir,.vte-rst) .vte-ic svg{width:20px;height:20px}
+:root.ph:not(#_):not(#_):not(#_) .vte .vte-act :is(.vte-mir,.vte-rst) .sp-t{display:block;font:700 12px/1 var(--sp-ui,system-ui,sans-serif);letter-spacing:0;text-transform:none;text-shadow:none;color:inherit;white-space:nowrap}
 @media (min-width:640px){:root.ph:not(#_):not(#_):not(#_) .vte .vte-in{gap:8px;padding:4px 8px 4px 12px}:root.ph:not(#_):not(#_):not(#_) .vte .vte-sl label{width:100px}:root.ph:not(#_):not(#_):not(#_) .vte .vte-sl{gap:8px}}
 /* (estrecho, < 640: el nombre del botón elegido sale en la pastilla de debajo, con «Arrastra…» hasta el primer arrastre; las barras, a 100) */
 @media (max-width:639px){
@@ -7534,7 +7544,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_):not(#_) #menu #mpProf:has(#pfFoot.pf-rule) .pf-pin.sp-btn{flex:none;align-self:center;margin:0}
 :root.ph:not(#_):not(#_):not(#_):not(#_) #menu.mj #btnPlay .sp-t{padding-bottom:.16em;margin-bottom:-.12em}
 /* (avisos del Perfil: arriba a la derecha, sobre la Vitrina; ni la tarjeta de XP ni el detalle del Cuaderno quedan debajo) */
-:root.ph:not(#_):not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:var(--ph-gt);bottom:auto;left:auto;right:var(--ph-g);translate:none;max-width:min(300px,42vw)}
+/* (ronda final: arriba tapaba la Vitrina; ahora abajo en el centro, en el sitio de «Elige un hueco…», que se esconde mientras dura) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:auto;bottom:calc(var(--ph-gb) + 6px);left:50%;right:auto;translate:-50% 0;align-items:center;max-width:min(420px,60vw)}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_):has(#mpProf:not([hidden])):has(#spToasts>.sp-toast) #menu #pfFoot{visibility:hidden}
 /* AJUSTES a 844+: la ayuda en 2 líneas (con el panel ancho caben casi todas; las que no, siguen con su «i») */
 :root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child>small{contain:none;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip}
 /* ENTRENAMIENTO a 844+: 2 columnas anchas (en 3 las líneas largas no cabían ni en 2 líneas) */
@@ -7935,6 +7947,16 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt .mv-val b{overflow:visible;text-overflow:clip;white-space:nowrap}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick #optDiff .lvl{gap:2px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick #optDiff .lvl em{width:6px;height:13px}
+/* (ronda final) por debajo de 380 px el rótulo largo («DIFICULTAD», «DURACIÓN») chocaba con la flecha ‹: va en su propia línea
+   encima de ‹ VALOR › (el texto del rótulo es un elemento anónimo: cae solo en la fila 1) */
+@media (max-width:379px){
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt{grid-template-columns:44px minmax(0,1fr) 44px;grid-template-rows:auto auto auto;padding:14px 8px 10px 18px;row-gap:2px}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt .mi-l{white-space:nowrap}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt .mi-h{grid-row:3;white-space:normal}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt .arr[data-d="-1"]{grid-column:1;grid-row:2}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt .mv-val{grid-column:2;grid-row:2}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpQuick .sp-opt .arr[data-d="1"]{grid-column:3;grid-row:2}
+}
 /* ¡A JUGAR! fijo abajo, a todo el ancho */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpQuick #btnGo{position:fixed;z-index:5;left:var(--pv-g);right:var(--pv-g);bottom:calc(var(--pv-gb) + 12px);width:auto;margin:0;--sp-ph:64px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpQuick #btnGo .sp-t{font-size:clamp(24px,8vw,32px)}
@@ -8148,6 +8170,15 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-prev .ol-fx .sp-tk-main{padding-bottom:10px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-sels{flex:1 1 auto;min-height:0;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 -6px;padding:4px 8px 10px 4px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-tip{flex:none;margin:0;font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-retry{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:5px 12px;border-radius:8px 11px 8px 10px;background:rgba(255,244,220,.12);color:var(--sp-cream);font:700 13px/1.15 var(--sp-ui)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-retry::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--sp-gold);animation:olLive 1.8s ease-out infinite}
+/* (ronda final) < 380 px: «CONEXIÓN» se pegaba a «PRECISA (v1)»: rótulo arriba y ‹ valor › debajo */
+@media (max-width:379px){
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpOnline .ol-sel{grid-template-columns:44px minmax(0,1fr) 44px;grid-template-rows:auto auto;grid-template-areas:"l l l" "a v b";row-gap:0;height:auto;padding:12px 6px 8px}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-sels{grid-auto-rows:max-content}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpOnline .ol-sel .mi-l{justify-self:start;align-items:flex-start;padding-left:14px;text-align:left}
+  :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpOnline .ol-sel .mv-val{justify-self:center}
+}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-go .sp-patch{--sp-ph:68px;--sp-pt:clamp(24px,8vw,34px);--sp-pr:16px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-go .sp-patch .sp-t{font-size:clamp(24px,8vw,34px);line-height:1.05}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-go .sp-patch .sp-s{font-size:13px}
@@ -8402,7 +8433,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-pin.sp-btn{width:auto;min-height:48px;margin:0;align-self:stretch;justify-content:center}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-pin.sp-btn[hidden]{display:none}
 /* avisos: una cola arriba bajo el notch, a todo el ancho, de uno en uno */
-:root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts{top:calc(var(--pv-gt) + 62px);bottom:auto;left:var(--pv-g);right:var(--pv-g);translate:none;align-items:stretch;max-width:none}
+/* (ronda final: el aviso del Perfil abajo, en el carril de la pista «Elige un hueco…»: arriba tapaba el círculo NV y la barra de XP) */
+:root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts{top:auto;bottom:calc(var(--pv-gb) + 8px);left:var(--pv-g);right:var(--pv-g);translate:none;align-items:stretch;max-width:none;pointer-events:none}
+:root.pv:has(#mpProf:not([hidden])):has(#spToasts>.sp-toast):not(#_):not(#_):not(#_):not(#_):not(#_) #pfFoot{visibility:hidden}
 :root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts>.sp-toast:not(:last-child){display:none}
 :root.pv:has(#menu[data-page="look"]:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts>.sp-toast:not(:last-child){display:none}
 :root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts>.sp-toast{max-width:none;min-height:44px;box-sizing:border-box;text-align:center}
@@ -8477,6 +8510,15 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 @media (max-width:639px){
   :root.ph:not(#_):not(#_):not(#_):not(#_) .vte .vte-bar{right:calc(124px + var(--sr,0px))}
   :root.ph:not(#_):not(#_):not(#_):not(#_) .vte .vte-sl label{width:94px}
+  /* (ronda final) con Zurdos y Restablecer con su palabra: deslizadores de 74 para que la barra siga en una fila */
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-sl label{width:84px}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-sl label:last-child{width:92px}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-bar{left:max(8px,var(--sl,0px))}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-sl{gap:8px}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-act{gap:4px}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-act :is(.vte-mir,.vte-rst){min-width:46px;padding:2px 3px}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-act .vte-ok{padding:0 10px 0 2px}
+  :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .vte .vte-in{padding:4px 4px 4px 8px;gap:4px}
 }
 /* ==== fin RONDA 2 · paneles-v ==== */
 /* ==== RONDA 2 · paquete «partido-v» (24-nov-2026; notes/movil-aire.md §8.4 «Partido, pausa, hoja final, estadística, semana, previa» y
@@ -8517,7 +8559,12 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro.pvh .in-rot::after{content:"";position:absolute;left:50%;bottom:2px;width:6px;height:2px;margin-left:-3px;border-radius:1px;background:var(--sp-ink)}
 .rm #intro.pvh .in-rot{animation:none}
 /* ---- previa: detalles ---- */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-vs{gap:30px}
+/* (ronda final) el sello VS iba al centro de las dos tarjetas juntas y, con la tuya más alta, tapaba «y Iker Sanz»: ahora va en su
+   propia fila de 40 px entre las dos (top/left 50 % de esa fila; la animación conserva su translate(-50%,-50%)) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-vs{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 40px auto;gap:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-vs>.in-t.t0{grid-row:1;grid-column:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-vs>.in-t.t1{grid-row:3;grid-column:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-vs>.in-x{grid-row:2;grid-column:1;position:relative;left:50%;top:50%;justify-self:start;align-self:start;margin:0}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-t{padding-left:18px;padding-right:18px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-sm .in-y{display:block}
 /* ---- pausa en vertical: «Pausa» y el marcador arriba (el partido parado se ve en medio); abajo, en la zona del pulgar, Controles · Ajustes ·
@@ -8596,8 +8643,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-retos .rc-pills{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-retos .rc-pill{white-space:normal;font-size:var(--pv-cap);line-height:1.25}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-retos :is(.rc-x,.rc-more){display:block;margin:6px 0 0;font-size:var(--pv-cap)}
-/* situación de la semana: sin MVP aquí (como en horizontal) */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc:has(.rc-sit) .rc-mvp{display:none}
+/* (ronda final) situación de la semana: el MVP también aquí, en fichas como en las demás hojas (en horizontal volvió con 340b4f3) */
 /* sets en una fila con el marcador cuando caben: con dos o más sets, sin «SET n» (el orden ya lo dice; queda para el lector) */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets:has(>span:nth-child(2)) span small{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-t{font-size:14px}
@@ -8616,6 +8662,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>.sp-btn:not([hidden]){flex:1 1 0;width:auto;min-width:0;--sp-h:52px;height:52px;min-height:52px;padding:0 8px;--sp-fs:14px;--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-ts:none}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>.sp-btn .sp-t{white-space:normal;line-height:1.08;text-align:center}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>#btnGeNext>.sp-blob .sp-f{stroke:var(--sp-kit,#ff7a1a);stroke-width:4px}
+/* (ronda final) la tarjeta del resultado solo ocupa su contenido (sin hueco por dentro) y [Siguiente][Entrenamiento] van ENCIMA de
+   REPETIR, como las secundarias de las demás hojas; REPETIR queda abajo, separado de la barra de gestos */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-body{flex:0 1 auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-btns{margin-top:auto;padding-bottom:4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more{order:-1}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>.sp-btn>.sp-blob{filter:drop-shadow(2px 3px 0 var(--sp-ink))}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-rec>*{font-size:var(--pv-body)}
 /* ---- Cambios (6v6) y Estadística del partido en vertical: hoja a todo el alto (entre el notch y la barra de gestos) con la cabecera compacta
@@ -8654,10 +8705,10 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="4"]{grid-area:z4}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="5"]{grid-area:z5}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="6"]{grid-area:z6}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench{display:flex;flex-direction:row;flex-wrap:nowrap;gap:10px;width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;padding:8px 6px 10px;scrollbar-width:none;
-  -webkit-mask:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
+/* (ronda final) el banquillo en rejilla de 3, como En pista: en vertical sobra alto y en la tira los dorsales 10 y 11 quedaban escondidos */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:72px;gap:10px;width:100%;box-sizing:border-box;overflow:visible;padding:8px 6px 10px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:none;width:auto;height:72px;min-height:0;padding:4px 4px 10px;box-sizing:border-box;overflow:visible;border-radius:10px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench .sb-p{width:96px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench .sb-p{width:auto}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-nm{display:none}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p>span:empty{display:none}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-z:not(:empty){display:block;position:absolute;top:5px;left:7px;font:700 12px/1 var(--sp-ui);color:rgba(255,244,220,.7)}

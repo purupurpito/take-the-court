@@ -1409,6 +1409,9 @@
     // (ronda final: el «?» dentro de la esquina de su tarjeta, no a caballo del borde: se montaba sobre la tarjeta de arriba y su «?»)
     PQ + ' #crBody .card:not(:has(>h3:first-child+.cr-q:last-child))>.cr-q{top:6px;right:6px;transform:none}',
     PQ + ' #crBody .card:not(:has(>h3:first-child+.cr-q:last-child)):has(>.cr-q)>h3:first-child{padding-right:52px}',
+    // (ronda final) cuando el sello cuelga por encima de la tarjeta (Celebración), lo primero de dentro es una fila con su ficha a la
+    // derecha («Elegida»): que la fila deje sitio al «?» en vez de quedar debajo
+    PQ + ' #crBody .card:not(:has(>h3:first-child+.cr-q:last-child))>h3:first-child+.cr-q+:is(.lf-item,.bdg,.cr-row){padding-right:52px}',
     // ofertas: nombre en una línea y las 4 cifras del trato a la vista, encima de «Firmar»
     PQ + ' .offer-full .bigname.cr-on{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .offer-full>.row{align-items:center}',
@@ -1519,6 +1522,13 @@
     PQ + ' .card.ph-dec>p~p{display:none}',
     PQ + ' .card.ph-dec>.acts{grid-area:a;display:flex;margin:0}',
     PQ + ' .card.ph-dec>.acts>:not(:last-child){display:none}',
+    // (ronda final) el aviso de que se simula (career-natl.js, p.nt-exp) en una 3ª línea entera; en verano, en rojo y con «Jugar» a la vista
+    PQ + ' .card.ph-dec{grid-template-areas:"h h" "p a" "e e"}',
+    PQ + ' .card.ph-dec>p.nt-exp{display:block;grid-area:e;color:rgba(255,244,220,.86)}',
+    PQ + ' .card.ph-dec>p.nt-exp.nt-warn{color:#ffb4a2;font-weight:700}',
+    PQ + ' .card.ph-dec:has(>.acts>.nt-keep){grid-template-areas:"h h" "p p" "e e" "a a"}',
+    PQ + ' .card.ph-dec>.acts:has(>.nt-keep){gap:10px;justify-self:end}',
+    PQ + ' .card.ph-dec>.acts>.nt-keep{display:inline-flex}',
     PQ + ' .card.ph-dec>.acts>.sp-btn{--sp-h:44px;height:44px;min-height:44px;flex:none;min-width:0;max-width:none}',
     PQ + ' .cr-two:has(>:is(.ph-dec,.ph-decp)){grid-template-areas:"nx sd" "dc sd" "fa sd" "nd sd";grid-template-rows:auto auto auto 1fr}',
     PQ + ' .cr-two>:is(.ph-dec,.ph-decp){grid-area:dc}',
@@ -1740,7 +1750,7 @@
     PQ + ' .cr-team6 .cr-t6o{font:700 var(--ph-row)/1 var(--sp-ui);font-variant-numeric:tabular-nums;text-align:right}',
     PQ + ' .cr-team6 .cr-t6f{width:12px;height:12px;border-radius:50%;background:rgba(255,244,220,.4);box-shadow:0 0 0 1.5px var(--sp-ink)}',
     PQ + ' .cr-team6 .cr-t6f.g{background:#2fbf71}' + PQ + ' .cr-team6 .cr-t6f.g1{background:#9be08a}' + PQ + ' .cr-team6 .cr-t6f.r{background:#e0435a}' + PQ + ' .cr-team6 .cr-t6f.r1{background:#f0a05a}',
-    PQ + ' .cr-team6 .cr-t6r>.tag{justify-self:center;min-width:26px;margin:0;padding:3px 0;text-align:center}',
+    PQ + ' .cr-team6 .cr-t6r>.tag{justify-self:center;min-width:26px;margin:0;padding:3px 0;text-align:center;justify-content:center}',
     // Club › Compañero: sin sello; retrato 48, fichas en una fila y la química (barra de 8) a la vista
     PQ + ' .cr-matep .cr-mth{align-items:center;gap:12px;flex-wrap:nowrap}',
     PQ + ' .pt.cr-pt48{flex:none;width:48px;height:48px;border-radius:11px}',
@@ -1783,6 +1793,10 @@
     PQ + ' .st-peop .st-pp.lf-item{margin:0;padding:0;border:0;background:none;box-shadow:none}',
     PQ + ' .st-pp>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:56px;padding:6px 10px;border-radius:10px 13px 11px 14px;background:rgba(255,244,220,.07);list-style:none;cursor:pointer}',
     PQ + ' .st-pp>summary::-webkit-details-marker{display:none}',
+    // (ronda final) la fila se abre al tocar (frase y último cambio): flecha ▾ que lo dice, ▴ abierta
+    PQ + ' .st-pp>summary{grid-template-columns:minmax(0,1fr) auto 14px}',
+    PQ + ' .st-pp>summary::after{content:"▾";justify-self:end;font:700 14px/1 var(--sp-ui);color:rgba(255,244,220,.7)}',
+    PQ + ' .st-pp[open]>summary::after{content:"▴"}',
     PQ + ' .st-pp>summary:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold)}',
     PQ + ' .st-pp[open]>summary{background:rgba(255,244,220,.13)}',
     PQ + ' .st-pm{min-width:0}',
@@ -2353,6 +2367,12 @@
       var tk = nx && nx.querySelector(':scope>.cr-tk');   // (justo bajo el ticket, antes de la baja y de «Jugar»)
       if (tk) tk.parentNode.insertBefore(cur, tk.nextSibling);
       else if (endS) cur.classList.add('ph-dec-top');   // (sin ticket: arriba del todo, encima de la gala de premios)
+      // (ronda final) selección Y cesiones a la vez: las cesiones caducan al jugar, así que también suben en franja, encima de la selección
+      if (ln && ln !== cur) {
+        ln.classList.add('ph-dec');
+        var ps3 = ln.querySelectorAll(':scope>h3,:scope>p'); for (var k = 0; k < ps3.length; k++) ps3[k].setAttribute('data-ph-ell', '');
+        if (tk) tk.parentNode.insertBefore(ln, cur); else if (cur.parentNode) { cur.parentNode.insertBefore(ln, cur); if (endS) ln.classList.add('ph-dec-top'); }
+      }
     }
   }
   /** Móvil: la acción principal que vive al pie de una ficha larga (Firmar / Pedir más rol de una oferta, Saltar a la pista /
@@ -2657,7 +2677,7 @@
     }).join('');
   }
   function stars(n) { var s = ''; for (var i = 0; i < 5; i++) s += i < n ? '★' : '<span class="off">★</span>'; return '<span class="stars" aria-label="Prestigio ' + n + ' de 5">' + s + '</span>'; }
-  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
   function money(v) { return eur(v) + ' al mes'; }
   function fact(label, val) { return '<div><small>' + esc(label) + '</small><b>' + val + '</b></div>'; }
   /** Pista (titularidad): «De inicio | 40 de 52 puntos en pista | Te cambiaron en el 2º set» / «Entraste en el 2º set | …» / «No llegaste a entrar». */
@@ -3340,7 +3360,7 @@
       return '<div class="card cr-cinfo">' + phClubHead(c, k, [stars(f.stars), esc(L.short || L.name)],
         qBtn('Tu club', k.name + '. ' + L.name + ', ' + k.city + '. Estilo ' + f.style + (st0 ? ': entrenos +' + C().STYLE_PROG + ' por semana en ' + GROUP_OF[st0].toLowerCase() : '') + '. Compañero: ' + c.mate.name + ' (' + c.mate.role + ', media ' + mo0 + ', ' + vsClub(dd0) + '). Arbitraje: ' + ref.name + '.')) +
         '<div class="ph-kv">' + kv('Objetivo', esc(c.objective.text), 1) + kv('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + kv('Media', C().clubOvr(k)) +
-        kv('Estilo', esc(f.style)) + kv('Pareja', esc(c.mate.name.split(' ')[0]) + ' · ' + mo0) + kv('Sede', esc(f.beach || k.city)) + kv('Colores', dts) + '</div>' + coachKv(c) + '</div>';
+        kv('Estilo', esc(f.style)) + kv('Pareja', esc(c.mate.name.split(' ')[0]) + ' · ' + mo0) + kv('Sede', esc(f.beach || k.city)) + kv('Colores', dts) + kv('Arbitraje', esc(ref.name), 1) + '</div>' + coachKv(c) + '</div>';
     }
     var h = '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(L.name), esc(k.city)], 'v') + '</p></div></div>' +
@@ -3783,7 +3803,7 @@
       return '<div class="card cr-cinfo">' + phClubHead(c, k, [stars(f.stars), esc(f.league)],
         qBtn('Tu club', k.name + '. ' + f.league + ' (nivel ' + f.strength + '), ' + f.country + '. Estilo ' + f.style + (st0 ? ': entrenos +' + C().STYLE_PROG + ' por semana en ' + GROUP_OF[st0].toLowerCase() : '') + '. Colores: camiseta, 2º color y líbero. Arbitraje: ' + ref.name + '.')) +
         '<div class="ph-kv">' + kv('Objetivo', esc(c.objective.text), 1) + kv('Tu puesto', esc(posName(c.player.roleKey))) + kv('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) +
-        kv('Media', k.ovr) + kv('Estilo', esc(f.style)) + kv('Ciudad', esc(k.city || '—')) + kv('Colores', kitDots(k.kit)) + '</div>' + coachKv(c) + '</div>';
+        kv('Media', k.ovr) + kv('Estilo', esc(f.style)) + kv('Ciudad', esc(k.city || '—')) + kv('Colores', kitDots(k.kit)) + kv('Arbitraje', esc(ref.name), 1) + '</div>' + coachKv(c) + '</div>';
     }
     return '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(f.league), esc(f.country)], 'v') + '</p></div></div>' +
@@ -4973,7 +4993,8 @@
       W('league-news') + ' .cw-nb small{font-size:12px}',
       W('league-news') + ' .cw-nb .nw{white-space:nowrap}',
       // ---- Liga › Clubes y Tabla: el selector «‹ España · Hiperliga 2 ›» en dos líneas equilibradas si no cabe (nunca «Hiperliga / 2 · 12»)
-      PW + ' .cr-lgp button.cr-lgp-v{font-size:clamp(15px,4.4vw,18px);line-height:1.1;text-wrap:balance}',
+      // (ronda final) con dos líneas («España · / Hiperliga 2») la cinta se queda corta: 1.2 de interlineado y 4 px arriba y abajo
+      PW + ' .cr-lgp button.cr-lgp-v{font-size:clamp(15px,4.4vw,18px);line-height:1.2;padding-top:4px;padding-bottom:4px;text-wrap:balance}',
       PW + ' .cr-lgp-v .cr-lgp-n{font-size:12px}',
       W('league-clubs') + ' .cw-row.cw-rph{min-height:52px}',
       W('league-clubs') + ' .cw-rph .cw-rnm{white-space:normal;line-height:1.1}',

@@ -40,7 +40,7 @@
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function round1(v) { return Math.round(v * 10) / 10; }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
-  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
   function num(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   function rngOf() { var a = Array.prototype.slice.call(arguments), C = VB.Career.beach || VB.Career; return C._rng(C._hash.apply(null, a)); }
   function pick(r, a) { return a[Math.floor(r() * a.length) % a.length]; }

@@ -1685,3 +1685,29 @@ Pasadas en `…/movil2/`: `v2` (vertical 360x740 / 390x844 / 412x915, DPR 2), `h
   abre) y el desvanecido de las hojas a 1280 medido a veces durante la entrada. A ojo, igual.
 - **Pendiente de la ronda**: banquillo en vertical con tarjeta propia; tabletas en vertical (> 500 px) fuera de alcance; lo anotado en cada
   paquete (8.6.2-8.6.9).
+
+#### 8.6.11 Ronda final de arreglos (verificación a ojo de los 7 grupos, 25-nov-2026)
+Todo bajo `.ph` / `.pv` (o con `PH()` / `pvv()` en JS); PC sin cambios de maquetación (pasada `--desktop` de las pantallas tocadas: solo el
+ruido de estado del arnés ya conocido, p. ej. `#lenHelp` en quick-* a 1024 según la fila anterior).
+- **Vertical < 380 px**: en Partido rápido y en Nueva sala el rótulo largo («DIFICULTAD», «DURACIÓN», «CONEXIÓN») iba debajo de la flecha ‹;
+  ahora va en su propia línea encima de ‹ valor › (`@media (max-width:379px)`; en Nueva sala, `.mk-sels{grid-auto-rows:max-content}` para
+  que las filas no se aplasten).
+- **Cambios (vertical)**: el banquillo en rejilla de 3 como En pista (los dorsales 10 y 11 quedaban escondidos en la tira).
+- **Carrera**: el «?» de Celebración ya no tapa «Elegida» (la primera fila le deja sitio); la franja de la selección enseña el aviso de que
+  se simula (`p.nt-exp`; en verano en rojo y con «Jugar» a la vista, `.nt-keep`); con selección y cesiones a la vez suben las dos franjas
+  (cesiones primero: caducan al jugar); el instituto vuelve a la ficha de «Tú» del juvenil en horizontal; ARBITRAJE en la ficha del club del
+  móvil; flecha ▾ en las filas de Gente; «Top 4» debajo de la barra de votos y la línea deja sitio al «?»; T/S/F centradas; «en juego» en una
+  línea; cinta de la liga con 1.2 de interlineado en vertical; espacio duro entre la cifra y «€» (`eur()`).
+- **Perfil**: el aviso pasajero va abajo, en el carril de «Elige un hueco…» (antes tapaba la Vitrina en horizontal y NV/XP en vertical).
+- **Cuenta › Borrar**: horizontal con el orden de PC (No a la izquierda, Sí a la derecha); vertical con «No, volver» abajo y «Sí, borrar»
+  encima y apartado.
+- **Hojas**: semana-hoja con MVP en vertical; final-entreno con la tarjeta a su contenido y [Siguiente][Entrenamiento] encima de REPETIR;
+  previa con el VS en su propia fila (no tapa «y Iker Sanz»).
+- **Editor táctil (horizontal)**: Zurdos y Restablecer con su palabra bajo el icono; a 568 deslizadores de 84/92 para que quepa en una fila.
+- **Retos**: «Atributos parejos» también en horizontal (las pegatinas parten); «Oro: remonta 4 puntos en un set» a dos líneas.
+- **Online**: «Lo intentamos otra vez en 30 s» también en vertical; el mismo texto de «Este navegador no puede» en las dos orientaciones.
+- **Pendiente**: Sets/Tantos de la clasificación en el móvil (probado como columna: a 360 corta los nombres; falta otra forma, p. ej. hoja al
+  tocar la fila); indicador ⌄ de Ajustes/Controles encima del último control; tiras de pestañas que abren con media pestaña (scroll-snap);
+  vitrinas a 844 en dos bloques; consecuencias de propuesta-puesto bajo el pliegue a 568; estado con ofertas/cesiones de playa y lesión en
+  player-train para el arnés; detector de rótulo tapado por un hermano en mobaudit; Vestuario vertical (zona negra arriba, barra sobre el
+  muñeco); perfil vertical con cabecera que se pliegue.

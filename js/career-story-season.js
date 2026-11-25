@@ -621,7 +621,7 @@
       // (móvil: Temporada, Puesto, PG y Nota; lo demás en «Ver tabla completa»)
       out += '<div class="sp-tbl ss-tbl" data-ph-cols="0,1,3,5" data-ph-title="Por temporada"><table><thead><tr><th>Temporada</th><th>Puesto</th><th><abbr title="Partidos jugados">PJ</abbr></th><th><abbr title="Partidos ganados">PG</abbr></th><th>Puntos</th><th>Nota</th></tr></thead><tbody>' +
         rows.slice().reverse().map(function (x) {
-          return '<tr' + (x.now ? ' class="sp-me"' : '') + '><td class="ss-c"><b>T' + x.s + '</b>' + e(shortN(x.club || '')) + (x.lg ? '<small class="muted ss-lg">' + e(x.lg) + '</small>' : '') + '</td><td>' + (x.now ? 'en juego' : x.pos ? ordn(x.pos) : '—') + '</td><td class="num">' + x.pl + '</td><td class="num">' + x.w + '</td><td class="num">' + x.pts + '</td><td class="num ss-nt">' + nt(x.nota) + '</td></tr>';
+          return '<tr' + (x.now ? ' class="sp-me"' : '') + '><td class="ss-c"><b>T' + x.s + '</b>' + e(shortN(x.club || '')) + (x.lg ? '<small class="muted ss-lg">' + e(x.lg) + '</small>' : '') + '</td><td>' + (x.now ? (h.ph ? '<span class="nw">en juego</span>' : 'en juego') : x.pos ? ordn(x.pos) : '—') + '</td><td class="num">' + x.pl + '</td><td class="num">' + x.w + '</td><td class="num">' + x.pts + '</td><td class="num ss-nt">' + nt(x.nota) + '</td></tr>';
         }).join('') + '</tbody></table></div>' + (h.ph ? '' : '<p class="muted ss-key">PJ: partidos jugados. PG: partidos ganados.</p>');
       tblLater();
     }

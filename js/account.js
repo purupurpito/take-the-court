@@ -734,7 +734,9 @@
     PV + '#account .ac-del h3{margin:0 0 6px;font:400 20px/1.1 var(--sp-pop);color:#ffb3bc;text-shadow:2px 2px 0 var(--sp-ink)}',
     PV + '#account .ac-del p{margin:0}',
     PV + '#account .ac-two .ac-sheet>.ac-dacts{margin-top:auto}',
-    PV + '#account .ac-dacts [data-ac=cancel]{order:0}' + PV + '#account .ac-dacts [data-ac=delYes]{order:2}',
+    // (ronda final) apilados: «Sí, borrar» arriba y apartado, «No, volver» (el seguro) abajo, que es donde cae el pulgar; en horizontal,
+    // el orden de PC (No a la izquierda, Sí a la derecha)
+    PV + '#account .ac-dacts [data-ac=cancel]{order:2}' + PV + '#account .ac-dacts [data-ac=delYes]{order:0;margin-bottom:14px}',
     PV + '#account .ac-gcw{width:100%}',
     PV + '#account .ac-gc .ac-h{--sp-hs:var(--pv-title);margin:0 56px 10px 0}',
     PV + '#account .ac-gc .ac-acts{flex-direction:column}',
@@ -804,7 +806,7 @@
 ''
           : '<p>Tu progreso se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
             '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div>' +
-        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger ac-l', 3) + spb('cancel', 'No, volver', 'sp-cream pri', 2) + '</div>' : '') + '</div>';
+        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('cancel', 'No, volver', 'sp-cream pri ac-l', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger', 3) + '</div>' : '') + '</div>';
     } else {
       var create = tab === 'new';
       h = '<div class="ac-wrap"><div class="ac-sheet sp-panel"><h2 class="ac-sr" id="acTitle">Cuenta: ' + (create ? 'crear cuenta' : 'entrar') + '</h2>' +

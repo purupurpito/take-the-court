@@ -59,7 +59,7 @@
   function round1(v) { return Math.round(v * 10) / 10; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
   function num(v) { return String(Math.round(+v || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-  function eur(v) { return num(v) + ' €'; }
+  function eur(v) { return num(v) + ' €'; }
   function ordn(n) { n = n | 0; return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   function dec(v) { return v == null ? '' : String(round1(v)).replace('.', ','); }
   function copy(o) { return JSON.parse(JSON.stringify(o)); }
@@ -751,7 +751,7 @@
       // (móvil, movil-aire §5.2: votos y cierre en la línea de «Vas 11º», «Top 4» como rótulo de la raya del corte y «Pedir el voto · 2/3»
       //  en una línea con su coste en ficha)
       var asPh = !!(H && H.ph && H.ph());
-      h += '<p class="as-line">' + sep(H, asPh ? ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), num(o.votes) + ' votos', 'cierra tras la J' + v.wk] : ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), 'entran ' + o.cut], 'v') + '</p>';
+      h += '<p class="as-line">' + sep(H, asPh ? ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), '<span class="nw">' + num(o.votes) + ' votos</span>', '<span class="nw">cierra tras la J' + v.wk + '</span>'] : ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), 'entran ' + o.cut], 'v') + '</p>';
       h += '<div class="as-bar" role="img" aria-label="' + esc('Tus votos frente al corte') + '"><i style="width:' + fill + '%"></i><b style="left:' + cut + '%"' + (asPh ? ' data-l="Top ' + o.cut + '"' : '') + '></b></div>';
       if (!asPh) h += '<p class="as-small">' + sep(H, [num(o.votes) + ' votos', 'cierra tras la jornada ' + v.wk], 'v') + '</p>';
       h += '<div class="acts as-acts">' + btn('as-camp', o.camp >= o.campMax ? 'Ya no puedes pedirlo más' : o.asked ? 'Ya lo has pedido esta jornada' : asPh ? 'Pedir el voto · ' + (o.camp + 1) + '/' + o.campMax : 'Pedir el voto (' + (o.camp + 1) + ' de ' + o.campMax + ')', 'sp-gold', o.canCamp ? 'Entrenador −1' : '', !o.canCamp) + '</div></div>';
@@ -889,9 +889,10 @@
       // móvil (html.ph): tokens, nada por debajo de 12 px, toques de 44
       PQ + ' .as-card .as-line{font-size:var(--ph-body,15px)}',
       // votación (movil-aire, paquete carrera-marco): raya del corte con su rótulo y «Pedir el voto · 2/3» de 48 en una línea, coste en ficha
-      PQ + ' .as-vote .as-line{font-size:var(--ph-cap,13px);margin:2px 0 4px}',
-      PQ + ' .as-vote .as-bar{margin:22px 2px 12px}',
-      PQ + ' .as-vote .as-bar>b[data-l]::after{content:attr(data-l);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);font:700 12px/1 var(--sp-ui,sans-serif);color:var(--sp-gold,#ffd23f);white-space:nowrap}',
+      // (ronda final) la línea deja sitio al «?» de la esquina y «Top 4» va DEBAJO de la barra (encima pisaba «cierra tras la J5»)
+      PQ + ' .as-vote .as-line{font-size:var(--ph-cap,13px);margin:2px 0 4px;padding-right:48px}',
+      PQ + ' .as-vote .as-bar{margin:10px 2px 26px}',
+      PQ + ' .as-vote .as-bar>b[data-l]::after{content:attr(data-l);position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);font:700 12px/1 var(--sp-ui,sans-serif);color:var(--sp-gold,#ffd23f);white-space:nowrap}',
       PQ + ' .as-vote .acts.as-acts>.sp-btn{flex:0 0 auto;max-width:none;--sp-h:48px;min-height:48px}',
       PQ + ' .as-vote .as-acts .sp-l{flex-direction:row;align-items:center;gap:8px;white-space:nowrap}',
       PQ + ' .as-vote .as-acts .sp-t{white-space:nowrap}',
