@@ -1602,3 +1602,86 @@ audiotest, girotest (31): todas OK.
 - Vestuario: las filas usan la mancha de PC (el «churretón» queda por debajo del texto); a 360 se ven ~4,5 filas (5-6 a 390-412).
 - Editor: el 6v6 (botón Pedir) en vertical sale igual (solo el aviso); no probado el giro con un arrastre a medias en un móvil real.
 - La pausa › Ajustes (partido-v) hereda esta maqueta sin revisar a ojo.
+
+#### 8.6.9 Paquete partido-v (24/25-nov-2026)
+
+Lo que se ve fuera del partido en marcha, en vertical (html.pv), y los arreglos del HUD en horizontal. CSS en el bloque «RONDA 2 · paquete
+«partido-v»» al final del `<style>` de `index.html` (prefijo `:root.pv` / `:root.ph` + 5 `:not(#_)`); las reglas de la hoja de la Carrera del
+bloque «carrera-flujo-v» pasan de `#end.crs` a `#end` (valen para todas las hojas finales). JS tras `phMob()` / `phPv()` / `phHud()`. PC igual.
+
+**Hecho**
+- *Previa* (main.js): `ctx.pvIntro` = táctil + vertical + previa en marcha (sin online): NO portraitBlock; la cuenta atrás (`intro.left`) no baja,
+  no se puede saltar (toque / botón: se ignoran; la pausa sí), sin mandos táctiles (input.js trata `pvIntro` como bloqueo). ui.js `introTick`:
+  `#intro.pvh` con los beats B y C a la vez, la barra fuera y el chip fijo abajo «Gira el móvil para empezar» con el móvil girando (estilo
+  #rotate). CSS: tarjeta a `--pv-fw`, nombres enteros (sin line-clamp: «Club Platja Rocaverde» en 3 líneas), pareja en 2 líneas, «Empieza la
+  temporada» sin salirse, píldoras enteras (árbitro «1r: Nerea Quirada (amarilla en la J4)»). Al girar: sigue la previa (`.pvh` fuera) y empieza
+  el saque. girotest en caliente (390x844 → 844x390): la cuenta no corre (4,5 → 4,5 con un toque), al girar acaba e introLeft = 0.
+- *Repetición*: `ctx.pvReplay` (repetición activa en vertical) no pide girar: el lienzo con la cámara de siempre (se ve la jugada entera a
+  360-412) y la tarjeta «Remate del n.º 1 · 1r set 11-5» + «Toca para saltar» abajo. Sin banner de girar (no hizo falta).
+- *Aviso de girar* (partido en juego, banquillo): botón «Pausa» (`#btnRotPause`) como salida (la pausa sí se ve en vertical); `#benchBar` oculto
+  con el aviso puesto (`:root:has(#rotate:not([hidden]))`). **Mejora pendiente**: tarjeta de banquillo propia en vertical (×3 / Saltar hasta que
+  entres / Saltar al final sin girar).
+- *Pausa*: rejilla de 6 columnas: «Pausa» + marcador arriba, el partido parado en medio, abajo Controles · Ajustes · «Opinar» (texto con `mob()`;
+  Bug fuera), el aviso «⚠ Reiniciar o salir gasta este intento» pegado encima de Reiniciar / Salir (tinta con borde verde / rojo, como en H) y
+  SEGUIR JUGANDO al pie con `--pv-gb`; < 400 px sin iconos en la fila de 3. pausa-controles / -bug / -ajustes: heredan paneles-v / menus-v
+  (tarjetas con la descripción entera, chips en 3, Cancelar/Enviar abajo, 7 pestañas de icono).
+- *Hoja final*: cabecera compacta (antetítulo de 1 línea + ojo de 44 a la derecha, ¡VICTORIA! clamp(32, 11vw, 44) en 1 línea, marcador pequeño y
+  los sets en la misma fila: con 2+ sets sin «SET n», que queda para el lector); etiquetas encima; MVP en fichas (`rcHTML` con `mob()`); abajo
+  [Más difícil][Opciones][Menú] (rótulos cortos con `data-short`, 2 líneas como mucho) sobre el parche a todo el ancho. final-primero: «Y ahora»
+  en lista (título + subtítulo enteros, 52, ›). final-stats: Puntos arriba, MVP, barras y «Estadística del partido» como enlace al pie.
+  final-reto: sello de 72 a la derecha del título (12 px dentro), medallas en una fila, la frase entera y «+115 de experiencia» en su línea (sin
+  «(a cada jugador)», `phPv()`), Retos en 1 columna; RETOS + Menú visibles. semana-hoja: «¡SALVADA!» sin el resultado (`mob()`), sin MVP,
+  [Compartir][El grupo][Menú]. final-entreno (`#gymEnd` sin Carrera): título de ~40 en una línea, REPETIR y debajo Siguiente / Entrenamiento
+  oscuros de 52 (Siguiente con borde naranja), sin «Oro: 24 puntos». Rótulo del parche sin recorte (`overflow:visible`).
+- *Cambios 6v6*: hoja a todo el alto con la cabecera compacta (‹ de 44 + «Cambios»), la ayuda entera debajo, EN PISTA en rejilla 3×2
+  (4-3-2 / 5-6-1) de fichas de 72 (Z, dorsal, puesto, «0 pts | 0 err», energía), BANQUILLO en tira con desvanecido; con alguien elegido, los
+  válidos con borde verde y el resto a .35 con el puesto tachado. «Tú» dentro de la ficha, arriba a la derecha (también en H).
+- *Estadística*: misma hoja; título «Estadística» en 1 línea con «TU EQUIPO 2-0 CPU» debajo; sets en rejilla de N columnas iguales
+  (Partido / Set 1 / Set 2 / Set 3); índice de secciones en tira pegada arriba (con desvanecido); cifras 3×2 sin marco; en el gráfico «SET n»
+  abajo y «+13 CPU» / «+13 TU EQUIPO» arriba (antes se pisaban); secciones largas del 6v6 plegadas (`mob()`); 12 px como mínimo.
+- *HUD en horizontal*: `#coach` siempre en cápsula oscura (también `.thrup`), hasta 2 líneas, sin «…» (60vw a 568; en vertical tampoco
+  elipsis); la seña con la cinta va bajo el marcador (`senaShow` con `phHud()` también para 'ban'; sale con la cinta; fuera del `bannerRect`);
+  seña de 48 a 568 (−15 %); cinta compacta a 140 de la derecha (no llega a la lupa) y sin pisar el marcador; marcador a .6 con la diana del
+  saque; frenar: «Iker va a protestar al árbitro» (en ui.js con `mob()`: ambiente.js y PC iguales), la frase en 2 líneas si hace falta y
+  botones de 44 a 568; «Compartir» / «El grupo» de la situación caben en la columna a 568 (12 px, sin salirse de la mancha). hud-entreno: el «3»
+  de la lupa y el «3/10» del ejercicio quedan a 300 px uno de otro (no se tocó: ver pendiente). hud-2v2, hud-cambio, hud-zona: igual.
+- *Arnés*: la salida del HUD incluye `#btnRotPause` (banquillo en vertical: salida ok); girotest +8 (previa, repetición, aviso con Pausa).
+
+**Métricas del paquete** (`…/movil2/r2-partido/`: `v` 38 ids × 360/390/412 DPR 2, `h` × 568/844/915, `pc` × 1280/1024/1920)
+- V (v1 → v): recortes 90 → 12 (los 12 son `o` del HUD detrás del aviso de girar), < 12 135 → 0, < 44 3 → 0, pisados 28 → 0, toques juntos
+  128 → 68; «girar» solo en hud-*, partido-frenar-* y carrera-banquillo (previas y repetición ya no); principal / salida SÍ en todas.
+- H (h1 → h): recortes 3 → 0 (o 2 → 0), pisados 2 → 0, rot 0, `#coach` sin elipsis; < 14 +13 (12 px de «Tú» y de «Compartir» a 568).
+- PC (pcbase → pc): igual salvo ruido conocido (final-stats «Mejor racha»), partido-frenar-* a 1024 que ahora sí abre, y el desvanecido de la
+  hoja de la semana a 1280 que a veces se mide durante la entrada (0 / 4 en dos pasadas seguidas). Previa y repetición en PC, a ojo, iguales.
+
+**Pruebas** (primer plano): csscheck, replaytest, recaptest (312), statstest (1172), semanatest (66), retotest (87), jugaryatest, gymtest,
+senatest (26), subtest, zonetest (97), ambientetest (124), consignatest (99), settest (86), touchtest (34), padtest (54), feedbacktest (120,
+0 fallos), turntest (60), girotest (38): todas OK.
+
+**Pendiente**
+- Banquillo en vertical con su tarjeta (hoy: aviso de girar + Pausa).
+- hud-entreno: separar visualmente el nivel de la lupa del contador del ejercicio (no se vio solape; para revisar con Ferran).
+- Hoja final en vertical: el panel se estira hasta las acciones aunque el contenido sea corto (estable al cambiar de pestaña; se podría
+  encoger para que se vea más el pabellón).
+- La seña con la cinta en horizontal no se probó con zurdos ni con la cinta de zona.
+
+#### 8.6.10 Resumen de la ronda 2 (pasada completa de cierre, 25-nov-2026)
+
+Pasadas en `…/movil2/`: `v2` (vertical 360x740 / 390x844 / 412x915, DPR 2), `h2` (568x320 / 844x390 / 915x412, DPR 2), `pc2` (1280x720 /
+1024x768 / 1920x1080, DPR 1), 241 pantallas, 0 fallos al abrir; comparaciones `v2.html/.md` (contra v0), `h2.html/.md` (contra h0),
+`pc2.html/.md` (contra pcbase) y `pc2-pc1.md`; hojas de contactos `v2/contact.html`, `h2/contact.html`, `pc2/contact.html`.
+
+| pasada | recortes no permitidos (de ellos `o`) | < 12 | < 44 | principal NO | salida NO | girar |
+|---|---|---|---|---|---|---|
+| v0 → **v2** | 830 → **12 (12)** | 1436 → **0** | 193 → **0** | 62 → **0** | 3 → **0** | 141 pantallas (119 de la Carrera) → **19** (partido en juego: 16 hud-*, 2 frenar, banquillo) |
+| h0 → **h2** | 88 → **0** | 0 → 0 | 1 → **0** | 0 → 0 | 0 → 0 | 0 → 0 |
+| pcbase → **pc2** | 647 → 680 (+11 `o` del arnés) | 2021 → 2003 | 1211 → 1211 | 48 → 48 | 0 → 0 | 0 → 0 |
+
+- Los 12 `o` de v2 son rótulos del HUD (#pbT, #bn1) medidos detrás del aviso de girar del partido en juego (no se ven).
+- V también: solapes 172 → 0, tapados 244 → 30 (HUD detrás del aviso), con scroll 1047 → 608, caracteres −18 %; < 14 sube (rótulos de 12-13).
+- H también: tapados 204 → 202, solapes 54 → 54 (los mandos táctiles sobre el lienzo, de siempre), `rot` 0.
+- PC: las diferencias con `pcbase` son las ya anotadas en 8.6.1 (Bandeja y Clubes del arnés, dbgSets, la Carrera que antes salía lesionada,
+  ruido de controles-keyboard y final-stats), el reto del día (cambia con la fecha: retos-hoy, home-carrera), partido-frenar-* a 1024 (ahora
+  abre) y el desvanecido de las hojas a 1280 medido a veces durante la entrada. A ojo, igual.
+- **Pendiente de la ronda**: banquillo en vertical con tarjeta propia; tabletas en vertical (> 500 px) fuera de alcance; lo anotado en cada
+  paquete (8.6.2-8.6.9).
