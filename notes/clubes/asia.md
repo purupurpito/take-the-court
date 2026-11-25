@@ -254,7 +254,7 @@ En el juego se muestra «sponsor + name». Todas las marcas son inventadas (bús
 | KR | Hwaseong IBK Altos | **Rodilleras Rodríguez** Hwaseong Altissimo |
 | CN | Shanghai Bright Ubest | **Kouqiu Baozi** Paiqiu Shanghai |
 | CN | Jiangsu Zenith Steel | **Lanwang Jiaozi** Paiqiu Jiangsu |
-| CN | Tianjin Food Group / Tianjin Bohai Bank | **Faqiu Mahua** Paiqiu Tianjin |
+| CN | Tianjin Food Group / Tianjin Bohai Bank | **Kouqiu Mahua** Paiqiu Tianjin |
 | CN | Beijing BAIC | **Chanclas Supersónicas** Paiqiu Beijing |
 | CN | Liaoning Donggang Strawberry | **Erchuan Huoguo** Paiqiu Liaoning |
 | IR | Foolad Sirjan Iranian | **Kebab Sirjan Smash** Valibal Sirjan |

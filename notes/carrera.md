@@ -1002,7 +1002,7 @@ Contrato: CONTRACT §1 y §4.4 «Sprint 2-4».
   escudos en VS, ofertas, Club, Clasificación y Calendario, «Química ◆ …», etiqueta «Jefe», `heroData`/`syncHero` para «Continuar
   carrera» en la portada.
 - careertest: 2012 comprobaciones, progresión Normal 39/45/50/54/57/61 sin cambios (también con `NOWORLD=1`).
-- Abierto (recap.js): `cupLine` con «Open Regional · Final» da «Campeones de la Open Regional»; `teamName` da «El Sorra Brisamar Dunes
+- Abierto (recap.js): `cupLine` con «Open Regional · Final» da «Campeones de la Open Regional»; `teamName` da «El Sorra (hoy Salitre) Brisamar Dunes
   no da opción» con clubes sin artículo (visto en una carrera real).
 
 ## Pruebas, entrenos y nota en directo (1.8.0, 17-nov-2026: fusión de la rama pruebas-entrenos)

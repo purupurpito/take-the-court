@@ -976,8 +976,8 @@
               "ovr": 55,
               "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Volley Ried\" OR \"Voley Ried\" Volleyball. Resultado: Solo sale UVC Ried (UVC Weberzeile Ried / UVC McDonald's Ried). No hay ningún club llamado «Volley Ried». No coincide con ningún club de las tablas 2025-26 de la AVL de hombres y de mujeres (Sportradar, 365Scores); no hay artículo con ese título en Wikipedia en; sin respuesta de Wikipedia de/es. Se quita el patrocinador. Líbero probable: blanco o gris claro (2023-24, galería CEV Challenge 2024 (chcm-44)).",
               "realSponsor": true,
-              "sponsor": "Wirtshaus Zum Ass",
-              "sponsorCheck": "Taberna «El Ace». WebSearch 11-nov-2026 con la frase exacta entre comillas (búsqueda agrupada con OR): sin resultados que coincidan con ninguna empresa o marca real; solo salen negocios genéricos con otros nombres. Dudoso: patrocinador de nombre (Raiffeisen / Weberzeile) no confirmado para 2025-26."
+              "sponsor": "Wirtshaus Zum Netz",
+              "sponsorCheck": "Taberna «La Red». WebSearch 11-nov-2026 con la frase exacta entre comillas (búsqueda agrupada con OR): sin resultados que coincidan con ninguna empresa o marca real; solo salen negocios genéricos con otros nombres. Dudoso: patrocinador de nombre (Raiffeisen / Weberzeile) no confirmado para 2025-26. Cambiado el 25-nov-2026: «Zum Ass» se lee en inglés como «to the ass». Nombre anterior: «Wirtshaus Zum Ass». Búsqueda web 25-nov-2026 de «Wirtshaus Zum Netz» entre comillas: ninguna empresa con ese nombre (solo «Wirtshaus zum Netzkater», otro nombre)."
             },
             {
               "real": "ASKÖ Linz-Steg",
@@ -1365,7 +1365,7 @@
             {
               "real": "ŽOK Železničar Lajkovac",
               "official": "Ženski odbojkaški klub Železničar Lajkovac",
-              "name": "Traviesas Lajkovac",
+              "name": "Locomotoras Lajkovac",
               "short": "FER",
               "city": "Lajkovac",
               "gender": "W",
@@ -1376,7 +1376,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ferroviario Lajkovac\". Resultado: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «železničar» significa ferroviario. Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Železničar Lajkovac», el club real (traducción literal). Nombre anterior: «Ferroviario Lajkovac».",
+              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ferroviario Lajkovac\". Resultado: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «železničar» significa ferroviario. Líbero: no encontrado en internet (12-nov-2026). Cambiado el 25-nov-2026: coincidía con «Železničar Lajkovac», el club real (traducción literal). Nombre anterior: «Ferroviario Lajkovac». Cambiado otra vez el 25-nov-2026: «Traviesas» (las de la vía del tren) suena pícaro en un equipo de mujeres. Nombre anterior: «Traviesas Lajkovac». Búsqueda web 25-nov-2026 de «Locomotoras Lajkovac» entre comillas: ningún club ni marca con ese nombre (el escudo de Lajkovac lleva una rueda de locomotora con alas).",
               "realSponsor": false
             },
             {

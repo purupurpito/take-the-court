@@ -301,7 +301,7 @@
             {"name":"Voley Hartberg","short":"HAR","city":"Hartberg","gender":"M","colors":{"shirt":"#0033a0","shirt2":"#ff6600","libero":"#f0f0f0"},"liberoEstimated":false,"ovr":61},
             {"name":"Voley Aich-Dob","sponsor":"Bäckerei Aufschlag","short":"AID","city":"Bleiburg","gender":"M","colors":{"shirt":"#0057b8","shirt2":"#ffd200","libero":"#e2231a"},"liberoEstimated":false,"ovr":58},
             {"name":"Voley Zwettl","sponsor":"Erdäpfel Netzroller","short":"WAL","city":"Zwettl","gender":"M","colors":{"shirt":"#e30613","shirt2":"#000000","libero":"#e32b2b"},"liberoEstimated":false,"ovr":56},
-            {"name":"Voley Ried","sponsor":"Wirtshaus Zum Ass","short":"RIE","city":"Ried im Innkreis","gender":"M","colors":{"shirt":"#00843d","shirt2":"#000000","libero":"#e6e6e6"},"liberoEstimated":true,"ovr":55},
+            {"name":"Voley Ried","sponsor":"Wirtshaus Zum Netz","short":"RIE","city":"Ried im Innkreis","gender":"M","colors":{"shirt":"#00843d","shirt2":"#000000","libero":"#e6e6e6"},"liberoEstimated":true,"ovr":55},
             {"name":"Voley Linz","short":"LIN","city":"Linz","gender":"W","colors":{"shirt":"#ffd200","shirt2":"#000000","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":57},
             {"name":"Falke Wien","short":"FAL","city":"Viena","gender":"MW","colors":{"shirt":"#0033a0","shirt2":"#ffd200","libero":"#f5c800"},"liberoEstimated":true,"ovr":56},
             {"name":"Voley Erzberg","short":"ERZ","city":"Trofaiach","gender":"W","colors":{"shirt":"#7a1f2b","shirt2":"#ffffff","libero":"#1e2a4a"},"liberoEstimated":false,"ovr":55},
@@ -330,7 +330,7 @@
             {"name":"Voley Novi Pazar","short":"NPZ","city":"Novi Pazar","gender":"M","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":57},
             {"name":"Voley Obrenovac","sponsor":"Ćevapi Kod Bloka","short":"OBR","city":"Obrenovac","gender":"W","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#f59e0b"},"liberoEstimated":true,"ovr":62},
             {"name":"Voley Ub","short":"UBB","city":"Ub","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":true,"ovr":59},
-            {"name":"Traviesas Lajkovac","short":"FER","city":"Lajkovac","gender":"W","colors":{"shirt":"#0033a0","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":59},
+            {"name":"Locomotoras Lajkovac","short":"FER","city":"Lajkovac","gender":"W","colors":{"shirt":"#0033a0","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":59},
             {"name":"Voley Užice","short":"UZI","city":"Užice","gender":"W","colors":{"shirt":"#0033a0","shirt2":"#c8102e","libero":"#ffffff"},"liberoEstimated":true,"ovr":57}
         ] }
       ] },
@@ -542,7 +542,7 @@
         { lvl: 1, name: "CV Hyper League", short: "CVH", strength: 68, clubs: [
             {"name":"Paiqiu Shanghai","sponsor":"Kouqiu Baozi","short":"SHA","city":"Shanghái","gender":"W","colors":{"shirt":"#0050b5","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":74},
             {"name":"Paiqiu Jiangsu","sponsor":"Lanwang Jiaozi","short":"JSU","city":"Nankín","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#f2c400"},"liberoEstimated":true,"ovr":73},
-            {"name":"Paiqiu Tianjin","sponsor":"Faqiu Mahua","short":"TIA","city":"Tianjin","gender":"M","colors":{"shirt":"#00a3e0","shirt2":"#ffffff","libero":"#e4002b"},"liberoEstimated":true,"ovr":72},
+            {"name":"Paiqiu Tianjin","sponsor":"Kouqiu Mahua","short":"TIA","city":"Tianjin","gender":"M","colors":{"shirt":"#00a3e0","shirt2":"#ffffff","libero":"#e4002b"},"liberoEstimated":true,"ovr":72},
             {"name":"Paiqiu Beijing","sponsor":"Chanclas Supersónicas","short":"BEI","city":"Pekín","gender":"W","colors":{"shirt":"#0b5394","shirt2":"#ffffff","libero":"#f6b26b"},"liberoEstimated":true,"ovr":70},
             {"name":"Paiqiu Liaoning","sponsor":"Erchuan Huoguo","short":"LIA","city":"Liaoning","gender":"W","colors":{"shirt":"#1f4e9c","shirt2":"#ffffff","libero":"#f39800"},"liberoEstimated":true,"ovr":67},
             {"name":"Paiqiu Shandong","short":"SDG","city":"Jinan","gender":"W","colors":{"shirt":"#f39800","shirt2":"#ffffff","libero":"#1f4e9c"},"liberoEstimated":true,"ovr":67},
