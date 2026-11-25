@@ -35,9 +35,9 @@
             {
               "real": "Osaka Bluteon",
               "official": "Osaka Bluteon (大阪ブルテオン; antes Panasonic Panthers)",
-              "name": "Bluzeon Osaka",
+              "name": "Aonami Osaka",
               "realSponsor": false,
-              "short": "BLZ",
+              "short": "AON",
               "city": "Osaka",
               "gender": "M",
               "colors": {
@@ -47,16 +47,16 @@
               },
               "liberoEstimated": true,
               "ovr": 86,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; guiño a «Bluteon». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Bluzeon» estaba a dos letras de «Bluteon». Ahora «aonami» (olas azules): el azul del club sin el nombre. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Aonami Osaka\" volleyball OR team. Resultado: ningún equipo con ese nombre (solo Osaka Bluteon y Osaka Marvelous). (Antes: «Bluzeon Osaka» (BLZ); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; guiño a «Bluteon». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "JTEKT Stings Aichi",
               "official": "JTEKT STINGS Aichi (ジェイテクトSTINGS愛知)",
-              "name": "Stingz Aichi",
+              "name": "Hachi Aichi",
               "sponsor": "Tatami Toss",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; toss = colocación (inglés japonés).",
-              "short": "STZ",
+              "short": "HAC",
               "city": "Kariya (Aichi)",
               "gender": "M",
               "colors": {
@@ -66,7 +66,7 @@
               },
               "liberoEstimated": true,
               "ovr": 82,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JTEKT; guiño a «Stings». Líbero probable: negro (2025-26, equipaciones en jtekt-stings.jp (deducido)). Ojo: casi igual que la 2ª camiseta (#1A1A1A); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Stingz» era «Stings» con una letra. Ahora «hachi» (abeja, la que pica). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Hachi Aichi\" volleyball OR team. Resultado: ningún equipo; lo más parecido, Aleeza Aichi (otro nombre). (Antes: «Stingz Aichi» (STZ); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JTEKT; guiño a «Stings». Líbero probable: negro (2025-26, equipaciones en jtekt-stings.jp (deducido)). Ojo: casi igual que la 2ª camiseta (#1A1A1A); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Wolfdogs Nagoya",
@@ -105,9 +105,9 @@
             {
               "real": "Tokyo Great Bears",
               "official": "Tokyo Great Bears (東京グレートベアーズ)",
-              "name": "Tokyo Grand Bears",
+              "name": "Edo Kumas",
               "realSponsor": false,
-              "short": "TGB",
+              "short": "EDK",
               "city": "Tokio",
               "gender": "M",
               "colors": {
@@ -117,7 +117,7 @@
               },
               "liberoEstimated": true,
               "ovr": 78,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Great Bears». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Tokyo Grand Bears» era «Tokyo Great Bears» con una palabra cambiada. Ahora Edo (antiguo nombre de Tokio, como Naniwa en Osaka) + «kuma» (oso). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Edo Kumas\" volleyball OR team. Resultado: sin ningún resultado con ese nombre. (Antes: «Tokyo Grand Bears» (TGB); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Great Bears». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "SAGA Hisamitsu Springs",
@@ -196,9 +196,9 @@
             {
               "real": "Victorina Himeji",
               "official": "Victorina Himeji (ヴィクトリーナ姫路)",
-              "name": "Vittorina Himeji",
+              "name": "Tenshu Himeji",
               "realSponsor": false,
-              "short": "VIT",
+              "short": "TEN",
               "city": "Himeji (Hyogo)",
               "gender": "W",
               "colors": {
@@ -208,14 +208,14 @@
               },
               "liberoEstimated": false,
               "ovr": 77,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; la búsqueda solo devuelve «Victorina Himeji», el real. Líbero: blanco (2026-27, buscado 12-nov-2026: nota del club (3-ago-2026))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Vittorina» estaba a dos letras de «Victorina». Ahora el «tenshu» (torre del castillo de Himeji). Descartado «Shirasagi Himeji»: es el japonés de las Himeji Egrets (baloncesto). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Tenshu Himeji\" team OR club OR volleyball. Resultado: ningún club con ese nombre (solo Victorina Himeji). (Antes: «Vittorina Himeji» (VIT); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; la búsqueda solo devuelve «Victorina Himeji», el real. Líbero: blanco (2026-27, buscado 12-nov-2026: nota del club (3-ago-2026)).)"
             },
             {
               "real": "Queenseis Kariya",
               "official": "Queenseis Kariya (クインシーズ刈谷; club de Toyota Auto Body; desde jul-2026 «Aleeza Aichi»)",
-              "name": "Queenzy Kariya",
+              "name": "Tiara Kariya",
               "realSponsor": false,
-              "short": "QZK",
+              "short": "TIK",
               "city": "Kariya (Aichi)",
               "gender": "W",
               "colors": {
@@ -225,7 +225,7 @@
               },
               "liberoEstimated": true,
               "ovr": 76,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; tampoco coincide con su nombre nuevo «Aleeza Aichi». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Queenzy» guiñaba demasiado a «Queenseis». Ahora reina → tiara. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Tiara Kariya\" volleyball OR team OR club. Resultado: ningún equipo ni club con ese nombre. (Antes: «Queenzy Kariya» (QZK); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; tampoco coincide con su nombre nuevo «Aleeza Aichi». Líbero: no encontrado en internet (12-nov-2026).)"
             }
           ]
         },
@@ -239,11 +239,11 @@
             {
               "real": "Kubota Spears Osaka",
               "official": "KUBOTA Spears Osaka (クボタスピアーズ大阪)",
-              "name": "Spearz Osaka",
+              "name": "Hoko Osaka",
               "sponsor": "Sushi Saabu",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; saabu = サーブ, saque.",
-              "short": "SPZ",
+              "short": "HOK",
               "city": "Osaka",
               "gender": "M",
               "colors": {
@@ -253,7 +253,7 @@
               },
               "liberoEstimated": true,
               "ovr": 68,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; se quita el patrocinador Kubota; guiño a «Spears». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Spearz» era «Spears» con una letra. Ahora «hoko» (alabarda japonesa). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Hoko Osaka\" volleyball OR team OR club. Resultado: ningún equipo (lo más parecido, un instituto Hokuryo). (Antes: «Spearz Osaka» (SPZ); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; se quita el patrocinador Kubota; guiño a «Spears». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Hokkaido Yellow Stars",
@@ -326,11 +326,11 @@
             {
               "real": "Fujitsu Kawasaki Red Spirits",
               "official": "Fujitsu Kawasaki Red Spirits (富士通カワサキレッドスピリッツ)",
-              "name": "Red Spirals Kawasaki",
+              "name": "Akaoni Kawasaki",
               "sponsor": "Seguros Tie-Break",
               "realSponsor": true,
               "sponsorCheck": "marca recurrente del gag (inventada; búsqueda web exacta 11-nov-2026 sin coincidencias reales).",
-              "short": "RSP",
+              "short": "AKO",
               "city": "Kawasaki",
               "gender": "M",
               "colors": {
@@ -340,7 +340,7 @@
               },
               "liberoEstimated": true,
               "ovr": 63,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador Fujitsu; guiño a «Red Spirits». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Red Spirals» estaba a una letra de «Red Spirits». Ahora «akaoni» (demonio rojo): espíritu rojo sin el nombre. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Akaoni Kawasaki\" team OR club OR volleyball. Resultado: ningún equipo (solo NEC Red Rockets Kawasaki). (Antes: «Red Spirals Kawasaki» (RSP); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador Fujitsu; guiño a «Red Spirits». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Shinshu Brilliant Aries",
@@ -362,11 +362,11 @@
             {
               "real": "JA Gifu Rioreina",
               "official": "JA Gifu Rioreina (JAぎふリオレーナ; desde jul-2026 «Gifu Rioreina»)",
-              "name": "Riorena Gifu",
+              "name": "Nagara Gifu",
               "sponsor": "Sento Blocking-yu",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; baño público (sento) + bloqueo; nada agrícola (JA).",
-              "short": "RIO",
+              "short": "NAG",
               "city": "Gifu",
               "gender": "W",
               "colors": {
@@ -376,7 +376,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JA; guiño a «Rioreina». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Riorena» estaba a una letra de «Rioreina». Ahora el río Nagara de Gifu. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Nagara Gifu\" volleyball OR team OR club. Resultado: ningún equipo (solo el polideportivo Nagaragawa, que es un recinto). (Antes: «Riorena Gifu» (RIO); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JA; guiño a «Rioreina». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "KANOA Laulea's Fukuoka",
@@ -639,11 +639,11 @@
             {
               "real": "Hwaseong IBK Altos",
               "official": "Hwaseong IBK Altos (화성 IBK기업은행 알토스)",
-              "name": "Hwaseong Altissimo",
+              "name": "Hwaseong Seohae",
               "sponsor": "Rodilleras Rodríguez",
               "realSponsor": true,
               "sponsorCheck": "marca recurrente del gag (inventada; búsqueda web exacta 11-nov-2026 sin coincidencias reales).",
-              "short": "HAL",
+              "short": "HSH",
               "city": "Hwaseong",
               "gender": "W",
               "colors": {
@@ -653,7 +653,7 @@
               },
               "liberoEstimated": false,
               "ovr": 65,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador IBK; guiño a «Altos». Líbero: negro (2025-26, buscado 12-nov-2026: fotos de partido de Lim Myung-ok)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Altissimo» guiñaba demasiado a «Altos». Ahora «Seohae» (el mar del Oeste, en cuya costa está Hwaseong). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Hwaseong Seohae\" volleyball OR team OR club. Resultado: ningún equipo con ese nombre. (Antes: «Hwaseong Altissimo» (HAL); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador IBK; guiño a «Altos». Líbero: negro (2025-26, buscado 12-nov-2026: fotos de partido de Lim Myung-ok).)"
             }
           ]
         }
@@ -1051,9 +1051,9 @@
             {
               "real": "Al Arabi SC",
               "official": "Al-Arabi Sports Club (النادي العربي)",
-              "name": "Arabi Doha",
+              "name": "Corniche Doha",
               "realSponsor": false,
-              "short": "ARB",
+              "short": "CRN",
               "city": "Doha",
               "gender": "M",
               "colors": {
@@ -1063,7 +1063,7 @@
               },
               "liberoEstimated": true,
               "ovr": 72,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2023-24 y, según el primer informe, 2025-26 (sin confirmar). Líbero probable: azul marino (2025-26, foto de la celebración del título (alkassenglish.net))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Arabi Doha» era Al Arabi sin «Al». Ahora la Corniche, el paseo marítimo de Doha. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Corniche Doha\" volleyball OR club OR team. Resultado: ningún equipo con ese nombre. (Antes: «Arabi Doha» (ARB); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2023-24 y, según el primer informe, 2025-26 (sin confirmar). Líbero probable: azul marino (2025-26, foto de la celebración del título (alkassenglish.net)).)"
             },
             {
               "real": "Al Wakrah SC",
@@ -1085,9 +1085,9 @@
             {
               "real": "Police SC",
               "official": "Al-Shorta / Police Sports Club (نادي الشرطة)",
-              "name": "Shurta Doha",
+              "name": "Doha Sentinels",
               "realSponsor": false,
-              "short": "SHU",
+              "short": "SEN",
               "city": "Doha",
               "gender": "M",
               "colors": {
@@ -1097,7 +1097,7 @@
               },
               "liberoEstimated": true,
               "ovr": 68,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «shurta» es «policía»; la prensa lo llama «Al-Shorta», no «Shurta Doha». Líbero probable: celeste (2022-23, foto de gulf-times (Copa de Catar 2023))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Shurta» es «policía» en árabe: era Police SC traducido. Ahora centinelas. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Doha Sentinels\" volleyball OR team. Resultado: ningún equipo con ese nombre. (Antes: «Shurta Doha» (SHU); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «shurta» es «policía»; la prensa lo llama «Al-Shorta», no «Shurta Doha». Líbero probable: celeste (2022-23, foto de gulf-times (Copa de Catar 2023)).)"
             },
             {
               "real": "Al Rayyan SC",
@@ -1119,9 +1119,9 @@
             {
               "real": "Al Sadd SC",
               "official": "Al-Sadd Sports Club (نادي السد)",
-              "name": "Sadd Doha",
+              "name": "Musheireb Doha",
               "realSponsor": false,
-              "short": "SAD",
+              "short": "MSH",
               "city": "Doha",
               "gender": "M",
               "colors": {
@@ -1131,7 +1131,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño al barrio de Al Sadd. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Sadd Doha» era Al Sadd sin «Al». Ahora Musheireb, barrio del centro de Doha. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Musheireb Doha\" volleyball OR club OR team. Resultado: ningún equipo con ese nombre. (Antes: «Sadd Doha» (SAD); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño al barrio de Al Sadd. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Qatar SC",
@@ -1170,9 +1170,9 @@
             {
               "real": "Al Ahli SC",
               "official": "Al-Ahli Sports Club Doha (النادي الأهلي)",
-              "name": "Ahliya Doha",
+              "name": "Dafna Doha",
               "realSponsor": false,
-              "short": "AHL",
+              "short": "DAF",
               "city": "Doha",
               "gender": "M",
               "colors": {
@@ -1182,7 +1182,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Al Ahli». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ahliya Doha» era Al Ahli casi igual. Ahora Dafna (West Bay), barrio de Doha. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Dafna Doha\" volleyball OR club OR team. Resultado: ningún equipo con ese nombre. (Antes: «Ahliya Doha» (AHL); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Al Ahli». Líbero: no encontrado en internet (12-nov-2026).)"
             }
           ]
         }
@@ -1203,11 +1203,11 @@
             {
               "real": "Creamline Cool Smashers",
               "official": "Creamline Cool Smashers (Rebisco)",
-              "name": "Kool Smashers Manila",
+              "name": "Sorbetes Manila",
               "sponsor": "Adobo Ace",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; ace; nada de galletas (Rebisco).",
-              "short": "KSM",
+              "short": "SBT",
               "city": "Gran Manila",
               "gender": "W",
               "colors": {
@@ -1217,7 +1217,7 @@
               },
               "liberoEstimated": false,
               "ovr": 58,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón All-Filipino 2026; se quita la marca Creamline; guiño a «Cool Smashers». Líbero: blanco con rosa y rojo (2025, buscado 12-nov-2026: fotos de spin.ph y rappler.com)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Kool Smashers» era «Cool Smashers» con una letra. Ahora «sorbetes» (el helado callejero filipino: guiño a Creamline). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Sorbetes Manila\" volleyball OR team. Resultado: ningún equipo con ese nombre. (Antes: «Kool Smashers Manila» (KSM); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón All-Filipino 2026; se quita la marca Creamline; guiño a «Cool Smashers». Líbero: blanco con rosa y rojo (2025, buscado 12-nov-2026: fotos de spin.ph y rappler.com).)"
             },
             {
               "real": "Cignal HD Spikers",
@@ -1355,11 +1355,11 @@
             {
               "real": "Savouge Spin Doctors",
               "official": "Savouge Spin Doctors",
-              "name": "Spin Medics",
+              "name": "Ikot Manila",
               "sponsor": "Barberya Spike",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; barbería + remate; nada de estética.",
-              "short": "SPM",
+              "short": "IKO",
               "city": "Gran Manila",
               "gender": "M",
               "colors": {
@@ -1369,7 +1369,7 @@
               },
               "liberoEstimated": true,
               "ovr": 52,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita la marca Savouge; guiño a «Spin Doctors». Líbero probable: verde muy oscuro (2025, fotos de inquirer)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Spin Medics» calcaba «Spin Doctors». Ahora «ikot» (giro, en tagalo). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Ikot Manila\" volleyball OR team. Resultado: ningún equipo con ese nombre. (Antes: «Spin Medics» (SPM); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita la marca Savouge; guiño a «Spin Doctors». Líbero probable: verde muy oscuro (2025, fotos de inquirer).)"
             },
             {
               "real": "PGJC-Navy Sea Lions",

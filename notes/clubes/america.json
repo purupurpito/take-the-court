@@ -130,11 +130,11 @@
             {
               "real": "Sesc RJ Flamengo",
               "official": "Sesc RJ Flamengo (Serviço Social do Comércio RJ + Clube de Regatas do Flamengo)",
-              "name": "Urubu Rio",
+              "name": "Lagoa Rio",
               "realSponsor": true,
               "sponsor": "Biscoito Largadinha",
               "sponsorCheck": "Juego de palabras: largada (finta). Búsqueda web del nombre exacto entre comillas (WebSearch, 11-nov-2026): ninguna empresa ni marca real con ese nombre; solo resultados genéricos.",
-              "short": "URU",
+              "short": "LGR",
               "city": "Rio de Janeiro",
               "gender": "W",
               "colors": {
@@ -144,7 +144,7 @@
               },
               "liberoEstimated": false,
               "ovr": 88,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Urubu Rio\" clube. Resultado: Ningún club se llama así. «Urubu» es el apodo/mascota del Flamengo y hay ríos Urubu; no es nombre oficial de nada. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Urubu» es la mascota del Flamengo; se quita Sesc. Líbero: azul celeste (2026-27, buscado 12-nov-2026: foto de Terra (final del Carioca, oct-2026))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Urubu» es la mascota de Flamengo. Ahora la Lagoa Rodrigo de Freitas. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Lagoa Rio\" vôlei OR clube OR time. Resultado: ningún equipo con ese nombre. (Antes: «Urubu Rio» (URU); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Urubu Rio\" clube. Resultado: Ningún club se llama así. «Urubu» es el apodo/mascota del Flamengo y hay ríos Urubu; no es nombre oficial de nada. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Urubu» es la mascota del Flamengo; se quita Sesc. Líbero: azul celeste (2026-27, buscado 12-nov-2026: foto de Terra (final del Carioca, oct-2026)).)"
             },
             {
               "real": "Fluminense",
@@ -511,9 +511,9 @@
             {
               "real": "River Plate",
               "official": "Club Atlético River Plate",
-              "name": "Núñez Millonario",
+              "name": "Vóley Núñez",
               "realSponsor": false,
-              "short": "NUN",
+              "short": "VNU",
               "city": "Buenos Aires (Núñez)",
               "gender": "MW",
               "colors": {
@@ -523,14 +523,14 @@
               },
               "liberoEstimated": true,
               "ovr": 66,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Núñez Millonario\". Resultado: Solo sale el futbolista Maximiliano Núñez (jugó en Millonarios), el barrio de Núñez y la canción «Millonario». No hay ningún club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Millonario» es su apodo y Núñez su barrio. Evito «Millonarios» a secas, que es un club colombiano. [Integrador: abreviatura NUM → NUN, para que no se repita con otro club del juego.] Líbero probable: rojo (2025, foto del Torneo Metropolitano). Ojo: casi igual que la 2ª camiseta (#E1001A); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Millonario» es el apodo de River Plate. Ahora «Vóley [barrio]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Núñez\" OR \"Voley Nuñez\" club. Resultado: ningún club (solo jugadores apellidados Núñez). (Antes: «Núñez Millonario» (NUN); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Núñez Millonario\". Resultado: Solo sale el futbolista Maximiliano Núñez (jugó en Millonarios), el barrio de Núñez y la canción «Millonario». No hay ningún club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Millonario» es su apodo y Núñez su barrio. Evito «Millonarios» a secas, que es un club colombiano. [Integrador: abreviatura NUM → NUN, para que no se repita con otro club del juego.] Líbero probable: rojo (2025, foto del Torneo Metropolitano). Ojo: casi igual que la 2ª camiseta (#E1001A); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Boca Juniors",
               "official": "Club Atlético Boca Juniors",
-              "name": "Xeneize Vóley",
+              "name": "Vuelta de Rocha Vóley",
               "realSponsor": false,
-              "short": "XEN",
+              "short": "VDR",
               "city": "Buenos Aires (La Boca)",
               "gender": "MW",
               "colors": {
@@ -540,7 +540,7 @@
               },
               "liberoEstimated": false,
               "ovr": 67,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Xeneize Vóley\". Resultado: Ningún resultado con ese nombre exacto. «Xeneize» es solo el apodo de Boca Juniors, y su sección de vóley se llama oficialmente Boca Juniors. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Xeneize» es su apodo. Líbero: amarillo oro (2025-26, buscado 12-nov-2026: vídeo Boca-Ferro y foto de plantel). Ojo: casi igual que la 2ª camiseta (#FDB913); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Xeneize» es el apodo de Boca Juniors. Ahora la Vuelta de Rocha, el recodo del Riachuelo en La Boca. Descartado «Riachuelo Vóley»: Riachuelo es una cadena brasileña que patrocina la selección de vóley. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vuelta de Rocha Vóley\" OR \"Club Vuelta de Rocha\". Resultado: ningún club (solo una película de 1937, «La vuelta de Rocha»). (Antes: «Xeneize Vóley» (XEN); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Xeneize Vóley\". Resultado: Ningún resultado con ese nombre exacto. «Xeneize» es solo el apodo de Boca Juniors, y su sección de vóley se llama oficialmente Boca Juniors. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Xeneize» es su apodo. Líbero: amarillo oro (2025-26, buscado 12-nov-2026: vídeo Boca-Ferro y foto de plantel). Ojo: casi igual que la 2ª camiseta (#FDB913); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "San Lorenzo",
@@ -714,9 +714,9 @@
             {
               "real": "Dallas Pulse",
               "official": "Dallas Pulse (Major League Volleyball)",
-              "name": "Frisco Pulse",
+              "name": "Frisco Heartbeat",
               "realSponsor": false,
-              "short": "FRI",
+              "short": "FHB",
               "city": "Frisco (Dallas)",
               "gender": "W",
               "colors": {
@@ -726,14 +726,14 @@
               },
               "liberoEstimated": false,
               "ovr": 72,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Frisco Pulse» no existe como club oficial. Método: WebSearch \"Frisco Pulse\". Resultado: No existe ningún equipo llamado así. El real es Dallas Pulse (MLV), que juega en Frisco: el guiño está claro, pero el nombre es distinto. Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Frisco Pulse\" volleyball; 2ª búsqueda \"Frisco Pulsar\". Resultado: No existe un equipo llamado «Frisco Pulse». Pero el real, Dallas Pulse (MLV, campeón en 2026), juega como local en el Comerica Center de Frisco, y la prensa lo llama a menudo «Frisco's Dallas Pulse». Al cambiar solo la ciudad, se identifica casi directamente con el real. Propuesta: Frisco Pulsar (comprobado: no hay ningún equipo con ese nombre). Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Juega en Frisco; guiño a «Pulse» con otra ciudad. Líbero: blanco (2026, buscado 12-nov-2026: fotos de partido de la MLV)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Frisco Pulse» copiaba «Pulse» (Dallas Pulse, que juega en Frisco). Ahora pulso → latido. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Frisco Heartbeat\" volleyball OR team / sports. Resultado: ningún equipo; solo una página de la ciudad usa «heartbeat» como figura. (Antes: «Frisco Pulse» (FRI); nota anterior: Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Frisco Pulse» no existe como club oficial. Método: WebSearch \"Frisco Pulse\". Resultado: No existe ningún equipo llamado así. El real es Dallas Pulse (MLV), que juega en Frisco: el guiño está claro, pero el nombre es distinto. Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Frisco Pulse\" volleyball; 2ª búsqueda \"Frisco Pulsar\". Resultado: No existe un equipo llamado «Frisco Pulse». Pero el real, Dallas Pulse (MLV, campeón en 2026), juega como local en el Comerica Center de Frisco, y la prensa lo llama a menudo «Frisco's Dallas Pulse». Al cambiar solo la ciudad, se identifica casi directamente con el real. Propuesta: Frisco Pulsar (comprobado: no hay ningún equipo con ese nombre). Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Juega en Frisco; guiño a «Pulse» con otra ciudad. Líbero: blanco (2026, buscado 12-nov-2026: fotos de partido de la MLV).)"
             },
             {
               "real": "Omaha Supernovas",
               "official": "Omaha Supernovas (Major League Volleyball)",
-              "name": "Omaha Hypernovas",
+              "name": "Omaha Quasars",
               "realSponsor": false,
-              "short": "OMA",
+              "short": "OQS",
               "city": "Omaha",
               "gender": "W",
               "colors": {
@@ -743,7 +743,7 @@
               },
               "liberoEstimated": true,
               "ovr": 71,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Omaha Hypernovas\". Resultado: Ningún resultado con «Hypernovas». Solo sale el real, Omaha Supernovas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Supernova → hipernova, como Superliga → Hiperliga. Líbero probable: blanco con rosa (2026, foto de Elena Oglivie). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Hypernovas» calcaba «Supernovas» (super → hyper). Ahora cuásares. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Omaha Quasars\" volleyball OR team. Resultado: ningún equipo con ese nombre. (Antes: «Omaha Hypernovas» (OMA); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Omaha Hypernovas\". Resultado: Ningún resultado con «Hypernovas». Solo sale el real, Omaha Supernovas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Supernova → hipernova, como Superliga → Hiperliga. Líbero probable: blanco con rosa (2026, foto de Elena Oglivie). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Orlando Valkyries",
@@ -883,9 +883,9 @@
             {
               "real": "Alberta Golden Bears / Pandas",
               "official": "University of Alberta (Golden Bears y Pandas)",
-              "name": "Edmonton Golden Pandas",
+              "name": "Edmonton Pumas",
               "realSponsor": false,
-              "short": "EGP",
+              "short": "EPU",
               "city": "Edmonton",
               "gender": "MW",
               "colors": {
@@ -895,7 +895,7 @@
               },
               "liberoEstimated": true,
               "ovr": 60,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Edmonton Golden Pandas\". Resultado: Ningún equipo con ese nombre. El real es Alberta Golden Bears and Pandas (los equipos femeninos son las «Pandas», sin «Golden»). También existe el club juvenil de hockey Edmonton Pandas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Mezcla de sus dos apodos (Golden Bears y Pandas). Líbero probable: blanco (2025-26, fotos del club)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Golden Pandas» es literalmente uno de los nombres reales (Alberta Golden Bears y Pandas). Ahora puma, como los animales de las demás canadienses. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Edmonton Golden Pumas\" OR \"Edmonton Pumas\". Resultado: ningún equipo con ese nombre. (Antes: «Edmonton Golden Pandas» (EGP); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Edmonton Golden Pandas\". Resultado: Ningún equipo con ese nombre. El real es Alberta Golden Bears and Pandas (los equipos femeninos son las «Pandas», sin «Golden»). También existe el club juvenil de hockey Edmonton Pandas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Mezcla de sus dos apodos (Golden Bears y Pandas). Líbero probable: blanco (2025-26, fotos del club).)"
             },
             {
               "real": "Manitoba Bisons",

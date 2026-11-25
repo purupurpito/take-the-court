@@ -217,7 +217,7 @@ for (const key in compSeen) {
   md.push('| ' + esc(x.real) + ' | ' + (d ? '⚠ ' : '') + '**' + esc(x.name) + '** | ' + esc(x.short) + ' | ' + KIND(x) + ' | ' + esc(d || x.note) + ' |');
 }
 md.push('');
-md.push('Las ligas (filas de abajo) también cambian de nombre: Superliga → Hiperliga, SuperLega → IperLega, PlusLiga → PlusPlus Liga, etc.');
+md.push('Las ligas (filas de abajo) también cambian de nombre: Superliga → Hiperliga, SuperLega → IperLega, PlusLiga → Liga Bursztynowa (PlusLiga es marca), etc.');
 md.push('');
 // ligas
 for (const r of order) {

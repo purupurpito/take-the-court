@@ -35,10 +35,10 @@
             {
               "real": "Itas Trentino",
               "official": "Itas Trentino (club: Trentino Volley)",
-              "name": "Volley Trento",
+              "name": "Adige Trento",
               "sponsor": "Speck Primo Tempo",
               "realSponsor": true,
-              "short": "TRE",
+              "short": "ADI",
               "city": "Trento",
               "gender": "M",
               "colors": {
@@ -48,7 +48,7 @@
               },
               "liberoEstimated": false,
               "ovr": 91,
-              "check": "Búsqueda web del nombre exacto entre comillas: no existe; solo salen Trentino Volley y Trentino Rosa. Líbero: rojo (2025-26 y 2026-27, buscado 12-nov-2026: nota de Erreà 13-oct-2025 y fotos Lega Volley team/6707).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Volley Trento» era «Trentino Volley» casi igual. Ahora el río Adigio (Adige). Ojo: el Trento-Verona se llama «derby dell'Adige», pero ningún club se llama así. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Adige Trento\" volley OR pallavolo OR squadra. Resultado: ningún club con ese nombre; solo el apodo del derbi Trento-Verona y el diario L'Adige. (Antes: «Volley Trento» (TRE); nota anterior: Búsqueda web del nombre exacto entre comillas: no existe; solo salen Trentino Volley y Trentino Rosa. Líbero: rojo (2025-26 y 2026-27, buscado 12-nov-2026: nota de Erreà 13-oct-2025 y fotos Lega Volley team/6707).)",
               "sponsorCheck": "Juego de palabras: primo tempo (ataque rápido); speck del Trentino. WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             },
             {
@@ -253,10 +253,10 @@
             {
               "real": "Allianz Milano",
               "official": "Allianz Milano (club: Powervolley Milano)",
-              "name": "Milano Power",
+              "name": "Navigli Milano",
               "sponsor": "Panettoneria Set Point",
               "realSponsor": true,
-              "short": "MIL",
+              "short": "NAV",
               "city": "Milán",
               "gender": "M",
               "colors": {
@@ -266,7 +266,7 @@
               },
               "liberoEstimated": false,
               "ovr": 82,
-              "check": "«Volley Milano» chocaría con el nombre de Vero Volley Milano, así que guiño a Powervolley. Búsqueda web del nombre exacto entre comillas «Milano Power»: solo sale el real Power Volley Milano (orden distinto). Allianz es patrocinador: fuera. Líbero: naranja (2025-26; en 2026-27 verde azulado, buscado 12-nov-2026: fotos Lega Volley team/6704).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Milano Power» era casi «Power Volley Milano» (nombre real del club). Ahora los Navigli, los canales de Milán. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Navigli Milano\" volley OR pallavolo OR club / squadra OR A.S.D.. Resultado: ningún club con ese nombre; solo clubes de remo junto a los Navigli (Canottieri Milano…) y el evento «Darsena Sport». (Antes: «Milano Power» (MIL); nota anterior: «Volley Milano» chocaría con el nombre de Vero Volley Milano, así que guiño a Powervolley. Búsqueda web del nombre exacto entre comillas «Milano Power»: solo sale el real Power Volley Milano (orden distinto). Allianz es patrocinador: fuera. Líbero: naranja (2025-26; en 2026-27 verde azulado, buscado 12-nov-2026: fotos Lega Volley team/6704).)",
               "sponsorCheck": "Juego de palabras: set point; panettone milanés (evita seguros, como el real). WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             },
             {
@@ -291,9 +291,9 @@
             {
               "real": "Cisterna Volley",
               "official": "Cisterna Volley",
-              "name": "Voley Cisterna",
+              "name": "Cisterna Pontina",
               "realSponsor": false,
-              "short": "CIS",
+              "short": "PON",
               "city": "Cisterna di Latina",
               "gender": "M",
               "colors": {
@@ -303,7 +303,7 @@
               },
               "liberoEstimated": false,
               "ovr": 75,
-              "check": "Decisión de Claude (12-nov): regla de Ferran «Voley [Ciudad]» con la grafía española, que no coincide con ningún nombre oficial. Nombre anterior: «Volley Cisterna». Nota anterior: […] entre comillas: no existe; los reales son «Cisterna Volley» (orden inverso) y Pallavolo Cisterna 88. Líbero: granate (2025-26; en 2026-27 rojo, buscado 12-nov-2026: fotos Lega Volley team/6705).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Voley Cisterna» era «Cisterna Volley» del revés. Ahora Pontina (el Agro Pontino, donde está Cisterna di Latina). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Cisterna Pontina\" volley OR pallavolo OR calcio. Resultado: ningún club con ese nombre (solo Cisterna Volley). (Antes: «Voley Cisterna» (CIS); nota anterior: Decisión de Claude (12-nov): regla de Ferran «Voley [Ciudad]» con la grafía española, que no coincide con ningún nombre oficial. Nombre anterior: «Volley Cisterna». Nota anterior: […] entre comillas: no existe; los reales son «Cisterna Volley» (orden inverso) y Pallavolo Cisterna 88. Líbero: granate (2025-26; en 2026-27 rojo, buscado 12-nov-2026: fotos Lega Volley team/6705).)",
               "sponsorCheck": "Sin patrocinador en el nombre: 2025-26 jugó como «Cisterna Volley» en la SuperLega. WebSearch 11-nov-2026."
             },
             {
@@ -488,8 +488,8 @@
         {
           "lvl": 1,
           "real": "PlusLiga + Tauron Liga 2025-26 (mezcla; 7 de PlusLiga, 5 de Tauron Liga, porque PlusLiga es mucho más fuerte)",
-          "name": "PlusPlus Liga",
-          "short": "PPL",
+          "name": "Liga Bursztynowa",
+          "short": "LBU",
           "strength": 88,
           "clubs": [
             {
@@ -552,10 +552,10 @@
             {
               "real": "Asseco Resovia",
               "official": "Asseco Resovia Rzeszów",
-              "name": "Rezovia",
+              "name": "Wisłok Rzeszów",
               "sponsor": "Pierogarnia Kiwka",
               "realSponsor": true,
-              "short": "RES",
+              "short": "WIS",
               "city": "Rzeszów",
               "gender": "M",
               "colors": {
@@ -565,7 +565,7 @@
               },
               "liberoEstimated": true,
               "ovr": 88,
-              "check": "Búsqueda web del nombre exacto entre comillas: nada. Guiño a «Resovia» (nombre latino de Rzeszów). Asseco es patrocinador: fuera. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rezovia» era «Resovia» con una letra. Ahora el río Wisłok de Rzeszów. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Wisłok Rzeszów\" siatkówka OR klub. Resultado: ningún club (Wisłoka Dębica es de fútbol, otra ciudad y otro nombre). (Antes: «Rezovia» (RES); nota anterior: Búsqueda web del nombre exacto entre comillas: nada. Guiño a «Resovia» (nombre latino de Rzeszów). Asseco es patrocinador: fuera. Líbero: no encontrado en internet (12-nov-2026).)",
               "sponsorCheck": "Juego de palabras: kiwka (finta); pierogi. WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             },
             {
@@ -718,13 +718,14 @@
               "check": "Búsqueda web del nombre exacto entre comillas: no existe; solo salen BKS Stal y BBTS Bielsko-Biała. Líbero: no encontrado en internet (12-nov-2026).",
               "sponsorCheck": "Juego de palabras: plasowanie (colocar el balón); taller mecánico. WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             }
-          ]
+          ],
+          "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «PlusPlus Liga» guiñaba demasiado a PlusLiga, que es marca registrada. Ahora «Liga Bursztynowa» (liga del ámbar, la piedra del Báltico polaco). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Liga Bursztynowa\" siatkówka OR sport. Resultado: ninguna liga ni competición con ese nombre (solo PlusLiga, Tauron Liga y Orlen Liga)."
         },
         {
           "lvl": 2,
           "real": "Parte baja de PlusLiga y Tauron Liga 2025-26 (mezcla)",
-          "name": "PlusPlus Liga 2",
-          "short": "PP2",
+          "name": "Liga Bursztynowa 2",
+          "short": "LB2",
           "strength": 75,
           "clubs": [
             {
@@ -953,7 +954,8 @@
               "check": "Búsqueda web del nombre exacto entre comillas: no sale ningún club con ese nombre. Líbero: no encontrado en internet (12-nov-2026).",
               "sponsorCheck": "Marca recurrente del gag del juego (inventada, la misma en todas las regiones); no es empresa real conocida."
             }
-          ]
+          ],
+          "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «PlusPlus Liga» guiñaba demasiado a PlusLiga, que es marca registrada. Ahora «Liga Bursztynowa» (liga del ámbar, la piedra del Báltico polaco). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Liga Bursztynowa\" siatkówka OR sport. Resultado: ninguna liga ni competición con ese nombre (solo PlusLiga, Tauron Liga y Orlen Liga)."
         }
       ]
     },
@@ -1010,10 +1012,10 @@
             {
               "real": "Fenerbahçe Medicana",
               "official": "Fenerbahçe Spor Kulübü",
-              "name": "Kanarya Kadıköy",
+              "name": "Bahariye Kadıköy",
               "sponsor": "Lokumcu Servis Atışı",
               "realSponsor": true,
-              "short": "KAN",
+              "short": "BAH",
               "city": "Estambul (Kadıköy)",
               "gender": "MW",
               "colors": {
@@ -1023,16 +1025,16 @@
               },
               "liberoEstimated": false,
               "ovr": 93,
-              "check": "Búsqueda web del nombre exacto entre comillas: nada. Guiño a su apodo «Sarı Kanaryalar» y a su barrio. Equipo en las dos ligas: cuenta una vez. Medicana es patrocinador: fuera. Líbero: blanco (2025-26, buscado 12-nov-2026: fotos de Gizem Örge (Getty)).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Kanarya» es el apodo de Fenerbahçe (Sarı Kanaryalar). Ahora Bahariye, la calle mayor de Kadıköy. Descartados «Moda Kadıköy» (Modaspor y Moda FC existen) y «Kalamış» (instalaciones de Galatasaray). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Bahariye Kadıköy\" voleybol OR spor kulübü. Resultado: ningún club (solo el polideportivo Caferağa, con dirección en Bahariye). (Antes: «Kanarya Kadıköy» (KAN); nota anterior: Búsqueda web del nombre exacto entre comillas: nada. Guiño a su apodo «Sarı Kanaryalar» y a su barrio. Equipo en las dos ligas: cuenta una vez. Medicana es patrocinador: fuera. Líbero: blanco (2025-26, buscado 12-nov-2026: fotos de Gizem Örge (Getty)).)",
               "sponsorCheck": "Juego de palabras: servis atışı (saque); delicias turcas. WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             },
             {
               "real": "Galatasaray",
               "official": "Galatasaray Spor Kulübü (HDI Sigorta / Daikin)",
-              "name": "Galata Voleybol",
+              "name": "Kuledibi Voleybol",
               "sponsor": "Balıkçı File",
               "realSponsor": true,
-              "short": "GAL",
+              "short": "KUL",
               "city": "Estambul",
               "gender": "MW",
               "colors": {
@@ -1042,7 +1044,7 @@
               },
               "liberoEstimated": true,
               "ovr": 88,
-              "check": "Búsqueda web del nombre exacto entre comillas: no existe; solo salen Galatasaray y un club brasileño «Galatasaray Voleybol». Equipo en las dos ligas: cuenta una vez. Finalista de Efeler 2025-26. Líbero probable: blanco (2025-26, foto del equipo femenino (turkiyetoday)).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Galata» es el nombre real de Galatasaray sin el final. Ahora Kuledibi, el barrio al pie de la torre de Gálata. Descartado «Pera Voleybol»: Pera Club (Beyoğluspor) existe y tiene vóley. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Kuledibi Voleybol\" OR \"Kuledibi Spor\". Resultado: ningún club; Kuledibi solo sale como barrio de Beyoğlu. (Antes: «Galata Voleybol» (GAL); nota anterior: Búsqueda web del nombre exacto entre comillas: no existe; solo salen Galatasaray y un club brasileño «Galatasaray Voleybol». Equipo en las dos ligas: cuenta una vez. Finalista de Efeler 2025-26. Líbero probable: blanco (2025-26, foto del equipo femenino (turkiyetoday)).)",
               "sponsorCheck": "Juego de palabras: file (red de vóley y de pesca); pescadería. WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             },
             {
@@ -1438,9 +1440,9 @@
             {
               "real": "Dinamo Moskva",
               "official": "VK Dinamo Moskva (equipos en las dos Superligas)",
-              "name": "Dynamik Moskva",
+              "name": "Petrovsky Moskva",
               "realSponsor": false,
-              "short": "DYM",
+              "short": "PET",
               "city": "Moscú",
               "gender": "MW",
               "colors": {
@@ -1450,7 +1452,7 @@
               },
               "liberoEstimated": true,
               "ovr": 86,
-              "check": "Búsqueda web del nombre exacto entre comillas (ruso): nada. Equipo en las dos ligas: cuenta una vez. Campeón de la Superliga de hombres 2025-26. Líbero probable: verde claro (2023-24, reportaje de Championat 2023-24 (vczenit.ru))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dynamik» estaba a dos letras de «Dinamo». Ahora el parque Petrovsky (donde está el estadio). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Petrovsky Moskva\" OR \"Петровский Москва\" волейбол OR клуб. Resultado: ningún club con ese nombre. (Antes: «Dynamik Moskva» (DYM); nota anterior: Búsqueda web del nombre exacto entre comillas (ruso): nada. Equipo en las dos ligas: cuenta una vez. Campeón de la Superliga de hombres 2025-26. Líbero probable: verde claro (2023-24, reportaje de Championat 2023-24 (vczenit.ru)).)"
             },
             {
               "real": "Zenit Kazan",
@@ -1523,9 +1525,9 @@
             {
               "real": "Belogorie Belgorod",
               "official": "VK Belogorie",
-              "name": "Belogor Belgorod",
+              "name": "Melovik Belgorod",
               "realSponsor": false,
-              "short": "BLG",
+              "short": "MEL",
               "city": "Bélgorod",
               "gender": "M",
               "colors": {
@@ -1535,7 +1537,7 @@
               },
               "liberoEstimated": true,
               "ovr": 79,
-              "check": "Búsqueda web del nombre exacto entre comillas (ruso «Белогор»): solo sale el real «Белогорье». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Belogor» estaba a dos letras de «Belogorie». Ahora «mel» (tiza, las colinas blancas de Bélgorod). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Melovik Belgorod\" OR \"Меловик Белгород\" волейбол OR клуб. Resultado: ningún club (solo Belogorie y el antiguo Universitet-Tekhnolog). (Antes: «Belogor Belgorod» (BLG); nota anterior: Búsqueda web del nombre exacto entre comillas (ruso «Белогор»): solo sale el real «Белогорье». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Fakel Novy Urengoy",
@@ -1557,10 +1559,10 @@
             {
               "real": "Dinamo-Ak Bars Kazan",
               "official": "VK Dinamo-Ak Bars",
-              "name": "Dinamika Kazan",
+              "name": "Kaban Kazan",
               "sponsor": "Seguros Tie-Break",
               "realSponsor": true,
-              "short": "DIK",
+              "short": "KAB",
               "city": "Kazán",
               "gender": "W",
               "colors": {
@@ -1570,7 +1572,7 @@
               },
               "liberoEstimated": true,
               "ovr": 85,
-              "check": "Búsqueda web del nombre exacto entre comillas (ruso «Динамика Казань»): nada. Ak Bars es patrocinador: fuera. Campeón de la Superliga de mujeres 2025-26. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dinamika» estaba a dos letras de «Dinamo». Ahora el lago Kaban de Kazán. Descartado «Kazanka»: el club real se llamó «Kazanochka». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Kaban Kazan\" OR \"Кабан Казань\" волейбол OR клуб. Resultado: ningún club (solo Zenit, Dinamo-Ak Bars y Akademiya). (Antes: «Dinamika Kazan» (DIK); nota anterior: Búsqueda web del nombre exacto entre comillas (ruso «Динамика Казань»): nada. Ak Bars es patrocinador: fuera. Campeón de la Superliga de mujeres 2025-26. Líbero: no encontrado en internet (12-nov-2026).)",
               "sponsorCheck": "Marca recurrente del gag del juego (inventada, la misma en todas las regiones); no es empresa real conocida."
             },
             {

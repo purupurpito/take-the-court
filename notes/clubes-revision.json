@@ -494,8 +494,8 @@
       {
        "real": "Itas Trentino",
        "official": "Itas Trentino (club: Trentino Volley)",
-       "name": "Volley Trento",
-       "short": "TRE",
+       "name": "Adige Trento",
+       "short": "ADI",
        "city": "Trento",
        "colors": {
         "shirt": "#ffffff",
@@ -507,7 +507,7 @@
        "sponsor": "Speck Primo Tempo",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas: no existe; solo salen Trentino Volley y Trentino Rosa. Líbero: rojo (2025-26 y 2026-27, buscado 12-nov-2026…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Volley Trento» era «Trentino Volley» casi igual. Ahora el río Adigio (Adige). Ojo: el Trento-Verona se llama…"
       },
       {
        "real": "Vero Volley (Numia Vero Volley Milano, equipos en SuperLega y Serie A1)",
@@ -682,8 +682,8 @@
       {
        "real": "Allianz Milano",
        "official": "Allianz Milano (club: Powervolley Milano)",
-       "name": "Milano Power",
-       "short": "MIL",
+       "name": "Navigli Milano",
+       "short": "NAV",
        "city": "Milán",
        "colors": {
         "shirt": "#0b3d91",
@@ -695,7 +695,7 @@
        "sponsor": "Panettoneria Set Point",
        "searched": true,
        "doubt": null,
-       "note": "«Volley Milano» chocaría con el nombre de Vero Volley Milano, así que guiño a Powervolley. Búsqueda web del nombre exacto entre comillas «Milano Power»: solo…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Milano Power» era casi «Power Volley Milano» (nombre real del club). Ahora los Navigli, los canales de Milán…"
       },
       {
        "real": "Volley Bergamo 1991",
@@ -790,8 +790,8 @@
       {
        "real": "Cisterna Volley",
        "official": "Cisterna Volley",
-       "name": "Voley Cisterna",
-       "short": "CIS",
+       "name": "Cisterna Pontina",
+       "short": "PON",
        "city": "Cisterna di Latina",
        "colors": {
         "shirt": "#00205b",
@@ -801,9 +801,9 @@
        "liberoEstimated": false,
        "ovr": 75,
        "sponsor": null,
-       "searched": false,
+       "searched": true,
        "doubt": null,
-       "note": "Decisión de Claude (12-nov): regla de Ferran «Voley [Ciudad]» con la grafía española, que no coincide con ningún nombre oficial. Nombre anterior: «Volley…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Voley Cisterna» era «Cisterna Volley» del revés. Ahora Pontina (el Agro Pontino, donde está Cisterna di…"
       },
       {
        "real": "CBF Balducci HR Macerata",
@@ -907,8 +907,8 @@
    "divisions": [
     {
      "lvl": 1,
-     "name": "PlusPlus Liga",
-     "short": "PPL",
+     "name": "Liga Bursztynowa",
+     "short": "LBU",
      "strength": 88,
      "clubs": [
       {
@@ -968,8 +968,8 @@
       {
        "real": "Asseco Resovia",
        "official": "Asseco Resovia Rzeszów",
-       "name": "Rezovia",
-       "short": "RES",
+       "name": "Wisłok Rzeszów",
+       "short": "WIS",
        "city": "Rzeszów",
        "colors": {
         "shirt": "#d50032",
@@ -981,7 +981,7 @@
        "sponsor": "Pierogarnia Kiwka",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas: nada. Guiño a «Resovia» (nombre latino de Rzeszów). Asseco es patrocinador: fuera. Líbero: no encontrado en…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rezovia» era «Resovia» con una letra. Ahora el río Wisłok de Rzeszów. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Jastrzębski Węgiel",
@@ -1131,8 +1131,8 @@
     },
     {
      "lvl": 2,
-     "name": "PlusPlus Liga 2",
-     "short": "PP2",
+     "name": "Liga Bursztynowa 2",
+     "short": "LB2",
      "strength": 75,
      "clubs": [
       {
@@ -1388,8 +1388,8 @@
       {
        "real": "Fenerbahçe Medicana",
        "official": "Fenerbahçe Spor Kulübü",
-       "name": "Kanarya Kadıköy",
-       "short": "KAN",
+       "name": "Bahariye Kadıköy",
+       "short": "BAH",
        "city": "Estambul (Kadıköy)",
        "colors": {
         "shirt": "#ffed00",
@@ -1401,7 +1401,7 @@
        "sponsor": "Lokumcu Servis Atışı",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas: nada. Guiño a su apodo «Sarı Kanaryalar» y a su barrio. Equipo en las dos ligas: cuenta una vez. Medicana es…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Kanarya» es el apodo de Fenerbahçe (Sarı Kanaryalar). Ahora Bahariye, la calle mayor de Kadıköy. Descartados…"
       },
       {
        "real": "Eczacıbaşı Dynavit",
@@ -1442,8 +1442,8 @@
       {
        "real": "Galatasaray",
        "official": "Galatasaray Spor Kulübü (HDI Sigorta / Daikin)",
-       "name": "Galata Voleybol",
-       "short": "GAL",
+       "name": "Kuledibi Voleybol",
+       "short": "KUL",
        "city": "Estambul",
        "colors": {
         "shirt": "#a90432",
@@ -1455,7 +1455,7 @@
        "sponsor": "Balıkçı File",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas: no existe; solo salen Galatasaray y un club brasileño «Galatasaray Voleybol». Equipo en las dos ligas: cuenta…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Galata» es el nombre real de Galatasaray sin el final. Ahora Kuledibi, el barrio al pie de la torre de…"
       },
       {
        "real": "Zeren Spor",
@@ -1826,8 +1826,8 @@
       {
        "real": "Dinamo Moskva",
        "official": "VK Dinamo Moskva (equipos en las dos Superligas)",
-       "name": "Dynamik Moskva",
-       "short": "DYM",
+       "name": "Petrovsky Moskva",
+       "short": "PET",
        "city": "Moscú",
        "colors": {
         "shirt": "#0039a6",
@@ -1839,7 +1839,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (ruso): nada. Equipo en las dos ligas: cuenta una vez. Campeón de la Superliga de hombres 2025-26. Líbero…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dynamik» estaba a dos letras de «Dinamo». Ahora el parque Petrovsky (donde está el estadio). Búsqueda web del…"
       },
       {
        "real": "Zenit Kazan",
@@ -1862,8 +1862,8 @@
       {
        "real": "Dinamo-Ak Bars Kazan",
        "official": "VK Dinamo-Ak Bars",
-       "name": "Dinamika Kazan",
-       "short": "DIK",
+       "name": "Kaban Kazan",
+       "short": "KAB",
        "city": "Kazán",
        "colors": {
         "shirt": "#0039a6",
@@ -1875,7 +1875,7 @@
        "sponsor": "Seguros Tie-Break",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (ruso «Динамика Казань»): nada. Ak Bars es patrocinador: fuera. Campeón de la Superliga de mujeres 2025-26…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dinamika» estaba a dos letras de «Dinamo». Ahora el lago Kaban de Kazán. Descartado «Kazanka»: el club real…"
       },
       {
        "real": "Lokomotiv Novosibirsk",
@@ -1970,8 +1970,8 @@
       {
        "real": "Belogorie Belgorod",
        "official": "VK Belogorie",
-       "name": "Belogor Belgorod",
-       "short": "BLG",
+       "name": "Melovik Belgorod",
+       "short": "MEL",
        "city": "Bélgorod",
        "colors": {
         "shirt": "#003da5",
@@ -1983,7 +1983,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (ruso «Белогор»): solo sale el real «Белогорье». Líbero: no encontrado en internet (12-nov-2026)."
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Belogor» estaba a dos letras de «Belogorie». Ahora «mel» (tiza, las colinas blancas de Bélgorod). Búsqueda…"
       },
       {
        "real": "Fakel Novy Urengoy",
@@ -2810,8 +2810,8 @@
       {
        "real": "SWD Powervolleys Düren",
        "official": "SWD Powervolleys Düren",
-       "name": "Rur Power Düren",
-       "short": "RUR",
+       "name": "Rurwelle Düren",
+       "short": "RWD",
        "city": "Düren",
        "colors": {
         "shirt": "#099dad",
@@ -2823,7 +2823,7 @@
        "sponsor": "Rodilleras Rodríguez",
        "searched": true,
        "doubt": null,
-       "note": "Libre: ningún club; solo RWE Power (empresa energética de la zona, nombre distinto). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rur Power» guiñaba a «Powervolleys». Ahora «Rurwelle» (ola del Rur). Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "SSC Palmberg Schwerin",
@@ -2998,8 +2998,8 @@
       {
        "real": "Netzhoppers KW",
        "official": "Netzhoppers Königs Wusterhausen",
-       "name": "Netzspringer KW",
-       "short": "NSP",
+       "name": "Dahme Volley KW",
+       "short": "DVK",
        "city": "Königs Wusterhausen",
        "colors": {
         "shirt": "#3baa35",
@@ -3011,7 +3011,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: ningún resultado con ese nombre. Ojo: es casi traducción literal de «Netzhoppers»; dudoso por parecido, no por coincidencia. Contrastado solo con las…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Netzspringer» era «Netzhoppers» traducido. Ahora el río Dahme. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Baden Volleys SSC Karlsruhe",
@@ -3900,8 +3900,8 @@
       {
        "real": "Peelpush (Meijel)",
        "official": "VC Peelpush (Summa Peelpush, Meijel)",
-       "name": "Peelpower Meijel",
-       "short": "PPW",
+       "name": "Voley Meijel",
+       "short": "MEI",
        "city": "Meijel",
        "colors": {
         "shirt": "#e30613",
@@ -3913,7 +3913,7 @@
        "sponsor": "Seguros Tie-Break",
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin resultados. El real es Peelpush. No coincide con ningún club de las listas de la Eredivisie de hombres (Wikipedia) y de mujeres (BetExplorer); no…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Peelpower» estaba a una sílaba de «Peelpush». Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Advisie SSS (Barneveld)",
@@ -3952,8 +3952,8 @@
       {
        "real": "Panathinaikos",
        "official": "Panathinaikos A.O. (sección de voleibol)",
-       "name": "Panatenea Atenas",
-       "short": "PNT",
+       "name": "Licabeto Atenas",
+       "short": "LIC",
        "city": "Atenas",
        "colors": {
         "shirt": "#134a29",
@@ -3965,13 +3965,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Solo salen Panathinaikos A.O. y la fiesta antigua de las Panateneas. Ningún club se llama así. No coincide con ningún club de las lista oficial de la…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Panatenea» estaba a pocas letras de «Panathinaikos». Ahora el monte Licabeto. Descartado «Ambelókipi»: el…"
       },
       {
        "real": "Olympiacos",
        "official": "Olympiacos S.F.P. (Olympiacos Syndesmos Filathlon Peiraios)",
-       "name": "Thrylos Pireo",
-       "short": "THR",
+       "name": "Voley Pireo",
+       "short": "PIR",
        "city": "El Pireo",
        "colors": {
         "shirt": "#e30613",
@@ -3983,7 +3983,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: «Thrylos» es solo el apodo de Olympiacos. No existe ningún club con ese nombre. No coincide con ningún club de las lista oficial de la A1 de mujeres…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Thrylos» (la leyenda) es el apodo de Olympiacos. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "PAOK",
@@ -4042,8 +4042,8 @@
       {
        "real": "Foinikas Syros",
        "official": "A.O. Foinikas Syrou",
-       "name": "Fénix Syros",
-       "short": "FNX",
+       "name": "Voley Ermúpoli",
+       "short": "ERM",
        "city": "Ermúpoli (Siros)",
        "colors": {
         "shirt": "#ff0000",
@@ -4055,7 +4055,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin ningún club. El real es Foinikas Syros (traducido, no transliterado). No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fénix» es la traducción de Foinikas. Ahora «Voley [Ciudad]» (Ermúpoli, capital de Siros). Búsqueda web del…"
       },
       {
        "real": "Kifisia",
@@ -4114,8 +4114,8 @@
       {
        "real": "Aris Thessaloniki",
        "official": "Aris Thessaloniki V.C.",
-       "name": "Ares Tesalónica",
-       "short": "ARE",
+       "name": "Voley Salónica",
+       "short": "VSA",
        "city": "Salónica",
        "colors": {
         "shirt": "#ffd200",
@@ -4127,7 +4127,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Solo aparece Aris Thessaloniki (Ares es el dios de su escudo). No hay ningún club que se llame oficialmente «Ares Tesalónica». No coincide con ningún…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ares» es Aris traducido. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026)…"
       }
      ]
     }
@@ -4148,8 +4148,8 @@
       {
        "real": "Sporting CP",
        "official": "Sporting Clube de Portugal (voleibol)",
-       "name": "Leão Lisboa",
-       "short": "LEA",
+       "name": "Telheiras Lisboa",
+       "short": "TEL",
        "city": "Lisboa",
        "colors": {
         "shirt": "#008057",
@@ -4161,13 +4161,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No hay ningún club con ese nombre. Hay cosas parecidas: Leões de Porto Salvo (futsal, Oeiras), «Leões» es el apodo del Sporting y Léo Lisboa es un…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Leão» es el apodo de Sporting. Ahora Telheiras, barrio junto a Alvalade. Descartado «Lumiar»: el Estádio do…"
       },
       {
        "real": "SL Benfica",
        "official": "Sport Lisboa e Benfica (voleibol)",
-       "name": "Águia Lisboa",
-       "short": "AGL",
+       "name": "Monsanto Lisboa",
+       "short": "MSL",
        "city": "Lisboa",
        "colors": {
         "shirt": "#e30613",
@@ -4179,13 +4179,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No hay ningún club deportivo con ese nombre. Se parecen: un bar de snooker de Lisboa que antes se llamaba «Snooker Águia Club», el GD Águias de…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Águia» es el apodo de Benfica. Ahora el parque de Monsanto. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "FC Porto",
        "official": "Futebol Clube do Porto (voleibol)",
-       "name": "Dragão Porto",
-       "short": "DRA",
+       "name": "Ribeira Porto",
+       "short": "RIB",
        "city": "Oporto",
        "colors": {
         "shirt": "#0122eb",
@@ -4197,7 +4197,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Solo salen el FC Porto (apodo «Dragões») y el Estádio do Dragão. No hay ningún club oficial que se llame «Dragão Porto». No coincide con ningún club de…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dragão» es el apodo y el estadio del FC Porto. Ahora la Ribeira, la orilla del Duero. Búsqueda web del nombre…"
       },
       {
        "real": "SC Braga",
@@ -4896,8 +4896,8 @@
       {
        "real": "OK Crvena Zvezda",
        "official": "Odbojkaški klub / Ženski odbojkaški klub Crvena zvezda",
-       "name": "Crvena Zora",
-       "short": "CZO",
+       "name": "Kalemegdan Beograd",
+       "short": "KAL",
        "city": "Belgrado",
        "colors": {
         "shirt": "#e30613",
@@ -4909,7 +4909,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Todos los resultados son clubes «Crvena Zvezda»; ningún club «Crvena Zora». No coincide con ningún club de las listas oficiales 2025-26 de la OSS…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Crvena Zora» estaba a una palabra de «Crvena Zvezda». Ahora la fortaleza de Kalemegdan (el Estrella Roja ha…"
       },
       {
        "real": "ŽOK TENT",
@@ -5270,8 +5270,8 @@
       {
        "real": "CSA Steaua București",
        "official": "Clubul Sportiv al Armatei Steaua București (voleibol)",
-       "name": "Stelele București",
-       "short": "STE",
+       "name": "Cotroceni Bucarest",
+       "short": "COT",
        "city": "Bucarest",
        "colors": {
         "shirt": "#d2001f",
@@ -5283,7 +5283,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin coincidencia exacta; solo sale CSA Steaua București (el singular). «Stelele» en plural no es el nombre de ningún club. No coincide con ningún club…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Stelele» (las estrellas) era Steaua en plural. Ahora el barrio de Cotroceni. Búsqueda web del nombre exacto…"
       },
       {
        "real": "CSM Corona Brașov",
@@ -5448,8 +5448,8 @@
       {
        "real": "Sesc RJ Flamengo",
        "official": "Sesc RJ Flamengo (Serviço Social do Comércio RJ + Clube de Regatas do Flamengo)",
-       "name": "Urubu Rio",
-       "short": "URU",
+       "name": "Lagoa Rio",
+       "short": "LGR",
        "city": "Rio de Janeiro",
        "colors": {
         "shirt": "#c8102e",
@@ -5461,7 +5461,7 @@
        "sponsor": "Biscoito Largadinha",
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún club se llama así. «Urubu» es el apodo/mascota del Flamengo y hay ríos Urubu; no es nombre oficial de nada. Lo construí a partir de un apodo…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Urubu» es la mascota de Flamengo. Ahora la Lagoa Rodrigo de Freitas. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Osasco São Cristóvão Saúde",
@@ -5868,8 +5868,8 @@
       {
        "real": "Boca Juniors",
        "official": "Club Atlético Boca Juniors",
-       "name": "Xeneize Vóley",
-       "short": "XEN",
+       "name": "Vuelta de Rocha Vóley",
+       "short": "VDR",
        "city": "Buenos Aires (La Boca)",
        "colors": {
         "shirt": "#003c82",
@@ -5881,13 +5881,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún resultado con ese nombre exacto. «Xeneize» es solo el apodo de Boca Juniors, y su sección de vóley se llama oficialmente Boca Juniors. Lo…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Xeneize» es el apodo de Boca Juniors. Ahora la Vuelta de Rocha, el recodo del Riachuelo en La Boca…"
       },
       {
        "real": "River Plate",
        "official": "Club Atlético River Plate",
-       "name": "Núñez Millonario",
-       "short": "NUN",
+       "name": "Vóley Núñez",
+       "short": "VNU",
        "city": "Buenos Aires (Núñez)",
        "colors": {
         "shirt": "#ffffff",
@@ -5899,7 +5899,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Solo sale el futbolista Maximiliano Núñez (jugó en Millonarios), el barrio de Núñez y la canción «Millonario». No hay ningún club con ese nombre. Lo…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Millonario» es el apodo de River Plate. Ahora «Vóley [barrio]». Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Monteros Vóley",
@@ -6082,8 +6082,8 @@
       {
        "real": "Dallas Pulse",
        "official": "Dallas Pulse (Major League Volleyball)",
-       "name": "Frisco Pulse",
-       "short": "FRI",
+       "name": "Frisco Heartbeat",
+       "short": "FHB",
        "city": "Frisco (Dallas)",
        "colors": {
         "shirt": "#0b1f44",
@@ -6095,13 +6095,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No existe ningún equipo llamado así. El real es Dallas Pulse (MLV), que juega en Frisco: el guiño está claro, pero el nombre es distinto. Nota…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Frisco Pulse» copiaba «Pulse» (Dallas Pulse, que juega en Frisco). Ahora pulso → latido. Búsqueda web del…"
       },
       {
        "real": "Omaha Supernovas",
        "official": "Omaha Supernovas (Major League Volleyball)",
-       "name": "Omaha Hypernovas",
-       "short": "OMA",
+       "name": "Omaha Quasars",
+       "short": "OQS",
        "city": "Omaha",
        "colors": {
         "shirt": "#1b2a55",
@@ -6113,7 +6113,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún resultado con «Hypernovas». Solo sale el real, Omaha Supernovas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Hypernovas» calcaba «Supernovas» (super → hyper). Ahora cuásares. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Orlando Valkyries",
@@ -6260,8 +6260,8 @@
       {
        "real": "Alberta Golden Bears / Pandas",
        "official": "University of Alberta (Golden Bears y Pandas)",
-       "name": "Edmonton Golden Pandas",
-       "short": "EGP",
+       "name": "Edmonton Pumas",
+       "short": "EPU",
        "city": "Edmonton",
        "colors": {
         "shirt": "#275d38",
@@ -6273,7 +6273,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún equipo con ese nombre. El real es Alberta Golden Bears and Pandas (los equipos femeninos son las «Pandas», sin «Golden»). También existe el club…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Golden Pandas» es literalmente uno de los nombres reales (Alberta Golden Bears y Pandas). Ahora puma, como…"
       },
       {
        "real": "Sherbrooke Vert & Or",
@@ -6634,8 +6634,8 @@
       {
        "real": "Osaka Bluteon",
        "official": "Osaka Bluteon (大阪ブルテオン; antes Panasonic Panthers)",
-       "name": "Bluzeon Osaka",
-       "short": "BLZ",
+       "name": "Aonami Osaka",
+       "short": "AON",
        "city": "Osaka",
        "colors": {
         "shirt": "#0057b8",
@@ -6647,7 +6647,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; guiño a «Bluteon». Líbero: no encontrado…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Bluzeon» estaba a dos letras de «Bluteon». Ahora «aonami» (olas azules): el azul del club sin el nombre…"
       },
       {
        "real": "SAGA Hisamitsu Springs",
@@ -6670,8 +6670,8 @@
       {
        "real": "JTEKT Stings Aichi",
        "official": "JTEKT STINGS Aichi (ジェイテクトSTINGS愛知)",
-       "name": "Stingz Aichi",
-       "short": "STZ",
+       "name": "Hachi Aichi",
+       "short": "HAC",
        "city": "Kariya (Aichi)",
        "colors": {
         "shirt": "#d7001e",
@@ -6683,7 +6683,7 @@
        "sponsor": "Tatami Toss",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JTEKT; guiño a «Stings». Líbero…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Stingz» era «Stings» con una letra. Ahora «hachi» (abeja, la que pica). Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "NEC Red Rockets Kawasaki",
@@ -6778,8 +6778,8 @@
       {
        "real": "Tokyo Great Bears",
        "official": "Tokyo Great Bears (東京グレートベアーズ)",
-       "name": "Tokyo Grand Bears",
-       "short": "TGB",
+       "name": "Edo Kumas",
+       "short": "EDK",
        "city": "Tokio",
        "colors": {
         "shirt": "#121f5a",
@@ -6791,13 +6791,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Great Bears». Líbero: no encontrado en internet…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Tokyo Grand Bears» era «Tokyo Great Bears» con una palabra cambiada. Ahora Edo (antiguo nombre de Tokio, como…"
       },
       {
        "real": "Victorina Himeji",
        "official": "Victorina Himeji (ヴィクトリーナ姫路)",
-       "name": "Vittorina Himeji",
-       "short": "VIT",
+       "name": "Tenshu Himeji",
+       "short": "TEN",
        "city": "Himeji (Hyogo)",
        "colors": {
         "shirt": "#ff1493",
@@ -6809,13 +6809,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; la búsqueda solo devuelve «Victorina Himeji», el real…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Vittorina» estaba a dos letras de «Victorina». Ahora el «tenshu» (torre del castillo de Himeji). Descartado…"
       },
       {
        "real": "Queenseis Kariya",
        "official": "Queenseis Kariya (クインシーズ刈谷; club de Toyota Auto Body; desde jul-2026 «Aleeza Aichi»)",
-       "name": "Queenzy Kariya",
-       "short": "QZK",
+       "name": "Tiara Kariya",
+       "short": "TIK",
        "city": "Kariya (Aichi)",
        "colors": {
         "shirt": "#6a3d9a",
@@ -6827,7 +6827,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; tampoco coincide con su nombre nuevo «Aleeza Aichi»…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Queenzy» guiñaba demasiado a «Queenseis». Ahora reina → tiara. Búsqueda web del nombre exacto entre comillas…"
       }
      ]
     },
@@ -6840,8 +6840,8 @@
       {
        "real": "Kubota Spears Osaka",
        "official": "KUBOTA Spears Osaka (クボタスピアーズ大阪)",
-       "name": "Spearz Osaka",
-       "short": "SPZ",
+       "name": "Hoko Osaka",
+       "short": "HOK",
        "city": "Osaka",
        "colors": {
         "shirt": "#f08200",
@@ -6853,7 +6853,7 @@
        "sponsor": "Sushi Saabu",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón de la V.League 2025-26; se quita el patrocinador…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Spearz» era «Spears» con una letra. Ahora «hoko» (alabarda japonesa). Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Hokkaido Yellow Stars",
@@ -6948,8 +6948,8 @@
       {
        "real": "Fujitsu Kawasaki Red Spirits",
        "official": "Fujitsu Kawasaki Red Spirits (富士通カワサキレッドスピリッツ)",
-       "name": "Red Spirals Kawasaki",
-       "short": "RSP",
+       "name": "Akaoni Kawasaki",
+       "short": "AKO",
        "city": "Kawasaki",
        "colors": {
         "shirt": "#e60012",
@@ -6961,13 +6961,13 @@
        "sponsor": "Seguros Tie-Break",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador Fujitsu; guiño a «Red Spirits»…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Red Spirals» estaba a una letra de «Red Spirits». Ahora «akaoni» (demonio rojo): espíritu rojo sin el nombre…"
       },
       {
        "real": "JA Gifu Rioreina",
        "official": "JA Gifu Rioreina (JAぎふリオレーナ; desde jul-2026 «Gifu Rioreina»)",
-       "name": "Riorena Gifu",
-       "short": "RIO",
+       "name": "Nagara Gifu",
+       "short": "NAG",
        "city": "Gifu",
        "colors": {
         "shirt": "#00a0e9",
@@ -6979,7 +6979,7 @@
        "sponsor": "Sento Blocking-yu",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador JA; guiño a «Rioreina». Líbero…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Riorena» estaba a una letra de «Rioreina». Ahora el río Nagara de Gifu. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "KANOA Laulea's Fukuoka",
@@ -7234,8 +7234,8 @@
       {
        "real": "Hwaseong IBK Altos",
        "official": "Hwaseong IBK Altos (화성 IBK기업은행 알토스)",
-       "name": "Hwaseong Altissimo",
-       "short": "HAL",
+       "name": "Hwaseong Seohae",
+       "short": "HSH",
        "city": "Hwaseong",
        "colors": {
         "shirt": "#00abeb",
@@ -7247,7 +7247,7 @@
        "sponsor": "Rodilleras Rodríguez",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita el patrocinador IBK; guiño a «Altos». Líbero…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Altissimo» guiñaba demasiado a «Altos». Ahora «Seohae» (el mar del Oeste, en cuya costa está Hwaseong)…"
       }
      ]
     }
@@ -7642,8 +7642,8 @@
       {
        "real": "Al Arabi SC",
        "official": "Al-Arabi Sports Club (النادي العربي)",
-       "name": "Arabi Doha",
-       "short": "ARB",
+       "name": "Corniche Doha",
+       "short": "CRN",
        "city": "Doha",
        "colors": {
         "shirt": "#e2001a",
@@ -7655,7 +7655,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2023-24 y, según el primer informe, 2025-26 (sin…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Arabi Doha» era Al Arabi sin «Al». Ahora la Corniche, el paseo marítimo de Doha. Búsqueda web del nombre…"
       },
       {
        "real": "Al Rayyan SC",
@@ -7678,8 +7678,8 @@
       {
        "real": "Police SC",
        "official": "Al-Shorta / Police Sports Club (نادي الشرطة)",
-       "name": "Shurta Doha",
-       "short": "SHU",
+       "name": "Doha Sentinels",
+       "short": "SEN",
        "city": "Doha",
        "colors": {
         "shirt": "#0b2d6b",
@@ -7691,7 +7691,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «shurta» es «policía»; la prensa lo llama «Al-Shorta», no…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Shurta» es «policía» en árabe: era Police SC traducido. Ahora centinelas. Búsqueda web del nombre exacto…"
       },
       {
        "real": "Al Wakrah SC",
@@ -7714,8 +7714,8 @@
       {
        "real": "Al Sadd SC",
        "official": "Al-Sadd Sports Club (نادي السد)",
-       "name": "Sadd Doha",
-       "short": "SAD",
+       "name": "Musheireb Doha",
+       "short": "MSH",
        "city": "Doha",
        "colors": {
         "shirt": "#ffffff",
@@ -7727,7 +7727,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño al barrio de Al Sadd. Líbero: no encontrado en…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Sadd Doha» era Al Sadd sin «Al». Ahora Musheireb, barrio del centro de Doha. Búsqueda web del nombre exacto…"
       },
       {
        "real": "Qatar SC",
@@ -7768,8 +7768,8 @@
       {
        "real": "Al Ahli SC",
        "official": "Al-Ahli Sports Club Doha (النادي الأهلي)",
-       "name": "Ahliya Doha",
-       "short": "AHL",
+       "name": "Dafna Doha",
+       "short": "DAF",
        "city": "Doha",
        "colors": {
         "shirt": "#006b3f",
@@ -7781,7 +7781,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Al Ahli». Líbero: no encontrado en internet…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ahliya Doha» era Al Ahli casi igual. Ahora Dafna (West Bay), barrio de Doha. Búsqueda web del nombre exacto…"
       }
      ]
     }
@@ -7802,8 +7802,8 @@
       {
        "real": "Creamline Cool Smashers",
        "official": "Creamline Cool Smashers (Rebisco)",
-       "name": "Kool Smashers Manila",
-       "short": "KSM",
+       "name": "Sorbetes Manila",
+       "short": "SBT",
        "city": "Gran Manila",
        "colors": {
         "shirt": "#ff007f",
@@ -7815,7 +7815,7 @@
        "sponsor": "Adobo Ace",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón All-Filipino 2026; se quita la marca Creamline…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Kool Smashers» era «Cool Smashers» con una letra. Ahora «sorbetes» (el helado callejero filipino: guiño a…"
       },
       {
        "real": "PLDT High Speed Hitters",
@@ -7946,8 +7946,8 @@
       {
        "real": "Savouge Spin Doctors",
        "official": "Savouge Spin Doctors",
-       "name": "Spin Medics",
-       "short": "SPM",
+       "name": "Ikot Manila",
+       "short": "IKO",
        "city": "Gran Manila",
        "colors": {
         "shirt": "#6a1b9a",
@@ -7959,7 +7959,7 @@
        "sponsor": "Barberya Spike",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; se quita la marca Savouge; guiño a «Spin Doctors». Líbero…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Spin Medics» calcaba «Spin Doctors». Ahora «ikot» (giro, en tagalo). Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "PGJC-Navy Sea Lions",
