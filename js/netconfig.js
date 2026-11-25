@@ -23,5 +23,5 @@
   var root = (typeof window !== 'undefined') ? window : globalThis;
   var VB = root.VB = root.VB || {};
   if (!VB.NET_ICE) VB.NET_ICE = null;              // (sin TURN fijo)
-  if (!VB.NET_TURN_URL) VB.NET_TURN_URL = '';      // (sin Worker de TURN: apagado. Cuando esté: 'https://turn.takethecourt.com/ice')
+  if (!VB.NET_TURN_URL) VB.NET_TURN_URL = 'https://turn.takethecourt.com/ice';   // (Worker desplegado el 25-nov-2026, con tope de gasto: turn-worker/README.md)
 })();

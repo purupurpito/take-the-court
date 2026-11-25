@@ -18,7 +18,7 @@ ALLOWED_ORIGINS = "https://takethecourt.com,https://www.takethecourt.com,https:/
 TTL = "3600"
 # Tope de gasto (README, «Los dos cortes»). ACCOUNT_ID: el Account ID de Cloudflare (32 caracteres hex; panel → cuenta → Overview,
 # columna derecha). No es secreto, pero mientras esté vacío el Worker NO da credenciales (fail-safe: sin él no puede leer el consumo).
-ACCOUNT_ID = ""
+ACCOUNT_ID = "dff33250d04ddd4976b5f9d2ab9f0b2c"
 # Credenciales como mucho por mes (UTC). Al llegar, 503 {off:true} hasta el mes siguiente.
 MAX_CREDS_MONTH = "20000"
 # Consumo TURN del mes (GB = 1e9 bytes de egressBytes, lo que factura Cloudflare) a partir del cual se apaga. Gratis: 1000 GB/mes.

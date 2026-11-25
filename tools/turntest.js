@@ -36,7 +36,9 @@ async function testClient() {
   const okFetch = (u, o) => { calls.push({ u, o }); return Promise.resolve(reply(200, CF_REPLY)); };
   let VB = client(okFetch);
   const auth = () => Promise.resolve('tok.en.x');
-  check('apagado por defecto (URL vacía)', VB.NET_TURN_URL === '' && VB.NetRtc.turnUrl() === '');
+  check('netconfig trae el Worker (encendido el 25-nov-2026)', VB.NET_TURN_URL === 'https://turn.takethecourt.com/ice');
+  VB.NET_TURN_URL = '';   // (lo de abajo: con la URL vacía, apagado)
+  check('apagado con la URL vacía', VB.NetRtc.turnUrl() === '');
   check('apagado: turnPrep → false sin peticiones', (await VB.NetRtc.turnPrep(auth)) === false && calls.length === 0);
   let c = VB.NetRtc._pcConfig(null).cfg;
   check('apagado: pcConfig solo STUN, sin policy', c.iceServers.length === 2 && !c.iceTransportPolicy && c.iceServers.every(s => /^stun:/.test(s.urls)));
@@ -354,14 +356,14 @@ function testRepo() {
   console.log('(3) repo');
   const toml = fs.readFileSync(path.join(ROOT, 'turn-worker', 'wrangler.toml'), 'utf8');
   check('wrangler.toml sin TURN_KEY_* ni CF_ANALYTICS_TOKEN (son secretos)', !/TURN_KEY_ID\s*=|TURN_KEY_API_TOKEN\s*=|CF_ANALYTICS_TOKEN\s*=/.test(toml));
-  check('wrangler.toml: DO TurnBudget con SQLite, cron cada 15 min, TTL 3600, ACCOUNT_ID vacío, topes por defecto',
+  check('wrangler.toml: DO TurnBudget con SQLite, cron cada 15 min, TTL 3600, ACCOUNT_ID de 32 hex, topes por defecto',
     /class_name = "TurnBudget"/.test(toml) && /new_sqlite_classes = \["TurnBudget"\]/.test(toml) && /crons = \["\*\/15 \* \* \* \*"\]/.test(toml) &&
-    /^TTL = "3600"/m.test(toml) && /^ACCOUNT_ID = ""/m.test(toml) && /^MAX_CREDS_MONTH = "20000"/m.test(toml) && /^USAGE_CUTOFF_GB = "800"/m.test(toml));
+    /^TTL = "3600"/m.test(toml) && /^ACCOUNT_ID = "[0-9a-f]{32}"/m.test(toml) && /^MAX_CREDS_MONTH = "20000"/m.test(toml) && /^USAGE_CUTOFF_GB = "800"/m.test(toml));
   const gi = fs.readFileSync(path.join(ROOT, 'turn-worker', '.gitignore'), 'utf8');
   check('.dev.vars en .gitignore', /^\.dev\.vars$/m.test(gi));
   check('no hay .dev.vars en el repo', !fs.existsSync(path.join(ROOT, 'turn-worker', '.dev.vars')));
   const nc = fs.readFileSync(path.join(ROOT, 'js', 'netconfig.js'), 'utf8');
-  check('netconfig: URL vacía (apagado) y sin credenciales', /VB\.NET_TURN_URL = ''/.test(nc) && !/credential:\s*'[^'…]+'/.test(nc));
+  check('netconfig: URL del Worker y sin credenciales fijas', /VB\.NET_TURN_URL = 'https:\/\/turn\.takethecourt\.com\/ice'/.test(nc) && !/credential:\s*'[^'…]+'/.test(nc));
 }
 
 (async () => {
