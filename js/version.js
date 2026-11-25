@@ -60,16 +60,33 @@
  *   Fusión de la rama playstore (24-nov-2026): jugar sin red (sw.js + js/sw-reg.js, solo en la web publicada; notes/offline.md),
  *   privacidad y borrar la cuenta, app de Android (TWA, android/), nombre anónimo «Jugador NNNN» y filtro de nombres
  *   (js/namefilter.js, también en salas de varios, coop y 6v6) y caducidad de los informes de red (exp, EXP_RULES = true).
+ * 1.24.0 (25-nov-2026, rama release-124): una sola versión con tres ramas sobre 1.23.0: decisiones (decisiones de Ferran del
+ *   24-nov: primera vez con ¡Jugar ya!/Tutorial, formato del Partido rápido en Jugar, jugada del día, «Te leen», repeticiones a
+ *   petición y en 6v6, salpis, cámara quieta en el saque, árbitros con aspecto, premios por nivel; notes/pendientes-ferran.md),
+ *   feedback (Sugerencia y Bug, js/feedback.js, notes/feedback.md; numerada 1.22.1 sin publicar, su entrada pasa aquí) y
+ *   movil-aire (móvil en horizontal html.ph y vertical html.pv, notes/movil-aire.md; el PC no cambia).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.23.0';
-  VB.VERSION_DATE = '2026-11-24';
+  VB.VERSION = '1.24.0';
+  VB.VERSION_DATE = '2026-11-25';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.24.0', d: '2026-11-25', t: 'La jugada del día',
+      items: [
+        'La jugada del día: cada día, un final apretado para todos. Cuenta tus días seguidos.',
+        'Sugerencia y Bug: mándanos ideas o avisa de un fallo desde Ajustes › Info o la pausa.',
+        'Móvil con aire: todo se lee entero y los menús se ven bien también en vertical.',
+        'Repeticiones cuando tú quieras: tras un gran punto, pídela. Ahora también en 6 contra 6.',
+        'En tu saque la cámara se queda quieta: ves el campo rival, al sacador y el lanzamiento.',
+        'Te leen: si rematas siempre por el mismo lado, el rival corre el bloqueo hacia ahí.',
+        'Doce premios nuevos al subir de nivel, del 40 al 99. En el 99, el pelo arcoíris.'
+      ]
+    },
     {
       v: '1.23.0', d: '2026-11-24', t: 'Online con amigos',
       items: [

@@ -1,6 +1,9 @@
-# Novedades en borrador (rama decisiones, sin versión todavía)
+# Novedades en borrador (rama decisiones; PASADAS a js/version.js en la 1.24.0, 25-nov-2026)
 
 Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. Cuando se publique, se pasan a js/version.js.
+En la 1.24.0 (una sola versión con decisiones + feedback + movil-aire, como mucho 7 frases) entraron: la jugada del día,
+repeticiones, cámara quieta en el saque, «Te leen» y los premios por nivel. Se quedan fuera de la lista (están en el juego):
+la primera vez con ¡Jugar ya!/Tutorial, el formato en Jugar, la calidad de imagen, los salpis y los árbitros con aspecto.
 
 ## Menús (decisiones de Ferran del 24-nov)
 - La primera vez que entras, eliges entre jugar ya o aprender con el tutorial.

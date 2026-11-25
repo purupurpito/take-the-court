@@ -67,11 +67,11 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 `make-the-cut.career(6)` sin subir VER/VER6 (`c.natl`, `c.inj`, `c.allstar`, `c.loan`, `c.race`, `c.dev`, `c.pro`, `c.sig`); ajustes nuevos
 `zone`, `serveSig` y `serveGest` dentro de `make-the-cut.settings`.
 
-**Sugerencias y bugs (rama feedback, 23-nov-2026, 1.22.1).** Nuevos de **ui_main**: `js/feedback.js` (`VB.Feedback`: formulario del panel
+**Sugerencias y bugs (rama feedback, 23-nov-2026, numerada 1.22.1 sin publicar; sale en la 1.24.0 del 25-nov-2026).** Nuevos de **ui_main**: `js/feedback.js` (`VB.Feedback`: formulario del panel
 'fb', contexto sin datos personales, búfer de errores, envío a Firestore `feedback/{id}`, cola y límites; se carga justo después de
 `js/version.js`), `pages/feedback.html` (visor, solo la cuenta de Ferran) y `tools/feedbacktest.js`; casos de feedback en `tools/roomtest.js`
 (net). Guardados del aparato que NUNCA van a `DOCS` ni a `TRACK`: `make-the-cut.feedbackq` (cola, ≤ 20) y `make-the-cut.feedbackl`
-(límites). Reglas del bloque FEEDBACK en firebase/firestore.rules **sin desplegar**; `admin()` pasa a nivel global. Detalle en notes/feedback.md.
+(límites). Reglas del bloque FEEDBACK en firebase/firestore.rules **ya desplegadas** (con online-multi v3 y playstore); `admin()` pasa a nivel global. Detalle en notes/feedback.md.
 
 **Reglas**
 - Cada especialista edita SOLO sus ficheros. Nada de tocar ficheros ajenos "solo una línea".
