@@ -1398,7 +1398,12 @@ huellas de todos al anfitrión y foto solo al que no cuadra, resync por plaza. R
 con más de 2 plazas, la que hace esperar a todos a ratos pasa a espectador (`r.meAI`: HUD «Tu conexión va lenta: te lleva la IA un
 rato») y vuelve sola a los 20 s (40, 80… hasta 2 min). Paquete 'in' de tipo 2 `[2|época<<4, plaza|resync<<4, nb, u32 tic, na,
 na×u32 ack, nb×(plaza, u32 primer tic, u32 tic de esa plaza, n, n×5 B)]`; con 2 plazas, el de tipo 1 de siempre (una SessionN de 2
-juega con una Session 1.21.0). 'ctl' nuevos: `hello{seat, n}`, `seat{s, ai, gone, why}`, `pings{p}`, `delay{d}`, `resync{s, rings,
+juega con una Session 1.21.0). Controles PC (25-nov-2026): con el punto del ratón en alguna entrada del paquete sale el tipo 6 (igual,
+con entradas de 7 B: i16 x, i16 y, u8 bits, i8 ax, i8 ay; -128 = sin punto) y en el 1 contra 1 el tipo 5 (el tipo 1 con entradas de 7 B);
+sin punto, los tipos 2 y 1 de siempre byte a byte. El anillo guarda los botones en un Uint32 (bit 24 = hay punto, bits 8-15 / 16-23 = el
+punto), así resync, rejoin, la grabación y la predicción (`& ~EDGE`, que conserva el último punto del rival) lo llevan sin tocarlas.
+Fluida y host: la entrada no viaja, se copia `aim` donde se copia `move`. Un cliente viejo nunca juega con uno nuevo (saludo con
+`VB.VERSION`), así que `PROTO` sigue en 1. 'ctl' nuevos: `hello{seat, n}`, `seat{s, ai, gone, why}`, `pings{p}`, `delay{d}`, `resync{s, rings,
 spect}`, `app{d, s}`. Bit 7 de los botones = «¡Pídela!» (switchPlayer). `result.win` por EQUIPO; un compañero que se va lo lleva la
 IA y el partido sigue; 'rivalQuit' / 'rivalGone' = se ha ido TODO el equipo rival. Sin vuelta del anfitrión que recarga.
 Tope de predicción `MAXPRED_N` 60 tics (el 1v1 sigue en 24) y ritmo de envío `SEND_HZ` 60: ver «Robustez del de varios» abajo.

@@ -861,6 +861,12 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   recarga sin red volvía al index anterior); un build con los mismos archivos da el mismo sw.js (el hash del index no cuenta
   `__vbBuild`); si la instalación falla, aviso en consola y no reintenta en 12 h; `pages/icon-maskable.png` publicado y en el
   manifest (twatest falla si falta). Cloudflare de takethecourt.com tiene que seguir en solo DNS.
+- Controles de PC (rama controles-pc, 25-nov-2026): `node tools/aimpttest.js` (sim: el punto del ratón, `input.aim`; sin él, la de
+  siempre), `node tools/netaimtest.js [--quick]` (códec tipos 5 / 6, huellas y prueba de oro con punto en Precisa, Precisa-N y mezclado;
+  fluida, host, vista del invitado) y `node tools/mousetest.js [W] [H]` (navegador: saque y remate con el cursor y clics, «Solo teclado» =
+  lo de siempre, fila «Esquema» de Controles, oferta de una vez; `VB_SHOTS=carpeta` para las capturas). Esquema `ctrlPC` ('km' teclado y
+  ratón, de fábrica | 'kb' solo teclado) y `ctrlAsked` en make-the-cut.device; la oferta «Nuevos controles en PC» solo sale a perfiles que
+  ya tenían ajustes guardados (los nuevos empiezan en km sin ventana), nunca en depuración salvo `&ctrlask=1`.
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

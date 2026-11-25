@@ -139,6 +139,12 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       const st = await LS('make-the-cut.settings'), dv = await LS('make-the-cut.device');
       check('make-the-cut.device = {resScale, fpsCap, showFps, touchSize, padDead}', dv && dv.resScale === 0.85 && dv.fpsCap === 30 && dv.showFps === true && dv.touchSize === 1.15 && dv.padDead === 0.25, dv);
       check('make-the-cut.settings sin las claves del dispositivo', st && !['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'].some(k => k in st) && st.camZoom === 1, st && Object.keys(st));
+      // controles PC (25-nov-2026): el esquema y su oferta, solo en este aparato
+      await E(`(VB.ctx.actions.setSetting('ctrlPC', 'kb'), VB.ctx.actions.setSetting('ctrlAsked', true), 1)`);
+      await page.navigate('nonews=1'); await ready(); await sleep(800);
+      const s2 = await S(), st2 = await LS('make-the-cut.settings'), dv2 = await LS('make-the-cut.device');
+      check('controles PC: ctrlPC «kb» y ctrlAsked se guardan en make-the-cut.device (no en settings) y vuelven tras recargar', s2.ctrlPC === 'kb' && s2.ctrlAsked === true && dv2.ctrlPC === 'kb' && dv2.ctrlAsked === true && !('ctrlPC' in st2) && !('ctrlAsked' in st2) && (await E('VB.Input.scheme()')) === 'kb', { s: [s2.ctrlPC, s2.ctrlAsked], dv: dv2 });
+      await E(`VB.ctx.actions.setSetting('ctrlPC', 'km'), 1`);
       check('ctx.reduceMotion = true con «Menos movimiento: Sí»', (await E('VB.ctx.reduceMotion')) === true && (await E('Object.prototype.hasOwnProperty.call(VB.ctx, "reduceMotion")')));
       await E(`VB.ctx.actions.setSetting('lessMotion', 'off'), 1`);
       check('ctx.reduceMotion = false con «No»', (await E('VB.ctx.reduceMotion')) === false);
@@ -153,6 +159,12 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       check('padDead -1 → 0,18; fpsCap 45 → 0; touchSize 2 → 1; showFps "si" → false', s.padDead === 0.18 && s.fpsCap === 0 && s.touchSize === 1 && s.showFps === false, s);
       check('volume "alto" → 1; crowdVol -5 → 0; camDist → normal; camZoom 9 → 2; lessMotion → auto; ballStyle → clasico; cbColors → false', s.volume === 1 && s.crowdVol === 0 && s.camDist === 'normal' && s.camZoom === 2 && s.lessMotion === 'auto' && s.ballStyle === 'clasico' && s.cbColors === false, s);
       check('xarVol "mucho" → 0,6', s.xarVol === 0.6, s.xarVol);
+      await fresh('nonews=1', { 'make-the-cut.settings': { camZoom: 2 }, 'make-the-cut.device': { ctrlPC: 'x', ctrlAsked: 'si' } });
+      s = await S();
+      check('controles PC: ctrlPC «x» → km; ctrlAsked «si» → false (perfil con ajustes: la oferta sale)', s.ctrlPC === 'km' && s.ctrlAsked === false && (await E('VB.Input.scheme()')) === 'km', [s.ctrlPC, s.ctrlAsked]);
+      await fresh('nonews=1');
+      s = await S();
+      check('controles PC: perfil nuevo → km sin oferta (ctrlAsked true)', s.ctrlPC === 'km' && s.ctrlAsked === true, [s.ctrlPC, s.ctrlAsked]);
       await fresh('nonews=1', { 'make-the-cut.settings': { camDist: 'far' } });
       s = await S();
       check('migración: Distancia «Lejos» de antes (sin camZoom) → zoom 4 de 5 (camZoom 3)', s.camZoom === 3, s.camZoom);
@@ -255,7 +267,8 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
 
     if (want('k')) {
       console.log('k) Controles: reasignar con una tecla real');
-      await fresh('debug=controls&panel=ctl&nonews=1');
+      // (controles PC: con «Teclado y ratón», el de fábrica, el glifo de Golpear es siempre «Clic»; la tecla reasignada se ve con «Solo teclado»)
+      await fresh('debug=controls&panel=ctl&nonews=1', { 'make-the-cut.device': { ctrlPC: 'kb' } });
       const edit = await E(`!!document.querySelector('#ctlGrid .kslot[data-kind="key"][data-act="hit"][data-slot="0"]')`);
       if (!check('teclado editable (VB.Input.captureNext)', edit)) throw new Error('sin kslot');
       check('13 acciones con 2 teclas (con el zoom de cámara, 17-nov-2026)', (await E(`document.querySelectorAll('#ctlGrid .kslot[data-kind="key"]').length`)) === 26);

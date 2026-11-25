@@ -39,7 +39,7 @@
   if (Q.debug === 'mobile') { isTouch = true; isMobile = true; }
 
   // E3: ajustes que solo valen para este dispositivo (make-the-cut.device; ver DEFAULTS)
-  var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead', 'touchLayout', 'touchMirror', 'q6Asked'];   // (1.22.0: disposición táctil y zurdos, cada móvil la suya; q6Asked: la ventana de rendimiento del 1r 6v6, cada aparato la suya)
+  var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead', 'touchLayout', 'touchMirror', 'q6Asked', 'ctrlPC', 'ctrlAsked'];   // (controles PC, 25-nov-2026: el esquema y su oferta, cada aparato los suyos)   // (1.22.0: disposición táctil y zurdos, cada móvil la suya; q6Asked: la ventana de rendimiento del 1r 6v6, cada aparato la suya)
   var ctx = VB.ctx = {
     THREE: THREE,
     container: document.getElementById('stage'),
@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false, q6Asked: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' aviso «Pulsa V para ver la repetición» tras los puntos grandes, desde el 24-nov-2026 | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false, q6Asked: false, ctrlPC: 'km', ctrlAsked: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' aviso «Pulsa V para ver la repetición» tras los puntos grandes, desde el 24-nov-2026 | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -120,6 +120,9 @@
     var saved = false;
     var o = null;
     try { var raw = localStorage.getItem('make-the-cut.settings'); if (raw) { saved = true; o = JSON.parse(raw); if (!o || typeof o !== 'object') o = null; for (var k in o) if (k in s && DEVICE_KEYS.indexOf(k) < 0 && typeof o[k] === typeof s[k]) s[k] = o[k]; } } catch (e) { o = null; }
+    // controles PC (25-nov-2026): la oferta «Nuevos controles en PC» (ctrlAsked) es para quien ya jugaba con las flechas; un perfil nuevo
+    // (sin ajustes guardados) empieza directamente en teclado y ratón, sin ventana (el tutorial ya lo enseña así)
+    if (!saved) s.ctrlAsked = true;
     // ajustes de ESTE dispositivo (E3): make-the-cut.device
     try { var dv = JSON.parse(localStorage.getItem('make-the-cut.device') || 'null'); if (dv && typeof dv === 'object') for (var dk = 0; dk < DEVICE_KEYS.length; dk++) { var kk = DEVICE_KEYS[dk]; if (kk in dv && typeof dv[kk] === typeof s[kk]) s[kk] = dv[kk]; } } catch (e) { }
     // Jugador nuevo (sin ajustes guardados ni partidos jugados): empieza en Fácil. Normal contra un novato
@@ -140,7 +143,9 @@
     if (DIFFS.indexOf(s.difficulty) < 0) s.difficulty = 'normal';
     if (s.subs6 !== 'manual') s.subs6 = 'auto';
     if (['auto', 'end', 'off'].indexOf(s.replays) < 0) s.replays = 'auto';   // S3-C1 (sin migración: lo que falte o no valga, 'auto')   // 6v6: cambios de tu equipo (ui.js «Cambios de tu equipo»: Automáticos / Solo los míos)
-    s.jsetAim = s.jsetAim === true; s.jsetNote = s.jsetNote !== false;   // (salto con impulso: diana de colocación, no por defecto; aviso de colocador, sí)
+    s.jsetAim = s.jsetAim === true; s.jsetNote = s.jsetNote !== false;
+    // controles PC (25-nov-2026): 'km' teclado y ratón (el principal) | 'kb' solo teclado (el de siempre); ctrlAsked: ya salió la oferta
+    if (s.ctrlPC !== 'kb') s.ctrlPC = 'km'; s.ctrlAsked = s.ctrlAsked === true;   // (salto con impulso: diana de colocación, no por defecto; aviso de colocador, sí)
     if (['full', 'calm', 'off'].indexOf(s.ambient) < 0) s.ambient = 'full';   // ambiente de Carrera (Ajustes · Juego; notes/ambiente.md §2F)
     // zona y saque de firma (20-nov-2026): zone 'career' (solo en la Carrera, también la CPU) | 'all' (también en Partido rápido) | 'off';
     // serveSig / serveGest = saque de firma de Partido rápido (catálogo VB.SERVE_SIG de js/sim.js; sin él, 'clasico')
@@ -611,6 +616,12 @@
     // quedaría encima de la página Jugar del menú: lo saca su hub (career-ui.js setterNoteSoon, sin taparse con la escena de Faro).
     // Una vez por sesión entre los dos, nunca con autopilot, online, ejercicios ni «Reiniciar partido». El partido espera a que se
     // cierre y arranca con lo elegido (Activar = ya con la diana de colocación)
+    // Controles PC (25-nov-2026): la oferta de una vez «Nuevos controles en PC» (VB.UI.ctrlNote: teclado y ratón o solo teclado; ctrlAsked,
+    // solo este aparato). Solo en un PC jugando con teclado; el partido espera a que se cierre y arranca con el esquema elegido
+    if (!opts.autopilot && !opts.ctrlDone && !restarting && !net && !rs) {
+      var cOpts = Object.assign({}, opts, { ctrlDone: true });
+      if (call('UI', 'ctrlNote', { from: 'match' }, function () { ctx.actions.startMatch(cOpts); })) return;
+    }
     if (opts.format === '6v6' && opts.ctrlRole === 'S' && !opts.career && !opts.autopilot && !opts.noteDone && !restarting && !net && !rs) {
       var nOpts = Object.assign({}, opts, { noteDone: true });
       if (call('UI', 'setterNote', { from: 'match' }, function () { ctx.actions.startMatch(nOpts); })) return;
@@ -1418,7 +1429,7 @@
       if ((v.mode === 'point' || v.mode === 'over') && (edge.hit || edge.jump || edge.switchPlayer || (it && it.confirm))) s.request('skip');
       if (ctx.netBot) { try { raw = ctx.netBot(s.predictedGame()); } catch (e) { reportError('netBot', e); } }
       else {
-        var ri = { move: simIn.move, hit: edge.hit, jump: edge.jump, jset: edge.jset };
+        var ri = { move: simIn.move, hit: edge.hit, jump: edge.jump, jset: edge.jset, aim: simIn.aim };   // (aim: controles PC, el punto del ratón; inputToWorld lo gira como move)
         if (v.size === 6) ri.switchPlayer = edge.switchPlayer;   // (6v6: CAMBIAR = «¡Pídela!», sim g.ask6; la sesión lo manda si sabe)
         raw = VB.NetView.inputToWorld(ri, net.me);
       }
@@ -2680,7 +2691,7 @@
   })();
 
   // ---------- Entrada -> mundo ----------
-  var simIn = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false }; // jset: COLOCAR (en el aire, colocación en salto)
+  var simIn = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false, aim: null }; // jset: COLOCAR (en el aire, colocación en salto); aim: controles PC (punto del ratón o null)
   ctx.simMove = simIn.move; // entrada de MUNDO del frame (FX la lee para la retícula de apuntado en vivo)
   var edge = { hit: false, jump: false, jset: false, switchPlayer: false };
   function buildInput(it) {
@@ -2700,6 +2711,31 @@
     } else if (bs) { simIn.move[0] = bs.rx * mx + bs.fx * my; simIn.move[1] = bs.ry * mx + bs.fy * my; }
     else { simIn.move[0] = -my; simIn.move[1] = mx; } // por defecto: cámara detrás mirando a -x
     if (it) { edge.hit = edge.hit || !!it.hit; edge.jump = edge.jump || !!it.jump; edge.jset = edge.jset || !!it.jset; edge.switchPlayer = edge.switchPlayer || !!it.switchPlayer; }
+    // controles PC, esquema 'km': el cursor apunta (input.aim de la sim = el punto de la pista bajo el cursor, cuantizado)
+    simIn.aim = it && it.aimOn && g0 && !g0.demo && !g0.watch && !ctx.replay ? aimFromCursor(it, g0) : null;
+    ctx.simAim = simIn.aim;
+  }
+  /** Punto del suelo (sim: x, y en m) bajo el cursor (it.ax / it.ay en NDC): rayo de la cámara contra el plano de la pista. Con el rayo
+   *  por encima del horizonte, 60 m a lo largo de su dirección horizontal. Recortado a la pista ±2 m y cuantizado como lo manda la red
+   *  (net.js aimBits: 0,1 m en x, 0,05 m en y) para que el local, la repetición y el rival vean el mismo punto. → _aimArr o null. */
+  var _aimV = null, _aimO = null, _aimArr = [0, 0];
+  function aimFromCursor(it, g) {
+    var T = ctx.THREE, cam = ctx.camera;
+    if (!cam || !T || !T.Vector3) return null;
+    if (!_aimV) { _aimV = new T.Vector3(); _aimO = new T.Vector3(); }
+    _aimO.setFromMatrixPosition(cam.matrixWorld);
+    _aimV.set(it.ax, it.ay, 0.5).unproject(cam);
+    var dx = _aimV.x - _aimO.x, dy = _aimV.y - _aimO.y, dz = _aimV.z - _aimO.z, l = Math.hypot(dx, dy, dz);
+    if (!(l > 0)) return null;
+    dx /= l; dy /= l; dz /= l;
+    var px, pz;
+    if (dy < -1e-3) { var t = -_aimO.y / dy; px = _aimO.x + dx * t; pz = _aimO.z + dz * t; }
+    else { var h = Math.hypot(dx, dz); if (h < 1e-6) return null; px = _aimO.x + dx / h * 60; pz = _aimO.z + dz / h * 60; }
+    var HL = (g.HL || 9) + 2, HW = (g.HW || 4.5) + 2;
+    var x = Math.max(-HL, Math.min(HL, px)), y = Math.max(-HW, Math.min(HW, -pz));   // (VB.fromThree: sim.y = -three.z)
+    var qx = Math.max(-127, Math.min(127, Math.round(x * 10))), qy = Math.max(-127, Math.min(127, Math.round(y * 20)));
+    _aimArr[0] = qx / 10; _aimArr[1] = qy / 20;
+    return _aimArr;
   }
 
   // ---------- Bucle ----------

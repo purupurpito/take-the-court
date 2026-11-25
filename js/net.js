@@ -46,6 +46,8 @@
  *   ONLINE DE VARIOS (Precisa-N, P2 del sprint online-multi): new Session({seats | links (más de uno) | n > 2, …}) devuelve una SessionN
  *     (N plazas, estrella con el anfitrión de centro, bloque «PRECISA-N» más abajo). Sin eso, la Session de 2 de siempre, sin cambios.
  *     packN/unpackN (paquete de varios), adaptDelay(rttMs), SEAT_AI_MS. Bit 7 de los botones = switchPlayer (solo lo manda Precisa-N).
+ *   Controles PC (25-nov-2026): input.aim (punto del ratón) en los bits 8-24 de la palabra de botones (Uint32); paquetes tipo 5 / 6 (entradas
+ *     de 7 B) cuando alguna entrada lo lleva, tipo 1 / 2 de siempre si no. aimBits(inp), AIM_F; bot(…, {aimPt: true}) para pruebas.
  *   AUDITORÍA (17-nov-2026, notes/net.md «Auditoría»): o.expect (invitado: opciones que anuncia la sala; si no cuadran → 'mismatch'),
  *     resync con id repetido hasta el 'rsok' (lo del canal fiable viejo se pierde al renegociar), los dos recargan → noShow, mensajes
  *     del rival acotados (hash, snapok, resync, delay), tope de 60 s en 'connecting'.

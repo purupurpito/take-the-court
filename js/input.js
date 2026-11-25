@@ -19,6 +19,13 @@
  *   rueda girada zoom de cámara (poll: it.zoom, +1 acercar / -1 alejar).
  *   Mantener pulsado = mantener la tecla. No cuenta si el clic cae en un botón/panel
  *   ni con el overlay táctil. srcOf(a): último origen ('mouse' | 'key') de hit/jset/jump.
+ * ESQUEMA DE PC (25-nov-2026, ctx.settings.ctrlPC, solo este aparato): 'km' TECLADO Y RATÓN (el principal, por defecto) o 'kb'
+ *   SOLO TECLADO (el de siempre, bit a bit). En 'km' las flechas / WASD SOLO MUEVEN y el CURSOR sobre la pista APUNTA: poll da
+ *   it.aimOn + it.ax / it.ay (posición del cursor en NDC -1..1 del lienzo) y main.js lo proyecta a un punto de la pista
+ *   (input.aim de la sim). Se guarda el último punto válido: fuera del lienzo o encima de la UI no se pierde (sin saltos); se borra
+ *   con blur, pestaña oculta o partido nuevo. Sin punto (el ratón aún no se ha movido en este partido) = como el teclado. Solo con
+ *   it.device 'keyboard' (mover el ratón no cambia el dispositivo: con mando o táctil no apunta nada) y sin bloqueo del puntero
+ *   (cursor en cruz en la pista mientras se juega). Los glifos de GOLPEAR / COLOCAR son siempre los del ratón. scheme() → 'km' | 'kb'.
  * Mando (mapeo estándar): stick izq./cruceta mover, A golpear, B o X saltar,
  *   RB/LB/Y cambiar, LT (L2) challenge, Start pausa, Select sonido, stick derecho arriba / abajo
  *   zoom de cámara. Zona muerta radial (medida
@@ -44,7 +51,7 @@
   var ctx = null;
   var it = { mx: 0, my: 0, hit: false, jump: false, jset: false, switchPlayer: false, pause: false, mute: false, challenge: false, any: false,
              confirm: false, device: 'keyboard', hitHeld: false, jumpHeld: false, padEvent: '',
-             navOk: false, navBack: false, navTab: 0, zoom: 0, zoomCycle: false };   // (E3: menús con mando, botones fijos A / B / LB-RB; zoom: pasos de zoom de cámara del frame, +1 acercar / -1 alejar; zoomCycle: botón táctil de la lupa)
+             navOk: false, navBack: false, navTab: 0, zoom: 0, zoomCycle: false, aimOn: false, ax: 0, ay: 0 };   // (aimOn/ax/ay: esquema 'km', el cursor apunta)   // (E3: menús con mando, botones fijos A / B / LB-RB; zoom: pasos de zoom de cámara del frame, +1 acercar / -1 alejar; zoomCycle: botón táctil de la lupa)
 
   // ---------------- Teclado ----------------
   // TECLAS REASIGNABLES (E3, sprint 5): dos teclas por acción (código físico e.code). ctx.settings.keys guarda SOLO las
@@ -139,7 +146,7 @@
     var a = actionOf(e); if (!a) return;
     var id = e.code || e.key;
     if (!held[id]) { held[id] = a; down[a] = (down[a] || 0) + 1; stamp[a] = ++seq; if (!e.repeat) edge[a] = true; }
-    it.device = 'keyboard'; if (SRC[a] && SRC[a] !== 'key') { SRC[a] = 'key'; srcN++; }
+    it.device = 'keyboard'; if (SRC[a] && SRC[a] !== 'key' && scheme() !== 'km') { SRC[a] = 'key'; srcN++; }   // (en 'km' los glifos son siempre los del ratón)
     // que la página no se desplace con Espacio/flechas mientras se juega
     if (ctx && (ctx.state === 'playing') && (a === 'hit' || a === 'left' || a === 'right' || a === 'up' || a === 'down' || a === 'jump' || a === 'jset')) e.preventDefault();
   }
@@ -168,6 +175,13 @@
       SRC.hit = SRC.jset = 'mouse';
     }
   } catch (_) { }
+  // Esquema 'km': GOLPEAR / COLOCAR se muestran siempre con el ratón; al volver a 'kb', el origen que se detecte de nuevo (de fábrica)
+  var SRC0 = { hit: SRC.hit, jset: SRC.jset }, schLast = '';
+  function applyScheme() {
+    var sc = scheme(), km = sc === 'km';
+    if (sc === schLast) return;
+    schLast = sc; SRC.hit = km ? 'mouse' : SRC0.hit; SRC.jset = km ? 'mouse' : SRC0.jset; srcN++;   // (la UI rehace sus glifos)
+  }
   // Clic izquierdo = golpear, derecho = COLOCAR (C2, 15-nov-2026; antes saltaba), rueda = saltar: entran en el mismo mapa que las
   // teclas (ids 'Mouse0'/'Mouse2'/'Mouse1'), así que mantener pulsado da hitHeld/jumpHeld igual que una tecla. Se lee e.buttons (no e.button) en pointerdown/move/up: con un
   // botón ya pulsado, el 2º solo llega como pointermove «acordado» (e.button !== -1). Solo pointerType 'mouse' (el dedo y
@@ -188,8 +202,19 @@
       delete held[id]; down[a] = Math.max(0, (down[a] || 0) - 1);
     }
   }
+  // ESQUEMA 'km' (teclado y ratón): último punto válido del cursor sobre la pista (cx, cy en px de la ventana). g = la partida en la que
+  // se tomó (una partida nueva empieza sin punto); rect = caja del lienzo (cacheada; se vuelve a medir en resize y cada ~0,5 s)
+  var PTR = { cx: 0, cy: 0, valid: false, g: null, rect: null, rectN: 0, cur: '' };
+  function scheme() { return ctx && ctx.settings && ctx.settings.ctrlPC === 'kb' ? 'kb' : 'km'; }
+  function ptrTrack(e) {
+    if (!mouseOk(e) || !ctx.canvas || e.target !== ctx.canvas) return;   // (encima de la UI, un panel o fuera: se queda el último)
+    var rc = PTR.rect || (PTR.rect = ctx.canvas.getBoundingClientRect());
+    if (e.clientX < rc.left || e.clientX > rc.right || e.clientY < rc.top || e.clientY > rc.bottom) return;   // (fuera del lienzo: tampoco)
+    PTR.cx = e.clientX; PTR.cy = e.clientY; PTR.valid = true; PTR.g = ctx.game || null;
+  }
   function onMouse(e) {
     if (e.pointerType !== 'mouse') return;
+    if (e.type !== 'pointerup') ptrTrack(e);
     var b = e.buttons | 0, canPress = e.type === 'pointerdown' || (e.type === 'pointermove' && e.button >= 0);
     mouseBtn('Mouse0', 'hit', (b & 1) !== 0, e, canPress);
     mouseBtn('Mouse2', 'jset', (b & 2) !== 0, e, canPress);   // clic derecho = COLOCAR (poll lo manda también como SALTAR)
@@ -1397,13 +1422,13 @@
 
   VB.Input = {
     /** E3: claves de ctx.settings que este módulo ya soporta (ui.js esconde las filas ★ que falten). */
-    OPTS: ['keys', 'padKeys', 'padDead', 'touchSize'],
+    OPTS: ['keys', 'padKeys', 'padDead', 'touchSize', 'ctrlPC'],
     DEFAULT_KEYS: DEFAULT_KEYS,
     DEFAULT_PAD: DEFAULT_PAD,
     init: function (c) {
       ctx = c;
       it.device = ctx.isTouch ? 'touch' : 'keyboard';
-      buildCode(); buildPad(); applyPadDead(); loadLayout();
+      buildCode(); buildPad(); applyPadDead(); loadLayout(); applyScheme();
       // captura de teclas (reasignar): PRIMERO de todos en window (fase de captura), solo actúa con una captura viva
       window.addEventListener('keydown', onCapKey, true);
       window.addEventListener('keyup', onCapKeyUp, true);
@@ -1418,8 +1443,8 @@
       window.addEventListener('mousedown', onAux, { passive: false });
       window.addEventListener('auxclick', onAux, { passive: false });
       window.addEventListener('contextmenu', onCtxMenu);
-      window.addEventListener('blur', function () { capEnd(null, 'cancel'); clearKeys(); resetTouch(); });
-      document.addEventListener('visibilitychange', function () { if (document.hidden) { capEnd(null, 'cancel'); clearKeys(); resetTouch(); } });
+      window.addEventListener('blur', function () { capEnd(null, 'cancel'); clearKeys(); resetTouch(); PTR.valid = false; });
+      document.addEventListener('visibilitychange', function () { if (document.hidden) { capEnd(null, 'cancel'); clearKeys(); resetTouch(); PTR.valid = false; } });
       // un toque en cualquier sitio en un equipo no detectado como táctil activa los controles táctiles;
       // la lista de dedos (e.touches) sirve además para detectar dedos perdidos (ver sweepLost)
       window.addEventListener('touchstart', function (e) { T.used = true; it.device = 'touch'; onTouchList(e); }, { passive: true, capture: true });
@@ -1468,7 +1493,10 @@
       if (k == null || k === 'touchSize') applyTouchSize();
       else if (k === 'touchLayout' || k === 'touchMirror') applyTouchLayout();
       if (k == null || k === 'camZoom') zoomLabel();
+      if (k == null || k === 'ctrlPC') { applyScheme(); if (k === 'ctrlPC') clearKeys(); }
     },
+    /** Controles PC: esquema activo, 'km' (teclado y ratón, el de fábrica) o 'kb' (solo teclado, el de siempre). */
+    scheme: scheme,
     /** E3: teclas y botones efectivos (copias): { keys: {acción: [c1, c2]}, pad: {acción: [botón]}, padStd (false = mando
      *  conectado sin mapeo estándar: botones de solo lectura), padFam ('xbox'|'ps'), acts, padActs, fixed }. */
     bindings: function () {
@@ -1511,7 +1539,7 @@
       // (barra del navegador que se esconde), el joystick sigue y su base se recoloca dentro de la pantalla.
       if (T.lastW && ((w > h) !== (T.lastW > T.lastH) || Math.abs(w - T.lastW) > 0.3 * T.lastW || Math.abs(h - T.lastH) > 0.3 * T.lastH)) resetTouch();
       T.lastW = w; T.lastH = h;
-      layoutTouch(); GEO.ok = false; T.rects = null;
+      layoutTouch(); GEO.ok = false; T.rects = null; PTR.rect = null;
       if (T.joy !== null) clampJoy();
       placeJoy();
     },
@@ -1533,6 +1561,7 @@
                       rest: pad.idx >= 0 && pad.rest[pad.idx] ? { x: pad.rest[pad.idx].x, y: pad.rest[pad.idx].y } : null },
                geo: JSON.parse(JSON.stringify({ hit: GEO.hit, jump: GEO.jump, sw: GEO.sw, pause: GEO.pause, set: GEO.set, zoom: GEO.zoom })), stats: JSON.parse(JSON.stringify(stats)), setOn: T.setOn,
                sigs: sigLog.slice(), dead: T.dead, dz: DZ, padSoft: PAD_SOFT, cap: CAP.on, hush: CAP.hush, touchK: touchK, setRoll: T.setRoll,
+               ptr: { cx: PTR.cx, cy: PTR.cy, valid: PTR.valid, game: !!PTR.g && PTR.g === (ctx && ctx.game), aimOn: it.aimOn, ax: it.ax, ay: it.ay, scheme: scheme() },
                code: JSON.parse(JSON.stringify(CODE)), pb: JSON.parse(JSON.stringify(PB)), mirror: LAY.mirror, lay: LAY.lay ? JSON.parse(JSON.stringify(LAY.lay)) : null, layDirty: LAY.dirty };
     },
     /** Devuelve las intenciones del frame (objeto reutilizado). */
@@ -1639,6 +1668,22 @@
       var show = touchy && it.device === 'touch' && ctx.state === 'playing' && !ctx.portraitBlock && !ctx.pvIntro && !(ctx.game && ctx.game.watch) && !ctx.replay;   // (6v6 espectador, g.watch: sin mandos) (repetición C1: tampoco)
       if (show !== T.shown) setShown(show);
       if (show) { touchContext(); touchVisibility(); }
+      // --- esquema 'km': el cursor apunta (NDC del lienzo; main.js lo proyecta a la pista)
+      var km = scheme() === 'km' && it.device === 'keyboard' && ctx.state === 'playing' && !T.shown && !ctx.portraitBlock && !ctx.pvIntro && !ctx.replay;
+      if (PTR.valid && PTR.g !== (ctx.game || null)) PTR.valid = false;   // (partido nuevo: sin punto hasta que se mueva el ratón)
+      it.aimOn = false;
+      if (km && PTR.valid && ctx.canvas) {
+        if (!PTR.rect || ++PTR.rectN > 30) { PTR.rect = ctx.canvas.getBoundingClientRect(); PTR.rectN = 0; }
+        var rc = PTR.rect;
+        if (rc.width > 0 && rc.height > 0) {
+          it.ax = Math.max(-1, Math.min(1, (PTR.cx - rc.left) / rc.width * 2 - 1));
+          it.ay = Math.max(-1, Math.min(1, 1 - (PTR.cy - rc.top) / rc.height * 2));
+          it.aimOn = true;
+        }
+      }
+      // cursor en cruz sobre la pista mientras se juega con teclado y ratón (fuera de ahí, el de siempre)
+      var cur = km ? 'crosshair' : '';
+      if (cur !== PTR.cur && ctx.canvas) { PTR.cur = cur; ctx.canvas.style.cursor = cur; }
       return it;
     }
   };

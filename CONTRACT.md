@@ -267,6 +267,13 @@ lo sanea campo a campo; desde 1.22.0, informe 4.2), `touchMirror` (false; zurdos
 - `step(game, dt, input)` — paso fijo `1/120`. `input` en coords de MUNDO: `{move:[wx,wy] (|v|≤1), hit, jump, jset, switchPlayer}`;
   `hit/jump/jset/switchPlayer` son flancos (pulsado en este paso). En saque humano: `move` desplaza al sacador a lo ancho y apunta.
   `jset` (COLOCAR, opcional): en el suelo y en el saque = `jump`; en el aire = **colocación en salto** (ver «Colocación en salto» abajo).
+  `aim` (opcional, controles PC 25-nov-2026): `[x, y]` = PUNTO del mundo bajo el cursor (m, mundo canónico, cuantizado en origen: 0,1 m en
+  x y 0,05 m en y) o ausente / `null`. Sin `aim` la sim es la de siempre bit a bit. Con él, `move` SOLO mueve y el punto apunta: dianas
+  del saque (también en 'ready'), del remate y de la colocación en salto (solo con el punto en el campo propio) hacia él con su velocidad
+  de siempre (`aimCarry` a 0); en la ventana de colocación (`setWin`) `g.setDirA` = el ángulo cuyo destino de `setAim` queda más cerca
+  del punto (2v2) o la dirección del punto de toque al punto (6v6; fuera del campo propio NaN), sin arrastre; dejada, balón libre y remate
+  sin mira libre con `pointToAim` (inversa de sus fórmulas). El 1r toque y el bloqueo no apuntan. Funciones: `Sim.aimPt(input)`,
+  `Sim.pointToAim(g, p, pt, shot)`, `Sim.setAngPt(g, p, pt, w)`, `Sim.attackTarget`; `aimPoint(g, out, move, pt)` acepta el punto.
 - `drainEvents(game, outArray)` — mueve los eventos pendientes a `outArray`.
 - `predict(game, zt, out)`, `predictLanding(game, out)`, `focusPoint(game)` (pr1 o pr3 según toque), `canReach(game, p)`, `other(game, p)`, `side(team)`, `isHuman(game,p)`.
 - **Estado de `game`** (lectura para todos): `mode ('serve'|'rally'|'point'|'over')`, `demo`, `autopilot`, `time`,
@@ -422,7 +429,9 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   `confirmedGame()` (lo que deja huella sale de AHÍ), `predictedGame()`, `initEvents`, `rivalName` (nombre, nunca correo ni IP).
   Fase 6: `stepInputs()` = las dos entradas del último paso confirmado (`[hueco 0, hueco 1]`, decodificadas, objeto reutilizado); solo
   vale dentro de `onTick(tic, gc)` (opción de la sesión, tras cada `Sim.step` de gc que no sea la resimulación de una reparación).
-  Entrada = `{move (mundo canónico), hit, jump, jset, chal, skip, tmo, ai}`, cuantizada (int16 + 1 byte) antes de usarla en local.
+  Entrada = `{move (mundo canónico), hit, jump, jset, chal, skip, tmo, ai, aim?}`, cuantizada (int16 + bits) antes de usarla en local.
+  Controles PC: la palabra de botones del anillo es de 32 bits (bits 0-7 los de siempre, bit 24 = hay punto `aim`, bits 8-15 / 16-23 =
+  el punto en int8); en el cable, tipo 1 sin punto (como siempre) y tipo 5 con él (ver notes/net.md). `bot(slot, seed, prof, {aimPt})`.
   Transportes `{send(ch, data), poll(now), close()}` (`'in'` no fiable, `'ctl'` fiable y en orden): `memPair({lag (RTT), jit, loss, seed,
   clock})` y `BcLink({room, slot, lag, jit, loss})` (BroadcastChannel). `bot(team, seed)`: bot de solo entrada para pruebas.
 - `js/netview.js` → `VB.NetView`: `mirror(view, g, slot)` (copyGame y, para el invitado, `flip`: giro de 180°, parejas por equipo

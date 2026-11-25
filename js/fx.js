@@ -149,6 +149,9 @@
   // salto (g.aim3.kind 'jset', Sim.jsetAimInfo) y segundo aro (cbColors: impulso / diana de colocación). 4 instancias más del lote de
   // calcomanías: 0 dibujos nuevos y nada por frame (las lecturas de sim devuelven objetos propios reutilizados)
   var ldMk = null, ldA = 0, ldNet = 0, tkMk = null, tkA = 0, tkHold = 0, tkX = 0, tkY = 0, tkOk = false, jsRet = null, jsA = 0, aim2 = null;
+  // controles PC (esquema 'km'): aro fino «fantasma» en el punto de la pista bajo el cursor (ctx.simAim) mientras hay una diana o una
+  // colocación que lo sigue: la diana de siempre va hacia él con su velocidad (así se ve por qué no es instantánea). Una malla más del lote
+  var curMk = null, curA = 0;
   var ldOut = { x: 0, y: 0, t: 0, net: false }, jaOut = { on: false, x: 0, y: 0, ax: 0, ay: 0, tempo: '', apex: 0, moved: false, bx: 0, by: 0, ok: true };
   var AIM_MOM = null, LD_COL = null, JS_COL = null;
   var spOut = { x: 0.5, y: 0.5, tempo: '', ok: true, to: null, bx: 0, by: 0 }, spOk = 1, DR_TGT_R = 95 / 256, DR_RING_R = 100 / 256; // radio (m, escala 1) del filo blanco de aimSvTex y del centro del aro de markRimTex
@@ -469,7 +472,7 @@
     footAtlas(g); // celdas 9-11: huellas y cráter de la playa (12-15 son del 6v6)
     var at = tex(cv);
     // instancias: marcas (relleno + filo), ondas, las 8 mallas sueltas, línea de altura, las 3 de la pista de posición del 6v6 y huellas
-    var N = MARK_N * 2 + RIP_N + 8 + 1 + 3 + 3 + 4 + FOOT_N, geo = new THREE.PlaneGeometry(1, 1);
+    var N = MARK_N * 2 + RIP_N + 8 + 1 + 3 + 3 + 4 + 1 + FOOT_N, geo = new THREE.PlaneGeometry(1, 1);
     for (var fI = 0; fI < FOOT_N; fI++) fp.push(dblFields({ x: 0.5, y: 0.5, yaw: 0.5, k: 0, sx: 0.5, sy: 0.5, op: 0.5, t: 0.5 })); for (var fJ = 0; fJ < FOOT_N; fJ++) fp[fJ].t = 0;
     var inst = new THREE.InstancedMesh(geo, new THREE.ShaderMaterial({
       uniforms: { map: { value: at } }, transparent: true, depthWrite: false, toneMapped: false,
@@ -493,6 +496,7 @@
     for (var p = 0; p < RIP_N; p++) decOrder.push(ripPool[p].m);
     decOrder.push(marker, aimLx, aimLy, aimFill, aimRet);
     if (aim2) decOrder.push(aim2); // (salto con impulso, cbColors: segundo aro de la diana)
+    if (curMk) decOrder.push(curMk); // (controles PC: aro del cursor, encima de la retícula)
     decOrder.push(revGlow, revLine, revFill);
     // lado del plano de cada malla (marcador 1,15 m, retícula 1,7 m; el resto 1 m; la huella de revisión lleva su escala): el lote usa un plano de 1 m
     for (var z = 0; z < decOrder.length; z++) decSz.push(decOrder[z].geometry.parameters.width || 1);
@@ -1145,7 +1149,7 @@
     // (exacta, sin suavizar) y el radio, la dispersión que da Sim.aimPoint (spreadNow; si no, spread). Sin kind: como antes.
     if (g.mode === 'serve' && a3s && a3s.on && a3s.kind === 'serve' && isFinite(a3s.x) && isFinite(a3s.y)) {
       aimSv = true; out.spreadNow = -1;
-      var rs = Sim.aimPoint ? Sim.aimPoint(g, out, ctx.simMove) : null, sn = -1;
+      var rs = Sim.aimPoint ? Sim.aimPoint(g, out, ctx.simMove, ctx.simAim) : null, sn = -1;
       if (rs && rs.kind === 'serve') sn = typeof rs.spreadNow === 'number' && rs.spreadNow >= 0 ? rs.spreadNow : rs.spread;
       out.spreadNow = typeof sn === 'number' && isFinite(sn) && sn >= 0 ? sn : -1; // sin dato (sim antigua): radio por defecto
       out.x = a3s.x; out.y = a3s.y;
@@ -1168,7 +1172,7 @@
     } else return 0;
     out.spreadNow = -1;
     if (Sim.aimPoint) {
-      var r = Sim.aimPoint(g, out, ctx.simMove); // entrada de MUNDO de este mismo frame (sin ella, la del último paso)
+      var r = Sim.aimPoint(g, out, ctx.simMove, ctx.simAim); // entrada de MUNDO de este mismo frame (sin ella, la del último paso)
       if (!r) return 0;
       if (r !== out && r.x != null) { out.x = r.x; out.y = r.y; if (r.spreadNow != null) out.spreadNow = r.spreadNow; }
       if (g.mode === 'rally' && g.aim3 && g.aim3.on && isFinite(g.aim3.x) && isFinite(g.aim3.y)) { out.x = g.aim3.x; out.y = g.aim3.y; }
@@ -1452,6 +1456,7 @@
     if (posMark) { posMark.visible = false; posMark2.visible = false; posArrow.visible = false; }
     if (setMk) setMk.visible = false;
     if (ldMk) { ldMk.visible = tkMk.visible = jsRet.visible = aim2.visible = false; ldA = tkA = jsA = 0; tkHold = 0; }
+    if (curMk) { curMk.visible = false; curA = 0; }
     squash.t = 0; heat = 0; fpLast.length = 0;
   }
   function rpClearDecals() { // marcas, huella del challenge y huellas: todo apagado
@@ -1715,6 +1720,7 @@
       // salto con impulso: sombra de caída (disco suave de las marcas), marca de despegue del pipe (filo dentro/fuera: con la X si no vale),
       // diana de la colocación en salto (la retícula del remate, en crema) y segundo aro (el de las ondas)
       ldMk = dMk(rimInTex, 0.0139, 'djLanding'); tkMk = dMk(rimInTex, 0.0140, 'djTakeoff'); jsRet = dMk(aimMat.map, 0.0146, 'jsetAim'); aim2 = dMk(ripTex, 0.0192, 'aimRing2');
+      curMk = dMk(ripTex, 0.0194, 'aimCursor'); curMk.material.color.set('#ffffff');
       jsRet.material.color.copy(JS_COL);
       buildDecals([ripTex, markTex, rimInTex, rimOutTex, markerMat.map, aimMat.map, whiteTex, revFill.material.map, aimSvMap,
         null, null, null, posTexs.zone, posTexs.dot, posTexs.arrow, posTexs.bar]);
@@ -1773,6 +1779,7 @@
       speedT = 0; tbAlive = 1;
       drA = 0; drPop = 0; spA = 0; drillTgt.visible = drillRing.visible = setMk.visible = false;
       ldA = tkA = jsA = 0; tkHold = 0; ldMk.visible = tkMk.visible = jsRet.visible = aim2.visible = false;
+      curMk.visible = false; curA = 0;
       applyOpts(ctx.settings);
     },
     /** Sprint 5 (E3): ajustes que lee FX (ui.js esconde las filas con data-need="FX" si falta). */
@@ -2135,6 +2142,15 @@
       } else if (a2j) {
         aim2.position.x = jsRet.position.x; aim2.position.z = jsRet.position.z; aim2.scale.set(1.6, 1.6, 1);
         aim2.material.color.copy(setMk.visible ? setMk.material.color : JS_COL); aim2.material.opacity = 0.85 * jsA;
+      }
+      // controles PC: aro del cursor (ctx.simAim) con una diana o un marcador de colocación a la vista; entra y sale suave
+      var cA = ctx.simAim, cOn = !rpG && !!cA && cA.length > 1 && isFinite(cA[0]) && isFinite(cA[1]) && (aimRet.visible || setMk.visible || jsRet.visible);
+      curA = cOn ? Math.min(1, curA + rdt * 10) : Math.max(0, curA - rdt * 8);
+      curMk.visible = curA > 0.01;
+      if (curMk.visible) {
+        if (cOn) { curMk.position.x = cA[0]; curMk.position.z = -cA[1]; }
+        var cs2 = 0.55 * (djCalm ? 1 : 1 + 0.04 * Math.sin(ctx.time * 6));
+        curMk.scale.set(cs2, cs2, 1); curMk.material.opacity = 0.7 * curA;
       }
       // saque dirigible: guías de la diana (fondo/red y lateral) y copia por encima de los jugadores y del balón
       var svG = aimRet.visible && aimSv;

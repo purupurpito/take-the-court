@@ -499,9 +499,9 @@
   }
   function safe(fn) { try { return fn(); } catch (e) { return false; } }
   var GLYPH = {
-    keyboard: { serve: '<span class="key">J</span>', hit: '<span class="key">J</span>', jump: '<span class="key">Espacio</span>', move: '<span class="key">←</span><span class="key">→</span>', aim: 'las flechas', hitT: 'J', jumpT: 'ESPACIO', sw: '<span class="key">C</span>', jset: '<span class="key">K</span>', jsetT: 'K' },
-    gamepad: { serve: '<span class="key pad pa">A</span>', hit: '<span class="key pad pa">A</span>', jump: '<span class="key pad pb">B</span>', move: '<span class="key">Stick</span>', aim: 'el stick', hitT: 'A', jumpT: 'B', sw: '<span class="key pad py">Y</span>', jset: '<span class="key pad px">X</span>', jsetT: 'X' },
-    touch: { serve: '<span class="key tch">Sacar</span>', hit: '<span class="key tch">Golpear</span>', jump: '<span class="key tch j">Saltar</span>', move: '<span class="key">Joystick</span>', aim: 'el joystick', hitT: 'GOLPEAR', jumpT: 'SALTAR', sw: '<span class="key">⇄</span>', jset: '<span class="key tch s">Colocar</span>', jsetT: 'COLOCAR' }
+    keyboard: { serve: '<span class="key">J</span>', hit: '<span class="key">J</span>', jump: '<span class="key">Espacio</span>', move: '<span class="key">←</span><span class="key">→</span>', aim: 'las flechas', dir: 'las flechas', hitT: 'J', jumpT: 'ESPACIO', sw: '<span class="key">C</span>', jset: '<span class="key">K</span>', jsetT: 'K' },
+    gamepad: { serve: '<span class="key pad pa">A</span>', hit: '<span class="key pad pa">A</span>', jump: '<span class="key pad pb">B</span>', move: '<span class="key">Stick</span>', aim: 'el stick', dir: 'el stick', hitT: 'A', jumpT: 'B', sw: '<span class="key pad py">Y</span>', jset: '<span class="key pad px">X</span>', jsetT: 'X' },
+    touch: { serve: '<span class="key tch">Sacar</span>', hit: '<span class="key tch">Golpear</span>', jump: '<span class="key tch j">Saltar</span>', move: '<span class="key">Joystick</span>', aim: 'el joystick', dir: 'el joystick', hitT: 'GOLPEAR', jumpT: 'SALTAR', sw: '<span class="key">⇄</span>', jset: '<span class="key tch s">Colocar</span>', jsetT: 'COLOCAR' }
   };
   // UI-22: mandos de la familia PlayStation (vendor 054c o nombres típicos) → glifos de forma ✕ ○ □ △ en texto neutro (sin logotipos
   // ni colores de marca); el resto, A/B/X/Y. El id se lee de VB.Input.padInfo() como mucho una vez por segundo (padInfo crea un objeto).
@@ -564,7 +564,7 @@
     var d = device(), I = VB.Input;
     if (I && I.srcRev && I.srcRev() !== srcRevSeen) { srcRevSeen = I.srcRev(); rebuildGlyph(); }
     if (d === 'gamepad' && padFam() === 'ps') {
-      if (!GLYPH_PS) GLYPH_PS = { serve: padIdxKey(padIx.hit, 'ps'), hit: padIdxKey(padIx.hit, 'ps'), jump: padIdxKey(padIx.jump, 'ps'), move: GLYPH.gamepad.move, aim: GLYPH.gamepad.aim,
+      if (!GLYPH_PS) GLYPH_PS = { serve: padIdxKey(padIx.hit, 'ps'), hit: padIdxKey(padIx.hit, 'ps'), jump: padIdxKey(padIx.jump, 'ps'), move: GLYPH.gamepad.move, aim: GLYPH.gamepad.aim, dir: GLYPH.gamepad.dir,
         hitT: padIdxName(padIx.hit, 'ps'), jumpT: padIdxName(padIx.jump, 'ps'), sw: padIdxKey(padIx.sw, 'ps'), jset: padIdxKey(padIx.jset, 'ps'), jsetT: padIdxName(padIx.jset, 'ps') };
       return GLYPH_PS;
     }
@@ -597,6 +597,15 @@
     var lr = has('left', 'ArrowLeft') && has('right', 'ArrowRight');
     kb.move = lr ? '<span class="key">←</span><span class="key">→</span>' : ks(nm('left')) + ks(nm('right'));
     kb.aim = lr && has('up', 'ArrowUp') && has('down', 'ArrowDown') ? 'las flechas' : 'las teclas de dirección';
+    kb.dir = kb.aim;   // (dir: la dirección de MOVIMIENTO; aim: con qué se apunta)
+    // controles PC (25-nov-2026), esquema 'km' (teclado y ratón): el ratón apunta y golpea / coloca; las teclas (W A S D) solo mueven
+    if (kmOn()) {
+      kb.hit = kb.serve = ks('Clic'); kb.hitT = 'CLIC'; kb.jset = ks('Clic derecho'); kb.jsetT = 'CLIC DER.';
+      var wasd = has('up', 'KeyW') && has('left', 'KeyA') && has('down', 'KeyS') && has('right', 'KeyD');
+      kb.move = ks(nm('left')) + ks(nm('right'));
+      kb.dir = wasd ? 'W A S D' : kb.aim;
+      kb.aim = 'el ratón';
+    }
     if (b.pad) {
       ['hit', 'jump', 'jset', 'sw'].forEach(function (a) { var v = b.pad[a] && b.pad[a][0]; padIx[a] = typeof v === 'number' && v >= 0 ? v : padIx[a]; });
       var gp = GLYPH.gamepad;
@@ -2322,7 +2331,11 @@
     if (q.role === 'MB') return 'rápida al central';
     return (SET_TEMPO[v.tempo] || 'alta') + ' ' + (q.role === 'OH' ? 'a la 4' : ROLE6_TO[q.role] || 'a tu compañero');
   }
-  function lanes6() { return (window.innerWidth || 1280) < 1000 ? LANES6S : LANES6L; }   // (en 844×390 la larga no cabe)
+  function lanes6() {
+    if (device() === 'keyboard' && kmOn()) return LANES6K;   // (controles PC: el cursor elige, desde donde tocas, hacia quien apuntes)
+    return (window.innerWidth || 1280) < 1000 ? LANES6S : LANES6L;   // (en 844×390 la larga no cabe)
+  }
+  var LANES6K = 'apunta con el ratón: a la 4, al centro (rápida), a la 2 o atrás (pipe); fuera de tu campo, alta a la 4';
   /** 6v6, consejo cuando el siguiente toque es de un compañero IA (nt: 1 recepción/defensa, 2 colocación, 3 ataque), por el puesto
    *  del humano y la fase de su sitio (ai6 spot().phase, D7; la marca del suelo —fx— le dice adónde ir, el texto solo qué hacer). */
   function coach6(g, p, nt, gl, touchDev) {
@@ -6420,12 +6433,13 @@
     //  en el suelo o COLOCAR, y la dirección elige a quién —C2: sin dirección, alta a la 4; ↖ tensa a la 4, ↑ rápida, ↗ / → a la 2, ↓ pipe—)
     if (fmt6()) {
       R = R.map(function (r) { return r[1] === 'Cambiar jugador' ? [r[0], 'Pedir el balón <small>(antes de la colocación)</small>'] : r[1] === 'Moverse' ? [r[0], 'Moverse <small>(sin balón, a la marca del suelo)</small>'] : r; });
-      R.splice(2, 0, [R[1][0], 'Colocar <small>(colocador: la dirección elige a quién; sin dirección, alta a la 4)</small>']);
+      var hitRow = R.filter(function (r) { return /^Golpear/.test(r[1]); })[0] || R[1];
+      R.splice(2, 0, [hitRow[0], 'Colocar <small>(colocador: ' + (dv !== 'touch' && dv !== 'gamepad' && kmOn() ? 'el ratón elige a quién; fuera de tu campo' : 'la dirección elige a quién; sin dirección') + ', alta a la 4)</small>']);
     }
     else {
       if (oneMode()) R = R.filter(function (r) { return r[1] !== 'Cambiar jugador'; });
       // C2: colocar por destino (2v2, «Colocación dirigida: Sí»)
-      if (ctx.settings.aimSet !== false) R.splice(4, 0, [dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→'), 'Al colocar: sin dirección, alta a la 4; ya bajo el balón, con dirección eliges el destino']);
+      if (ctx.settings.aimSet !== false) R.splice(4, 0, dv !== 'touch' && dv !== 'gamepad' && kmOn() ? [S('Cursor'), 'Al colocar: apunta a tu campo y eliges el destino; fuera de tu campo, alta a la 4'] : [dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→'), 'Al colocar: sin dirección, alta a la 4; ya bajo el balón, con dirección eliges el destino']);
     }
     // Salto con impulso (v1.12.0): dirección + SALTAR = salto hacia delante (detrás de la fila de la finta); con la diana de colocación
     // (Ajustes · Juego), otra fila
@@ -6433,7 +6447,7 @@
     var jmpK = dv === 'touch' ? T('Saltar', 1) : dv === 'gamepad' ? padKey('b') : K('Espacio');
     var fi = -1; for (var ri = 0; ri < R.length; ri++) if (/^Finta/.test(R[ri][1])) fi = ri;
     var add = [[dirK + '<small>y</small>' + jmpK, 'Salto con dirección <small>(corriendo hacia la red, el remate sale más fuerte)</small>']];
-    if (ctx.settings.jsetAim === true) add.push([dirK, 'En la colocación en salto: mueves la diana']);
+    if (ctx.settings.jsetAim === true) add.push([dv !== 'touch' && dv !== 'gamepad' && kmOn() ? S('Cursor') : dirK, 'En la colocación en salto: mueves la diana']);
     R.splice.apply(R, [fi >= 0 ? fi + 1 : R.length, 0].concat(add));
     return R;
   }
@@ -6447,7 +6461,32 @@
       renderCtl(); var nb = el.ctlGrid.querySelector('[data-tedit]'); if (nb) focusEl(nb, kbNow() || ctx.inputDevice === 'gamepad');
     } });
   }
+  // ---------- Controles PC (25-nov-2026): esquema de teclado y ratón ('km', el principal) o solo teclado ('kb', el de siempre) ----------
+  /** ¿Aparato con puntero fino (ratón o panel táctil del portátil)? En un móvil la fila del esquema no sale (allí no cambia nada). */
+  var fineV = false, fineF = -999;   // (se mira como mucho cada 2 s: lanes6 lo pide en los consejos de cada frame)
+  function finePtr() {
+    var f = ctx ? ctx.frame | 0 : 0;
+    if (f - fineF < 120 && f >= fineF) return fineV;
+    fineF = f;
+    try { fineV = !ctx.isTouch && !!(window.matchMedia && window.matchMedia('(any-pointer: fine)').matches); } catch (e) { fineV = false; }
+    return fineV;
+  }
+  /** Esquema activo de PC: el ratón apunta (VB.Input.scheme() === 'km') en un aparato con ratón (un móvil con teclado no lo usa). */
+  function kmOn() { return !!(VB.Input && VB.Input.scheme && VB.Input.scheme() === 'km') && finePtr(); }
+  /** Fila SPLAT «Esquema» arriba de la pestaña Teclado (solo con puntero fino) y su ayuda. */
+  function ctlSchemeHTML() {
+    if (!finePtr() || !(VB.Input && VB.Input.scheme)) return '';   // (sin ratón: la pestaña Teclado de siempre)
+    return '<div class="opt-g"><button class="opt" data-opt="ctrlPC" data-need="Input"><span>Esquema<small>' + (kmOn() ? 'El ratón apunta; las teclas solo mueven' : 'Las flechas apuntan, como siempre') +
+      '</small></span><span class="seg sp-seg" data-seg="ctrlPC"></span></button></div>' +
+      (kmOn() ? '<dl class="ctl ctl-km"><div><dt>' + S('Cursor') + '</dt><dd>Apuntar <small>(sobre la pista: diana del saque y del remate, destino de la colocación)</small></dd></div>' +
+        '<div><dt>' + M('l') + '</dt><dd>Golpear y sacar</dd></div><div><dt>' + M('r') + '</dt><dd>Colocar</dd></div>' +
+        '<div><dt>' + K('Espacio') + '<small>o</small>' + M('c') + '</dt><dd>Saltar</dd></div></dl>' : '');
+  }
   function ctlRowsAll(dv) {
+    if (dv !== 'gamepad' && dv !== 'touch' && kmOn()) {   // teclado y ratón: el cursor apunta, las teclas solo mueven
+      return [[K('W') + K('A') + K('S') + K('D') + '<small>o</small>' + K('↑') + K('←') + K('↓') + K('→'), 'Moverse'], [S('Cursor'), 'Apuntar <small>(sobre la pista: diana del saque y del remate, destino de la colocación)</small>'],
+        [M('l') + '<small>o</small>' + K('J') + K('X'), 'Golpear y sacar'], [K('Espacio') + '<small>o</small>' + M('c'), 'Saltar <small>(en el aire: dejada)</small>'], [M('r') + '<small>o</small>' + K('K'), 'Colocar <small>(en el suelo, en tu 2º toque; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [M('l') + '<small>y</small>' + K('Espacio'), 'Finta <small>(en el aire: golpear pronto y saltar al golpear)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido'], [K('+') + K('-') + '<small>o</small>' + M('c'), 'Zoom de cámara <small>(rueda girada)</small>']];
+    }
     if (dv === 'gamepad') {
       var P = padSet();
       return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar <small>(en el suelo, coloca si te toca; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(en el aire: golpear pronto y saltar al golpear)</small>'],
@@ -6510,6 +6549,11 @@
     var setT = !fmt6() && ctx.settings.aimSet !== false ? ' Al colocar, sin dirección va alta a la 4; ya bajo el balón, con dirección eliges el destino.' : '';
     // salto con impulso (v1.12.0): la nota se ve en las tres pestañas (con reasignar teclas, Teclado y Mando no pintan las filas de ctlRows)
     setT += ' Corriendo hacia la red, salta sin soltar la dirección: el remate sale más fuerte.' + (ctx.settings.jsetAim === true ? ' En la colocación en salto, la dirección mueve la diana.' : '');
+    if (note && ctlView === 'keyboard' && kmOn()) {   // controles PC: teclado y ratón
+      note.innerHTML = '<b>Arriba</b> es siempre hacia la red. <b>Apunta con el ratón:</b> el cursor sobre la pista lleva la diana del saque y del remate y, al colocar, elige el destino (apunta a tu campo). ' +
+        'Las teclas solo mueven: corriendo hacia la red, salta sin soltarlas y el remate sale más fuerte. La diana va hacia el cursor a su velocidad de siempre.';
+      note = null;
+    }
     if (note) note.innerHTML = fmt6() ? '<b>Arriba</b> es siempre hacia la red. En el 6 contra 6 llevas al <b>' + roleName().toLowerCase() + '</b> (n.º ' + sixNum() + ') y la IA al resto. Sin balón, la marca del suelo es tu sitio. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : oneMode() ? '<b>Arriba</b> es siempre hacia la red. Llevas siempre al <b>n.º ' + oneNum() + '</b> y la IA a tu pareja. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : '<b>Arriba</b> es siempre hacia la red. El control pasa solo a quien da el siguiente toque. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT;
@@ -6534,14 +6578,14 @@
       ' aria-label="' + escT(label + (kind === 'pad' ? ', botón: ' : ', tecla ' + (slot + 1) + ': ') + (empty ? 'ninguna' : name)) + '">' + escT(empty ? '—' : name) + '</button>';
   }
   function ctlKeysHTML(I) {
-    var B = I.bindings(), K = B.keys || {}, one = oneMode() && !fmt6(), h = '<div class="ctl kb">';
+    var B = I.bindings(), K = B.keys || {}, one = oneMode() && !fmt6(), h = ctlSchemeHTML() + '<div class="ctl kb">';
     KEY_ACTS.forEach(function (a) {
       var k = K[a] || ['', ''], L = actLabel(a), sub = a === 'up' ? 'hacia la red' : a === 'switch' && one ? '(modo Un jugador)' : a === 'pause' ? 'y Esc' :
         a === 'hit' ? 'o clic' : a === 'jset' ? 'o clic derecho' : a === 'jump' ? 'o clic de rueda' : a === 'zoomIn' ? 'o rueda adelante' : a === 'zoomOut' ? 'o rueda atrás' : '';   // (C2: el ratón, fijo)
       h += '<div' + (a === 'switch' && one ? ' class="dim"' : '') + '><span class="kl">' + L + (sub ? '<small>' + sub + '</small>' : '') + '</span><span class="ks">' +
         slotHTML('key', a, 0, L, k[0] ? I.keyName(k[0]) : '', !k[0]) + slotHTML('key', a, 1, L, k[1] ? I.keyName(k[1]) : '', !k[1]) + '</span></div>';
     });
-    return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> clic izq. golpea, der. coloca, clic de rueda salta y la rueda acerca o aleja la cámara.</p>' +
+    return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> ' + (kmOn() ? 'el cursor sobre la pista apunta, clic izq. golpea' : 'clic izq. golpea') + ', der. coloca, clic de rueda salta y la rueda acerca o aleja la cámara.</p>' +
       '<button type="button" class="opt-reset sp-pill" data-reset="keys">Restablecer teclas</button>';
   }
   function ctlPadHTML(I) {
@@ -6725,6 +6769,7 @@
     landAid: { vals: ['auto', 'siempre', 'retira', 'no'], labels: ['Auto', 'Siempre', 'Se retira', 'No'] },
     // Controles · Táctil (input.js: VB.Input.OPTS)
     touchSize: { vals: [1, 1.15, 1.3], labels: ['100%', '115%', '130%'] },
+    ctrlPC: { vals: ['km', 'kb'], labels: ['Teclado y ratón', 'Solo teclado'] },   // (controles PC, 25-nov-2026: Controles › Teclado)
     // Juego, E1: colocación dirigida (sim opts.aimSet) y timing exacto en ms (solo el sello de ui.js)
     aimSet: { vals: [true, false], labels: ['Sí', 'No'] },
     // Salto con impulso (v1.12.0): colocación en salto con diana (sim opts.jsetAim; por defecto No). jsetNote (aviso de colocador) no
@@ -8389,7 +8434,7 @@
     // salto con impulso (v1.12.0): primero los consejos nuevos que aún no se han visto 2 veces (si no, los de siempre los taparían)
     if (g.jsetAim && (S.jdiana | 0) < 2 && g.aim3 && g.aim3.on && g.aim3.kind === 'jset' && !g.jsMv) { k = 'jdiana'; txt = 'Mueve la diana con ' + gl.aim + ': cerca, rápida; lejos, alta'; }
     else if (g.djump && (S.pipe | 0) < 2 && g.size === 6 && nt === 2 && g.touchTeam === 0 && p.z <= 0.01 && !p.front && (p.role === 'OH' || p.role === 'OPP')) { k = 'pipe'; txt = 'Pipe: despega detrás de la línea de 3 m y salta hacia delante'; }
-    else if (g.djump && (S.mom | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'mom'; txt = 'Corre hacia la red y pulsa ' + gl.jump + ' sin soltar ' + gl.aim + ': remate con impulso'; }
+    else if (g.djump && (S.mom | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'mom'; txt = 'Corre hacia la red y pulsa ' + gl.jump + ' sin soltar ' + (gl.dir || gl.aim) + ': remate con impulso'; }
     // finta (1.17.0, también en 6v6): se arma con GOLPEAR y el golpe lo marca SALTAR (consejo nuevo 'feint2': la de antes se explicaba de otra forma)
     else if (g.feintOn && (S.feint2 | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'feint2'; txt = touchDev ? 'Finta: en el aire, toca GOLPEAR pronto y desliza a SALTAR al golpear' : 'Finta: en el aire, ' + gl.hit + ' pronto y ' + gl.jump + ' al golpear'; }
     else if (!g.mastery) { k = ''; }   // (6v6 o sin maestría: solo los del salto con impulso y la finta)
@@ -8738,10 +8783,10 @@
       '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never" aria-label="No volver a mostrar"><span class="sp-t"><span class="ph-hide">No volver a mostrar</span><span class="ph-only">No mostrar más</span></span></button></div></div></div>';
   function snBuild(kind) {
     kind = kind || 'set';
-    if (sn.root) { if (sn.kind !== kind) { sn.kind = kind; sn.root.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML; if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(sn.root); } catch (e) { } } } return; }
+    if (sn.root) { if (sn.kind !== kind) { sn.kind = kind; sn.root.innerHTML = kind === 'perf' ? perfHTML() : kind === 'ctrl' ? ctrlHTML() : SN_SET_HTML; if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(sn.root); } catch (e) { } } } return; }
     var r = document.createElement('div'); r.id = 'setNote'; r.hidden = true; sn.kind = kind;
     r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-labelledby', 'snH'); r.setAttribute('aria-describedby', 'snT');
-    r.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML;
+    r.innerHTML = kind === 'perf' ? perfHTML() : kind === 'ctrl' ? ctrlHTML() : SN_SET_HTML;
     r.addEventListener('click', function (e) {
       e.stopPropagation();
       var m = e.target && e.target.closest ? e.target.closest('[data-snm]') : null;
@@ -8814,12 +8859,46 @@
     uiSound('open');
     return true;
   }
+  /** Controles PC (25-nov-2026): la oferta de una vez «Nuevos controles en PC» (main.js startMatch, antes del partido): «Teclado y ratón»
+   *  (recomendado, con el foco) o «Solo teclado» (como antes). Se apunta en ctrlAsked (solo este aparato) al cerrarla; Esc / B = teclado y
+   *  ratón. Solo en un aparato con puntero fino, sin pantalla táctil y jugando con teclado (no con mando). Nunca online ni en depuración
+   *  (salvo &ctrlask=1). cb(elección) al cerrarla. false si no toca. */
+  function ctrlHTML() {
+    return '<div class="sp-panel sn-sheet sn-perf sn-ctrl"><div class="sn-txt"><p class="sp-k">Controles de PC</p><h2 class="sp-h" id="snH">Nuevos controles en PC</h2>' +
+      '<p class="sn-t" id="snT">Ahora apuntas con el ratón: el cursor sobre la pista lleva la diana del saque y del remate y elige adónde colocas. W A S D (o las flechas) solo mueven; clic izquierdo golpea y clic derecho coloca.</p>' +
+      '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Controles, Teclado.</small></div>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="c-km"><span class="sp-l"><span class="sp-t">Teclado y ratón</span><small class="sp-s">Recomendado · el ratón apunta</small></span></button>' +
+      '<div class="sn-row"><button type="button" class="sp-btn sp-sm sp-cream" data-shape="3" data-sn="c-kb"><span class="sp-l"><span class="sp-t">Solo teclado</span><small class="sp-s">Como antes</small></span></button></div></div></div>';
+  }
+  function ctrlNote(o, cb) {
+    o = o || {};
+    if (sn.open || !ctx || ctx.net) return false;
+    var force = !!(ctx.debug && ctx.params && ctx.params.ctrlask === '1');
+    if (!force) {
+      if (ctx.debug || ctx.settings.ctrlAsked === true || ctx.isTouch || ctx.inputDevice === 'gamepad') return false;
+      try { if (!(window.matchMedia && window.matchMedia('(pointer: fine)').matches) || navigator.maxTouchPoints > 0) return false; } catch (e) { return false; }
+    }
+    sn.kind = ''; snBuild('ctrl');
+    if (el.menu) el.menu.classList.add('sn-hide');
+    sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
+    sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
+    sn.root.hidden = false; sn.root.classList.remove('in');
+    if (sn.rel) { sn.rel(); sn.rel = null; }
+    requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
+    snFocus(sn.root.querySelector('[data-sn="c-km"]'), true);
+    uiSound('open');
+    return true;
+  }
   function snClose(choice) {
     if (!sn.open) return;
     sn.open = false; sn.root.hidden = true; sn.root.classList.remove('in');
     if (sn.rel) { sn.rel(); sn.rel = null; }
     if (el.menu) el.menu.classList.remove('sn-hide');
-    if (sn.kind === 'perf') {   // rendimiento del 1r 6v6: la calidad elegida (Esc / B = la de ahora) y no vuelve a salir en este aparato
+    if (sn.kind === 'ctrl') {   // controles PC: el esquema elegido (Esc / B = teclado y ratón) y no vuelve a salir en este aparato
+      var kb2 = choice === 'c-kb';
+      if (ctx.actions.setSetting) { ctx.actions.setSetting('ctrlPC', kb2 ? 'kb' : 'km'); ctx.actions.setSetting('ctrlAsked', true); }
+      snToast(kb2 ? 'Controles: solo teclado' : 'Controles: teclado y ratón'); uiSound(/^c-/.test(choice || '') ? 'click' : 'back');
+    } else if (sn.kind === 'perf') {   // rendimiento del 1r 6v6: la calidad elegida (Esc / B = la de ahora) y no vuelve a salir en este aparato
       var qv = /^q-(auto|high|medium|low)$/.exec(choice || '');
       if (ctx.actions.setSetting) { if (qv) ctx.actions.setSetting('quality', qv[1]); ctx.actions.setSetting('q6Asked', true); }
       if (qv) { snToast('Calidad: ' + OPT.quality.labels[OPT.quality.vals.indexOf(qv[1])]); uiSound('click'); } else uiSound('back');
@@ -8866,6 +8945,8 @@
     perfFirst: perfFirst,
     /** Rendimiento del 1r 6v6 (24-nov-2026): ventana corta para elegir la calidad antes del partido (main.js startMatch). */
     perfNote: perfNote,
+    /** Controles PC: oferta de una vez del esquema de teclado y ratón (ver ctrlNote). */
+    ctrlNote: ctrlNote,
     noteOpen: function () { return sn.open; },
     noteNav: snNav,
     noteBack: function () { if (!sn.open) return false; snClose('later'); return true; },
@@ -9265,7 +9346,7 @@
     },
     onSettings: function (s, k) {
       // E3: teclas y botones reasignados → glifos de los avisos y, con Controles abierto, sus filas
-      if (k == null || k === 'keys' || k === 'padKeys') { rebuildGlyph(); if (k && panel === 'ctl' && !capturing) renderCtl(); }
+      if (k == null || k === 'keys' || k === 'padKeys' || k === 'ctrlPC') { rebuildGlyph(); if (k && panel === 'ctl' && !capturing) renderCtl(); }
       if (k == null || k === 'lessMotion') el.app.classList.toggle('rm', rm());
       el.btnHudMute.classList.toggle('muted', !!s.muted);
       el.icoSound.innerHTML = s.muted ? '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l5 6M21 9l-5 6" stroke="#f7f2ea" stroke-width="2" stroke-linecap="round"/>'
