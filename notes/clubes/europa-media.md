@@ -193,7 +193,7 @@ Liga real: Divizia A1 masculin + Divizia A1 feminin 2025-26 (mezcla). Reparto: 9
 
 | Real | Nuestro nombre | Corto | Nota |
 |---|---|---|---|
-| CEV Champions League (las dos) | **Champions Cup** | CHC | Nombre que fija Ferran. En elite-europa.json sale como «Champions Cup VEC»: hay que unificar. |
+| CEV Champions League (las dos) | **Champions Cup** | CHC | Nombre que fija Ferran. En elite-europa.json sale como «Copa de Campeones VEC»: hay que unificar. |
 | CEV Cup (las dos) | **Copa VEC** | CVEC | Igual que en los otros ficheros. |
 | CEV Challenge Cup (las dos) | **Challenge VEC** | CHV | Igual que elite-europa.json (fra-ale-esp.json usa «Challenge Trophy»: hay que unificar). |
 | BeNe Conference (Bélgica + Países Bajos, los 4 mejores de cada liga) | **Copa BeNeVol** | BNV | Fase conjunta de Bélgica y Países Bajos antes de los play-offs. |
@@ -241,7 +241,7 @@ Repaso adversarial hecho el 11-nov-2026. **Aviso:** el cupo de búsquedas web de
 
 **Queda dudoso:**
 - **La búsqueda entre comillas de los ~90 nombres de club y de las copas está entera por hacer**, en especial la de «Vólei Espinho», «Vólei Maia», «Vólei Matosinhos», «Capodistria Volley», «Dínamo Bucarest», «Copa Tulipán», «Copa Srbija», «Liga Centroeuropea», «Liga Helénica», «Eredivisión», «Hiperliga Srbija» y «Extravolej».
-- **«Champions Cup»** es nombre oficial de otras competiciones reales (la de clubes de rugby de la EPCR y la de clubes de fútbol de la CONCACAF). Lo ha fijado Ferran, así que no lo cambio, pero choca con la regla de no coincidir con ninguna competición oficial. Se le podría proponer «Champions Cup VEC», como en elite-europa.json.
+- **«Champions Cup»** es nombre oficial de otras competiciones reales (la de clubes de rugby de la EPCR y la de clubes de fútbol de la CONCACAF). Lo ha fijado Ferran, así que no lo cambio, pero choca con la regla de no coincidir con ninguna competición oficial. Se le podría proponer «Copa de Campeones VEC», como en elite-europa.json.
 - **«Dínamo Bucarest»** es la forma española del nombre real: el guiño es mínimo. Propuesta si Ferran quiere más distancia: «Câinii Bucarest» (los «perros rojos», apodo del Dinamo).
 - **Tectum Achel** (hombres, Copa VEC 2025-26) no está en la lista. Se podría poner en lugar de Menen.
 - **Colores:** siguen estimados los de la lista de «Datos dudosos», y el color del líbero lo es en todos los clubes (liberoEstimated: true).

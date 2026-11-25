@@ -1278,7 +1278,7 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
     ok(cupCC.every(cc => cupOf(cc)), 'copa nacional propia en ' + cupCC.length + ' países: ' + cupCC.map(cc => cc + ' ' + cupOf(cc)).join(', '));
     ok(cupOf('IT') === 'Coppa Tricolore' && cupOf('PL') === 'Puchar Orła' && cupOf('TR') === 'Hilal Kupası' && cupOf('RU') === 'Kubok Volgi', 'las copas de Italia, Polonia, Turquía y Rusia ya no son la genérica');
     const inm = cc => H.intlFor(c6, cc).map(x => x.name + ' (' + x.rank + ')').join(' + ');
-    ok(inm('ES') === 'Champions Cup VEC (1) + Copa VEC (2)' && inm('BE') === inm('ES') && inm('BR') === 'Copa del Sur de Clubes (1)' && inm('US') === 'Copa Norte de Campeones (1)' && inm('JP') === 'Champions Cup Asia (1)',
+    ok(inm('ES') === 'Copa de Campeones VEC (1) + Copa VEC (2)' && inm('BE') === inm('ES') && inm('BR') === 'Copa del Sur de Clubes (1)' && inm('US') === 'Copa Norte de Campeones (1)' && inm('JP') === 'Copa de Campeones Asia (1)',
       'copas internacionales unificadas: Europa ' + inm('ES') + '; BR ' + inm('BR') + '; US ' + inm('US') + '; JP ' + inm('JP'));
     const allComp = []; regs.forEach(rg => rg.competitions.forEach(x => allComp.push(x.name)));
     ok(!allComp.some(n => /^(Champions Cup|World Club Cup|Mundial VBC de Clubes|Challenge Trophy)$/.test(n)) && allComp.filter(n => n === 'Mundial de Clubes VBF').length === 3, 'un solo nombre por competición (Champions Cup VEC; Mundial de Clubes VBF en los tres continentes)');
@@ -1288,6 +1288,15 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
     ok(c6.history.every(h => h.cup), 'la copa nacional se juega cada temporada');
     ok(c6.leagues.every(L => C.leagueClubs(c6, L.id).length === divs.find(([co, d]) => co.code + d.lvl === L.id)[1].clubs.length), 'ascensos y descensos conservan el tamaño de cada liga');
     ok(mem['make-the-cut.career6'].length < 400000, 'guardado de ' + Math.round(mem['make-the-cut.career6'].length / 1024) + ' KB');
+    // guardado viejo con «Champions Cup VEC/Asia» (copas, palmarés, buzón): al cargar pasa a «Copa de Campeones» (25-nov-2026)
+    {
+      const raw0 = mem['make-the-cut.career6'], o = JSON.parse(raw0);
+      o.inbox.push({ id: 9999, t: 'Juegas la Champions Cup VEC', b: 'y la Champions Cup Asia', read: false });
+      mem['make-the-cut.career6'] = JSON.stringify(o).replace(/Copa de Campeones (VEC|Asia)/g, 'Champions Cup $1'); C._reset();
+      const r = JSON.stringify(H.get() || {});
+      ok(r.length > 1000 && !/Champions Cup (VEC|Asia)/.test(r) && /Copa de Campeones VEC/.test(r) && /Copa de Campeones Asia/.test(r), 'guardado viejo: «Champions Cup VEC/Asia» pasa a «Copa de Campeones VEC/Asia» al cargar');
+      mem['make-the-cut.career6'] = raw0; C._reset();
+    }
     // empezar en cada país: ofertas de su 2ª (o de su 1ª si no tiene)
     const bad = [];
     cos.forEach(x => {

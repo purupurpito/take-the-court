@@ -1384,9 +1384,9 @@
     },
     {
       "real": "CEV Champions League (las dos)",
-      "name": "Champions Cup VEC",
+      "name": "Copa de Campeones VEC",
       "short": "CCV",
-      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Champions Cup VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. Unificado con elite-europa.json (allí ya se llama «Champions Cup VEC», CCV).",
+      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Copa de Campeones VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. Unificado con elite-europa.json (allí ya se llama «Copa de Campeones VEC», CCV).",
       "kind": "intl",
       "rank": 1
     },

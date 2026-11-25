@@ -163,7 +163,7 @@ Reparto: 3 de la liga de hombres y 7 de la de mujeres.
 | Iranian Volleyball Super League / Women's Premier League | **Persian Hyper League** | PHL | Comprobado: sin coincidencias. |
 | Qatar Volleyball League (QVA) | **Doha Volley League** | DVL | Comprobado: sin coincidencias (la real es «Qatari Volleyball League»). |
 | Premier Volleyball League (PVL) + Spikers' Turf (Filipinas) | **Prime Volleyball League** | PRV | Mantiene la «P» y la «VL». Comprobado: sin coincidencias. |
-| AVC Champions League (antes Asian Club Championship) | **Champions Cup Asia** | CCA | Copa continental de clubes de Asia. Comprobado: sin coincidencias. |
+| AVC Champions League (antes Asian Club Championship) | **Copa de Campeones Asia** | CCA | Copa continental de clubes de Asia. Comprobado: sin coincidencias. |
 | Emperor's Cup y Empress's Cup (copa de Japón) | **Chrysanthemum Cup** | CHR | Una sola copa; el crisantemo es el sello imperial. Cambiado en la verificación: «Imperial Cup» es una carrera de caballos real y la regla prohíbe coincidir con cualquier competición oficial. Sin comprobar con búsqueda (no quedaban búsquedas). |
 | KOVO Cup (copa de Corea del Sur) | **VKL Cup** | VKC | Va con el nombre de la liga. Cambiado en la verificación: «VK Cup» es el campeonato real de programación de la red social VK. |
 | FIVB Volleyball Club World Championship | **World Club Cup** | WCC | Juntarla con lo que hayan propuesto los otros lotes de regiones. Sin comprobar con búsqueda. |
@@ -225,7 +225,7 @@ Revisión adversarial del primer borrador. **Límite:** el cupo de búsquedas we
 - **Filipinas:** Cignal y Petro Gazz se dieron de baja temporal en 2026 y Navy ya no figura en la Spikers' Turf. Jugaron 2025-26, pero quizá convenga cambiarlos por clubes en activo (Zus Coffee, Capital1, Nxled o Galeries Tower en la PVL).
 - **Colores todavía estimados:** JTEKT, Korean Air, GS Caltex, los 10 de China, casi todo Irán y Catar, y en Filipinas Cignal, Akari, Criss Cross, Savouge y Navy. El líbero sigue con `liberoEstimated: true` en los 71.
 - **Ovr:** comparado con los ficheros de las otras regiones. Japón (máximo 86, fuerza 80) queda a la altura de Francia, Alemania y Rusia (86, 80-82). Catar (74) e Irán (76) quedan por encima de las ligas medias de Europa (63-70), porque sus mejores clubes ganan en Asia con fichajes extranjeros. Ferran puede bajarlos si prefiere que «liga pequeña» pese más.
-- **Mundial de clubes:** aquí pone «World Club Cup»; en elite-europa, «Mundial de Clubes VBF», y en america, «Mundial VBC de Clubes». Hay que dejar un solo nombre al juntar los ficheros. Lo mismo con «Champions Cup Asia» frente a «Champions Cup VEC».
+- **Mundial de clubes:** aquí pone «World Club Cup»; en elite-europa, «Mundial de Clubes VBF», y en america, «Mundial VBC de Clubes». Hay que dejar un solo nombre al juntar los ficheros. Lo mismo con «Copa de Campeones Asia» frente a «Copa de Campeones VEC».
 
 ## Patrocinadores inventados (gag, 11-nov-2026)
 

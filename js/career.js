@@ -2505,9 +2505,18 @@
     var o = null, raw = null, s = null;
     try { s = store(); raw = s ? s.getItem(KEY6) : null; o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
     seen[KEY6] = s ? raw : undefined;
-    try { cur6 = sane6(o); } catch (e) { cur6 = null; }
+    try { cur6 = sane6(renameComps6(o)); } catch (e) { cur6 = null; }
     if (!cur6 && raw) { lost6 = true; try { if (s) { s.setItem(KEY6 + '.bak', raw); s.removeItem(KEY6); seen[KEY6] = null; } } catch (e) { } }
     return cur6;
+  }
+  /** Competiciones renombradas (25-nov-2026): «Champions Cup» es marca de otras competiciones. Los guardados viejos las llevan en
+   *  copas en curso, palmarés y buzón; se cambian todas las apariciones (texto incluido). */
+  var COMP_REN6 = [[/Champions Cup VEC/g, 'Copa de Campeones VEC'], [/Champions Cup Asia/g, 'Copa de Campeones Asia']];
+  function renameComps6(o) {
+    if (!o || typeof o !== 'object') return o;
+    var t = JSON.stringify(o), u = t;
+    COMP_REN6.forEach(function (r) { u = u.replace(r[0], r[1]); });
+    return u === t ? o : JSON.parse(u);
   }
   function abandon6() { cur6 = null; M = null; lost6 = false; try { var s = store(); if (s) { s.removeItem(KEY6); seen[KEY6] = null; } } catch (e) { } return true; }
   /** Repara lo reparable de un guardado de pista; lo irreparable (ligas, clubes, tu club) → null (copia en KEY6 + '.bak'). */

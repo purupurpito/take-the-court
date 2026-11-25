@@ -360,7 +360,7 @@
         ] }
       ] }
     ], competitions: [
-      {"name":"Champions Cup VEC","short":"CCV","kind":"intl","rank":1},
+      {"name":"Copa de Campeones VEC","short":"CCV","kind":"intl","rank":1},
       {"name":"Copa VEC","short":"CVC","kind":"intl","rank":2},
       {"name":"Challenge VEC","short":"CHV","kind":"intl","rank":3},
       {"name":"Mundial de Clubes VBF","short":"MCV","kind":"skip"},
@@ -599,7 +599,7 @@
       {"name":"Persian Hyper League","short":"PHL","kind":"skip"},
       {"name":"Doha Volley League","short":"DVL","kind":"skip"},
       {"name":"Archipelago Volleyball League","short":"AVL","kind":"skip"},
-      {"name":"Champions Cup Asia","short":"CCA","kind":"intl","rank":1},
+      {"name":"Copa de Campeones Asia","short":"CCA","kind":"intl","rank":1},
       {"name":"Chrysanthemum Cup","short":"CHR","kind":"cup","country":"JP"},
       {"name":"VKL Cup","short":"VKC","kind":"cup","country":"KR"},
       {"name":"Mundial de Clubes VBF","short":"MCV","kind":"skip"},

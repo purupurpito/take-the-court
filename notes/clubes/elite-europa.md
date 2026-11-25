@@ -286,7 +286,7 @@ Sin patrocinador en el nombre real (no llevan): Dinamo Moskva, Zenit Kazan, Loko
 
 | Real | Nuestro nombre | Corto | Nota |
 |---|---|---|---|
-| CEV Champions League (hombres y mujeres) | **Champions Cup VEC** | CCV | La que propuso Ferran («Champions Cup») con «VEC» detrás: la Champions de la CEV se llamó oficialmente «CEV (European) Champions Cup» hasta 2000, así que «Champions Cup» a secas se queda demasiado pegado. «VEC» es CEV del revés. |
+| CEV Champions League (hombres y mujeres) | **Copa de Campeones VEC** | CCV | La que propuso Ferran («Champions Cup») con «VEC» detrás: la Champions de la CEV se llamó oficialmente «CEV (European) Champions Cup» hasta 2000, así que «Champions Cup» a secas se queda demasiado pegado. «VEC» es CEV del revés. |
 | CEV Cup | **Copa VEC** | CVC | La propuesta de Ferran. No encontré ninguna competición oficial con este nombre. |
 | CEV Challenge Cup | **Challenge VEC** | CHV | Tercera copa europea. |
 | FIVB Club World Championship (Mundial de Clubes) | **Mundial de Clubes VBF** | MCV | «VBF» por FIVB revuelto. |
