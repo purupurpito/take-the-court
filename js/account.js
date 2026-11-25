@@ -701,7 +701,7 @@
     '#account .ac-legal{line-height:44px}',
     '#account .ac-legal a{display:inline-block;min-height:44px;padding:0 1px;color:var(--sp-gold,#ffcb3d);font-weight:700;line-height:44px;text-underline-offset:3px}',
     // (con la hoja de la cuenta abierta, el pie de la portada —Legal y la versión— no asoma por debajo)
-    'body:has(#account:not([hidden])) .menu-foot{visibility:hidden}',
+    'html.ac-open .menu-foot{visibility:hidden}',   // (clase y no :has(): un :has() en body recalcula estilos con cada cambio del DOM)
     PP + '#account .ac-legal{font-size:var(--ph-label)}'
   ].join('');
   var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null, ageOk = false;
@@ -908,12 +908,12 @@
   function focusFirst() { try { var i = root.querySelector('#acUser') || root.querySelector('[data-ac=close]'); if (i) i.focus({ preventScroll: true }); } catch (e) { } }
   function open() {
     build(); view = acc ? 'in' : 'enter'; msg = ''; render();
-    lastFocus = document.activeElement; root.hidden = false; focusFirst();
+    lastFocus = document.activeElement; root.hidden = false; document.documentElement.classList.add('ac-open'); focusFirst();
     gWarm();
   }
   function close() {
     if (!root || root.hidden) return;
-    root.hidden = true;
+    root.hidden = true; document.documentElement.classList.remove('ac-open');
     try { if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); } catch (e) { }
   }
   function isOpen() { return !!(root && !root.hidden); }
