@@ -15,8 +15,15 @@
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://takethecourt.com/og.png">
 <meta name="theme-color" content="#15102a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23fff4dc' stroke='%2315102a' stroke-width='2'/%3E%3Cpath d='M12 12C12 8 10.5 4.5 8 2.8M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8M12 12C9 14.5 5 15.5 2.4 14.6' fill='none' stroke='%2315102a' stroke-width='1.6'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&family=Titan+One&display=swap">
+<link rel="preconnect" href="https://takethecourt.com" crossorigin>
+<!-- (25-nov-2026, auditoría legal) Rubik y Titan One ya no salen de Google Fonts: los mismos woff2 que el juego (vendor/fonts, OFL),
+     servidos por takethecourt.com, que manda Access-Control-Allow-Origin: * (comprobado con curl -I). Si fallan, letra del sistema. -->
+<style>
+@font-face{font-family:'Rubik';font-style:normal;font-weight:300 900;font-display:swap;src:url(https://takethecourt.com/vendor/fonts/rubik_v31_iJWKBXyIfDnIV7nBrXw.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:300 900;font-display:swap;src:url(https://takethecourt.com/vendor/fonts/rubik_v31_iJWKBXyIfDnIV7nPrXyi0A.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Titan One';font-style:normal;font-weight:400;font-display:swap;src:url(https://takethecourt.com/vendor/fonts/titanone_v17_mFTzWbsGxbbS_J5cQcjClDgm.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Titan One';font-style:normal;font-weight:400;font-display:swap;src:url(https://takethecourt.com/vendor/fonts/titanone_v17_mFTzWbsGxbbS_J5cQcjCmjgm6Es.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+</style>
 <!--
   TAKE THE COURT — bridge/index.html (y bridge/404.html, copia EXACTA): el puente de la dirección antigua.
   Se publica en el repo nuevo purupurpito/make-the-cut (https://purupurpito.github.io/make-the-cut/). Lee las partidas de este
