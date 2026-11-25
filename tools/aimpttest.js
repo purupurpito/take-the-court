@@ -7,8 +7,8 @@
  *   3 remate: la diana del aire va hacia el punto a AIM3_SPEED como mucho, recortada al campo rival; aimCarry vuelve a 0
  *   4 colocación en salto con diana: hacia el punto en el campo propio; con el punto en el campo rival se queda
  *   5 colocación desde el suelo (2v2): el marcador (setPreview) cae cerca del cursor; cursor en el campo rival = sin dirección (NaN)
- *   6 6v6: setAngPt da la dirección del punto de toque al cursor (sectores de setSec)
- *   7 pointToAim: ida y vuelta de attackTarget y de la dejada dentro de los límites
+ *   6 6v6: el cursor señala al atacante (setAngPt: el sector cuyo destino de previewSet queda más cerca), también desde el campo rival
+ *   7 pointToAim: dirección UNITARIA hacia el punto (como el teclado y el stick: el ratón no llega a más destinos); null en el centro
  *   8 el 1r toque no apunta: misma recepción con y sin punto (mismo balón y mismo g.rng)
  *   9 determinismo: dos partidas con las mismas entradas con punto = mismo stateHash
  * Uso: node tools/aimpttest.js
@@ -200,32 +200,48 @@ function rally2(opts, o) {
   ok('5c 2v2: con el ratón, las teclas en la ventana mueven al colocador (no apuntan)', g2.ctrl.y - x0 > 0.3, { dy: r3(g2.ctrl.y - x0) });
 }
 
-// ---------- 6. 6v6: dirección del punto de toque al cursor ----------
+// ---------- 6. 6v6: el cursor señala al atacante ----------
 {
-  const g = S.createGame({ seed: 3, format: '6v6' }), hp = g.ctrl, w = { reach: true, x: 1, y: 0 };
-  const sec = pt => { const a = S.setAngPt(g, hp, pt, w); return a === a ? Math.round(a / 45) % 8 : -1; };
-  const sd = S.side(hp.team);
-  const s0 = sec([sd * 0.3, 0]), s2 = sec([sd * 1, 3]), s6 = sec([sd * 1, -3]), s4 = sec([sd * 4, 0]), s7 = sec([sd * 0.1, -0.8]), sr = sec([-sd * 2, 0]);
-  ok('6 6v6: hacia la red ↑ (0), a un lado → (2) / ← (6), atrás ↓ (4, pipe), ↖ (7); en el campo rival, sin dirección', s0 === 0 && s2 === 2 && s6 === 6 && s4 === 4 && s7 === 7 && sr === -1,
-    { s0, s2, s6, s4, s7, sr });
+  const g = S.createGame({ seed: 3, format: '6v6' }), hp = g.ctrl, w = { reach: true, x: 1, y: 0 }, sd = S.side(hp.team), o = {};
+  const prev = a => { const a0 = g.setDirA; g.setDirA = a; const r = VB.AI6.previewSet(g, hp, o); g.setDirA = a0; return { to: r.to && r.to.id, x: sd * r.d, y: sd * r.yl, tempo: r.tempo }; };
+  // cada carril con atacante: con el cursor en su destino (y a 0,4 m), setAngPt da un sector que coloca a ese mismo atacante
+  let bad = [], lanes = {};
+  for (let k = 0; k < 8; k++) {
+    const p0 = prev(k * 45); lanes[p0.tempo] = 1;
+    for (const [ox, oy] of [[0, 0], [0.3, 0.3], [-0.3, -0.3]]) {
+      const a = S.setAngPt(g, hp, [p0.x + ox, p0.y + oy], w), p1 = a === a ? prev(a) : null;
+      if (!p1 || p1.to !== p0.to || Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.05) bad.push({ k, p0, a, p1 });
+    }
+  }
+  // la rápida al central (el que va junto al colocador) se alcanza apuntándole a él, no solo en la franja hasta la red
+  const pq = prev(0), aq = S.setAngPt(g, hp, [pq.x, pq.y], w);
+  // cursor más allá de la red: también elige (el atacante más cercano), nunca NaN
+  const ar = S.setAngPt(g, hp, [-sd * 2, pq.y], w), ar2 = S.setAngPt(g, hp, [-sd * 3, -3.5], w);
+  ok('6 6v6: el cursor en el destino de cada atacante lo elige (también la rápida); en el campo rival elige el más cercano',
+    bad.length === 0 && pq.tempo === 'quick' && Math.round(aq / 45) % 8 === 0 && ar === ar && ar2 === ar2 && prev(ar2).y * sd < 0,
+    { bad: bad.slice(0, 2), lanes: Object.keys(lanes), quick: aq, rival: [ar, ar2] });
 }
 
 // ---------- 7. pointToAim ----------
 {
   const g = S.createGame({ seed: 1 }), p = g.teams[0][0]; p.y = 0.8;
-  let worst = 0, worstT = 0;
+  let worst = 0, notUnit = 0;
   for (let x = -7.5; x <= -2; x += 0.5) for (let y = -3; y <= 3; y += 0.5) {
-    const a = S.pointToAim(g, p, [x, y], '');
-    if (Math.hypot(a[0], a[1]) < 1 - 1e-9) { const t = S.attackTarget(p, a, 6.5, g.cs); worst = Math.max(worst, Math.hypot(t[0] - x, t[1] - y)); }
+    if (x === -5 && y === 0) continue;
+    const a = S.pointToAim(g, p, [x, y], ''), l = a && Math.hypot(a[0], a[1]);
+    if (!a || Math.abs(l - 1) > 1e-9) { notUnit++; continue; }
+    // la dirección es la del punto visto desde el centro de attackTarget (5 m de la red, en las unidades de su elipse 3 × 3,7)
+    const rx = (x + 5) / 3, ry = y / 3.7, rl = Math.hypot(rx, ry);
+    worst = Math.max(worst, Math.hypot(a[0] - rx / rl, a[1] - ry / rl));
   }
   for (let x = -2.6; x <= -1.4; x += 0.2) for (let y = -1.5; y <= 2.5; y += 0.5) {
-    const a = S.pointToAim(g, p, [x, y], 'tip');
-    if (Math.hypot(a[0], a[1]) < 1 - 1e-9 && -x - 1.6 >= -0.3 && -x - 1.6 <= 1) {
-      const tx = -(1.6 + Math.max(-0.3, Math.min(1, -a[0]))), ty = Math.max(-3.8, Math.min(3.8, p.y + a[1] * 2.6));
-      worstT = Math.max(worstT, Math.hypot(tx - x, ty - y));
-    }
+    const a = S.pointToAim(g, p, [x, y], 'tip'), l = a && Math.hypot(a[0], a[1]);
+    if (a && Math.abs(l - 1) > 1e-9) notUnit++;
   }
-  ok('7 pointToAim: ida y vuelta < 0,05 m (attackTarget y dejada)', worst < 0.05 && worstT < 0.05, { at: r3(worst), dejada: r3(worstT) });
+  // como el teclado: el centro de la pista rival y un balón libre corto ya no se alcanzan (el destino queda en el borde de la elipse)
+  const ac = S.pointToAim(g, p, [-5, 0], ''), t5 = S.attackTarget(p, S.pointToAim(g, p, [-5.5, 0.3], ''), 6.5, g.cs);
+  ok('7 pointToAim: dirección unitaria hacia el punto (como teclado / stick); null en el centro exacto', worst < 1e-9 && notUnit === 0 && ac === null && Math.hypot(t5[0] + 5, t5[1] / 3.7 * 3) > 2.5,
+    { dir: r3(worst), noUnit: notUnit, centro: ac, corto: t5.map(r3) });
 }
 
 // ---------- 8. El 1r toque no apunta ----------

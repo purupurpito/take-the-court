@@ -271,8 +271,10 @@ lo sanea campo a campo; desde 1.22.0, informe 4.2), `touchMirror` (false; zurdos
   x y 0,05 m en y) o ausente / `null`. Sin `aim` la sim es la de siempre bit a bit. Con él, `move` SOLO mueve y el punto apunta: dianas
   del saque (también en 'ready'), del remate y de la colocación en salto (solo con el punto en el campo propio) hacia él con su velocidad
   de siempre (`aimCarry` a 0); en la ventana de colocación (`setWin`) `g.setDirA` = el ángulo cuyo destino de `setAim` queda más cerca
-  del punto (2v2) o la dirección del punto de toque al punto (6v6; fuera del campo propio NaN), sin arrastre; dejada, balón libre y remate
-  sin mira libre con `pointToAim` (inversa de sus fórmulas). El 1r toque y el bloqueo no apuntan. Funciones: `Sim.aimPt(input)`,
+  del punto (2v2; fuera del campo propio NaN) o el sector cuyo atacante (`VB.AI6.previewSet`) tiene el destino más cerca del punto
+  (6v6, a los dos lados de la red), sin arrastre; dejada, balón libre y remate sin mira libre con `pointToAim`: la dirección UNITARIA
+  hacia el punto (como teclado y stick; `null` en el centro exacto = sin dirección). Con el ratón, main.js congela la cámara del despegue
+  mientras hay diana de remate o de colocación en salto (el punto no se mueve con la mano quieta). El 1r toque y el bloqueo no apuntan. Funciones: `Sim.aimPt(input)`,
   `Sim.pointToAim(g, p, pt, shot)`, `Sim.setAngPt(g, p, pt, w)`, `Sim.attackTarget`; `aimPoint(g, out, move, pt)` acepta el punto.
 - `drainEvents(game, outArray)` — mueve los eventos pendientes a `outArray`.
 - `predict(game, zt, out)`, `predictLanding(game, out)`, `focusPoint(game)` (pr1 o pr3 según toque), `canReach(game, p)`, `other(game, p)`, `side(team)`, `isHuman(game,p)`.

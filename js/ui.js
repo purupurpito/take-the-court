@@ -2315,7 +2315,7 @@
     if (on && g.ctrl && g.ctrl.z > 0.05) return '2º toque · En el aire, ' + gl.jset + ' <b>coloca en salto</b>';
     var dbl = g.beach ? ' a tiempo (a destiempo, <b>dobles</b>)' : '';   // (playa: dobles por timing, 12-nov)
     return on ? '2º toque · Colocas <b>' + setName(g) + '</b> con ' + gl.hit + ' o ' + gl.jset + dbl + (!dbl && g.setDirA !== g.setDirA ? ', o elige otro destino con ' + gl.aim : '')
-      : '2º toque · <b>Colocación</b> bajo el balón con ' + gl.hit + ' o ' + gl.jset + dbl + '; sin dirección, alta a la 4';
+      : '2º toque · <b>Colocación</b> bajo el balón con ' + gl.hit + ' o ' + gl.jset + dbl + (kmK() ? '; apunta con el ratón a tu campo (fuera de él, alta a la 4)' : '; sin dirección, alta a la 4');
   }
   /** Carriles del colocador humano (C2, colocar por destino: la dirección en la ventana elige a quién; sin dirección, alta a la 4). */
   // (revisión C2: la corta, por debajo de 1000 px, dice lo mismo que la larga, agrupado: ← y sin dirección = 4 alta, ↖ = 4 tensa)
@@ -2335,7 +2335,7 @@
     if (device() === 'keyboard' && kmOn()) return LANES6K;   // (controles PC: el cursor elige, desde donde tocas, hacia quien apuntes)
     return (window.innerWidth || 1280) < 1000 ? LANES6S : LANES6L;   // (en 844×390 la larga no cabe)
   }
-  var LANES6K = 'apunta con el ratón: a la 4, al centro (rápida), a la 2 o atrás (pipe); fuera de tu campo, alta a la 4';
+  var LANES6K = 'apunta con el ratón al atacante: a la 4, al centro (rápida), a la 2 o atrás (pipe)';
   /** 6v6, consejo cuando el siguiente toque es de un compañero IA (nt: 1 recepción/defensa, 2 colocación, 3 ataque), por el puesto
    *  del humano y la fase de su sitio (ai6 spot().phase, D7; la marca del suelo —fx— le dice adónde ir, el texto solo qué hacer). */
   function coach6(g, p, nt, gl, touchDev) {
@@ -2803,7 +2803,7 @@
             : '<b>Defiende</b> el círculo' + (one ? '' : ' (' + gl.sw + ' bloqueas tú)');
         } else if (tips) {
           if (nt === 1) coach = '1r toque · <b>' + (tbLabel1 === 'DEFENSA' ? 'Defensa' : 'Recepción') + '</b>: ve al círculo y pulsa ' + gl.hit;
-          else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? (setName6(g) ? '2º toque · Colocas <b>' + setName6(g) + '</b> con ' + gl.hit + ' o ' + gl.jset + ' · ' : '2º toque · <b>Coloca</b> con ' + gl.hit + ' o ' + gl.jset + '; la dirección elige: ') + lanes6()   // (6v6 D3: el carril lo manda el stick o las flechas; revisión C2: y dice el elegido)
+          else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? (setName6(g) ? '2º toque · Colocas <b>' + setName6(g) + '</b> con ' + gl.hit + ' o ' + gl.jset + ' · ' : '2º toque · <b>Coloca</b> con ' + gl.hit + ' o ' + gl.jset + (kmK() ? '; ' : '; la dirección elige: ')) + lanes6()   // (6v6 D3: el carril lo manda el stick o las flechas; revisión C2: y dice el elegido)
             : g.mastery && g.aimSet !== false ? setCoach(g, gl)   // C2: el destino que se ve en el suelo (en la playa, con «a destiempo, dobles»)
             : g.beach ? '2º toque · <b>Colocación</b>: bajo el balón, ' + gl.hit + ' a tiempo (o salta y ' + gl.jset + '); a destiempo pitan <b>dobles</b>'   // (12-nov: dobles por timing en la playa)
             : '2º toque · <b>Colocación</b>: ponte debajo del balón y pulsa ' + gl.hit + '. Si saltas y pulsas ' + gl.jset + ', colocas en el aire';
@@ -6434,7 +6434,7 @@
     if (fmt6()) {
       R = R.map(function (r) { return r[1] === 'Cambiar jugador' ? [r[0], 'Pedir el balón <small>(antes de la colocación)</small>'] : r[1] === 'Moverse' ? [r[0], 'Moverse <small>(sin balón, a la marca del suelo)</small>'] : r; });
       var hitRow = R.filter(function (r) { return /^Golpear/.test(r[1]); })[0] || R[1];
-      R.splice(2, 0, [hitRow[0], 'Colocar <small>(colocador: ' + (dv !== 'touch' && dv !== 'gamepad' && kmOn() ? 'el ratón elige a quién; fuera de tu campo' : 'la dirección elige a quién; sin dirección') + ', alta a la 4)</small>']);
+      R.splice(2, 0, [hitRow[0], 'Colocar <small>(colocador: ' + (dv !== 'touch' && dv !== 'gamepad' && kmOn() ? 'apunta con el ratón al atacante que quieras' : 'la dirección elige a quién; sin dirección, alta a la 4') + ')</small>']);
     }
     else {
       if (oneMode()) R = R.filter(function (r) { return r[1] !== 'Cambiar jugador'; });
@@ -6462,17 +6462,21 @@
     } });
   }
   // ---------- Controles PC (25-nov-2026): esquema de teclado y ratón ('km', el principal) o solo teclado ('kb', el de siempre) ----------
-  /** ¿Aparato con puntero fino (ratón o panel táctil del portátil)? En un móvil la fila del esquema no sale (allí no cambia nada). */
+  /** ¿Aparato con puntero fino (ratón o panel táctil del portátil)? En un móvil la fila del esquema no sale (allí no cambia nada).
+   *  Sin mirar ctx.isTouch: un portátil con pantalla táctil (o una tableta con ratón) también apunta con el ratón en 'km' (input.js lo
+   *  activa con cualquier ratón real sobre el lienzo), así que necesita los textos del ratón y la fila para volver a «Solo teclado». */
   var fineV = false, fineF = -999;   // (se mira como mucho cada 2 s: lanes6 lo pide en los consejos de cada frame)
   function finePtr() {
     var f = ctx ? ctx.frame | 0 : 0;
     if (f - fineF < 120 && f >= fineF) return fineV;
     fineF = f;
-    try { fineV = !ctx.isTouch && !!(window.matchMedia && window.matchMedia('(any-pointer: fine)').matches); } catch (e) { fineV = false; }
+    try { fineV = !!(window.matchMedia && window.matchMedia('(any-pointer: fine)').matches); } catch (e) { fineV = false; }
     return fineV;
   }
   /** Esquema activo de PC: el ratón apunta (VB.Input.scheme() === 'km') en un aparato con ratón (un móvil con teclado no lo usa). */
   function kmOn() { return !!(VB.Input && VB.Input.scheme && VB.Input.scheme() === 'km') && finePtr(); }
+  /** km y jugando con el teclado (no con mando ni con el dedo): los textos que dicen qué hace el ratón. */
+  function kmK() { return device() === 'keyboard' && kmOn(); }
   /** Fila SPLAT «Esquema» arriba de la pestaña Teclado (solo con puntero fino) y su ayuda. */
   function ctlSchemeHTML() {
     if (!finePtr() || !(VB.Input && VB.Input.scheme)) return '';   // (sin ratón: la pestaña Teclado de siempre)
@@ -7263,7 +7267,7 @@
     setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
     var lshort = lk !== 'full' || (!vb && ptsN === 7);
     setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da experiencia' : ''));
-    setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() : 'El control pasa a quien va a tocar');
+    setText(el.ctrlHelp, 'ch', six ? ((role6 === 'S' && kmK() ? 'El 2º toque es tuyo: apunta con el ratón al atacante' : ROLE_HELP[role6]) || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() : 'El control pasa a quien va a tocar');
   }
   /** Una línea por nivel de dificultad (fila Dificultad de Partido rápido). */
   var DIFF_HELP = ['La CPU saca suave', 'Ataca y defiende a medio gas', 'Defiende casi todo', 'Casi no falla'];
@@ -7412,7 +7416,7 @@
     { step: 'Paso 1 de 6', title: 'El saque', fig: {
         players: [{ t: 0, x: 10.3, y: -1.5, you: 1, lbl: 'TÚ' }, { t: 0, x: 3.5, y: 2 }, { t: 1, x: -6.5, y: -2.2 }, { t: 1, x: -6.5, y: 2.2 }],
         segs: [{ a: [10.0, -1.5, 2.7], b: [-6.2, 1.6, 0.2], apex: 4.3, dur: 1.5, who: 0 }], ring: [-6.2, 1.6], swing: [[0, 0, 0.3]] },
-      text: function (g) { return 'Con ' + g.move + ' te desplazas por el fondo. ' + g.serve + ' lanza el balón para un saque flotante; ' + g.jump + ', para un <b>saque en salto</b>. Mientras sube, mueve la <b>diana</b> del campo rival con ' + g.aim + ' y vuelve a pulsar ' + g.serve + ' cuando baje a tu mano: en el <b>momento justo</b>, el saque va exacto a la diana.'; },
+      text: function (g) { return 'Con ' + g.move + ' te desplazas por el fondo. ' + g.serve + ' lanza el balón para un saque flotante; ' + g.jump + ', para un <b>saque en salto</b>. ' + (kmK() ? 'La <b>diana</b> del campo rival sigue al ratón (ya antes de lanzar); vuelve a pulsar ' : 'Mientras sube, mueve la <b>diana</b> del campo rival con ' + g.aim + ' y vuelve a pulsar ') + g.serve + ' cuando baje a tu mano: en el <b>momento justo</b>, el saque va exacto a la diana.'; },
       rule: '<b>Ace</b> (punto directo de saque): el balón cae en el campo rival o la recepción no se controla. Tienes <b>8 segundos</b> para sacar; si sale fuera o pasa por fuera de las antenas, punto para el rival.' },
     { step: 'Paso 2 de 6', title: '1r toque · Recepción', fig: {
         players: [{ t: 0, x: 6, y: -1.5, you: 1, lbl: '1' }, { t: 0, x: 1.8, y: 1.2, lbl: '2' }, { t: 1, x: -9.8, y: 1 }, { t: 1, x: -3.5, y: -2 }],
@@ -7426,7 +7430,9 @@
       figOne: { players: [{ t: 0, x: 4.2, y: -2.4, you: 1, lbl: '1' }, { t: 0, x: 1.8, y: 1.2, lbl: '2' }, { t: 1, x: -5.5, y: -2 }, { t: 1, x: -5.5, y: 2 }] },
       text: function (g) {
         // C2 (colocar por destino): sin dirección, alta a la 4; con dirección, el destino (se ve en el suelo); timing y Colocación, la precisión
-        var aimT = ctx.settings.aimSet !== false ? ' Si no tocas la dirección, va <b>alta a la 4</b>, a la izquierda de la red. Ya bajo el balón, una dirección elige el destino y lo ves en el suelo (la que traías corriendo no cuenta): cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.' : '';
+        var aimT = ctx.settings.aimSet !== false && kmK() ? (fmt6() && !tutBeach() ? ' Apunta con el ratón al atacante que quieras: el marcador del suelo dice adónde va. El timing y tu Colocación deciden lo precisa que sale.'
+            : ' Apunta con el ratón a tu campo y eliges el destino (lo ves en el suelo); fuera de tu campo, va <b>alta a la 4</b>. Cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.')
+          : ctx.settings.aimSet !== false ? ' Si no tocas la dirección, va <b>alta a la 4</b>, a la izquierda de la red. Ya bajo el balón, una dirección elige el destino y lo ves en el suelo (la que traías corriendo no cuenta): cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.' : '';
         var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;   // (táctil: COLOCAR solo sale en el aire)
         if (oneMode()) return 'Llevas siempre al mismo jugador: tu pareja (la IA) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque es suyo, la colocación es tuya: ponte bajo el balón y pulsa ' + both + '.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto.' + jdT(g);
         return 'El control pasa solo a tu pareja (la cámara se desliza hacia ella). Ponte bajo el balón y pulsa ' + both + ': es la <b>colocación</b>.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto: más rápida, con menos margen.' + jdT(g);
@@ -8225,7 +8231,7 @@
     var row = gymRow(id); el.idGoal.textContent = row ? row.help : '';
     var keys = id === 'serve' ? ik(gl.serve, 'flotante') + ik(gl.jump, 'en salto') + ik('', 'Apunta con ' + gl.aim)
       : id === 'recv' ? ik(gl.move, 'te mueves') + ik(gl.hit, 'recibes')
-      : id === 'set' ? (device() === 'touch' ? ik(gl.hit, 'de dedos') : ik(gl.hit + gl.jset, 'de dedos')) + ik(gl.jump + gl.jset, 'en salto') + (g.mastery && g.aimSet !== false ? ik('', 'Sin dirección: alta a la 4') : '')
+      : id === 'set' ? (device() === 'touch' ? ik(gl.hit, 'de dedos') : ik(gl.hit + gl.jset, 'de dedos')) + ik(gl.jump + gl.jset, 'en salto') + (g.mastery && g.aimSet !== false ? ik('', kmK() ? (g.rot ? 'El ratón elige a quién' : 'Fuera de tu campo: alta a la 4') : 'Sin dirección: alta a la 4') : '')
       : id === 'atk' ? ik(gl.jump, 'saltas') + ik(gl.hit, 'rematas') + ik('', 'Apunta con ' + gl.aim)
       : id === 'block' ? ik(gl.jump, 'saltas') + ik(gl.hit, 'cierras al remate')
       : ik(gl.hit, 'golpeas') + ik(gl.jump, 'saltas') + ik(gl.jset, 'colocas');
@@ -8861,7 +8867,7 @@
   }
   /** Controles PC (25-nov-2026): la oferta de una vez «Nuevos controles en PC» (main.js startMatch, antes del partido): «Teclado y ratón»
    *  (recomendado, con el foco) o «Solo teclado» (como antes). Se apunta en ctrlAsked (solo este aparato) al cerrarla; Esc / B = teclado y
-   *  ratón. Solo en un aparato con puntero fino, sin pantalla táctil y jugando con teclado (no con mando). Nunca online ni en depuración
+   *  ratón. Solo en un aparato con puntero fino (finePtr, también con pantalla táctil) y sin jugar con el dedo ni con mando. Nunca online ni en depuración
    *  (salvo &ctrlask=1). cb(elección) al cerrarla. false si no toca. */
   function ctrlHTML() {
     return '<div class="sp-panel sn-sheet sn-perf sn-ctrl"><div class="sn-txt"><p class="sp-k">Controles de PC</p><h2 class="sp-h" id="snH">Nuevos controles en PC</h2>' +
@@ -8875,8 +8881,8 @@
     if (sn.open || !ctx || ctx.net) return false;
     var force = !!(ctx.debug && ctx.params && ctx.params.ctrlask === '1');
     if (!force) {
-      if (ctx.debug || ctx.settings.ctrlAsked === true || ctx.isTouch || ctx.inputDevice === 'gamepad') return false;
-      try { if (!(window.matchMedia && window.matchMedia('(pointer: fine)').matches) || navigator.maxTouchPoints > 0) return false; } catch (e) { return false; }
+      // (la misma regla que la fila «Esquema», finePtr: también un portátil con pantalla táctil, si no se está jugando con el dedo)
+      if (ctx.debug || ctx.settings.ctrlAsked === true || ctx.inputDevice === 'touch' || ctx.inputDevice === 'gamepad' || !finePtr()) return false;
     }
     sn.kind = ''; snBuild('ctrl');
     if (el.menu) el.menu.classList.add('sn-hide');

@@ -2712,19 +2712,29 @@
     else { simIn.move[0] = -my; simIn.move[1] = mx; } // por defecto: cámara detrás mirando a -x
     if (it) { edge.hit = edge.hit || !!it.hit; edge.jump = edge.jump || !!it.jump; edge.jset = edge.jset || !!it.jset; edge.switchPlayer = edge.switchPlayer || !!it.switchPlayer; }
     // controles PC, esquema 'km': el cursor apunta (input.aim de la sim = el punto de la pista bajo el cursor, cuantizado)
-    simIn.aim = it && it.aimOn && g0 && !g0.demo && !g0.watch && !ctx.replay ? aimFromCursor(it, g0) : null;
+    var aimOk = !!(it && it.aimOn && g0 && !g0.demo && !g0.watch && !ctx.replay);
+    if (!aimOk) _aimFz.on = false;
+    simIn.aim = aimOk ? aimFromCursor(it, g0) : null;
     ctx.simAim = simIn.aim;
   }
   /** Punto del suelo (sim: x, y en m) bajo el cursor (it.ax / it.ay en NDC): rayo de la cámara contra el plano de la pista. Con el rayo
    *  por encima del horizonte, 60 m a lo largo de su dirección horizontal. Recortado a la pista ±2 m y cuantizado como lo manda la red
-   *  (net.js aimBits: 0,1 m en x, 0,05 m en y) para que el local, la repetición y el rival vean el mismo punto. → _aimArr o null. */
-  var _aimV = null, _aimO = null, _aimArr = [0, 0];
+   *  (net.js aimBits: 0,1 m en x, 0,05 m en y) para que el local, la repetición y el rival vean el mismo punto. → _aimArr o null.
+   *  CÁMARA CONGELADA en el aire: mientras hay diana de remate o de colocación en salto (g.aim3 'spike' | 'jset'), el rayo sale de la
+   *  cámara del despegue (_aimFz: su matrixWorld y su proyección inversa del primer frame con diana), no de la de ahora: en el salto la
+   *  cámara sube la pista rival ~100 px (más que todo su fondo en pantalla) y con la mano quieta el punto se iba metros. Así, con el ratón
+   *  quieto el punto no se mueve; al soltar la diana (aterrizar, golpear) vuelve la cámara viva. */
+  var _aimV = null, _aimO = null, _aimArr = [0, 0], _aimFz = { on: false, mw: null, pi: null };
   function aimFromCursor(it, g) {
     var T = ctx.THREE, cam = ctx.camera;
-    if (!cam || !T || !T.Vector3) return null;
-    if (!_aimV) { _aimV = new T.Vector3(); _aimO = new T.Vector3(); }
-    _aimO.setFromMatrixPosition(cam.matrixWorld);
-    _aimV.set(it.ax, it.ay, 0.5).unproject(cam);
+    if (!cam || !T || !T.Vector3 || !T.Matrix4) return null;
+    if (!_aimV) { _aimV = new T.Vector3(); _aimO = new T.Vector3(); _aimFz.mw = new T.Matrix4(); _aimFz.pi = new T.Matrix4(); }
+    var a3 = g.aim3, fz = !!(a3 && a3.on && (a3.kind === 'spike' || a3.kind === 'jset'));
+    if (fz && !_aimFz.on) { _aimFz.mw.copy(cam.matrixWorld); _aimFz.pi.copy(cam.projectionMatrixInverse); }
+    _aimFz.on = fz;
+    var mw = fz ? _aimFz.mw : cam.matrixWorld, pi = fz ? _aimFz.pi : cam.projectionMatrixInverse;
+    _aimO.setFromMatrixPosition(mw);
+    _aimV.set(it.ax, it.ay, 0.5).applyMatrix4(pi).applyMatrix4(mw);
     var dx = _aimV.x - _aimO.x, dy = _aimV.y - _aimO.y, dz = _aimV.z - _aimO.z, l = Math.hypot(dx, dy, dz);
     if (!(l > 0)) return null;
     dx /= l; dy /= l; dz /= l;

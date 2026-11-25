@@ -1197,16 +1197,17 @@
    * no es más fuerte. El 1r toque y el bloqueo siguen sin puntería. Sin g.rng y sin campos nuevos en g. */
   /** El punto de input (o null si no hay / no es válido). */
   function aimPt(inp) { var a = inp && inp.aim; return a && a.length > 1 && a[0] === a[0] && a[1] === a[1] ? a : null; }
-  /** Dirección (|a| <= 1, sin normalizar: el balón libre puede ir al centro) cuyo destino es el punto pt: la inversa de attackTarget o,
-   *  con shot 'tip', de la dejada de hit(). out se reutiliza. */
+  /** Dirección UNITARIA hacia el punto pt (la de attackTarget o, con shot 'tip', la de la dejada de hit()), como la del teclado o el
+   *  stick (sim.step: _aimS = move / |move|): el ratón llega a los mismos destinos (el borde de la elipse), no al centro de la pista ni a
+   *  un balón libre corto. null si el punto es justo el centro (sin dirección: el destino de siempre). out se reutiliza. */
   var _pta = [0, 0];
   function pointToAim(g, p, pt, shot, out) {
     out = out || _pta;
     var sd = side(p.team), cs = g.cs || 1, a0, a1;
     if (shot === 'tip') { a0 = -sd * clamp(-sd * pt[0] - 1.6, -0.3, 1); a1 = (pt[1] - p.y) / 2.6; }
     else { a0 = (pt[0] / cs + sd * 5) / 3; a1 = pt[1] / cs / 3.7; }
-    var l = Math.hypot(a0, a1); if (l > 1) { a0 /= l; a1 /= l; }
-    out[0] = a0; out[1] = a1;
+    var l = Math.hypot(a0, a1); if (!(l > 1e-6)) return null;
+    out[0] = a0 / l; out[1] = a1 / l;
     return out;
   }
   /** Lleva la diana a hacia (tx, ty) como mucho v m (los recortes los hace quien llama). Devuelve lo recorrido. */
@@ -1216,12 +1217,26 @@
     a.x += dx; a.y += dy;
     return d;
   }
-  /** Colocación desde el suelo con el ratón (ventana setWin): ángulo de g.setDirA para el punto pt, o NaN si el punto no está en el
-   *  campo propio. 6v6: la dirección del punto de toque previsto (w) al cursor (dirOf8 elige el carril). 2v2: de los 72 ángulos (cada 5°),
-   *  el que deja el destino de setAim más cerca del cursor (el mismo espacio de destinos que el teclado). */
-  var _stPt = { x: 0, y: 0, apex: 0, tempo: '', s: 0, D: 0, L: 0 };
+  /** Colocación desde el suelo con el ratón (ventana setWin): ángulo de g.setDirA para el punto pt. 6v6: el cursor señala al atacante
+   *  (en cualquier lado de la red): de los 8 sectores de dirOf8, el que deja el destino de la colocación (VB.AI6.previewSet) más cerca
+   *  del cursor (en empate, el de siempre antes que la variante tensa / alta). 2v2: NaN si el punto no está en el campo propio (alta a
+   *  la 4); si lo está, de los 72 ángulos (cada 5°), el que deja el destino de setAim más cerca del cursor (el mismo espacio de destinos
+   *  que el teclado). */
+  var _stPt = { x: 0, y: 0, apex: 0, tempo: '', s: 0, D: 0, L: 0 }, SEC6 = [6, 1, 0, 4, 3, 5, 7, 2];
+  var _ps6p = { to: null, tempo: '', kind: '', d: 0, yl: 0, apex: 0 };
   function setAngPt(g, hp, pt, w) {
     var sd = side(hp.team);
+    if (g.rot && VB.AI6 && VB.AI6.previewSet) {
+      var a0 = g.setDirA, bk = -1, bd6 = 1e9;
+      try {
+        for (var j = 0; j < 8; j++) {
+          g.setDirA = SEC6[j] * 45;
+          var r = VB.AI6.previewSet(g, hp, _ps6p), d6 = Math.hypot(sd * r.d - pt[0], sd * r.yl - pt[1]);
+          if (d6 < bd6 - 1e-6) { bd6 = d6; bk = SEC6[j]; }
+        }
+      } finally { g.setDirA = a0; }
+      return bk >= 0 ? bk * 45 : NaN;
+    }
     if (!(sd * pt[0] > 0)) return NaN;
     var sx = w.reach ? w.x : hp.x, sy = w.reach ? w.y : hp.y;
     if (g.rot) {

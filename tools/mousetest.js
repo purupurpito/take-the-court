@@ -5,10 +5,12 @@
  *   1 km: el cursor sobre la pista da el punto (VB.ctx.simAim = el suelo bajo el cursor), la diana del saque va hacia él ya antes de
  *     lanzar, las flechas no la mueven en el lanzamiento, el clic izquierdo saca y el balón cae cerca del punto; aro del cursor a la vista
  *   2 cursor fuera del lienzo: se queda el último punto; encima de un botón del HUD: no apunta
- *   3 km: remate en el aire hacia el cursor (Espacio salta, clic golpea): el remate cae cerca del punto
+ *   3 km: remate en el aire hacia el cursor (Espacio salta, clic golpea): el remate cae cerca del punto; con la mano quieta el punto no se
+ *     mueve aunque la cámara suba en el salto (cámara congelada del despegue, main.js aimFromCursor)
  *   4 kb: el ratón no apunta (sin simAim) y las flechas mueven la diana en el lanzamiento (lo de siempre)
  *   5 glifos: «Clic» / «el ratón» en km y la tecla / «las flechas» en kb; el clic derecho no abre menú contextual en la pista
- *   6 Controles › Teclado: fila «Esquema» (Teclado y ratón | Solo teclado) y se guarda en make-the-cut.device
+ *   6 Controles › Teclado: fila «Esquema» (Teclado y ratón | Solo teclado) y se guarda en make-the-cut.device; también en un aparato
+ *     con pantalla táctil y ratón (ctx.isTouch), que apunta con el ratón igual
  *   7 la oferta «Nuevos controles en PC» (&ctrlask=1) sale, «Solo teclado» la cierra con kb y ctrlAsked, y no vuelve
  * Capturas en tools/out/mouse/ (o en la carpeta de VB_SHOTS). Uso: node tools/mousetest.js [W=1280] [H=720]
  */
@@ -101,30 +103,34 @@ const KEYS = { ArrowLeft: ['ArrowLeft', 37], ArrowUp: ['ArrowUp', 38], KeyJ: ['j
     // ---------------- 3. remate en el aire hacia el cursor ----------------
     // jugada propia preparada a mano (la colocación del compañero) con la entrada real: Espacio salta, el cursor apunta, clic remata
     const T3 = [-4.5, -2.2];
-    let spk = null;
+    let spk = null, airAim = null, air0 = null;
     for (let tr = 0; tr < 4 && !spk; tr++) {
       await E(`(function(){var g=VB.ctx.game,S=VB.Sim,h=g.teams[0][0],m=g.teams[0][1],b=g.ball;g.mode='rally';b.held=null;g.serveState='';
         for(var i=0;i<g.players.length;i++){var p=g.players[i];p.z=0;p.vz=0;p.vx=0;p.vy=0;p.down=0;}
         h.x=2.2;h.y=0.4;m.x=6;m.y=2;Object.assign(b,{x:1.25,y:0.4,z:5.2,vx:0,vy:0,vz:0.6,dip:0,wobA:0});
-        g.touchTeam=0;g.touches=2;g.lastPlayer=m;g.lastTeam=0;g.lastKind='set';g.lastTouchT=g.time;g.ctrl=h;window.__ev.length=0;return 1;})()`);
+        g.touchTeam=0;g.touches=2;g.lastPlayer=m;g.lastTeam=0;g.lastKind='set';g.lastTouchT=g.time;g.ctrl=h;window.__ev.length=0;VB.CameraRig.snap(g);return 1;})()`);
+      await sleep(60);   // (cámara ya en la jugada: snap y un frame pintado, si no el píxel sale de la cámara del saque)
       const P3 = await px(T3[0], T3[1]);
       await move(P3.x, P3.y); await sleep(30);
-      let jumped = false, hitDone = false; const t0 = Date.now();
+      let jumped = false, hitDone = false; const t0 = Date.now(); air0 = null;
       while (Date.now() - t0 < 3000 && !hitDone) {
         const w = await g("(function(){var w=VB.Sim.hitWindow(g,g.ctrl);return {at:w.attack,jt:w.jumpT,t:w.t,reach:w.reach,z:g.ctrl.z,a3:g.aim3.on?[g.aim3.x,g.aim3.y]:null,mode:g.mode};})()");
         if (w.mode !== 'rally') break;
         if (!jumped && w.at && w.jt <= 0.02) { await tap('Space', 30); jumped = true; continue; }
+        if (jumped && w.z > 0.05 && !air0) air0 = await E('VB.ctx.simAim && [VB.ctx.simAim[0], VB.ctx.simAim[1]]');
         if (jumped && w.z > 0.3 && w.t <= 0.27 && w.t > -0.05) { if (!shotDone || tr === 0) await shot('3-remate-km-diana'); await sleep(Math.max(0, w.t * 1000 - 230)); await mclick(P3.x, P3.y, 'left', 30); hitDone = true; }
         await sleep(10);
       }
       await sleep(1400);
       const hit = await lastHit();
-      if (hit && hit.kind === 'spike') spk = hit;
+      if (hit && hit.kind === 'spike') { spk = hit; airAim = air0; }
       else console.log('  (intento de remate ' + (tr + 1) + ': ' + JSON.stringify(hit) + ')');
     }
-    // (la cámara se mueve con la jugada: el punto bajo el cursor quieto cambia; la diana lo persigue a su velocidad)
+    // (en el aire el rayo sale de la cámara del despegue: con la mano quieta, el punto del golpe es el que había bajo el cursor al saltar)
     const cl3 = a => a && [Math.max(-8.3, Math.min(-1.4, a[0])), Math.max(-3.9, Math.min(3.9, a[1]))];   // (la diana se queda dentro de sus límites)
-    check('3 km: remate en el aire hacia el cursor (la diana sigue al cursor y el bote previsto cae cerca)', !!spk && d2(spk.a3, cl3(spk.aim)) < 3 && d2(spk.pl, spk.a3) < 2.4,
+    check('3a km: con la mano quieta, el punto del cursor al golpear es el del despegue (la cámara que sube en el salto no lo arrastra)', !!spk && d2(spk.aim, airAim) < 0.15 && d2(spk.aim, T3) < 1.5,
+      spk && { golpe: spk.aim, despegue: airAim, apuntado: T3 });
+    check('3b km: remate en el aire hacia el cursor (la diana sigue al cursor y el bote previsto cae cerca)', !!spk && d2(spk.a3, cl3(spk.aim)) < 1.2 && d2(spk.pl, spk.a3) < 2.4,
       spk && { bote: spk.pl.map(v => +v.toFixed(2)), cursor: spk.aim, diana: spk.a3 });
     // ---------------- 5a. glifos en km ----------------
     const glKm = await E("(function(){var b=VB.Input.bindings();return [VB.Input.srcOf('hit'), document.getElementById('promptKey')?document.getElementById('promptKey').textContent:'']})()");
@@ -153,6 +159,16 @@ const KEYS = { ArrowLeft: ['ArrowLeft', 37], ArrowUp: ['ArrowUp', 38], KeyJ: ['j
     await E("VB.ctx.actions.setSetting('ctrlPC','km'),1"); await sleep(300);
     const row = await E("(function(){var b=document.querySelector('#panel [data-opt=ctrlPC]');if(!b||b.hidden)return null;return {txt:b.textContent.replace(/\\s+/g,' ').trim(),segs:b.querySelectorAll('[data-i]').length};})()");
     check('6a Controles › Teclado: fila «Esquema» con Teclado y ratón | Solo teclado', !!row && /Esquema/.test(row.txt) && /Teclado y ratón/.test(row.txt) && /Solo teclado/.test(row.txt), row);
+    {   // portátil con pantalla táctil (o tableta con ratón): ctx.isTouch, pero el ratón apunta igual; la fila tiene que salir
+      await page.navigate('debug=controls&nonews=1');
+      await ready(); await E("VB.ctx.isTouch=true,1"); await sleep(2600);
+      await E("(function(){var b=document.querySelector('#panel [data-tab=keys],#panel [data-ctl=keyboard],#panel [data-tab=keyboard]');if(b)b.click();VB.ctx.actions.setSetting('ctrlPC','km');return 1;})()"); await sleep(400);
+      const rowT = await E("(function(){var b=document.querySelector('#panel [data-opt=ctrlPC]');return !!b&&!b.hidden&&b.offsetParent!==null;})()");
+      check('6c con pantalla táctil y ratón (ctx.isTouch) también sale la fila «Esquema» (para volver a Solo teclado)', rowT === true, { fila: rowT });
+      await page.navigate('debug=controls&nonews=1');
+      await ready(); await sleep(1800);
+      await E("VB.ctx.actions.setSetting('ctrlPC','km'),1"); await sleep(300);
+    }
     await shot('6-controles-km');
     await E("(function(){var s=document.querySelector('#panel [data-opt=ctrlPC] [data-i=\"1\"]');if(s)s.click();return 1;})()"); await sleep(400);
     const dv = await E("JSON.parse(localStorage.getItem('make-the-cut.device')||'{}')");
