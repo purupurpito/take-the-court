@@ -1207,9 +1207,9 @@
             {
               "real": "Beşiktaş",
               "official": "Beşiktaş Jimnastik Kulübü",
-              "name": "Dolmabahçe Voleybol",
+              "name": "Çırağan Voleybol",
               "realSponsor": false,
-              "short": "DOL",
+              "short": "CIR",
               "city": "Estambul (Beşiktaş)",
               "gender": "W",
               "colors": {
@@ -1219,7 +1219,7 @@
               },
               "liberoEstimated": true,
               "ovr": 73,
-              "check": "Búsqueda web del nombre exacto entre comillas: nada. Guiño al palacio de su barrio. Líbero probable: blanco (2024-25/2025-26, fotos de duhuliye y cnnturk). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): Dolmabahçe era el estadio de Beşiktaş. Ahora el palacio de Çırağan. Descartado «Ortaköy» (existe Ortaköy S.K.). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Çırağan Voleybol\" OR \"Çırağanspor\". Resultado: ningún club; Çırağan solo sale como palacio y hotel. (Antes: «Dolmabahçe Voleybol» (DOL); nota anterior: Búsqueda web del nombre exacto entre comillas: nada. Guiño al palacio de su barrio. Líbero probable: blanco (2024-25/2025-26, fotos de duhuliye y cnnturk). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).)",
               "sponsorCheck": "Sin patrocinador en el nombre: 2025-26 en Sultanlar Ligi como «Beşiktaş»; solo patrocinio de camiseta, no de nombre. WebSearch 11-nov-2026."
             },
             {
@@ -1474,9 +1474,9 @@
             {
               "real": "Lokomotiv Novosibirsk",
               "official": "VK Lokomotiv Novosibirsk",
-              "name": "Parovoz Novosibirsk",
+              "name": "Volei Novosibirsk",
               "realSponsor": false,
-              "short": "PAR",
+              "short": "NSK",
               "city": "Novosibirsk",
               "gender": "M",
               "colors": {
@@ -1486,7 +1486,7 @@
               },
               "liberoEstimated": true,
               "ovr": 84,
-              "check": "Búsqueda web del nombre exacto entre comillas (ruso «Паровоз»): nada. Guiño: locomotora → máquina de vapor. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Parovoz» es el apodo de los Lokomotiv (el de Moscú, sobre todo). Ahora «Volei [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Volei Novosibirsk\" OR \"Volley Novosibirsk\" club. Resultado: ningún club con ese nombre (el real es Lokomotiv Novosibirsk). (Antes: «Parovoz Novosibirsk» (PAR); nota anterior: Búsqueda web del nombre exacto entre comillas (ruso «Паровоз»): nada. Guiño: locomotora → máquina de vapor. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Zenit Sankt-Peterburg",

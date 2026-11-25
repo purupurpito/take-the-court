@@ -1648,8 +1648,8 @@
       {
        "real": "Beşiktaş",
        "official": "Beşiktaş Jimnastik Kulübü",
-       "name": "Dolmabahçe Voleybol",
-       "short": "DOL",
+       "name": "Çırağan Voleybol",
+       "short": "CIR",
        "city": "Estambul (Beşiktaş)",
        "colors": {
         "shirt": "#111111",
@@ -1661,7 +1661,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas: nada. Guiño al palacio de su barrio. Líbero probable: blanco (2024-25/2025-26, fotos de duhuliye y cnnturk)…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): Dolmabahçe era el estadio de Beşiktaş. Ahora el palacio de Çırağan. Descartado «Ortaköy» (existe Ortaköy…"
       },
       {
        "real": "Göztepe",
@@ -1880,8 +1880,8 @@
       {
        "real": "Lokomotiv Novosibirsk",
        "official": "VK Lokomotiv Novosibirsk",
-       "name": "Parovoz Novosibirsk",
-       "short": "PAR",
+       "name": "Volei Novosibirsk",
+       "short": "NSK",
        "city": "Novosibirsk",
        "colors": {
         "shirt": "#d50032",
@@ -1893,7 +1893,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (ruso «Паровоз»): nada. Guiño: locomotora → máquina de vapor. Líbero: no encontrado en internet (12-nov-2026)."
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Parovoz» es el apodo de los Lokomotiv (el de Moscú, sobre todo). Ahora «Volei [Ciudad]». Búsqueda web del…"
       },
       {
        "real": "Zenit Sankt-Peterburg",
@@ -3988,8 +3988,8 @@
       {
        "real": "PAOK",
        "official": "PAOK Thessaloniki (sección de voleibol)",
-       "name": "Dikéfalos Salónica",
-       "short": "DKS",
+       "name": "Torre Blanca Salónica",
+       "short": "TBS",
        "city": "Salónica",
        "colors": {
         "shirt": "#000000",
@@ -4001,7 +4001,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Es el apodo de PAOK. Existió «Dikefalos Asteras» (DIKE.AS.) en Nea Ionia, un club de balonmano disuelto en 2017, que no es igual. No coincide con…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dikéfalos» (el águila bicéfala) es el apodo de PAOK. Ahora la Torre Blanca. Búsqueda web del nombre exacto…"
       },
       {
        "real": "AEK Athens",
@@ -4024,8 +4024,8 @@
       {
        "real": "Milon",
        "official": "A.O.N.S. Milon (Nea Smyrni)",
-       "name": "Prosfyges Nea Smirni",
-       "short": "MNS",
+       "name": "Voley Nea Smirni",
+       "short": "VNS",
        "city": "Nea Smyrni (Atenas)",
        "colors": {
         "shirt": "#0057b8",
@@ -4037,7 +4037,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: El real figura en la CEV como «AONS Milon Nea Smyrni Athens». «Milo Nea Smirni» cambia dos letras (Milon→Milo, Smyrni→Smirni) y quita AONS: no es…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Prósfyges» (los refugiados) es apodo de clubes como AEK y Panionios. Ahora «Voley [Ciudad]». Búsqueda web del…"
       },
       {
        "real": "Foinikas Syros",
@@ -4202,8 +4202,8 @@
       {
        "real": "SC Braga",
        "official": "Sporting Clube de Braga (voleibol)",
-       "name": "Arsenalistas Braga",
-       "short": "ARS",
+       "name": "Vólei Bracara",
+       "short": "BRC",
        "city": "Braga",
        "colors": {
         "shirt": "#e30613",
@@ -4215,7 +4215,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: «Arsenalistas» es el apodo del SC Braga, no su nombre oficial. No existe ningún club ni competición con ese nombre. No coincide con ningún club de las…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Arsenalistas» es el apodo de SC Braga. Ahora Bracara (Augusta), el nombre romano de Braga. Búsqueda web del…"
       },
       {
        "real": "Leixões SC",
@@ -4256,8 +4256,8 @@
       {
        "real": "SC Espinho",
        "official": "Sporting Clube de Espinho",
-       "name": "Tigres Espinho",
-       "short": "TIG",
+       "name": "Vólei Paramos",
+       "short": "PRM",
        "city": "Espinho",
        "colors": {
         "shirt": "#ffffff",
@@ -4269,13 +4269,13 @@
        "sponsor": null,
        "searched": false,
        "doubt": null,
-       "note": "Dudoso: No existe ningún club oficial con ese nombre exacto, pero «Os Tigres (da Costa Verde)» es el apodo del SC Espinho, y el club de balonmano playa…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Tigres» es el apodo de SC Espinho («Tigres da Costa Verde»). Ahora Paramos, parroquia de Espinho. Descartados…"
       },
       {
        "real": "Vitória SC",
        "official": "Vitória Sport Clube (Guimarães)",
-       "name": "Conquistadores Guimarães",
-       "short": "GUI",
+       "name": "Vólei Guimarães",
+       "short": "VGU",
        "city": "Guimarães",
        "colors": {
         "shirt": "#ffffff",
@@ -4287,7 +4287,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: «Conquistadores» es el apodo del Vitória SC y además hay un hotel Conquistador Palace. No hay ningún club oficial con ese nombre. No coincide con…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Conquistadores» es el apodo de Vitória SC. Ahora «Vólei [Ciudad]». Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Castêlo da Maia GC",
@@ -4594,8 +4594,8 @@
       {
        "real": "Sokol/Post",
        "official": "SG Sokol/Post (Niederösterreich/Viena)",
-       "name": "Falke Wien",
-       "short": "FAL",
+       "name": "Voley Prater",
+       "short": "PRT",
        "city": "Viena",
        "colors": {
         "shirt": "#0033a0",
@@ -4607,7 +4607,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin clubes ni competiciones con ese nombre; solo halcones, Falkestraße, Café Falk. No coincide con ningún club de las tablas 2025-26 de la AVL de…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Falke» (halcón) era Sokol traducido. Ahora el Prater. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "UVC Ried",
@@ -4700,8 +4700,8 @@
       {
        "real": "VK Lvi Praha",
        "official": "VK Lvi Praha",
-       "name": "Leones de Praga",
-       "short": "LEO",
+       "name": "Voley Vyšehrad",
+       "short": "VYS",
        "city": "Praga",
        "colors": {
         "shirt": "#c8102e",
@@ -4713,7 +4713,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin resultados de club. Es la traducción al español de «Lvi Praha» (guiño), no el nombre oficial. No coincide con ningún club de las listas 2025-26 de…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Leones» era Lvi traducido. Ahora la fortaleza de Vyšehrad. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Jihostroj České Budějovice",
@@ -4754,8 +4754,8 @@
       {
        "real": "VK Šelmy Brno",
        "official": "VK Šelmy Brno",
-       "name": "Fieras Brno",
-       "short": "FIE",
+       "name": "Voley Špilberk",
+       "short": "SPI",
        "city": "Brno",
        "colors": {
         "shirt": "#6b21a8",
@@ -4767,7 +4767,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin club con ese nombre; solo el zoo y la feria de Brno. Traducción libre de «Šelmy». No coincide con ningún club de las listas 2025-26 de la Extraliga…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fieras» era Šelmy traducido. Ahora el castillo de Špilberk. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "VK Prostějov",
@@ -4878,8 +4878,8 @@
       {
        "real": "OK Partizan",
        "official": "Odbojkaški klub Partizan",
-       "name": "Crno-Beli Beograd",
-       "short": "CBB",
+       "name": "Voley Dorćol",
+       "short": "DOR",
        "city": "Belgrado",
        "colors": {
         "shirt": "#000000",
@@ -4950,8 +4950,8 @@
       {
        "real": "ŽOK Železničar Lajkovac",
        "official": "Ženski odbojkaški klub Železničar Lajkovac",
-       "name": "Ferroviario Lajkovac",
-       "short": "FER",
+       "name": "Voley Lajkovac",
+       "short": "LAJ",
        "city": "Lajkovac",
        "colors": {
         "shirt": "#0033a0",
@@ -4963,7 +4963,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ferroviario» era Železničar traducido. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "OK Radnički Kragujevac",
@@ -5234,8 +5234,8 @@
       {
        "real": "CS Dinamo București",
        "official": "Clubul Sportiv Dinamo București (voleibol)",
-       "name": "Câinii Bucarest",
-       "short": "CAI",
+       "name": "Voley Tei",
+       "short": "TEI",
        "city": "Bucarest",
        "colors": {
         "shirt": "#e30613",
@@ -5502,8 +5502,8 @@
       {
        "real": "Fluminense",
        "official": "Fluminense Football Club",
-       "name": "Laranjeiras Tricolor",
-       "short": "LTR",
+       "name": "Vôlei Corcovado",
+       "short": "COV",
        "city": "Rio de Janeiro",
        "colors": {
         "shirt": "#8a1538",
@@ -5515,7 +5515,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No hay ningún club con ese nombre. Solo salen referencias al Fluminense (el «Tricolor», con sede en Laranjeiras) y a eventos como el «Arraiá Tricolor…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Tricolor» es el apodo de Fluminense y Laranjeiras su sede. Ahora el Corcovado. Búsqueda web del nombre exacto…"
       },
       {
        "real": "Suzano Vôlei",
@@ -5922,8 +5922,8 @@
       {
        "real": "Gimnasia y Esgrima La Plata",
        "official": "Club de Gimnasia y Esgrima La Plata",
-       "name": "Lobo Platense",
-       "short": "LOB",
+       "name": "Diagonales La Plata",
+       "short": "DLP",
        "city": "La Plata",
        "colors": {
         "shirt": "#ffffff",
@@ -5935,13 +5935,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún club con ese nombre. «El Lobo» es el apodo de Gimnasia y Esgrima La Plata. Existen CA Platense (Vicente López), Platense de Uruguay y Platense…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Lobo» es el apodo de Gimnasia y Esgrima La Plata (y «Platense» es otro club real). Ahora las diagonales de La…"
       },
       {
        "real": "San Lorenzo",
        "official": "Club Atlético San Lorenzo de Almagro",
-       "name": "Ciclón de Boedo",
-       "short": "CIC",
+       "name": "Vóley Boedo",
+       "short": "VBO",
        "city": "Buenos Aires (Boedo)",
        "colors": {
         "shirt": "#1f2a5c",
@@ -5953,13 +5953,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Es un apodo popular de San Lorenzo de Almagro, no un nombre oficial. Existen Club Atlético Ciclón (Tarija, Bolivia) y otro en La Pampa, pero ninguno se…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ciclón» es el apodo de San Lorenzo. Ahora «Vóley [barrio]». Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Estudiantes de La Plata",
        "official": "Club Estudiantes de La Plata",
-       "name": "Pincha Platense",
-       "short": "PIN",
+       "name": "Catedral La Plata",
+       "short": "CTL",
        "city": "La Plata",
        "colors": {
         "shirt": "#e30613",
@@ -5971,13 +5971,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún club con ese nombre. «Pincha» es el apodo de Estudiantes de La Plata, y CA Platense es otro club distinto. Nota: «Platense» puede recordar a CA…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Pincha» es el apodo de Estudiantes de La Plata. Ahora la catedral de La Plata. Búsqueda web del nombre exacto…"
       },
       {
        "real": "Vélez Sarsfield",
        "official": "Club Atlético Vélez Sarsfield",
-       "name": "Fortín Liniers",
-       "short": "FOR",
+       "name": "Vóley Versalles",
+       "short": "VVE",
        "city": "Buenos Aires (Liniers)",
        "colors": {
         "shirt": "#ffffff",
@@ -5989,7 +5989,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Combina dos apodos de Vélez Sarsfield («El Fortín», del barrio de Liniers). Existen CSyD Liniers, Liniers de Bahía Blanca y CA El Fortín (Colón), pero…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fortín» es el apodo de Vélez Sarsfield. Ahora Versalles, barrio vecino de Liniers. Descartados «Vóley…"
       },
       {
        "real": "CEF 5 La Rioja",
@@ -6224,8 +6224,8 @@
       {
        "real": "Trinity Western Spartans",
        "official": "Trinity Western University (Spartans)",
-       "name": "Langley Espartanos",
-       "short": "LAN",
+       "name": "Langley Cedros",
+       "short": "LCE",
        "city": "Langley (BC)",
        "colors": {
         "shirt": "#002d62",
@@ -6237,7 +6237,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No sale nada que una «Langley» y «Espartanos». Solo existe Los Espartanos de Pacasmayo, un club de fútbol de Perú con otro nombre. Lo construí a partir…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Espartanos» era Spartans traducido. Ahora cedros. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "UBC Thunderbirds",
@@ -6296,8 +6296,8 @@
       {
        "real": "Manitoba Bisons",
        "official": "University of Manitoba (Bisons)",
-       "name": "Winnipeg Bisontes",
-       "short": "WPG",
+       "name": "Winnipeg Pradera",
+       "short": "WPR",
        "city": "Winnipeg",
        "colors": {
         "shirt": "#4a2c2a",
@@ -6309,7 +6309,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún equipo con ese nombre. Los reales son Manitoba Bisons (Universidad de Manitoba) y los antiguos Winnipeg Whips. Es una traducción parcial con…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Bisontes» era Bisons traducido. Ahora la pradera. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Calgary Dinos",
@@ -6350,8 +6350,8 @@
       {
        "real": "Laval Rouge et Or",
        "official": "Université Laval (Rouge et Or)",
-       "name": "Québec Rouge-Doré",
-       "short": "QRD",
+       "name": "Québec Flambeaux",
+       "short": "QFL",
        "city": "Quebec",
        "colors": {
         "shirt": "#c8102e",
@@ -6363,7 +6363,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún equipo con «Rouge-Doré». El real es Rouge et Or (Universidad Laval), con otras palabras («Doré» frente a «Or»). Es un guiño claro, pero no…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rouge-Doré» estaba a una palabra de «Rouge et Or». Ahora antorchas. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "McMaster Marauders",
@@ -6420,8 +6420,8 @@
       {
        "real": "Alianza Lima",
        "official": "Club Alianza Lima",
-       "name": "Íntimos Lima",
-       "short": "INT",
+       "name": "Vóley La Victoria",
+       "short": "VLV",
        "city": "Lima (La Victoria)",
        "colors": {
         "shirt": "#071241",
@@ -6433,7 +6433,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No hay ningún club oficial con ese nombre. «Los Íntimos» es el apodo de Alianza Lima y también el nombre de su programa de socios «Íntimo», pero no es…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Íntimos» es el apodo de Alianza Lima. Ahora «Vóley [distrito]». Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Universidad San Martín",
@@ -6456,8 +6456,8 @@
       {
        "real": "Universitario de Deportes",
        "official": "Club Universitario de Deportes",
-       "name": "Cremas Lima",
-       "short": "CRE",
+       "name": "Vóley Barranco",
+       "short": "BRN",
        "city": "Lima",
        "colors": {
         "shirt": "#f2e6c9",
@@ -6469,7 +6469,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: No hay ningún club con ese nombre. «Cremas» es el apodo de Universitario y también de Sporting Pizarro (Tumbes). Existió «Cremas Esports», pero no…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Cremas» es el apodo de Universitario de Deportes. Ahora el distrito de Barranco. Búsqueda web del nombre…"
       },
       {
        "real": "Regatas Lima",
@@ -6492,8 +6492,8 @@
       {
        "real": "Deportivo Géminis",
        "official": "Club Deportivo Cultural Géminis",
-       "name": "Gemelos Comas",
-       "short": "GEM",
+       "name": "Vóley Comas",
+       "short": "COM",
        "city": "Lima (Comas)",
        "colors": {
         "shirt": "#ffffff",
@@ -6505,7 +6505,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Sin resultados de ningún club; solo artículos sobre gemelos y sobre el distrito de Comas. Lo construí a partir de un apodo, barrio o gentilicio, y no…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Gemelos» era Géminis traducido. Ahora «Vóley [distrito]». Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Atlético Atenea",
@@ -6564,8 +6564,8 @@
       {
        "real": "Vamos Peerless",
        "official": "Vamos Peerless",
-       "name": "Sin Par Lima",
-       "short": "SPL",
+       "name": "Vóley Surco",
+       "short": "SUR",
        "city": "Lima",
        "colors": {
         "shirt": "#1a1a1a",
@@ -6577,7 +6577,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Libre: Ningún resultado menciona un club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Sin Par» era Peerless traducido. Ahora el distrito de Surco. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Litovoley",
@@ -6652,8 +6652,8 @@
       {
        "real": "SAGA Hisamitsu Springs",
        "official": "SAGA Hisamitsu Springs (SAGA久光スプリングス)",
-       "name": "Sprinx Saga",
-       "short": "SPX",
+       "name": "Izumi Saga",
+       "short": "IZU",
        "city": "Tosu (Saga)",
        "colors": {
         "shirt": "#0050a0",
@@ -6665,7 +6665,7 @@
        "sponsor": "Onigiri Ace Mart",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; se quita el patrocinador Hisamitsu…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Sprinx» estaba a dos letras de «Springs». Ahora «izumi» (manantial). Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "JTEKT Stings Aichi",
@@ -6724,8 +6724,8 @@
       {
        "real": "Osaka Marvelous",
        "official": "Osaka Marvelous (大阪マーヴェラス; antes JT Marvelous)",
-       "name": "Marvelia Osaka",
-       "short": "MRV",
+       "name": "Dotonbori Osaka",
+       "short": "DOT",
        "city": "Osaka",
        "colors": {
         "shirt": "#202020",
@@ -6737,7 +6737,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Marvelous». [Integrador: abreviatura MAR → MRV…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Marvelia» calcaba «Marvelous». Ahora Dotonbori, el barrio del canal. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "PFU BlueCats Ishikawa Kahoku",
@@ -6760,8 +6760,8 @@
       {
        "real": "Hiroshima Thunders",
        "official": "Hiroshima Thunders (広島サンダーズ; antes JT Thunders Hiroshima)",
-       "name": "Thundra Hiroshima",
-       "short": "THU",
+       "name": "Raijin Hiroshima",
+       "short": "RAI",
        "city": "Hiroshima",
        "colors": {
         "shirt": "#00984a",
@@ -6773,7 +6773,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Thunders». Líbero: no encontrado en internet…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Thundra» estaba a dos letras de «Thunders». Ahora Raijin, el dios del trueno. Búsqueda web del nombre exacto…"
       },
       {
        "real": "Tokyo Great Bears",
@@ -6876,8 +6876,8 @@
       {
        "real": "Veertien Mie",
        "official": "Veertien Mie (ヴィアティン三重; tiene equipo en las dos ligas: cuenta una sola vez)",
-       "name": "Vierzehn Mie",
-       "short": "VZM",
+       "name": "Ise Mie",
+       "short": "ISE",
        "city": "Yokkaichi (Mie)",
        "colors": {
         "shirt": "#f08300",
@@ -6889,13 +6889,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «Veertien» es 14 en neerlandés y «Vierzehn» es 14 en…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Vierzehn» era Veertien (14) traducido. Ahora Ise (la bahía y el santuario). Búsqueda web del nombre exacto…"
       },
       {
        "real": "Reve's Tochigi",
        "official": "Reve's Tochigi (レーヴィス栃木)",
-       "name": "Rêveurs Tochigi",
-       "short": "RVT",
+       "name": "Kinugawa Tochigi",
+       "short": "KIN",
        "city": "Utsunomiya (Tochigi)",
        "colors": {
         "shirt": "#1e3a8a",
@@ -6907,13 +6907,13 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Reve» (sueño, en francés). Líbero: no encontrado…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rêveurs» era Reve's traducido. Ahora el río Kinugawa. Búsqueda web del nombre exacto entre comillas…"
       },
       {
        "real": "Fragolad Kagoshima",
        "official": "Fragolad Kagoshima (フラーゴラッド鹿児島)",
-       "name": "Fragola Kagoshima",
-       "short": "FRA",
+       "name": "Sakurajima Kagoshima",
+       "short": "SKR",
        "city": "Kagoshima",
        "colors": {
         "shirt": "#1e88e5",
@@ -6925,7 +6925,7 @@
        "sponsor": null,
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Fragolad» (de fragola, fresa). Líbero: no…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fragola» estaba a una letra de «Fragolad». Ahora el volcán Sakurajima. Búsqueda web del nombre exacto entre…"
       },
       {
        "real": "Shinshu Brilliant Aries",
@@ -7572,8 +7572,8 @@
       {
        "real": "Saipa Tehran",
        "official": "Saipa Tehran VC (سایپا تهران)",
-       "name": "Narenji Tehran",
-       "short": "NRT",
+       "name": "Darband Tehran",
+       "short": "DAR",
        "city": "Teherán",
        "colors": {
         "shirt": "#ff4f00",
@@ -7585,7 +7585,7 @@
        "sponsor": "Sangak Spike",
        "searched": true,
        "doubt": null,
-       "note": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «narenji» es «naranja»: el apodo del club; no se usa la…"
+       "note": "Nombre cambiado (25-nov-2026, riesgo de marca): «Narenji» (los naranjas) es el apodo de Saipa. Ahora Darband, barrio de montaña de Teherán. Búsqueda web del…"
       },
       {
        "real": "Sanatgaran Omid Tehran",

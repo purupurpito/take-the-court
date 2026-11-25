@@ -88,9 +88,9 @@
             {
               "real": "Hiroshima Thunders",
               "official": "Hiroshima Thunders (広島サンダーズ; antes JT Thunders Hiroshima)",
-              "name": "Thundra Hiroshima",
+              "name": "Raijin Hiroshima",
               "realSponsor": false,
-              "short": "THU",
+              "short": "RAI",
               "city": "Hiroshima",
               "gender": "M",
               "colors": {
@@ -100,7 +100,7 @@
               },
               "liberoEstimated": true,
               "ovr": 78,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Thunders». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Thundra» estaba a dos letras de «Thunders». Ahora Raijin, el dios del trueno. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Raijin Hiroshima\" volleyball OR team OR club. Resultado: ningún equipo con ese nombre. (Antes: «Thundra Hiroshima» (THU); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Thunders». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Tokyo Great Bears",
@@ -122,11 +122,11 @@
             {
               "real": "SAGA Hisamitsu Springs",
               "official": "SAGA Hisamitsu Springs (SAGA久光スプリングス)",
-              "name": "Sprinx Saga",
+              "name": "Izumi Saga",
               "sponsor": "Onigiri Ace Mart",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; ace; nada farmacéutico (Hisamitsu).",
-              "short": "SPX",
+              "short": "IZU",
               "city": "Tosu (Saga)",
               "gender": "W",
               "colors": {
@@ -136,14 +136,14 @@
               },
               "liberoEstimated": true,
               "ovr": 83,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; se quita el patrocinador Hisamitsu; guiño a «Springs». Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Sprinx» estaba a dos letras de «Springs». Ahora «izumi» (manantial). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Izumi Saga\" volleyball OR team OR club. Resultado: ningún equipo con ese nombre. (Antes: «Sprinx Saga» (SPX); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; campeón 2025-26; se quita el patrocinador Hisamitsu; guiño a «Springs». Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Osaka Marvelous",
               "official": "Osaka Marvelous (大阪マーヴェラス; antes JT Marvelous)",
-              "name": "Marvelia Osaka",
+              "name": "Dotonbori Osaka",
               "realSponsor": false,
-              "short": "MRV",
+              "short": "DOT",
               "city": "Osaka",
               "gender": "W",
               "colors": {
@@ -153,7 +153,7 @@
               },
               "liberoEstimated": true,
               "ovr": 81,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Marvelous». [Integrador: abreviatura MAR → MRV, para que no se repita con otro club del juego.] Líbero probable: blanco (2024-25/2025-26, volleyballking.jp/article/3586 (deducido))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Marvelia» calcaba «Marvelous». Ahora Dotonbori, el barrio del canal. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Dotonbori Osaka\" volleyball OR team OR club. Resultado: ningún equipo con ese nombre. (Antes: «Marvelia Osaka» (MRV); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Marvelous». [Integrador: abreviatura MAR → MRV, para que no se repita con otro club del juego.] Líbero probable: blanco (2024-25/2025-26, volleyballking.jp/article/3586 (deducido)).)"
             },
             {
               "real": "NEC Red Rockets Kawasaki",
@@ -275,9 +275,9 @@
             {
               "real": "Reve's Tochigi",
               "official": "Reve's Tochigi (レーヴィス栃木)",
-              "name": "Rêveurs Tochigi",
+              "name": "Kinugawa Tochigi",
               "realSponsor": false,
-              "short": "RVT",
+              "short": "KIN",
               "city": "Utsunomiya (Tochigi)",
               "gender": "M",
               "colors": {
@@ -287,14 +287,14 @@
               },
               "liberoEstimated": true,
               "ovr": 64,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Reve» (sueño, en francés). Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rêveurs» era Reve's traducido. Ahora el río Kinugawa. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Kinugawa Tochigi\" volleyball OR team OR club. Resultado: ningún equipo con ese nombre. (Antes: «Rêveurs Tochigi» (RVT); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Reve» (sueño, en francés). Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Veertien Mie",
               "official": "Veertien Mie (ヴィアティン三重; tiene equipo en las dos ligas: cuenta una sola vez)",
-              "name": "Vierzehn Mie",
+              "name": "Ise Mie",
               "realSponsor": false,
-              "short": "VZM",
+              "short": "ISE",
               "city": "Yokkaichi (Mie)",
               "gender": "M",
               "colors": {
@@ -304,14 +304,14 @@
               },
               "liberoEstimated": true,
               "ovr": 65,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «Veertien» es 14 en neerlandés y «Vierzehn» es 14 en alemán. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Vierzehn» era Veertien (14) traducido. Ahora Ise (la bahía y el santuario). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Ise Mie\" volleyball OR team OR club. Resultado: ningún equipo (FC Ise-Shima es de fútbol y se llama de otra forma). (Antes: «Vierzehn Mie» (VZM); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «Veertien» es 14 en neerlandés y «Vierzehn» es 14 en alemán. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Fragolad Kagoshima",
               "official": "Fragolad Kagoshima (フラーゴラッド鹿児島)",
-              "name": "Fragola Kagoshima",
+              "name": "Sakurajima Kagoshima",
               "realSponsor": false,
-              "short": "FRA",
+              "short": "SKR",
               "city": "Kagoshima",
               "gender": "M",
               "colors": {
@@ -321,7 +321,7 @@
               },
               "liberoEstimated": true,
               "ovr": 64,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Fragolad» (de fragola, fresa). Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fragola» estaba a una letra de «Fragolad». Ahora el volcán Sakurajima. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Sakurajima Kagoshima\" volleyball OR team OR club. Resultado: ningún equipo (el Volca Kagoshima de fútbol lleva el volcán en el escudo, no en el nombre). (Antes: «Fragola Kagoshima» (FRA); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; guiño a «Fragolad» (de fragola, fresa). Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Fujitsu Kawasaki Red Spirits",
@@ -997,11 +997,11 @@
             {
               "real": "Saipa Tehran",
               "official": "Saipa Tehran VC (سایپا تهران)",
-              "name": "Narenji Tehran",
+              "name": "Darband Tehran",
               "sponsor": "Sangak Spike",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; panadería de sangak + remate; nada de coches.",
-              "short": "NRT",
+              "short": "DAR",
               "city": "Teherán",
               "gender": "M",
               "colors": {
@@ -1011,7 +1011,7 @@
               },
               "liberoEstimated": true,
               "ovr": 63,
-              "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «narenji» es «naranja»: el apodo del club; no se usa la marca Saipa. [Integrador: abreviatura NAR → NRT, para que no se repita con otro club del juego.] Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Narenji» (los naranjas) es el apodo de Saipa. Ahora Darband, barrio de montaña de Teherán. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Darband Tehran\" volleyball OR club OR team. Resultado: ningún club con ese nombre. (Antes: «Narenji Tehran» (NRT); nota anterior: Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; «narenji» es «naranja»: el apodo del club; no se usa la marca Saipa. [Integrador: abreviatura NAR → NRT, para que no se repita con otro club del juego.] Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Paykan Tehran",
