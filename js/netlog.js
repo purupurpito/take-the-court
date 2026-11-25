@@ -94,8 +94,11 @@
     c.ev.push(e);
     if (FORCE && root.console) console.info('[netlog] ' + JSON.stringify(e));
   }
+  /** Ajustes · Juego › «Informe técnico del online» (ctx.settings.netReport, auditoría legal 25-nov-2026): con «No» no se manda nada. */
+  function optedOut() { var C = VB.ctx; return !!(C && C.settings && C.settings.netReport === false); }
   function enabled(net) {
     if (FORCE) return true;
+    if (optedOut()) return false;
     if (Q.netemu) return false;   // pruebas contra el emulador (tools/netdrive.js --rtc): nunca al Firebase de verdad
     var A = VB.Account;
     if (!A || !A.netAuth || !A.FS_BASE || !(A.isIn ? A.isIn() : true)) return false;
@@ -233,7 +236,7 @@
   }
 
   function flush(c, last, unload) {
-    if (!c || c.noWrite) return;
+    if (!c || c.noWrite || (optedOut() && !FORCE)) return;   // (apagado en Ajustes a mitad de partido: tampoco se manda)
     if (c.busy && !last) { c.again = true; return; }
     var A = VB.Account, base = String(A && A.FS_BASE || '').replace(/\/+$/, '');
     var rep = report(c), j = JSON.stringify(rep);
@@ -295,6 +298,7 @@
   /** o = {role: 'host'|'guest', fmt, cap, mode, why, ms, phase, diag (linkDiag), relay}. Devuelve el informe (o null si ya van PF_MAX). */
   function prefail(o) {
     o = o || {};
+    if (optedOut() && !FORCE) return null;
     if (pfN >= PF_MAX) return null;
     pfN++;
     var d = o.diag || {}, t = Date.now(), id = 'pf' + t.toString(36) + Math.floor(Math.random() * 1679616).toString(36);

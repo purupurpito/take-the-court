@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false, hideNames: false, netReport: true };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -177,6 +177,8 @@
     // migración (una vez, sin versión): ajustes de antes de existir el volumen del público → la mezcla que se oía (público = 0,85 × efectos)
     if (o && !('crowdVol' in o)) s.crowdVol = Math.round(0.85 * s.sfxVol * 100) / 100;
     s.crowdVol = clamp01(s.crowdVol, 0.85);
+    // online (auditoría legal, 25-nov-2026; Ajustes · Juego): nombres de otros jugadores tapados (js/namefilter.js) e informe técnico (js/netlog.js)
+    s.hideNames = s.hideNames === true; s.netReport = s.netReport !== false;
     s.toonSfx = s.toonSfx !== false; s.onoma = s.onoma !== false;      // sonidos de dibujo y «¡PAM!» del remate perfecto (audio.js; Ajustes · Audio). Antes no se guardaban
     s.xarVol = clamp01(s.xarVol, 0.6);                                   // xaranga: la charanga de la grada (audio.js; Carrera y partidos Difícil/Experto)
     if ([0, 1, 0.85, 0.7, 0.5].indexOf(s.resScale) < 0) s.resScale = 0;

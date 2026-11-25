@@ -74,7 +74,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       check('ajustes viejos sin toonSfx / onoma: los dos en Sí', old.toonSfx === true && old.onoma === true && old.sfxVol === 0.5, [old.toonSfx, old.onoma, old.sfxVol]);
       await tab('info');
       const info =await J(`[document.getElementById('optVer').textContent, document.getElementById('optSave').textContent, [].map.call(document.querySelectorAll('.opt-g[data-tab="info"] [data-go]'), function (b) { return b.getAttribute('data-go'); })]`);
-      check('Info: versión, progreso, Novedades, Créditos, Privacidad y Traer tu partida', /^\d+\.\d+\.\d+ \(\d+ [a-z]{3} \d{4}\)$/.test(info[0]) && /Guardado en/.test(info[1]) && info[2].join() === 'news,credits,priv,mig', info);
+      check('Info: versión, progreso, Novedades, Créditos, Privacidad, Aviso legal, Condiciones, Licencias y Traer tu partida', /^\d+\.\d+\.\d+ \(\d+ [a-z]{3} \d{4}\)$/.test(info[0]) && /Guardado en/.test(info[1]) && info[2].join() === 'news,credits,priv,legal,terms,lic,mig', info);
       await tab('cam');
       await E(`window.__o = VB.CameraRig.OPTS; VB.CameraRig.OPTS = []; window.__f = VB.FX.OPTS; VB.FX.OPTS = ['cbColors']; VB.ctx.actions.setSetting('camSens', 1.1); 1`);
       await sleep(200);

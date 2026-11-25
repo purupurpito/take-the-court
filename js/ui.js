@@ -4132,6 +4132,15 @@
       q.textContent = (cr.mates && cr.mates.length ? 'Tu equipo: tú, ' + lt(cr.mates) : 'Tu equipo: tú') + ' · Rivales: ' + (cr.rivals && cr.rivals.length ? lt(cr.rivals) : 'la IA');
       el.endSum.appendChild(q);
     }
+    // «Denunciar nombre» (js/report.js; auditoría legal, 25-nov-2026): pegatina pequeña bajo el resumen si hay otros jugadores
+    var NL = VB.NetLobby, oth = []; try { oth = NL && NL.others ? NL.others() : []; } catch (e) { oth = []; }
+    if (oth.length && VB.Report) {
+      var rr = document.createElement('div'); rr.className = 'rc-optrow rc-rep';
+      rr.innerHTML = '<button type="button" class="sp-btn sp-sm sp-cream rc-repb" data-shape="1"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 .01 0zM12 7.5v6M12 16.6v.4"/></svg></span><span class="sp-t">Denunciar nombre</span></button>';
+      rr.firstChild.addEventListener('click', function () { try { NL.report(); } catch (e) { } });
+      el.endSum.appendChild(rr);
+      if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(rr);
+    }
     var ln = ''; try { ln = R.line(); } catch (e) { ln = ''; }
     if (!ln) return;
     var p = document.createElement('p'); p.className = 'rc-net'; p.style.cssText = 'margin:8px 0 0;font:700 14px var(--ui);color:var(--soft,#cfd6e4);text-align:center';
@@ -6337,6 +6346,9 @@
     // Audio (arreglo 1.22.0): capas de dibujo y «¡PAM!» del remate perfecto; audio.js las lee en vivo de ctx.settings
     toonSfx: { vals: [true, false], labels: ['Sí', 'No'] },
     onoma: { vals: [true, false], labels: ['Sí', 'No'] },
+    // online (auditoría legal, 25-nov-2026): tapar los nombres de los demás (VB.NameFilter.shown) y el informe técnico de cada partido (VB.NetLog)
+    hideNames: { vals: [false, true], labels: ['Ver', 'Ocultar'] },
+    netReport: { vals: [true, false], labels: ['Enviar', 'No'] },
     // sede (Ajustes · Imagen): arena.js la cambia en vivo, también con la demo del menú de fondo
     arena: { vals: ['hall', 'beach'], labels: ['Pabellón', 'Playa'] },
     // luz de la playa (Ajustes · Imagen): arena.js la cambia en vivo (VB.Arena.beachLight, onSettings 'beachLight'); en el pabellón no se nota
@@ -6409,7 +6421,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol', 'toonSfx', 'onoma'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle', 'ctrlMark', 'ctrlMarkCol', 'landAid'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest', 'hideNames', 'netReport'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle', 'ctrlMark', 'ctrlMarkCol', 'landAid'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -6463,12 +6475,14 @@
     if (g === 'ctl') openPanel('ctl', { tab: device() });
     else if (g === 'news' || g === 'credits') openAbout(g);
     else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
-    else if (g === 'priv') openPrivacy();
+    else if (LEGAL_PAGES[g]) openPrivacy(LEGAL_PAGES[g]);
   }
   /** Google Play (24-nov-2026): «Privacidad» abre la política (pages/privacidad.html) en otra pestaña. En Pages (window.__vbBuild, lo pone
    *  tools/build-pages.js) está al lado de index.html; en local (file://, Artifact) se abre la publicada en takethecourt.com. */
-  function privacyUrl() { return window.__vbBuild ? 'privacidad.html' : 'https://takethecourt.com/privacidad.html'; }
-  function openPrivacy() { try { window.open(privacyUrl(), '_blank', 'noopener'); } catch (e) { } }
+  //  Auditoría legal (25-nov-2026): igual «Aviso legal», «Condiciones» y «Licencias» (pages/aviso-legal.html, condiciones.html, licencias.html).
+  var LEGAL_PAGES = { priv: 'privacidad.html', legal: 'aviso-legal.html', terms: 'condiciones.html', lic: 'licencias.html' };
+  function privacyUrl(f) { f = f || 'privacidad.html'; return window.__vbBuild ? f : 'https://takethecourt.com/' + f; }
+  function openPrivacy(f) { try { window.open(privacyUrl(f), '_blank', 'noopener'); } catch (e) { } }
   /** Nombre de la sede (arena.js: ajuste `arena` o ?map=): Palau del Mar / Platja Llarga. */
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }
   /** Pone el nombre de la sede en los textos fijos del HTML (antetítulo del menú, tarjeta de presentación, cortinilla,
@@ -6695,6 +6709,8 @@
       try { has = !!(VB.Career && VB.Career.has && VB.Career.has(wm === 'hall' ? 'hall' : 'beach')); } catch (e) { has = false; }
       var wh = !has || inCareer; if (wb[wi].hidden !== wh) wb[wi].hidden = wh;
     }
+    var ubk = document.getElementById('optUnblock'), nbk = 0; try { nbk = VB.Report && VB.Report.blockedCount ? VB.Report.blockedCount() : 0; } catch (e) { nbk = 0; }
+    if (ubk) { var ubt2 = 'Desbloquear jugadores (' + nbk + ')'; if (ubk.textContent !== ubt2) ubk.textContent = ubt2; if (ubk.hidden !== !nbk) ubk.hidden = !nbk; }
     var wn = document.getElementById('optWipeN');
     if (wn) { if (wn.textContent !== wipeNote) wn.textContent = wipeNote; wn.hidden = !wipeNote; }
     var snd = document.querySelector('.opt-snd');
@@ -8600,6 +8616,8 @@
         var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
         var rb = t.closest('.opt-reset[data-reset]'); if (rb && el.panel.contains(rb)) { resetClick(rb); return; }
         var wbt = t.closest('.opt-wipe[data-wipe]'); if (wbt && el.panel.contains(wbt)) { wipeClick(wbt); return; }
+        // Ajustes · Juego: «Desbloquear jugadores» (js/report.js; solo sale si hay alguno bloqueado)
+        var ubt = t.closest('#optUnblock'); if (ubt && el.panel.contains(ubt)) { try { if (VB.Report) VB.Report.unblockAll(); } catch (e) { } uiSound('back'); renderOpts(); var nf = el.panel.querySelector('[data-opt="netReport"]'); if (nf) focusEl(nf, kbNow() || ctx.inputDevice === 'gamepad'); return; }
         var ks = t.closest('.kslot'); if (ks && el.panel.contains(ks)) { ctlSlot(ks); return; }
         var te = t.closest('[data-tedit]'); if (te && el.panel.contains(te)) { click(); openTouchEdit(); return; }
         var ab = t.closest('[data-ab]');
@@ -8622,6 +8640,8 @@
       });
       if (el.btnAbOk) el.btnAbOk.addEventListener('click', function () { uiSound('back'); closePanel(); });
       if (el.btnVer) el.btnVer.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; click(); openAbout('news', 'menu'); });
+      // «Legal» del pie de la portada (auditoría legal, 25-nov-2026): Ajustes en la pestaña Info, donde están las cuatro páginas legales
+      var bLg = document.getElementById('btnLegal'); if (bLg) bLg.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; click(); openPanel('set', { tab: 'info', from: 'menu' }); });
       window.addEventListener('keydown', onKey);
       window.addEventListener('vb-portrait', onPortrait);   // B2: retratos que llegan de la cola de main.js
       [el.pause, el.end, el.panel, el.gymEnd].forEach(function (n) { var sh = n && n.querySelector('.sheet'); if (sh) sh.addEventListener('scroll', function () { checkMore(n); }, { passive: true }); });

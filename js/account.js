@@ -688,9 +688,32 @@
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acUser]{grid-column:1;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acUser{grid-column:1;grid-row:2}',
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acPass]{grid-column:2;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acPass{grid-column:2;grid-row:2}',
     ':root.ph.ph-s' + P.slice(5) + '#account .ac-or{margin-bottom:6px}',
-    '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}'
+    '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}',
+    // crear cuenta (auditoría legal, 25-nov-2026): casilla obligatoria «Tengo 14 años o más» y la línea de Condiciones y Privacidad
+    P + '#account .ac-age,' + PP + '#account .ac-age{display:flex;align-items:center;gap:2px;min-height:44px;margin:14px 0 10px -9px;cursor:pointer;font:700 15px/1.25 var(--sp-ui);letter-spacing:0;text-transform:none;color:var(--sp-cream,#fff4dc)}',
+    // (la casilla mide 44 × 44 para el dedo; se dibuja una de 26 en el centro)
+    P + '#account .ac-age input,' + PP + '#account .ac-age input{-webkit-appearance:none;appearance:none;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:10px;box-shadow:none;cursor:pointer;' +
+      'background:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 26 26\'%3E%3Crect x=\'1.5\' y=\'1.5\' width=\'23\' height=\'23\' rx=\'6\' fill=\'%23fff4dc\' stroke=\'%2315102a\' stroke-width=\'3\'/%3E%3C/svg%3E") center/26px 26px no-repeat}',
+    P + '#account .ac-age input:checked,' + PP + '#account .ac-age input:checked{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 26 26\'%3E%3Crect x=\'1.5\' y=\'1.5\' width=\'23\' height=\'23\' rx=\'6\' fill=\'%23ffcb3d\' stroke=\'%2315102a\' stroke-width=\'3\'/%3E%3Cpath d=\'M7 13.5l4 4 8-9\' fill=\'none\' stroke=\'%2315102a\' stroke-width=\'3.4\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E")}',
+    P + '#account .ac-age input:focus-visible,' + PP + '#account .ac-age input:focus-visible{outline:3px solid var(--sp-gold,#ffcb3d);outline-offset:-4px}',
+    '#account .ac-legal{margin:0 0 10px;font:500 13px/1.4 var(--sp-ui);color:rgba(255,244,220,.82)}',
+    // (los dos enlaces, de 44 px de alto para el dedo: el párrafo va a líneas de 44 px)
+    '#account .ac-legal{line-height:44px}',
+    '#account .ac-legal a{display:inline-block;min-height:44px;padding:0 1px;color:var(--sp-gold,#ffcb3d);font-weight:700;line-height:44px;text-underline-offset:3px}',
+    // (con la hoja de la cuenta abierta, el pie de la portada —Legal y la versión— no asoma por debajo)
+    'body:has(#account:not([hidden])) .menu-foot{visibility:hidden}',
+    PP + '#account .ac-legal{font-size:var(--ph-label)}'
   ].join('');
-  var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null;
+  var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null, ageOk = false;
+  /** Páginas legales: al lado en la web publicada (window.__vbBuild), la de takethecourt.com en local (como ui.js privacyUrl). */
+  function legalUrl(f) { return window.__vbBuild ? f : 'https://takethecourt.com/' + f; }
+  /** Crear cuenta: casilla de edad y línea de Condiciones y Privacidad (va antes de Google: también crea cuenta). */
+  var AGE_MSG = 'Para crear una cuenta tienes que tener 14 años o más: marca la casilla.';
+  function ageHTML() {
+    return '<label class="ac-age" for="acAge"><input type="checkbox" id="acAge"' + (ageOk ? ' checked' : '') + ' required>Tengo 14 años o más</label>' +
+      '<p class="ac-legal">Al crear la cuenta aceptas las <a href="' + legalUrl('condiciones.html') + '" target="_blank" rel="noopener">Condiciones</a> y has leído la ' +
+      '<a href="' + legalUrl('privacidad.html') + '" target="_blank" rel="noopener">Privacidad</a>. Debes tener 14 años o más.</p>';
+  }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function build() {
     if (root) return;
@@ -755,7 +778,7 @@
     } else {
       var create = tab === 'new';
       h = '<div class="ac-wrap"><div class="ac-sheet sp-panel"><h2 class="ac-sr" id="acTitle">Cuenta: ' + (create ? 'crear cuenta' : 'entrar') + '</h2>' +
-        '<div class="ac-tabs" role="tablist" data-kb-hide><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
+        '<div class="ac-tabs" role="tablist" data-kb-hide><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' + (create ? ageHTML() : '') +
         '<button type="button" class="ac-g" data-ac="google" data-kb-hide' + (busy ? ' disabled' : '') + '>' + GSVG + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
         '<div class="ac-or" data-kb-hide><span>o con tu correo</span></div>' +
         '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
@@ -789,7 +812,7 @@
       var create = tab === 'new';
       h += '<div class="ac-c1"><p class="ac-k sp-k">Guarda tu progreso</p><h2 class="ac-h sp-h" id="acTitle">Cuenta</h2>' +
         '<p class="ac-intro">Con una cuenta, tus jugadores, tu Carrera y tus ajustes se guardan en la nube y los tienes en cualquier dispositivo.</p>' +
-        '<div class="ac-tabs" role="tablist"><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
+        '<div class="ac-tabs" role="tablist"><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' + (create ? ageHTML() : '') +
         '<button type="button" class="ac-g" data-ac="google"' + (busy ? ' disabled' : '') + '><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>' + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
         '</div><div class="ac-c2"><p class="ac-or"><span>o con tu correo</span></p>' +
         '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
@@ -808,6 +831,7 @@
     var f = root.querySelector('#acForm');
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); e.stopPropagation(); act('submit'); });
     // (móvil, Crear cuenta: el aviso de recuperar la contraseña solo sale si lo escrito no lleva @)
+    var ag = root.querySelector('#acAge'); if (ag) ag.addEventListener('change', function () { ageOk = ag.checked; if (ageOk && msg === AGE_MSG) { msg = ''; var er = root.querySelector('.ac-err'); if (er) er.textContent = ''; } });
     var hn = root.querySelector('#acHint'), ui = root.querySelector('#acUser');
     if (hn && ui) { var chk = function () { hn.hidden = !ui.value || ui.value.indexOf('@') >= 0; }; ui.addEventListener('input', chk); chk(); }
   }
@@ -815,6 +839,7 @@
     if (busy && a !== 'close') return;
     if (a === 'close') { if (!busy) close(); return; }
     if (a === 'tabIn' || a === 'tabNew') { tab = a === 'tabNew' ? 'new' : 'in'; msg = ''; render(); focusFirst(); return; }
+    if ((a === 'submit' || a === 'google') && tab === 'new' && view === 'enter' && !acc && !ageOk) { msg = AGE_MSG; render(); var ab = root.querySelector('#acAge'); if (ab) { try { ab.focus(); } catch (e) { } } return; }
     if (a === 'submit') {
       var u = root.querySelector('#acUser').value, p = root.querySelector('#acPass').value;
       busy = true; msg = ''; render();

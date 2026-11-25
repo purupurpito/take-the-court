@@ -128,9 +128,18 @@ Sin cuenta se juega a todo menos al online (js/account.js:13; js/netlobby.js:7 y
 se recoge sin una cuenta, que es opcional. Google dice que un dato es opcional si el usuario puede decidir si se recoge; crear
 una cuenta y entrar en el online son decisiones del usuario.
 
-Matiz honesto: dentro del online, el informe de red (netlog) **no se puede apagar** (inventario §D). Si se quiere ser más
-estricto, marcar como **obligatorios** los tipos que solo vienen del netlog (Diagnósticos) o, mejor, añadir un interruptor
-«Enviar informes de conexión» y dejarlo en opcional.
+Desde el 25-nov-2026 (rama legal) el informe de red (netlog) **se puede apagar**: Ajustes › Juego › «Informe técnico del online»
+(ctx.settings.netReport, activado por defecto; js/netlog.js optedOut: con «No» no se manda ni el informe del partido ni el prefail).
+Así Diagnósticos y Otros datos de rendimiento quedan, con razón, como **opcionales**.
+
+**Denuncias de nombres** (25-nov-2026, js/report.js, «Denunciar nombre» en la lista de salas, la sala de espera y la hoja final del
+online): cada denuncia guarda en `feedback/{id}` (kind `report`) el uid de quien denuncia, el uid y el nombre (tal cual llegó, ≤ 40)
+del denunciado, el código de la sala, la versión, la hora del servidor y `exp` = +180 días. Plazo: **6 meses** (política TTL sobre
+`feedback.exp`, a activar como la de netlogs: `gcloud firestore fields ttls update exp --collection-group=feedback --enable-ttl
+--project=make-the-cut-vb`). Solo la lee el responsable (admin()). Las reglas (repOk en firebase/firestore.rules) están **SIN
+DESPLEGAR** hasta que Ferran las despliegue. Bloquear a un jugador y ocultar los nombres de los demás se guardan **solo en el aparato**
+(`make-the-cut.netblock`, `settings.hideNames`): no son recogida. En el formulario, las denuncias entran en «Nombre» e «IDs de
+usuario» (finalidad: Funcionalidad de la app, ver 2.1) y no cambian ninguna respuesta de «compartir».
 
 ---
 
@@ -158,11 +167,13 @@ Justificación:
   - Nombre del personaje de la Carrera («Tu nombre», js/career-ui.js:2699 y :2862) dentro de las partidas en la nube
     (js/account.js:41-60) → funcionalidad.
   - Nombre propio y del rival en el netlog (js/netlog.js:175) → analíticas (rendimiento del online).
+  - Nombre del jugador denunciado en una denuncia (js/report.js, feedback kind report, 6 meses) → funcionalidad (seguridad del
+    online y cumplimiento de las condiciones).
   - El perfil de Google trae el nombre (`displayName`), que el juego usa solo si no hay correo (js/account.js:424).
 - **Correo**: Firebase Auth (js/account.js:377-385 y :402-458) y el correo para cambiar la contraseña (js/account.js:397-401).
   En las cuentas de usuario y contraseña es el nombre de usuario dentro de un correo ficticio: se declara igual.
-- **IDs de usuario**: el uid de Firebase va en cada ruta de Firestore (js/account.js:141 y :388) y en el netlog
-  (js/netlog.js:171-183).
+- **IDs de usuario**: el uid de Firebase va en cada ruta de Firestore (js/account.js:141 y :388), en el netlog
+  (js/netlog.js:171-183) y en las denuncias (el de quien denuncia y el del denunciado; js/report.js).
 - **Nota sobre el uid en las salas**: las salas guardan `host` y `guest` con el uid, y **cualquier usuario con sesión puede listar
   las salas** (firestore.rules:30-32 y :65-66), en cualquier estado (abiertas, llenas y en juego: la regla `list` no filtra por
   `state` y el lobby filtra en el cliente, js/netroom.js:146-150); privacidad.html ya lo dice así. Es un efecto técnico del lobby (el usuario crea la sala para que otros la vean),
