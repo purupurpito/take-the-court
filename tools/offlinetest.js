@@ -89,7 +89,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     check(!bad.length, 'la lista no lleva version.json, netlogs, sw.js, .well-known ni otras webs', bad);
     const need = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'privacidad.html', 'borrar-cuenta.html'];
     check(A && need.every(n => A.files.some(f => f.u === n)) && A.files.some(f => /^vendor\/three\/three\.min\.js\?v=/.test(f.u)) &&
-      A.files.filter(f => /\.woff2$/.test(f.u)).length >= 20 && A.files.filter(f => /^js\/.*\?v=/.test(f.u)).length >= 60, 'la lista lleva index, js, three.js, fuentes, iconos, manifest y páginas legales (' + (A && A.files.length) + ' archivos)');
+      A.files.filter(f => /\.woff2$/.test(f.u)).length >= 5 && A.files.filter(f => /^js\/.*\?v=/.test(f.u)).length >= 60, 'la lista lleva index, js, three.js, fuentes, iconos, manifest y páginas legales (' + (A && A.files.length) + ' archivos)');
     const idx = fs.readFileSync(path.join(SITE_A, 'index.html'), 'utf8');
     check(!/cdnjs\.cloudflare|fonts\.googleapis|fonts\.gstatic/.test(idx), 'el index publicado no pide nada a cdnjs ni a Google Fonts');
     check(/<script src="js\/sw-reg\.js\?v=/.test(idx), 'el index publicado carga js/sw-reg.js');
@@ -142,7 +142,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     check(await waitFor(pg, READY, 40000), 'SIN RED: arranca en el menú');
     check(await pg.evalJs('VB.VERSION') === VER_A && await pg.evalJs('typeof THREE==="object"&&THREE.REVISION') === '149', 'SIN RED: versión ' + VER_A + ' y three.js r149');
     const fonts = await pg.evalJs('window.__vbFontFaces');
-    check(fonts >= 7, 'SIN RED: fuentes del juego cargadas (' + fonts + ' caras)');
+    check(fonts >= 4, 'SIN RED: fuentes del juego cargadas (' + fonts + ' caras)');
     await pg.evalJs("document.getElementById('btnSettings').click()"); await sleep(800);
     check(await waitFor(pg, "(function(){var p=document.getElementById('panel');return !!p&&!p.hidden&&p.getBoundingClientRect().width>0&&/Ajustes/i.test(p.textContent)})()", 5000), 'SIN RED: Ajustes se abre');
     await pg.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });

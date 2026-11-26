@@ -284,7 +284,7 @@ section('6. Noticia del jefe (C3) y escena ses1 de Faro (entrenos)');
   ok(h.indexOf('Belmonte «Muro» cae ante Cazajefes Prueba') > 0, 'sale en Liga › Noticias');
   // ses1
   ok(Wn.BEATS.ses1 && Wn.BEATS.ses1.t === 'El primer entreno' && Wn.BEAT_ORDER[Wn.BEAT_ORDER.length - 1] === 'ses1', 'BEATS.ses1 «El primer entreno», al final de BEAT_ORDER');
-  ok(Wn.BEATS.ses1.l.join(' ') === 'Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan. Jugado de verdad rinde más que en rápido. Y tu entrenador se fija en cómo entrenas.', 'frases exactas de playa');
+  ok(Wn.BEATS.ses1.l.join(' ') === 'Buen primer entreno. No te mates a sesiones antes de un partido, que llegas sin piernas. Y tu entrenador se fija en cómo entrenas.', 'frases exactas de playa');
   ok(/elegir el seis/.test(Wn.BEATS_H.ses1[1]) && !/arena|playa|circuito|\bopen\b|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…para elegir el seis»');
   ok(Wn.BEATS.ses1.l.concat(Wn.BEATS_H.ses1).every(l => l.length <= Wn.LINE_MAX), 'frases ≤ ' + Wn.LINE_MAX);
   const q0 = cc.world.mentor.q.length + cc.inbox.length;

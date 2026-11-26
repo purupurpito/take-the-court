@@ -14,7 +14,7 @@
  *   zona pc: 1280x720 y 1920x1080. Sufijo «n» = muesca (Emulation.setSafeAreaInsetsOverride si este Chrome lo tiene: 47 px a los lados
  *   y 21 abajo en apaisado; 47 arriba y 34 abajo en vertical). --sizes acepta los mismos nombres (con o sin «n»).
  *   Cerrojo de memoria: coge tools/out/chrome.lock (mkdir; espera cada 20 s si existe) y lo suelta al acabar o al fallar (REV_NOLOCK=1 no).
- *   Env: GL=swiftshader (sin GPU), WAIT=ms extra tras abrir cada pantalla.
+ *   Env: GL=swiftshader (sin GPU), WAIT=ms extra tras abrir cada pantalla, PROBE='cuerpo JS' (se evalúa tras cada captura y se imprime).
  * Filas: {id, zone, q (query de index.html; las de la misma q comparten carga), open (cuerpo JS async en la página; M = window.__MA de
  *   tools/mobaudit-page.js más los extras de aquí; false = «no se pudo abrir»), wait (ms tras abrir), sizes (solo esos)}.
  */
@@ -365,6 +365,7 @@ async function main() {
             if (bytes && bytes < 15000) rec.warn = 'PNG muy pequeño (¿negro o vacío?)';
             if (page.errors.length) { rec.jsErrors = page.errors.slice(0, 5); page.errors.length = 0; }
             srec.shots[sz.s] = rec;
+            if (process.env.PROBE) { try { console.log('PROBE ' + s.id + ' @' + sz.tok + ': ' + await page.evalJs('JSON.stringify((function(){' + process.env.PROBE + '})())')); } catch (e) { console.log('PROBE error: ' + e.message); } }
           }
         }
         save();

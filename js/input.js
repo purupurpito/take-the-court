@@ -475,10 +475,10 @@
     '.vt-safe{position:absolute;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
       'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}' +
     '.vt-tip{position:absolute;transform:translate(-50%,0);margin-top:calc(var(--d)/2 + 8px);white-space:nowrap;' +
-      'font:700 11px/1 "Barlow Condensed",system-ui,sans-serif;letter-spacing:.16em;color:rgba(255,255,255,.75);text-shadow:0 1px 4px rgba(0,0,0,.6)}' +
+      'font:700 11px/1 "Big Shoulders Display",system-ui,sans-serif;letter-spacing:.06em;color:rgba(255,255,255,.75);text-shadow:0 1px 4px rgba(0,0,0,.6)}' +
     '.vt-joy:not(.idle) .vt-tip{display:none}' +
     '.vt-btn{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff;' +
-      'font:800 15px/1 "Barlow Condensed",system-ui,sans-serif;letter-spacing:.08em;touch-action:none;' +
+      'font:800 15px/1 "Big Shoulders Display",system-ui,sans-serif;letter-spacing:.06em;touch-action:none;' +
       'border:2px solid rgba(255,255,255,.42);box-shadow:0 8px 22px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.28),inset 0 -6px 14px rgba(0,0,0,.18);' +
       'opacity:.86;transition:transform .07s ease-out,opacity .25s,box-shadow .2s;text-shadow:0 1px 2px rgba(0,0,0,.35)}' +
     '.vt-btn svg{width:34%;height:auto;display:block;pointer-events:none}' +
@@ -513,7 +513,7 @@
     '.vt-btn.off::before{content:"";position:absolute;right:12%;top:9%;width:7px;height:6px;margin-top:-5px;border:2px solid #dfe6ef;border-bottom:0;border-radius:5px 5px 0 0;box-sizing:border-box}' +
     '.vt-btn.off::after{content:"";position:absolute;right:calc(12% - 1px);top:9%;width:9px;height:7px;border-radius:2px;background:#dfe6ef;box-shadow:0 0 0 1.5px rgba(8,13,22,.85)}' +
     '.vt-sw{width:50px;height:50px;right:calc(14px + env(safe-area-inset-right));bottom:calc(152px*var(--vts,1) + env(safe-area-inset-bottom));' +
-      'background:rgba(8,13,22,.78);border-color:rgba(255,255,255,.62);font-size:10px;letter-spacing:.1em}' +
+      'background:rgba(8,13,22,.78);border-color:rgba(255,255,255,.62);font-size:10px;letter-spacing:.06em}' +
     '.vt-sw svg{width:46%}' +
     // COLOCAR (colocación en salto): encima de SALTAR, lejos del joystick y de GOLPEAR; aparece al despegar con el balón
     // jugable y se va al caer (visibility: la geometría medida sigue valiendo). Hueco con SALTAR: 12 px medidos en pantallas
@@ -533,7 +533,7 @@
     '.vt-zoom{width:40px;height:40px;right:calc(72px + env(safe-area-inset-right));top:calc(17px + env(safe-area-inset-top));gap:0;' +
       'background:rgba(8,13,22,.66);border-color:rgba(255,255,255,.3)}' +
     '.vt-zoom svg{width:50%}.vt-zoom b{position:absolute;right:-3px;bottom:-3px;min-width:15px;height:15px;border-radius:8px;background:#ffd23f;color:#1d1530;' +
-      'font:800 11px/15px "Barlow Condensed",system-ui,sans-serif;letter-spacing:0;text-align:center;text-shadow:none;pointer-events:none}' +
+      'font:800 11px/15px "Big Shoulders Display",system-ui,sans-serif;letter-spacing:0;text-align:center;text-shadow:none;pointer-events:none}' +
     '#touch.idle .vt-btn.vt-zoom:not(.dn),#touch .vt-btn.vt-zoom.see:not(.dn){opacity:.8;transform:none}' +
     '@media (max-height:420px){.vt-hit{width:calc(90px*var(--vts,1));height:calc(90px*var(--vts,1));bottom:calc(16px + env(safe-area-inset-bottom))}' +
       '.vt-jump{width:calc(68px*var(--vts,1));height:calc(68px*var(--vts,1));right:calc(134px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom))}' +

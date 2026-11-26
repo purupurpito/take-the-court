@@ -83,7 +83,7 @@ const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12,
     check(await waitFor("VB.ctx.inputDevice==='gamepad'", 1500), 'el mando pasa a ser el dispositivo activo');
     // ---- menú: stick abajo/arriba elige, ←/→ cambia valor, A acepta, B vuelve
     await stick(0, 0, 0); await sleep(200);
-    // Primera vez (24-nov-2026): portada con solo «¡Jugar ya!» y «Tutorial»; el stick va al Tutorial, A lo abre y B lo cierra → portada de siempre
+    // Primera vez (24-nov-2026): portada con solo «Jugar ya» y «Tutorial»; el stick va al Tutorial, A lo abre y B lo cierra → portada de siempre
     if (await evalJs("document.getElementById('menu').classList.contains('first-run')")) {
       let ft = await focused();
       for (let i = 0; i < 3 && ft !== 'btnStartTut'; i++) { await stick(0, 0.95, 110); ft = await focused(); }

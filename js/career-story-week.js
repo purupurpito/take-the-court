@@ -16,7 +16,7 @@
  *  - Estado (c.story): wk {k, o:[ids], pick, prev:[ids]}, wkN, mood/moodLog (del núcleo), pact {s, blk, id, goal, x, base, until,
  *    diff, st, got, n, sum, w}|null, pactOff {s, blk, k, until, exp, o:[{id, d, goal, x}]}|null, pactK, pactLog [{s, blk, id, d,
  *    st, t}] (6), brokenS.
- *  - Para otros paquetes: la carta «Entrevista en Radio Arena FM» deja la marca 'pressForce' (flag del núcleo) para que P1 saque
+ *  - Para otros paquetes: la carta «Entrevista en Radio Litoral» deja la marca 'pressForce' (flag del núcleo) para que P1 saque
  *    prensa la jornada siguiente. Las estrellas salen por fx({star}) (sys.fx de P4 si existe; si no, s.starQ): P4 no debe volver a
  *    contar ni el pacto cumplido ni la carta de la semana.
  */
@@ -47,24 +47,24 @@
   // ------------------------------------------------------------------ cartas (bolsa de 16)
   // r: rareza (0/1/2) · only: 'beach'|'hall' · need(c): condición · t/th: título (playa/pista) · x/xh: texto · e: efectos (fx)
   var CARDS = [
-    { id: 'rest', r: 0, t: 'Descansar en casa', x: ['Sofá, manta y nada de vóley. El cuerpo te lo agradece.', 'Móvil en silencio y una siesta larga. Mañana se vuelve a sudar.'], e: { fatigue: -10, mood: 5 } },
+    { id: 'rest', r: 0, t: 'Descansar en casa', x: ['Sofá. Tres capítulos de una serie que ya habías visto.', 'Móvil en silencio y una siesta larga.'], e: { fatigue: -10, mood: 5 } },
     { id: 'extra', r: 0, t: 'Entrenar extra con {mate}', x: ['Una hora más de arena para pulir lo que peor os sale.', 'Saques y recepciones hasta que se pone el sol.'],
       xh: ['Una hora más de pabellón para afinar los tiempos.', 'Colocaciones y remates hasta que apagan las luces.'], e: { chem: 5, fatigue: 6 } },
-    { id: 'gente', r: 0, t: 'Comer con tu gente', x: ['Mesa larga, sobremesa más larga y nadie te pregunta por el último partido.', 'Te ponen el plato de siempre y te preguntan cuándo vuelves.'], e: { fam: 8, mood: 3 } },
+    { id: 'gente', r: 0, t: 'Comer con la familia', x: ['Mesa larga, sobremesa más larga y nadie te pregunta por el último partido.', 'Te ponen el plato de siempre y te preguntan cuándo vuelves.'], e: { fam: 8, mood: 3 } },
     { id: 'video', r: 0, t: 'Vídeo de {rival}', x: ['Tres partidos enteros con la libreta al lado. Ya sabes hacia dónde atacan cuando se ponen nerviosos.', 'Pausa, rebobinar, pausa. Ese equipo tiene manías y las has apuntado todas.'], e: { tpDef: 20, coach: 2 } },
     { id: 'cafe', r: 0, t: 'Café con {agent}', x: ['Repasáis contratos, rumores y el calendario. Siempre trae galletas.', 'Te cuenta qué clubes preguntan por ti. Sin prisa, pero con planes.'], e: { ag: 8 } },
     { id: 'juegos', r: 0, t: 'Noche de juegos con {mate}', th: 'Noche de juegos con el vestuario', x: ['Juegos de mesa, pizza y piques que no tienen nada que ver con el vóley.', 'Se acaba tarde y con una revancha pendiente.'], e: { chem: 3, mood: 4 } },
     { id: 'fotos', r: 1, t: 'Sesión de fotos para {sponsor}', need: function (c) { return !!(c.life && c.life.sponsor); },
       x: ['Focos, ropa nueva y sonreír sin parar. Cansa más que un partido, pero se paga bien.', 'Te hacen saltar cuarenta veces delante de un fondo blanco.'], e: { money: 0.3, fatigue: 4 } },
-    { id: 'clinic', r: 1, t: 'Clínic en tu antiguo club', x: ['Peques con los ojos muy abiertos y preguntas que no te esperas.', 'Enseñas a sacar a un grupo que no se cansa nunca.'], e: { fame: 0.03, fam: 4 } },
+    { id: 'clinic', r: 1, t: 'Clínic en tu antiguo club', x: ['Críos con los ojos muy abiertos y preguntas que no te esperas.', 'Enseñas a sacar a un grupo que no se cansa nunca.'], e: { fame: 0.03, fam: 4 } },
     { id: 'yoga', r: 1, t: 'Yoga en la orilla', th: 'Piscina de recuperación', x: ['Respirar, estirar y escuchar las olas. Las piernas lo notan.'], xh: ['Agua caliente, chorros y estiramientos. Las piernas lo notan.'], e: { fatigue: -15 } },
-    { id: 'radio', r: 1, t: 'Entrevista en Radio Arena FM', x: ['Media hora en directo. La próxima jornada la prensa querrá más.', 'Te preguntan por todo. Habrá preguntas también tras el próximo partido.'], e: { fame: 0.04, press: 1 } },
+    { id: 'radio', r: 1, t: 'Entrevista en Radio Litoral', x: ['Media hora en directo. La próxima jornada la prensa querrá más.', 'Te preguntan por todo. Habrá preguntas también tras el próximo partido.'], e: { fame: 0.04, press: 1 } },
     { id: 'cena', r: 1, only: 'hall', t: 'Cena con la plantilla', x: ['Mesa reservada para todo el equipo. Alguien acaba cantando.', 'La capitanía invita a postre. Hay buen ambiente.'], e: { chem: 6 } },
     { id: 'paseo', r: 1, t: 'Paseo por {ciudad}', x: ['Sin reloj y sin plan. Descubres una heladería nueva.', 'Callejeas sin rumbo y vuelves con la cabeza despejada.'], e: { mood: 6, fatigue: -4 } },
-    { id: 'benefico', r: 2, t: 'Torneo benéfico 3x3 en la plaza', x: ['Medio barrio mirando, música y una causa bonita. Acabas con agujetas.', 'Juegas tres partidos seguidos al sol por una buena causa.'], e: { fame: 0.08, fatigue: 12, mood: 6 } },
-    { id: 'pod', r: 2, t: 'La Pausa Técnica te invita al pódcast', x: ['Una hora de charla sin cortes. Se escucha más de lo que crees.', 'Te ríes mucho y cuentas alguna anécdota de vestuario.'], e: { fame: 0.06 } },
+    { id: 'benefico', r: 2, t: 'Torneo benéfico 3x3 en la plaza', x: ['3x3 en la plaza para el viaje del infantil. Pierdes en semis contra dos de 15 años.', 'Juegas tres partidos seguidos al sol por una buena causa.'], e: { fame: 0.08, fatigue: 12, mood: 6 } },
+    { id: 'pod', r: 2, t: 'La Previa te invita al pódcast', x: ['Una hora de charla sin cortes. Se escucha más de lo que crees.', 'Te ríes mucho y cuentas alguna anécdota de vestuario.'], e: { fame: 0.06 } },
     { id: 'leyenda', r: 2, t: 'Clase con una leyenda del vóley', x: ['Una figura retirada de las de antes te corrige dos detalles que nadie había visto.', 'Una mañana con alguien que lo ganó todo hace años. Te llevas deberes.'], e: { train: 40 } },
-    { id: 'visita', r: 2, t: 'Visita a tu primer club', x: ['Siguen las mismas redes rotas y la misma entrenadora de la cantera. Te emocionas.', 'Tu foto está en la pared del bar del club. Nadie te deja pagar.'], e: { mood: 10 } }
+    { id: 'visita', r: 2, t: 'Visita a tu primer club', x: ['Las redes siguen igual de rotas. La entrenadora de la cantera te pide que vuelvas en verano para el campus.', 'Tu foto está en la pared del bar del club. Nadie te deja pagar.'], e: { mood: 10 } }
   ];
   var CARD = {}; CARDS.forEach(function (x) { CARD[x.id] = x; });
 
@@ -104,23 +104,19 @@
   // ------------------------------------------------------------------ plantillas del feed (sin respuesta salvo las del ánimo)
   var TPL = {
     wkPactOffer: { k: 'coach', t: ['Charla con {coach}', '{coach} quiere hablar contigo', 'Cinco minutos con {coach}'],
-      x: ['{coach}: «Tengo tres retos para este tramo. Elige el que quieras, o ninguno: si no eliges, no pasa nada.» Están en Jugador › Estado.',
-        '{coach}: «Quiero verte apretar. Te propongo tres pactos: uno fácil, uno normal y uno difícil.» Míralos en Jugador › Estado.',
-        '{coach}: «Si te comprometes, yo también. Escoge un pacto para este tramo.» En Jugador › Estado.'],
-      xh: ['{coach}, en el despacho del pabellón: «Tengo tres retos para este tramo. Elige uno o ninguno.» Están en Jugador › Estado.',
-        '{coach}: «Quiero que el equipo te vea apretar. Fácil, normal o difícil: tú eliges.» En Jugador › Estado.'] },
+      x: ['{coach}: «Te he dejado tres cosas apuntadas en la pizarra. Elige una.»'] },
     wkPactOk: { k: 'coach', t: ['Pacto cumplido', 'Lo prometido', 'Así me gusta'],
       x: ['{coach}: «Lo prometido. Así me gusta.» ({pacto})', '{coach}: «Dijiste que lo harías y lo has hecho. Eso no se olvida.» ({pacto})', '{coach}: «Pacto cumplido. Sigue por ahí.» ({pacto})'] },
     wkPactKo: { k: 'coach', t: ['Pacto fallado', 'No ha salido', 'Una charla pendiente'],
-      x: ['{coach}: «Hablamos de esto y no ha salido. Ya sé que puedes más.» ({pacto})', '{coach}: «No pasa nada, pero lo apunto. La próxima, a por ello.» ({pacto})', '{coach}: «Esta vez no. Quiero verte reaccionar.» ({pacto})'] },
-    wkMoodLow: { k: 'fam', t: ['Necesitas desconectar', 'Tu gente te ve con mala cara', 'Un respiro'],
-      x: ['Tu gente: «Te notamos con la cabeza en otra parte. ¿Te vienes un día a casa y te olvidas del vóley?»', 'Tu gente: «Últimamente no sonríes ni cuando ganas. Para un día, de verdad.»', 'Tu gente: «Tienes cara de no dormir. Un día fuera de la pista no le hace daño a nadie.»'],
+      x: ['{coach}: «Hablamos de esto y no ha salido. Ya sé que puedes más.» ({pacto})', '{coach}: «No pasa nada, pero lo apunto.» ({pacto})', '{coach}: «Esta vez no. Quiero verte reaccionar.» ({pacto})'] },
+    wkMoodLow: { k: 'fam', t: ['Necesitas desconectar', 'En casa te ven con mala cara', 'Un respiro'],
+      x: ['Mamá: «Te noto con la cabeza en otra parte... ¿Te vienes un día a casa?»', 'Mamá: «Últimamente no sonríes ni cuando ganas...»', 'Papá: «Tienes cara de no dormir. Ven a casa.»'],
       o: [{ t: 'Desconectar', e: { fatigue: -10, coach: -1, mood: 5 }, why: 'Un día para desconectar' }, { t: 'Seguir', e: {}, why: 'Sigues a lo tuyo' }],
-      c: ['Tu gente: «Vale. Aquí estaremos cuando quieras.»', 'Tu gente: «Bueno, otro día será.»'] },
+      c: ['Mamá: «Vale... Aquí estamos.»', 'Papá: «Otro día.»'] },
     wkMoodHigh: { k: 'mate', t: ['Te ves imparable', 'En una nube', 'Nadie te para'],
-      x: ['{mate}: «Estás que te sales. ¿Bajamos un poco el ritmo o seguimos a tope?»', '{mate}: «Te veo volar. Cuidado con pasarte de rosca.»', '{mate}: «Así da gusto. ¿Apretamos más o guardamos algo?»'],
+      x: ['{mate}: «estás que te sales»', '{mate}: «te veo volar. cuidado con pasarte de rosca»', '{mate}: «así da gusto»'],
       o: [{ t: 'Bajar el ritmo', e: { fatigue: -6, mood: -3 }, why: 'Prefieres no pasarte' }, { t: 'A tope', e: { train: 15, fatigue: 5 }, why: 'A tope mientras dure' }],
-      c: ['{mate}: «Vale, ya lo hablamos.»', '{mate}: «Como quieras, seguimos.»'] }
+      c: ['{mate}: «vale, ya lo hablamos»', '{mate}: «como quieras»'] }
   };
 
   // ------------------------------------------------------------------ estado
@@ -455,7 +451,7 @@
     fx: {
       // entreno de la carta «Vídeo de {rival}»: siempre al grupo de defensa (elección del jugador)
       tpDef: function (c, v) { if (!c.tp || typeof c.tp !== 'object') return null; c.tp.def = Math.min(99, (c.tp.def | 0) + (v | 0)); return 'Entreno de defensa +' + (v | 0); },
-      // «Entrevista en Radio Arena FM»: marca para P1 (prensa la jornada siguiente)
+      // «Entrevista en Radio Litoral»: marca para P1 (prensa la jornada siguiente)
       press: function (c) { S.flag(c, 'pressForce', 1); return 'La prensa querrá hablar contigo tras el próximo partido'; }
     },
     chips: chips,

@@ -54,7 +54,7 @@
     for (var i = 0; i < 5; i++) {
       var y = 70 + i * 19, on = i === hl;
       h += '<rect x="26" y="' + y + '" width="68" height="15" rx="4" fill="' + (on ? GOLD : 'rgba(255,255,255,.12)') + '"/>';
-      if (on) h += (ico ? ico(34, y + 7.5, INK) : '') + '<text x="' + (ico ? 43 : 31) + '" y="' + (y + 10.5) + '" font-size="6.2" font-weight="800" fill="' + INK + '" font-family="Barlow,system-ui,sans-serif">' + label + '</text>';
+      if (on) h += (ico ? ico(34, y + 7.5, INK) : '') + '<text x="' + (ico ? 43 : 31) + '" y="' + (y + 10.5) + '" font-size="6.2" font-weight="800" fill="' + INK + '" font-family="Chivo,system-ui,sans-serif">' + label + '</text>';
       else h += '<rect x="32" y="' + (y + 6) + '" width="' + (30 + (i * 7) % 20) + '" height="3" rx="1.5" fill="rgba(255,255,255,.35)"/>';
     }
     return h;
@@ -72,7 +72,7 @@
       '<rect x="30" y="135" width="10" height="8" rx="2" fill="rgba(255,255,255,.3)"/><rect x="80" y="135" width="10" height="8" rx="2" fill="rgba(255,255,255,.3)"/>' +
       shareIco(60, 140, PAPER) + ring(60, 139, 11) + finger(60, 148)),
     iosAdd: phone('<rect x="20" y="58" width="80" height="118" rx="10" fill="#2b2547"/>' + rows(2, 'Añadir a inicio', plusIco) + finger(86, 116)),
-    iosConfirm: phone('<rect x="20" y="14" width="80" height="40" rx="10" fill="#2b2547"/><text x="82" y="32" font-size="8" font-weight="800" fill="' + GOLD + '" text-anchor="end" font-family="Barlow,system-ui,sans-serif">Añadir</text>' +
+    iosConfirm: phone('<rect x="20" y="14" width="80" height="40" rx="10" fill="#2b2547"/><text x="82" y="32" font-size="8" font-weight="800" fill="' + GOLD + '" text-anchor="end" font-family="Chivo,system-ui,sans-serif">Añadir</text>' +
       ring(72, 29, 13) + ball(40, 80, 9) + '<rect x="56" y="76" width="34" height="5" rx="2.5" fill="rgba(255,255,255,.4)"/>' + finger(72, 40)),
     home: phone(homeGrid() + ring(60, 99, 13) + finger(60, 110)),
     andMenu: phone('<rect x="20" y="14" width="80" height="22" fill="#2b2547"/><rect x="26" y="20" width="54" height="10" rx="5" fill="rgba(255,255,255,.18)"/>' +
@@ -133,10 +133,9 @@
     '#install .ix-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px 14px;margin:0;padding:4px 6px 6px 2px;list-style:none}',
     '#install .ix-steps li{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 10px 12px;border-radius:14px 18px 12px 16px/16px 12px 18px 14px;',
     'background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px #000,4px 5px 0 3px #000}',
-    '#install .ix-steps li:nth-child(odd){transform:rotate(-.8deg)}#install .ix-steps li:nth-child(even){transform:rotate(.7deg)}',
     '#install .ix-steps svg{width:100%;max-width:112px;height:auto;max-height:32vh}',
     '#install .ix-n{position:absolute;left:-8px;top:-10px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--sp-gold);color:var(--sp-ink);',
-    'font:400 16px/1 var(--sp-pop);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink);transform:rotate(-10deg)}',
+    'font:400 16px/1 var(--sp-pop);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink)}',
     '#install .ix-steps p{margin:0;font:600 13px/1.38 var(--sp-ui);text-align:center;color:var(--sp-ink)}',
     '#install .ix-steps b{color:var(--sp-ink);background:linear-gradient(transparent 55%,rgba(255,203,61,.75) 55%)}',
     '#install .ix-acts{position:sticky;bottom:-16px;z-index:2;display:flex;flex-wrap:wrap;gap:12px 14px;justify-content:flex-end;align-items:center;margin:10px -22px -16px;padding:12px 22px 16px;',
@@ -163,7 +162,7 @@
     PP + '#install h2.sp-h{--sp-hs:var(--ph-title);margin:0 48px 4px 0;padding:0;line-height:1.05;white-space:nowrap}' + PP + '#install .ix-sheet{padding-top:16px}',
     PP + '#install .ix-intro{margin:0 40px 8px 0;font-size:var(--ph-body);line-height:1.4}',
     PP + '#install .ix-steps{display:block;flex:1 1 auto;min-height:0;padding:6px 4px 4px 6px;touch-action:pan-y}',
-    PP + '#install .ix-steps li{display:none;flex-direction:row;align-items:center;gap:16px;min-height:0;padding:12px 16px 12px 12px;transform:rotate(-.6deg)}',
+    PP + '#install .ix-steps li{display:none;flex-direction:row;align-items:center;gap:16px;min-height:0;padding:12px 16px 12px 12px}',
     PP + '#install .ix-steps li.on{display:flex}',
     PP + '#install .ix-steps svg{flex:none;width:auto;max-width:40%;height:180px;max-height:min(180px,calc(100vh - 200px))}',
     PP + '#install.ix-p1 .ix-steps svg{max-height:min(180px,calc(100vh - 256px))}',

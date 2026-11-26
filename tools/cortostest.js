@@ -51,7 +51,7 @@ const GS = "JSON.stringify((function(g){return {short:g.short||null,tw:g.toWin==
     // ---------------------------------------------------------------- (c) final apretado
     const before = await pg.evalJs("JSON.stringify({r:localStorage.getItem('make-the-cut.record'),rt:localStorage.getItem('make-the-cut.retos'),sq:localStorage.getItem('make-the-cut.squad'),pf:localStorage.getItem('make-the-cut.profile')})").then(JSON.parse);
     await pg.evalJs("document.getElementById('btnGo').click()");
-    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 10000), '¡A jugar! empieza el partido');
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 10000), 'Jugar empieza el partido');
     const g1 = await pg.evalJs(GS).then(JSON.parse);
     ok(g1.short && g1.short.len === 'clutch' && g1.short.from === 20 && g1.tw === 1 && g1.pts === 25 && g1.sc[0] === 20 && g1.sc[1] === 20, 'Final apretado: un set a 25 desde el 20-20 (' + JSON.stringify(g1) + ')');
     // ---------------------------------------------------------------- (d) al acabar no cuenta
@@ -62,7 +62,7 @@ const GS = "JSON.stringify((function(g){return {short:g.short||null,tw:g.toWin==
     // (22-nov: el corto escribe la marca anyMatch = «ya ha jugado algo», y al escribir el récord sale entero; lo que cuenta no cambia)
     { const strip = s => { const o = JSON.parse(s || '{}'); return JSON.stringify([o.played | 0, o.wins | 0, o.winRun | 0, o.bestStreak | 0, JSON.stringify(o.byD || {})]); };
       ok(strip(after.r) === strip(before.r), 'récord sin tocar (salvo la marca anyMatch)' + (strip(after.r) === strip(before.r) ? '' : ' ' + before.r + ' → ' + after.r));
-      ok(JSON.parse(after.r || '{}').anyMatch === 1, 'el corto sí marca «ya ha jugado» (record.anyMatch 1: sin «¡Jugar ya!» en la portada)'); }
+      ok(JSON.parse(after.r || '{}').anyMatch === 1, 'el corto sí marca «ya ha jugado» (record.anyMatch 1: sin «Jugar ya» en la portada)'); }
     ok(after.rt === before.rt, 'retos sin tocar');
     ok(after.sq === before.sq, 'XP e insignias del escuadrón sin tocar');
     ok(after.pf === before.pf, 'perfil (XP de perfil) sin tocar');

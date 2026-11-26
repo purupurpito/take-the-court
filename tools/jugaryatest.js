@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /* TAKE THE COURT — tools/jugaryatest.js  (owner: ui_main)
  * «Jugar ya» (1.22.0, informe de juegos de vóley 4.3) en el juego real (Chrome headless, perfiles nuevos, DE UNO EN UNO):
- *  (a) portada de quien no ha jugado nunca: billete «¡Jugar ya!» (#btnNow) a la vista y JUGAR en fila plana; un toque = partido 2v2 a UN
+ *  (a) portada de quien no ha jugado nunca: billete «Jugar ya» (#btnNow) a la vista y JUGAR en fila plana; un toque = partido 2v2 a UN
  *      set a 15 en Fácil, sin el panel «Primer partido» y con g.playNow 'ya';
  *  (b) el primer punto apunta 'make-the-cut.firstpt' (ms desde que se abrió la página, via 'ya'); se imprime el tiempo;
  *  (c) al acabar ese primer partido el Resumen ofrece «Y ahora»: Carrera, Vestuario y Cuenta; Vestuario lleva al Vestuario del menú y la
- *      portada ya no enseña «¡Jugar ya!»;
+ *      portada ya no enseña «Jugar ya»;
  *  (d) ?jugar: directo al partido corto (g.playNow 'jugar') y el enlace queda sin «jugar»;
  *  (e) móvil (táctil, 844×390): el aviso de instalar NO sale antes del primer partido y sí cuando el récord ya tiene uno;
- *  (h) PRIMERA VEZ (24-nov-2026): la portada del novato es solo «¡Jugar ya!», «Tutorial» y el engranaje de Ajustes (#menu.first-run); cerrar el tutorial (aunque sea a
- *      medias) da la portada de siempre, también al recargar (record.intro), y «¡Jugar ya!» sigue encima hasta el primer partido.
+ *  (h) PRIMERA VEZ (24-nov-2026): la portada del novato es solo «Jugar ya», «Tutorial» y el engranaje de Ajustes (#menu.first-run); cerrar el tutorial (aunque sea a
+ *      medias) da la portada de siempre, también al recargar (record.intro), y «Jugar ya» sigue encima hasta el primer partido.
  * Uso: node tools/jugaryatest.js   (sale con 1 si algo falla)
  */
 'use strict';
@@ -27,19 +27,19 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
 (async () => {
   let pg = null;
   try {
-    // ---------------------------------------------------------------- (a)-(c) portada → «¡Jugar ya!» → primer punto → hoja final
+    // ---------------------------------------------------------------- (a)-(c) portada → «Jugar ya» → primer punto → hoja final
     pg = await CDP.open({ size: '1280x720' });
     const t0 = Date.now();
     await pg.navigate('');
     ok(await waitFor(pg, READY, 25000), 'arranca en el menú');
     const por = await pg.evalJs(`(function(){var b=document.getElementById('btnNow'),p=document.getElementById('btnPlay');return JSON.stringify({vis:!!b&&!b.hidden&&b.offsetParent!==null,
       tk:!!b&&b.classList.contains('sp-ticket'),cls:document.getElementById('menu').classList.contains('has-now-mj'),pri:p.classList.contains('primary'),txt:b?b.textContent.replace(/\\s+/g,' ').trim():''})})()`).then(JSON.parse);
-    ok(por.vis && por.tk && por.cls, 'novato: billete «¡Jugar ya!» a la vista (' + por.txt + ')');
+    ok(por.vis && por.tk && por.cls, 'novato: billete «Jugar ya» a la vista (' + por.txt + ')');
     ok(!por.pri, 'novato: JUGAR pasa a fila plana');
     const fr0 = await pg.evalJs(FIRST).then(JSON.parse);
-    ok(fr0.cls && fr0.tut && !fr0.play && !fr0.squad && fr0.set, 'primera vez: solo «¡Jugar ya!», «Tutorial» y el engranaje de Ajustes (' + JSON.stringify(fr0) + ')');
+    ok(fr0.cls && fr0.tut && !fr0.play && !fr0.squad && fr0.set, 'primera vez: solo «Jugar ya», «Tutorial» y el engranaje de Ajustes (' + JSON.stringify(fr0) + ')');
     await pg.evalJs("document.getElementById('btnNow').click()");
-    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 8000), 'un toque en «¡Jugar ya!» empieza el partido');
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 8000), 'un toque en «Jugar ya» empieza el partido');
     const g = await pg.evalJs("JSON.stringify({pn:VB.ctx.game.playNow,pts:VB.ctx.game.points,tw:VB.ctx.game.toWin,d:VB.ctx.game.difficulty,s:VB.ctx.settings.difficulty,size:VB.ctx.game.size,first:!document.getElementById('pnFirst')||document.getElementById('pnFirst').hidden})").then(JSON.parse);
     ok(g.pn === 'ya' && g.pts === 15 && g.tw === 1 && g.size === 2, 'partido corto: 2v2, un set a 15, playNow ya (' + JSON.stringify(g) + ')');
     ok(g.d === 'easy' && g.s === 'easy', 'novato: en Fácil (y queda en Ajustes)');
@@ -64,7 +64,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     ok(await waitFor(pg, "VB.ctx.state==='menu'&&VB.UI.menuPage()==='look'", 6000), '«Vestuario» → el Vestuario del menú');
     await pg.evalJs('VB.UI.menuBack&&VB.UI.menuBack()'); await sleep(600);
     const now2 = await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()");
-    ok(!now2, 'tras el primer partido la portada ya no enseña «¡Jugar ya!»');
+    ok(!now2, 'tras el primer partido la portada ya no enseña «Jugar ya»');
     const fr1 = await pg.evalJs(FIRST).then(JSON.parse);
     ok(!fr1.cls && !fr1.tut && fr1.play && fr1.squad, 'tras el primer partido, la portada de siempre (' + JSON.stringify(fr1) + ')');
     // (22-nov) la revancha de «Jugar ya» de quien ya ha jugado es un partido corto más: no cuenta (g.short)
@@ -94,7 +94,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     await pg.evalJs("localStorage.setItem('make-the-cut.record',JSON.stringify({played:0,wins:0,bestStreak:0,winRun:0,tut:0,lastA:0,lastB:0,lastD:'',byD:{},anyMatch:1}))");
     await pg.navigate('');
     ok(await waitFor(pg, READY, 25000), '(f) recarga con anyMatch');
-    ok(!(await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")), 'récord 2v2 a 0 pero ya ha jugado (anyMatch): sin «¡Jugar ya!»');
+    ok(!(await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")), 'récord 2v2 a 0 pero ya ha jugado (anyMatch): sin «Jugar ya»');
     await pg.navigate('jugar');
     ok(await waitFor(pg, "VB.ctx&&VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 25000), '(f) ?jugar');
     ok(await pg.evalJs("!!(VB.ctx.game.short&&VB.ctx.game.short.len==='one')"), '?jugar de quien ya ha jugado: partido corto que no cuenta');
@@ -117,7 +117,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     ok(await waitFor(pg, "!VB.UI.isPanelOpen()", 4000), '(h) se cierra a medias');
     await sleep(400);
     const h1 = await pg.evalJs(FIRST).then(JSON.parse);
-    ok(!h1.cls && h1.now && !h1.tut && h1.play && h1.squad, '(h) cerrado el tutorial: portada de siempre con «¡Jugar ya!» encima (' + JSON.stringify(h1) + ')');
+    ok(!h1.cls && h1.now && !h1.tut && h1.play && h1.squad, '(h) cerrado el tutorial: portada de siempre con «Jugar ya» encima (' + JSON.stringify(h1) + ')');
     ok(await pg.evalJs("JSON.parse(localStorage.getItem('make-the-cut.record')).intro===1"), '(h) se apunta record.intro');
     await pg.navigate('');
     ok(await waitFor(pg, READY, 25000), '(h) recarga');
@@ -132,7 +132,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     ok(await waitFor(pg, READY, 25000), 'móvil: arranca en el menú');
     await sleep(5000);
     ok(!(await pg.evalJs('!!(VB.Install&&VB.Install.isOpen())')), 'móvil, novato: el aviso de instalar no sale antes de jugar');
-    ok(await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden&&b.offsetParent!==null})()"), 'móvil: «¡Jugar ya!» a la vista');
+    ok(await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden&&b.offsetParent!==null})()"), 'móvil: «Jugar ya» a la vista');
     await pg.evalJs("localStorage.setItem('make-the-cut.record',JSON.stringify({played:1,wins:0,bestStreak:0,winRun:0,tut:0,lastA:0,lastB:1,lastD:'easy',byD:{}}))");
     ok(await waitFor(pg, '!!(VB.Install&&VB.Install.isOpen())', 8000), 'móvil: con un partido en el récord, el aviso sale');
     ok(!pg.errors.length, 'móvil: sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));

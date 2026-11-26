@@ -1508,7 +1508,15 @@
     var hk = home === 1 ? rv : me, nm = function (x) { var s0 = String(x.nameBase || x.name || ''); return s0.length <= 16 ? s0 : String(x.city || x.short || s0.slice(0, 16)); };   // (lo que canta la megafonía: el nombre corto del club o su ciudad)
     return { home: home, heat: Math.round(heat * 100) / 100, fans: [Math.round(F[0] * k * 100) / 100, Math.round(F[1] * k * 100) / 100], tags: tags, level: lvl,
       city: String(hk.city || ''), venue: hall ? String(hk.city || '') : String(hk.beach || hk.city || ''), short: [nm(me), nm(rv)],
-      capt: cs && cs.acta && cs.acta.capt ? [cs.acta.capt[0] | 0, cs.acta.capt[1] | 0] : [0, 0], coach: ['', ''], riv: Math.round(h * 100) / 100, bond: bt };
+      capt: cs && cs.acta && cs.acta.capt ? [cs.acta.capt[0] | 0, cs.acta.capt[1] | 0] : [0, 0], coach: ['', ''], riv: Math.round(h * 100) / 100, bond: bt,
+      anec: anecOf(c) };
+  }
+  // anécdotas de megafonía ya dichas esta temporada (ambiente.js sum().anec): c.ambAnec = { s: temporada, a: [índices] }
+  function anecOf(c) { var x = c && c.ambAnec; return x && (x.s | 0) === (c.season | 0) && Array.isArray(x.a) ? x.a.slice(0, 8) : []; }
+  function anecSave(c, s) {
+    if (!c || !s || !Array.isArray(s.anec)) return;
+    var a = anecOf(c); s.anec.forEach(function (i) { if (i === (i | 0) && i >= 0 && a.indexOf(i) < 0) a.push(i); });
+    c.ambAnec = { s: c.season | 0, a: a.slice(0, 8) };
   }
   function slotOf(g, pl) {
     if (!pl || !g || !g.teams) return -1;
@@ -1891,6 +1899,7 @@
     if (coop) extCall('coopMatch', [c, m, res, rallies, g]);
     try { if (B() && B().endMatch && g) badges = B().endMatch(g, win, [c.player, mate2]) || []; } catch (e) { badges = []; }
     var asum = ambSum(m, g);
+    anecSave(c, asum);
     M = null;
     return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum, study: m.st, coop: coop });
   }
@@ -3559,6 +3568,7 @@
     } catch (e) { badges = []; }
     var part = { status: m.started ? 'start' : 'sub', started: m.started, entered: m.entered | 0, pulled: m.pulled | 0, pullWhy: m.pullWhy || '', meR: meR, rallies: rallies, share: share, sets: m.sets.slice() };
     var asum = ambSum(m, g);
+    anecSave(c, asum);
     M = null;
     return closeMine6(c, f, res, mine, false, { badges: badges, part: part, rt: rt && mine.nota != null ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum, study: m.st });
   }

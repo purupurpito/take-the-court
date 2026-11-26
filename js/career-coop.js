@@ -711,7 +711,7 @@
 
   // ================================================================== interfaz (VB.CareerUIExt: tarjeta en Partido y fila al crear)
   function btn(H, act, label, tone, extra) { return '<button class="sp-btn sp-md ' + (tone || 'sp-cream') + '" data-act="' + act + '"' + (extra || '') + '><span class="sp-l"><span class="sp-t">' + esc(label) + '</span></span></button>'; }
-  function spH(H, a, k) { return H && H.sp ? H.sp(a, k) : a.join(' · '); }
+  function spH(H, a, k) { return H && H.sp ? H.sp(a, k) : a.join(', '); }
   function noteP() { return S.note ? '<p class="coo-note" role="status">' + esc(S.note) + '</p>' : ''; }
   function joinRow(H) {
     return '<div class="coo-join"><label for="coCode">Código</label><input id="coCode" class="coo-code" maxlength="6" autocomplete="off" spellcheck="false" autocapitalize="characters" inputmode="text" placeholder="ABC234" value="' + esc(S.code) + '">' +
@@ -735,9 +735,9 @@
     }
     var o = c.coop || {}, hn = (o.host && o.host.name) || S.names[0] || 'tu pareja', me = c.player, pts = me.pts | 0;
     h += '<p class="coo-st" role="status">' + esc(statusTxt(c, hn)) + '</p>' +
-      '<p class="coo-me">' + esc('Tú: ' + (me.name || '') + ', n.º ' + (me.num | 0) + ', nivel ' + (me.lvl | 0) + (pts > 0 ? ' · ' + pts + (pts === 1 ? ' punto' : ' puntos') + ' para gastar' : '')) + '</p>' +
+      '<p class="coo-me">' + esc('Tú: ' + (me.name || '') + ', n.º ' + (me.num | 0) + ', nivel ' + (me.lvl | 0) + (pts > 0 ? '. ' + pts + (pts === 1 ? ' punto' : ' puntos') + ' sin gastar' : '')) + '</p>' +
       '<p class="muted">' + esc('Gastas tus puntos e insignias; lo demás lo decide ' + hn + '.') + '</p>' +
-      '<div class="acts">' + btn(H, 'co-ready', S.ready ? 'Listo ✓' : 'Listo', S.ready ? 'sp-kit' : 'sp-cream', ' aria-pressed="' + S.ready + '"') + btn(H, 'co-me', 'Tu jugador', 'sp-cream') + btn(H, 'co-end', 'Salir', 'sp-cream') + '</div>';
+      '<div class="acts">' + btn(H, 'co-ready', 'Listo', S.ready ? 'sp-kit' : 'sp-cream', ' aria-pressed="' + S.ready + '"') + btn(H, 'co-me', 'Tu jugador', 'sp-cream') + btn(H, 'co-end', 'Salir', 'sp-cream') + '</div>';
     return h + noteP() + '</div>';
   }
   /** Tu jugador del cooperativo guardado en este aparato (fuera del cooperativo): una línea, o ''. */

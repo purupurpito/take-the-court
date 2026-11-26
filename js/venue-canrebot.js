@@ -170,7 +170,7 @@
     if (SB.msgT > 0 && SB.msg) {
       g.fillStyle = '#0b0b0e'; g.fillRect(10 * k, 52 * k, W - 20 * k, 140 * k);
       g.fillStyle = SB.msgCol || AMB; g.fillRect(10 * k, 52 * k, W - 20 * k, 5 * k); g.fillRect(10 * k, 187 * k, W - 20 * k, 5 * k);
-      g.fillStyle = AMB; fitFont(g, SB.msg, 'italic 900', (SB.msgSub ? 54 : 66) * k, W * 0.9, FONT); g.fillText(SB.msg, W / 2, (SB.msgSub ? 108 : 122) * k);
+      g.fillStyle = AMB; fitFont(g, SB.msg, '900', (SB.msgSub ? 54 : 66) * k, W * 0.9, FONT); g.fillText(SB.msg, W / 2, (SB.msgSub ? 108 : 122) * k);
       if (SB.msgSub) { g.fillStyle = RED; fitFont(g, SB.msgSub, '800', 26 * k, W * 0.88, FONT); g.fillText(SB.msgSub, W / 2, 158 * k); }
     }
     if (CR.tex) CR.tex.needsUpdate = true;
@@ -199,7 +199,7 @@
       var q = R(rr); g.fillStyle = bg; g.fillRect(q[0], q[1], q[2], q[3]);
       g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 5 * k; g.setLineDash([14 * k, 10 * k]); g.strokeRect(q[0] + 10 * k, q[1] + 10 * k, q[2] - 20 * k, q[3] - 20 * k); g.setLineDash([]);
       g.save(); g.translate(q[0] + q[2] / 2, q[1] + q[3] / 2); g.rotate(-0.03);
-      g.fillStyle = fg; fitFont(g, s1, 'italic 900', 70 * k, q[2] * 0.84, FONT); g.fillText(s1, 0, s2 ? -10 * k : 2 * k);
+      g.fillStyle = fg; fitFont(g, s1, '900', 70 * k, q[2] * 0.84, FONT); g.fillText(s1, 0, s2 ? -10 * k : 2 * k);
       if (s2) { fitFont(g, s2, '800', 24 * k, q[2] * 0.8, FONT); g.fillText(s2, 0, 38 * k); }
       g.restore();
     }

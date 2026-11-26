@@ -281,7 +281,7 @@
   // ---------------------------------------------------------------- E5 (tarea C2): noticias y clubes
   function ordn(n) { return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
-  function stars(n) { var s = ''; for (var i = 0; i < 5; i++) s += i < n ? '★' : '<span class="off">★</span>'; return '<span class="stars" aria-label="Prestigio ' + n + ' de 5">' + s + '</span>'; }
+  function stars(n) { return 'Prestigio ' + (n | 0) + '/5'; }
   /** Escudo mini (22) de una fila de club; sin escudos (HLP sin crest), la muestra de equipación de siempre. */
   function kitMini(c, r) {
     if (!H || !r) return '';
@@ -334,13 +334,13 @@
     if (sel != null) { var card = w.clubCard(c, sel); if (card) return cardHTML(c, card); sel = null; }
     var L = lgBy(c, lvl), rows = w.clubRows(c, lvl); if (!L) return '';
     if (H.ph && H.ph() && sw != null) {   // móvil (movil-aire §5.4): «Liga · 8» dentro del selector y filas de 48 en una línea
-      var sw1 = String(sw).replace(/(<button class="cr-lgp-v"[^>]*>)([^<]*)(<\/button>)/, '$1$2 <small class="cr-lgp-n">· ' + rows.length + '</small>$3');
+      var sw1 = String(sw).replace(/(<button class="cr-lgp-v"[^>]*>)([^<]*)(<\/button>)/, '$1$2 <small class="cr-lgp-n">(' + rows.length + ')</small>$3');
       return '<div class="card">' + sw1 + '<div class="cw-list">' + rows.map(function (r) {
         var k = C().club ? C().club(c, r.id) : null, nm = k && H.shortClub ? H.shortClub(k) : r.name;
         var al = r.name + (r.mine ? ', tu club' : r.rival ? ', juega tu rival' : '') + (r.pj ? ', ' + ordn(r.pos) : '') + ', media ' + r.ovr + (r.vs ? ', tú ' + r.vs.g + '-' + r.vs.p : '');
         return '<button class="cw-row cw-rph' + (r.mine ? ' me' : r.rival ? ' rv' : '') + '" data-act="cw-club" data-id="' + r.id + '" aria-label="' + esc(al) + '">' + (k && H.crest ? H.crest(k, 28, { c: c }) : kitMini(c, r)) +
           // (ronda 2, recortes: vuelve la marca de la fila —«Tu club» / «Rival»— que la ronda 1 quitó; solo quedaba el borde de color)
-          '<b class="cw-rnm" data-trunc="name">' + esc(nm) + '</b>' + (r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Rival</span>' : '') + '<span class="cw-rs">' + (r.pj ? ordn(r.pos) + ' · ' : '') + r.ovr + '</span><span class="cw-go" aria-hidden="true">›</span></button>';
+          '<b class="cw-rnm" data-trunc="name">' + esc(nm) + '</b>' + (r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Rival</span>' : '') + '<span class="cw-rs">' + (r.pj ? ordn(r.pos) + ', ' : '') + r.ovr + '</span><span class="cw-go" aria-hidden="true">›</span></button>';
       }).join('') + '</div></div>';
     }
     return '<div class="card">' + (sw != null ? sw : lgSw(lvl)) + '<h3>' + sp([esc(L.name), plural(rows.length, 'club', 'clubes')], 'd') + '</h3><div class="cw-list">' + rows.map(function (r) {
@@ -367,14 +367,14 @@
       h += '<div class="card cw-card cw-cph"><div class="row cw-chr"><button class="cw-back cw-bk" data-act="cw-list" aria-label="Volver a Clubes">‹</button>' + (H.crest ? H.crest(k, 56, { c: c }) : '') +
         '<div class="grow" style="min-width:0"><p class="bigname cw-cn">' + esc(H.shortClub(k)) + '</p><p class="cw-ck">' + sp([esc(k.league), lo.founded ? String(lo.founded) : '', esc(lo.nick)], 'v') + '</p></div>' +
         (k.pj ? '<p class="cw-cs" aria-label="' + esc('Esta temporada: ' + ordn(k.pos) + ', ' + plural(k.pts, 'punto', 'puntos')) + '"><b>' + ordn(k.pos) + '</b><small>' + plural(k.pts, 'pt', 'pts') + '</small></p>' : '') + '</div>' +
-        (b0 ? '<p class="cw-bond ' + (b0.t > 0 ? 'g' : 'r') + '"><b>' + (b0.t > 0 ? 'Te tienen cariño' : 'Te guardan rencor') + '</b>' + (b0.txt ? ' · ' + esc(b0.txt.charAt(0).toLowerCase() + b0.txt.slice(1)) + (b0.s ? ' (T' + b0.s + ')' : '') : '') + '</p>' : '') +
+        (b0 ? '<p class="cw-bond ' + (b0.t > 0 ? 'g' : 'r') + '"><b>' + (b0.t > 0 ? 'Te tienen cariño' : 'Te guardan rencor') + '</b>' + (b0.txt ? ': ' + esc(b0.txt.charAt(0).toLowerCase() + b0.txt.slice(1)) + (b0.s ? ' (T' + b0.s + ')' : '') : '') + '</p>' : '') +
         '<p class="muted cw-chips">' + sp([k.mine ? { h: 'Tu club', c: 'dv g' } : k.rival ? { h: 'Tu rival juega aquí', c: 'dv r' } : '', { h: stars(k.stars) }, 'Media ' + k.ovr, esc(k.style), esc(k.beach || k.city)], 'c') + '</p>' +
-        '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i>' + (k.name !== H.shortClub(k) ? ' · ' + esc(k.name) : '') + '</p></div>';
+        '<p class="cw-nick">' + (k.name !== H.shortClub(k) ? esc(k.name) + '. ' : '') + '<span>' + esc(lo.motto) + '.</span></p></div>';
       if (k.form.length) h += '<div class="card"><h3>Esta temporada</h3><p class="cw-form" aria-label="Últimos ' + k.form.length + ': ' + k.form.map(function (f) { return f ? 'victoria' : 'derrota'; }).join(', ') + '">' + k.form.map(function (f) { return '<i class="' + (f ? 'w' : 'l') + '"></i>'; }).join('') + '<small>Últimos ' + k.form.length + '</small></p></div>';
     } else {
     h += '<div class="card cw-card"><button class="cw-back" data-act="cw-list">‹ Clubes</button><div class="row" style="margin-top:8px">' + (H.crest ? H.crest(k, 72, { c: c }) : H.kitSw ? H.kitSw(k.kit, true) : '') +
       '<div class="grow" style="min-width:0"><small class="cw-kick">' + sp([esc(k.league), 'Fundado en ' + lo.founded], 'd') + '</small><p class="bigname" style="font-size:21px">' + esc(k.name) + '</p>' +
-      '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i></p></div></div>' +
+      '<p class="cw-nick">' + esc(lo.nick) + '. <span>' + esc(lo.motto) + '.</span></p></div></div>' +
       '<p class="muted" style="margin-top:6px">' + sp([{ h: stars(k.stars) }, 'Media ' + k.ovr, esc(k.style), esc(k.beach || k.city)], 'c') + '</p>' +
       bondHTML(k) + '</div>';
     // 2) esta temporada

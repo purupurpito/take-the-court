@@ -13,7 +13,7 @@
  *                             → null si el partido no cuenta; si no {up:[{id,name,lvl,prev,tier}], xp, day, week:null, dry}
  *                             day = {key, medal, prev, newMedal, xp, goal:{id,n,txt,ok}, setsW} | null (solo con g.reto.kind 'day')
  *                             dry = calcula sin guardar ni dar XP (depuración; también se fuerza con VB.ctx.debug sin _force).
- *   chainOk(e, n?)            criterio de «Jugada perfecta» (R4): remate perfecto que cierra ≥ 3 toques perfectos seguidos
+ *   chainOk(e, n?)            criterio de «De libro» (R4): remate perfecto que cierra ≥ 3 toques perfectos seguidos
  *                             (n, si se da, sustituye a e.chain). ui.js (sello, :1183) lo usa con guarda.
  *   level(id), progress(id) → {v, lvl, next, frac, txt}, count() → 0..54, summary(), unseen(), markSeen(ids)
  *   today(now?) → AAAAMMDD, isoWeek(now?) → AAAAWW, dateLabel(k) → '13 nov'
@@ -61,27 +61,27 @@
 
   // ---------------------------------------------------------------- catálogo (S4-D1 §2.2)
   var H_PAIR = 'En 2 contra 2 cuenta tu pareja; en 6 contra 6, solo tú', H_MINE = 'Solo los toques que das tú';
-  var H_MAS = 'Con la maestría: finta, golpe colocado, al filo';
+  var H_MAS = 'Con la técnica: finta, golpe colocado, en la raya';
   var GROUPS = [{ id: 'atk', name: 'Ataque' }, { id: 'def', name: 'Defensa' }, { id: 'match', name: 'Partido' },
-    { id: 'mas', name: 'Maestría' }, { id: 'world', name: 'Mundo' }];
+    { id: 'mas', name: 'Técnica' }, { id: 'world', name: 'Mundo' }];
   var LIST = [
-    { id: 'r_aces', grp: 'atk', name: 'Lluvia de aces', cond: 'Aces en un partido', kind: 'max', th: [2, 4, 6], help: H_PAIR },
+    { id: 'r_aces', grp: 'atk', name: 'Aces', cond: 'Aces en un partido', kind: 'max', th: [2, 4, 6], help: H_PAIR },
     { id: 'r_kills', grp: 'atk', name: 'Pegada', cond: 'Remates ganadores en un partido', kind: 'max', th: [8, 15, 22], help: H_PAIR },
     { id: 'r_blocks', grp: 'atk', name: 'Pared', cond: 'Puntos de bloqueo en un partido', kind: 'max', th: [2, 4, 6], help: H_PAIR },
-    { id: 'r_digs', grp: 'def', name: 'Felino', cond: 'Defensas de remate en un partido', kind: 'max', th: [10, 20, 30], help: H_PAIR },
-    { id: 'r_recv', grp: 'def', name: 'Pase al dedo', cond: 'Recepciones perfectas tuyas en un partido', kind: 'max', th: [4, 8, 12], help: H_MINE },
-    { id: 'r_rally', grp: 'def', name: 'Peloteo eterno', cond: 'Jugada más larga de un partido', kind: 'max', th: [12, 20, 30], unit: ' toques', help: '' },
-    { id: 'r_streak', grp: 'match', name: 'Rodillo', cond: 'Puntos seguidos en un set', kind: 'max', th: [4, 6, 9], help: H_PAIR },
+    { id: 'r_digs', grp: 'def', name: 'Plancha', cond: 'Defensas de remate en un partido', kind: 'max', th: [10, 20, 30], help: H_PAIR },
+    { id: 'r_recv', grp: 'def', name: 'Doble positiva', cond: 'Recepciones que dejan al colocador sin moverse', kind: 'max', th: [4, 8, 12], help: H_MINE },
+    { id: 'r_rally', grp: 'def', name: 'No cae', cond: 'Jugada más larga de un partido', kind: 'max', th: [12, 20, 30], unit: ' toques', help: '' },
+    { id: 'r_streak', grp: 'match', name: 'Parcial', cond: 'Puntos seguidos en un set', kind: 'max', th: [4, 6, 9], help: H_PAIR },
     { id: 'r_win', grp: 'match', name: 'Escalera', cond: 'Gana un partido en Normal, Difícil y Experto', kind: 'tier', th: [1, 2, 3], help: 'Cada nivel, una dificultad' },
     { id: 'r_iron', grp: 'match', name: 'Set de hierro', cond: 'Gana un set a 21 o 25 dejando al rival en pocos puntos', kind: 'min', th: [12, 8, 5], help: H_PAIR },
     { id: 'r_comeback', grp: 'match', name: 'Remontada', cond: 'Gana un set después de ir perdiendo', kind: 'max', th: [4, 6, 8], unit: ' puntos', help: H_PAIR },
     { id: 'r_saved', grp: 'match', name: 'Sin temblar', cond: 'Salva puntos de set o de partido', kind: 'sum', th: [3, 10, 25], help: H_PAIR },
-    { id: 'r_tidy', grp: 'match', name: 'Juego limpio', cond: 'Gana un partido con pocos errores', kind: 'min', th: [6, 3, 1], help: H_PAIR },
-    { id: 'r_feint', grp: 'mas', name: 'Pillo', cond: 'Puntos con finta', kind: 'sum', th: [3, 15, 40], help: H_MAS },
+    { id: 'r_tidy', grp: 'match', name: 'Cero regalos', cond: 'Gana un partido con pocos errores', kind: 'min', th: [6, 3, 1], help: H_PAIR },
+    { id: 'r_feint', grp: 'mas', name: 'Finta', cond: 'Puntos con finta', kind: 'sum', th: [3, 15, 40], help: H_MAS },
     { id: 'r_roll', grp: 'mas', name: 'Al hueco', cond: 'Puntos con golpe colocado', kind: 'sum', th: [3, 15, 40], help: H_MAS },
-    { id: 'r_edge', grp: 'mas', name: 'Al filo', cond: 'Puntos al filo de la línea', kind: 'sum', th: [3, 15, 40], help: H_MAS },
-    { id: 'r_chain', grp: 'mas', name: 'Jugada perfecta', cond: 'Jugadas perfectas', kind: 'sum', th: [1, 10, 30], help: 'Tres toques perfectos seguidos acabados en remate' },
-    { id: 'r_venues', grp: 'world', name: 'Trotamundos', cond: 'Gana en sedes distintas', kind: 'set', th: [2, 4, 6], help: 'Seis sedes: Palau, Can Rebot, Cúpula, Platja, Moll y Fanals' },
+    { id: 'r_edge', grp: 'mas', name: 'En la raya', cond: 'Puntos en la raya', kind: 'sum', th: [3, 15, 40], help: H_MAS },
+    { id: 'r_chain', grp: 'mas', name: 'De libro', cond: 'Jugadas de libro', kind: 'sum', th: [1, 10, 30], help: 'Tres toques perfectos seguidos acabados en remate' },
+    { id: 'r_venues', grp: 'world', name: 'Todas las pistas', cond: 'Gana en sedes distintas', kind: 'set', th: [2, 4, 6], help: 'Seis sedes: Palau, Can Rebot, Cúpula, Platja, Moll y Fanals' },
     { id: 'r_six', grp: 'world', name: 'Equipo completo', cond: 'Gana partidos de 6 contra 6', kind: 'sum', th: [1, 5, 15], help: '' }
   ];
   var BY = {}, IDS = [];
@@ -119,7 +119,7 @@
       case 'tidy': return n === 0 ? 'Gana sin cometer ningún error' : n === 1 ? 'Gana con un error como mucho' : 'Gana con ' + n + ' errores o menos';
       case 'comeback': return 'Gana remontando ' + n + ' puntos en un set';
       case 'rally': return 'Gana con una jugada de ' + n + ' toques';
-      case 'mastery': return n === 1 ? 'Gana con un punto de finta, colocado o al filo' : 'Gana con ' + n + ' puntos de finta, colocado o al filo';
+      case 'mastery': return n === 1 ? 'Gana con un punto de finta, colocado o en la raya' : 'Gana con ' + n + ' puntos de finta, colocado o en la raya';
     }
     return '';
   }
@@ -362,7 +362,7 @@
    *  depuración no cuentan salvo con _force; una escena de depuración con g.reto cuenta, pero endMatch la cierra en seco (dry). */
   function counts(g) {
     if (!g || g.demo || g.drill || spectator(g)) return false;
-    if (g.sit) return false;   // la situación de la semana (js/semana.js): sin medallas ni XP (Ferran, 20-nov-2026)
+    if (g.sit) return false;   // la situación de la semana (js/semana.js): sin medallas ni XP
     if (g.short || g.rsNc) return false;   // partido corto del Partido rápido (informe 4.5, main.js quickShort): tampoco, para que no se farmeen
     if (VB.Retos._force) return true;
     if (dbg()) return !!g.reto;

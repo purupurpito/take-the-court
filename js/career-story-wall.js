@@ -41,21 +41,21 @@
 
   // ================================================================== TEXTOS
   // Cada variante: 'autor|texto de playa' o 'autor|texto de playa||texto de pista'. Autores: cron (@CronistaDeArena / de
-  // Pabellón), rumor (@ElOjoDeHalcón), pena (@PeñaVoley{Ciudad}), hater (@NoMeConvence, gracioso y nunca cruel), diario, digital,
+  // Pabellón), rumor (@ElOjoDeHalcón), pena (@GradaPoli{Ciudad}), hater (@NoMeConvence, gracioso y nunca cruel), diario, digital,
   // radio, pod (los medios del reparto), mate (tu pareja; en pista, la capitanía), rival (tu rival personal o el club rival),
-  // sponsor (solo con patrocinio), fam (Tu gente), me (tú).
+  // sponsor (solo con patrocinio), fam (Familia), me (tú).
   // Variables: las de VB.CareerStory.vars ({yo} {mate} {rival} {rp} {club} {ciudad} {sponsor}…) y las de cada publicación:
   // {nota} {res} (sets tuyos-rival) {score} ({club} 2-1 {rival}) {aces} {n} (racha) {w} {l} (cara a cara) {played}.
   var W = {
     big: [   // nota ≥ 8
-      'cron|{score}. {yo}, {nota} de nota. A esta persona hay que empezar a tomársela en serio.',
+      'cron|{score}. {yo}, {nota}. Apuntad el nombre.',
       'diario|Partidazo de {yo}: un {nota} que en la redacción ya ha abierto el debate de la camiseta.',
       'pena|¡{yo}, {nota}! En la peña hemos tenido que pedir otra ronda para celebrarlo.',
       'hater|Vale, {yo} ha estado bien. Muy bien, incluso. No me acostumbro, pero lo apunto.',
       'rumor|Dicen que después de ese {nota} hay clubes preguntando por {yo}. Yo solo lo cuento.',
-      'radio|En Radio Arena FM lo tenemos claro: el nombre de la jornada es {yo}. {nota} y sonrisa de oreja a oreja.',
+      'radio|El nombre de la jornada es {yo}. Un {nota}.',
       'mate|Hoy {yo} lo ha levantado todo. Yo solo he tenido que no estorbar.||Hoy {yo} se ha echado el equipo a la espalda. Así da gusto.',
-      'fam|Lo hemos visto en el bar con todo el barrio. Un {nota}. Ya no sabemos dónde poner tanto orgullo.'
+      'fam|Lo hemos visto en el bar con medio barrio. Un {nota}.'
     ],
     low: [   // nota < 5
       'hater|{yo} hoy ha jugado con el modo avión puesto. {nota}. Mañana será otro día (esperemos).',
@@ -65,13 +65,13 @@
       'rumor|Me cuentan que en el vestuario de {club} hoy había más silencio que en una biblioteca.',
       'diario|{yo} firma un {nota} y deja dudas. El cuerpo técnico pide calma.',
       'mate|Hoy no ha salido. A {yo} y a mí nos toca entrenar el doble esta semana.||Hoy no le ha salido a nadie, tampoco a {yo}. A entrenar y a la siguiente.',
-      'pod|En La Pausa Técnica hoy hablamos del bache de {yo}. Adelanto: tiene arreglo.'
+      'pod|Hoy hablamos del bache de {yo}. Adelanto: tiene arreglo.'
     ],
     comeback: [   // perdiste el primer set y ganaste
       'cron|Remontada de {club}: empezaron perdiendo y acabaron {res}. {yo}, de menos a más.',
       'pena|¡Qué sufrimiento! Pero así se ganan las cosas en {ciudad}: remontando.',
       'hater|Perder el primer set para darle emoción. Muy considerado por parte de {yo}.',
-      'radio|Remontada en directo en Radio Arena FM. El locutor ha perdido la voz y no se arrepiente.',
+      'radio|Remontada en directo. El locutor ha perdido la voz.',
       'diario|{club} levanta el partido tras un mal arranque. {yo} aparece cuando más quema.',
       'mate|Primer set horrible, luego a por todas. Así me gusta, {yo}.||Empezamos con el freno puesto y acabamos volando. Este equipo tiene carácter.',
       'rival|Se nos ha escapado vivo. Hay que saber cerrar los partidos. Enhorabuena a {club}.',
@@ -82,7 +82,7 @@
       'hater|Ni he tenido tiempo de sacar las palomitas. {club} {res} y a casa.',
       'pena|¡{res} y a la ducha! Así, sin complicaciones, como le gusta a la peña.',
       'diario|Victoria limpia de {club}: {res} ante {rival}. Ni un set regalado.',
-      'radio|Partido rápido en Radio Arena FM: {res} y nos ha sobrado tiempo para la previa del siguiente.',
+      'radio|Partido rápido: {res} y nos ha sobrado tiempo para la previa del siguiente.',
       'rumor|En {rival} están revisando el vídeo del partido. Dicen que todavía no entienden qué ha pasado.',
       'mate|Sin sufrir. {yo}, hoy éramos un reloj.||{res} y sin sufrir. Hoy el equipo era un reloj.',
       'fam|¿Ya ha terminado? Pues nada, a celebrarlo antes de que se enfríe la comida.'
@@ -91,19 +91,19 @@
       'cron|Ese saque de {yo} todavía está botando. {aces} aces y cara de no haber roto un plato.',
       'hater|{yo} saca como si le debieran dinero. Me da hasta un poco de respeto.',
       'pena|¡Ace, ace y ace! Hemos inventado un cántico nuevo y no rima con nada.',
-      'radio|En Radio Arena FM hemos contado tres veces el saque de {yo}. Sin repetición, pero con mucha emoción.',
+      'radio|Hemos contado tres veces el saque de {yo}. Sin repetición.',
       'diario|El saque como arma: {yo} firma {aces} aces y desarma a {rival}.',
       'rival|Ese saque de {yo}... hay que hablar con quien se lo haya enseñado. Muy bueno.',
       'rumor|Me dicen que en {rival} esta semana van a entrenar recepción. Mucha recepción.',
-      'fam|El saque de {yo} lo hemos visto diez veces en el móvil de la abuela. Doce, en realidad.'
+      'fam|La abuela ha aprendido a reenviar vídeos. Lo vas a recibir unas cuarenta veces.'
     ],
     err: [   // errores en los momentos clave (derrota)
-      'hater|Ese error de {yo} en el momento clave lo vamos a ver en memes durante semanas. Con cariño.',
+      'hater|Ese error de {yo} en el momento clave lo vamos a ver en memes durante semanas.',
       'cron|Los errores pesaron: {club} cede ante {rival} y {yo} no encuentra su mejor versión en los puntos clave.',
       'pena|Un error lo tiene cualquiera. {yo}, la próxima la clavas, que te conocemos.',
       'rumor|Cuentan que {yo} ha pedido la grabación del partido para verla esta noche. Toca autocrítica.',
       'diario|Demasiados regalos de {club} en los puntos decisivos. {rival} no perdonó.',
-      'radio|En Radio Arena FM no vamos a repetir ese error. Ya lo repite bastante la grada.',
+      'radio|No vamos a repetir ese error. Ya lo repite bastante la grada.',
       'mate|Ese último balón nos duele a los dos. A la siguiente, {yo}.||Los errores son de todo el equipo, no solo de {yo}. A la siguiente.',
       'fam|Te hemos visto la cara al fallar. No le des más vueltas, que vienes a cenar.'
     ],
@@ -113,18 +113,18 @@
       'hater|{n} seguidas. Ya me está costando encontrar de qué quejarme. Dadme tiempo.',
       'rumor|Con {n} victorias seguidas, en las oficinas de {club} ya se habla de renovaciones.',
       'diario|{club} encadena {n} triunfos y {yo} se consolida como pieza clave.',
-      'radio|En Radio Arena FM ya contamos {n} seguidas de {club}. Nuestro equipo de sonido dice que es gracias a su camiseta. No lo es.',
-      'fam|{n} seguidas. Tu gente ha decidido no cambiar de sitio en el sofá hasta nuevo aviso.',
-      'sponsor|{n} victorias seguidas de {yo}. Nosotros ya lo sabíamos. #EquipoChanclasVoladoras'
+      'radio|Ya van {n} seguidas de {club}. El técnico de sonido dice que es gracias a su camiseta. No lo es.',
+      'fam|{n} seguidas. En casa nadie cambia de sitio en el sofá hasta nuevo aviso.',
+      'sponsor|{n} victorias seguidas de {yo}. Nosotros ya lo sabíamos.'
     ],
     duelW: [   // duelo ganado a tu rival personal ({rp}, {w}-{l})
       'cron|Duelo para {yo}: gana a {rp} y el cara a cara queda {w}-{l}. La próxima semana va a ser divertida.',
       'rival|Hoy {yo} ha estado mejor. Lo reconozco. La próxima no pasa.',
       'hater|{rp} habló toda la semana y {yo} contestó en la pista. Fin de la conversación.',
-      'pena|¡Duelo ganado! {rp}, te esperamos en la vuelta. Con cariño, la peña.',
+      'pena|Duelo ganado. {rp}, te esperamos en la vuelta.',
       'rumor|Me cuentan que {rp} se ha ido sin hablar con nadie. Mal perder, o mucha prisa.',
       'diario|{yo} gana el duelo a {rp} y el cara a cara queda {w}-{l}.',
-      'radio|En Radio Arena FM lo llamamos el duelo del año. Esta vez, para {yo}.',
+      'radio|Aquí lo llamamos el duelo del año. Esta vez, para {yo}.',
       'fam|Hemos ganado a {rp}. Bueno, has ganado tú, pero nosotros gritábamos mucho.'
     ],
     duelL: [   // duelo perdido
@@ -134,7 +134,7 @@
       'pena|Hoy ha ganado {rp}, pero la peña no olvida. Habrá vuelta.',
       'rumor|Dicen que {rp} lo ha celebrado como si fuera una final. Le hacía falta.',
       'diario|Duelo para {rp}: {yo} no encuentra el camino y cede el cara a cara.',
-      'radio|En Radio Arena FM hay debate: ¿mala tarde de {yo} o gran día de {rp}? Llamad y opinad.',
+      'radio|Debate en antena: ¿mala tarde de {yo} o gran día de {rp}?',
       'fam|No te preocupes por {rp}. En casa sigues siendo lo mejor que le ha pasado al vóley.'
     ],
     bench: [   // jornada sin jugar
@@ -144,15 +144,15 @@
       'rumor|Hay quien dice que lo de {yo} es una decisión técnica. Hay quien dice otras cosas. Yo solo escucho.',
       'fam|Hemos ido igual al partido. Te hemos visto calentar y aplaudir. Así también se gana.',
       'diario|Sin minutos para {yo}. Toca esperar su momento.',
-      'radio|Pregunta del día en Radio Arena FM: ¿por qué no juega {yo}? Las líneas están que arden.',
-      'mate|Hoy he jugado con otra persona, pero te he echado de menos, {yo}. Vuelve pronto.||Desde el banquillo también se suma. {yo} ha animado más que nadie.'
+      'radio|¿Por qué no juega {yo}? Nos ha llamado un oyente para preguntarlo y se le ha cortado la llamada.',
+      'mate|hoy me han puesto con otra pareja y no nos hemos entendido ni para chocar la mano. vuelve ya||Desde el banquillo también se suma. {yo} ha animado más que nadie.'
     ],
     benchW: [   // relleno de banquillo: tu equipo gana sin ti
       'cron|{score}. {club} gana sin {yo} en la pista.',
       'hater|{club} gana sin {yo}. No digo nada, pero lo digo.',
       'diario|{club} suma sin {yo}: {res} ante {rival}.',
       'pena|Victoria de {club}. Falta {yo} para que sea perfecta.',
-      'radio|Lo contamos en Radio Arena FM: {club} gana {res}. Y {yo}, a esperar su turno.',
+      'radio|{club} gana {res}. Y {yo}, a esperar su turno.',
       'rumor|En {club} dicen que ganar sin {yo} es buena señal. Yo diría que es buena suerte.'
     ],
     benchL: [   // relleno de banquillo: tu equipo pierde sin ti
@@ -160,7 +160,7 @@
       'hater|Sin {yo}, {club} pierde. Tampoco digo nada. Bueno, sí.',
       'diario|Derrota de {club} ante {rival}. El banquillo, con {yo} incluido, mira y aprende.',
       'pena|Hoy hemos perdido sin {yo} en la pista. Que alguien tome nota.',
-      'radio|{club} cae {res}. En Radio Arena FM lo tenemos claro: hay que dar minutos a {yo}.',
+      'radio|{club} cae {res}. Aquí lo tenemos claro: hay que dar minutos a {yo}.',
       'fam|Sin ti en la pista no es lo mismo. Ni para nosotros ni para el marcador.'
     ],
     sign: [   // primer partido en un club nuevo
@@ -169,14 +169,14 @@
       'rumor|Ya lo dije yo: {yo} acababa en {club}. Nadie me hizo caso.',
       'hater|{yo} ya es de {club}. Le doy tres partidos para convencerme. Tres. Igual cuatro.',
       'diario|{club} estrena a {yo}: debut con {res} ante {rival}.',
-      'radio|Debut de {yo} con {club} en directo en Radio Arena FM. Primera nota: aprobado con ganas.',
-      'fam|Ya tenemos la camiseta de {club}. Talla equivocada, pero la llevamos con orgullo.',
-      'mate|Primer partido con {yo}. Esto promete.||Te damos la bienvenida al vestuario, {yo}. Aquí se trabaja y se ríe a partes iguales.'
+      'radio|Debut de {yo} con {club}, en directo. Aprobado.',
+      'fam|Ya tenemos la camiseta de {club}. Talla equivocada.',
+      'mate|Primer partido con {yo}. Esto promete.||Primer partido de {yo} con nosotros. Esto promete.'
     ],
     sponsor: [   // patrocinio nuevo
-      'sponsor|Damos la bienvenida a {yo} a la familia {sponsor}. #EquipoChanclasVoladoras',
-      'sponsor|{yo} ya juega con {sponsor}. Dicen que se nota en los saltos. Nosotros no decimos nada. #EquipoChanclasVoladoras',
-      'hater|{yo} ahora sale en los anuncios de {sponsor}. Ya no hay quien le aguante. (Es broma, el anuncio está bien.)',
+      'sponsor|Hoy ha pasado {yo} por la tienda a firmar. Gracias por confiar en nosotros!!',
+      'sponsor|{yo} ya juega con {sponsor}. Dicen que se nota en los saltos. Nosotros no decimos nada.',
+      'hater|{yo} ahora sale en los anuncios de {sponsor}. Ya no hay quien le aguante.',
       'rumor|Me dicen que el contrato de {yo} con {sponsor} incluye chanclas ilimitadas. No lo puedo confirmar.',
       'pena|¡{yo} con {sponsor}! En la peña ya hemos pedido descuento. Nos han dicho que no.',
       'cron|{sponsor} se fija en {yo}. El mercado de patrocinios también mira la pista.',
@@ -189,13 +189,13 @@
       'pena|Pase lo que pase fuera de la pista, la peña está con {yo}. Siempre.',
       'cron|Semana movida para {yo} fuera de la pista. Veremos si se nota dentro.',
       'diario|{yo} pasa página a una semana con decisiones. En {club}, tranquilidad.',
-      'radio|En Radio Arena FM nos llega que {yo} ha tenido una semana intensa. Ya nos lo contará en la próxima entrevista.',
+      'radio|Nos llega que {yo} ha tenido una semana intensa. Ya nos lo contará.',
       'fam|Sabemos que has tenido que decidir algo esta semana. Lo que hayas elegido, bien elegido está.',
       'mate|{yo} ha tenido una semana complicada y aun así ha venido a entrenar con una sonrisa.'
     ],
     // eco de lo que publicaste la jornada anterior (según el tono)
     echo0: [
-      'pena|Lo que escribió {yo} esta semana nos ha gustado mucho. Humildad y trabajo.',
+      'pena|{yo} publica algo sensato. Lo compartimos antes de que lo borre.',
       'cron|Mensaje sensato de {yo} en redes. Así se construye un vestuario.',
       'hater|{yo} publica algo humilde. No sé qué hacer con tanta normalidad.',
       'fam|Hemos leído lo que pusiste. Así te hemos criado, y así nos gusta.'
@@ -207,14 +207,14 @@
       'cron|Las palabras de {yo} en redes siguen dando que hablar.',
       'pena|{yo} viene con ganas de guerra. A la peña le encanta, que conste.',
       'diario|La publicación de {yo} no ha pasado desapercibida en la liga. Habrá que ver si lo respalda en la pista.',
-      'radio|En Radio Arena FM hemos leído lo de {yo} en directo. El locutor ha dicho «uy» tres veces.',
+      'radio|Hemos leído lo de {yo} en directo. El locutor ha dicho «uy» tres veces.',
       'fam|Hemos visto lo que pusiste. Un poco de humildad, que te conocemos. Pero nos hemos reído.'
     ],
     echo2: [
       'pena|Ya tenemos meme oficial de la temporada gracias a {yo}.',
       'hater|Lo de {yo} esta semana me ha hecho reír. Que no se repita.',
       'fam|Tu publicación la ha compartido hasta la vecina del quinto.',
-      'radio|En Radio Arena FM no paramos de leer lo que publicó {yo}. Grande.',
+      'radio|Hoy hemos leído en antena lo que publicó {yo}.',
       'cron|{yo} también sabe hacer reír. La publicación de la semana ya circula por todos los grupos.',
       'rumor|Me cuentan que en {club} han impreso lo que publicó {yo} y lo tienen en el vestuario.',
       'mate|Lo que has subido me ha hecho reír en pleno entreno. Me han mirado raro.||Lo que has subido lo ha leído en voz alta medio vestuario. Hemos llorado de risa.',
@@ -225,23 +225,23 @@
       'cron|Final ganada: {score}. {club} levanta el trofeo y {yo} sale en todas las fotos.',
       'pena|¡TÍTULO! La peña no va a dormir esta noche. Ni mañana.',
       'hater|Vale, ganar una final está bien. Lo reconozco. No lo repetiré.',
-      'radio|Radio Arena FM se queda sin voz: {club} gana la final {res}.'
+      'radio|{club} gana la final {res}. Nos hemos quedado sin voz.'
     ],
     finalL: [
       'cron|Final perdida: {score}. Duele, pero llegar hasta aquí ya dice mucho de {club}.',
-      'pena|Hoy duele, mañana orgullo. Gracias por llevarnos a una final.',
+      'pena|Final perdida. El autobús de vuelta, callado hasta casa. Pero hemos ido a una final.',
       'hater|Tanto para llegar a la final y luego esto. Bueno, el año que viene.',
-      'fam|Una final es una final. En casa estamos orgullosos igual. Más, incluso.'
+      'fam|Una final es una final. Ven a cenar el domingo.'
     ],
     koW: [
       'cron|{club} supera la eliminatoria: {res}. Sigue con vida.',
       'pena|¡Seguimos! Que nadie nos despierte.',
-      'radio|Eliminatoria superada y en Radio Arena FM al locutor le tiemblan las piernas.',
+      'radio|Eliminatoria superada. Al locutor le tiemblan las piernas.',
       'hater|Pasan de ronda. A ver cuánto dura el milagro.'
     ],
     koL: [
       'cron|Fin del camino para {club} en la eliminatoria: {res} ante {rival}.',
-      'pena|Fuera, pero con la cabeza alta.',
+      'pena|Fuera. El año que viene ya veremos.',
       'hater|Eliminación. Ya tengo planes para ese fin de semana, gracias.',
       'diario|{rival} apea a {club}. {yo}, sin premio esta vez.'
     ],
@@ -255,13 +255,13 @@
       'cron|El jefe del circuito sigue mandando. {yo} lo intenta, pero aún no es su día.',
       'pena|Al jefe se le gana con tiempo. Llegará.',
       'hater|El jefe sigue siendo el jefe. {yo}, apunta la dirección y vuelve.',
-      'radio|Radio Arena FM: el jefe sigue siendo el jefe. De momento.'
+      'radio|El jefe sigue siendo el jefe. De momento.'
     ],
     derbyW: [
       'pena|¡El derbi es nuestro! {ciudad} es de {club}. Hasta la vuelta, por lo menos.',
       'cron|Derbi para {club}: {score}. La ciudad cambia de color.',
       'hater|Ganar el derbi con la vecina del tercero siendo de {rival}. Hoy es buen día.',
-      'radio|Derbi narrado en Radio Arena FM: {club} gana y en {ciudad} suenan los cláxones.'
+      'radio|{club} gana el derbi y en {ciudad} suenan los cláxones.'
     ],
     derbyL: [
       'pena|Perder el derbi duele el doble. Hasta la vuelta.',
@@ -282,7 +282,7 @@
       'diario|{rival} repite triunfo ante {club}.'
     ],
     tvW: [
-      'radio|Retransmitido en Radio Arena FM y en la tele local: {club} gana y {yo} saluda a cámara.',
+      'radio|{club} gana y {yo} saluda a la cámara de la tele local.',
       'pena|¡Salimos en la tele! Y encima ganamos. Día redondo.',
       'hater|Primera vez que veo a {yo} en la tele. Ha estado bien. Lo grabé por si acaso.',
       'fam|Te hemos visto en la tele. La abuela dice que te ve con muy buena cara. Siempre lo dice.'
@@ -298,7 +298,7 @@
       'cron|{score}. Victoria y a pensar en la siguiente.',
       'diario|{club} gana {res} a {rival}. Partido serio y sin sobresaltos.',
       'pena|¡Victoria! La peña ya está en el bar de siempre.',
-      'radio|En Radio Arena FM cantamos la victoria de {club}. {yo}, con un {nota}.',
+      'radio|Victoria de {club}. {yo}, con un {nota}.',
       'hater|{club} gana. Yo esperaba sufrir más. Me han estropeado la tarde.',
       'rumor|Buen ambiente en {club} después de ganar. Hasta quien lleva el material sonríe.',
       'fam|¡Ganamos! Bueno, ganáis. Pero en casa se vive como si jugáramos todos.',
@@ -308,7 +308,7 @@
       'cron|{score}. Derrota para {club}, que tendrá que mejorar.',
       'diario|{rival} gana a {club} y le complica la semana.',
       'pena|Hoy no ha podido ser. La peña no se mueve de aquí.',
-      'radio|En Radio Arena FM toca contar una derrota de {club}. {yo}, con un {nota}. A levantarse.',
+      'radio|Derrota de {club}. {yo}, con un {nota}.',
       'hater|Perder así, contra {rival}. Me voy a hacer de otro equipo. Mentira, aquí sigo.',
       'rumor|Me cuentan que el entrenamiento de mañana en {club} va a ser largo. Muy largo.',
       'fam|Perder también es parte del juego. Ven a casa, que hay cena.',
@@ -345,14 +345,14 @@
       'rumor|Novedades del mercado: ninguna. Pero alguien tenía que decirlo.'
     ],
     press: [
-      'digital|Análisis de El Bloqueo Digital: {club} es de los equipos que más corren. {yo}, de quien más.',
+      'digital|{club} es de los equipos que más corren. {yo}, de quien más.',
       'digital|La clasificación aprieta y {club} se lo juega todo en las próximas jornadas.',
-      'pod|Nuevo episodio de La Pausa Técnica: hablamos de {club}, de {yo} y de por qué el vóley es el mejor deporte.',
+      'pod|Episodio nuevo: hablamos de {club} y de {yo}.',
       'digital|Dato de la jornada: {club} ya ha jugado {played} partidos esta temporada. Y los que quedan.',
-      'pod|En La Pausa Técnica hemos votado a la persona más regular de la liga. No ha ganado {yo}, pero ha quedado cerca.',
+      'pod|Hemos votado quién es más regular en la liga. No ha ganado {yo}, pero ha quedado cerca.',
       'digital|Entrevista pendiente con {yo}. Su agente, Cris Montoya, nos dice que «ya veremos».',
-      'pod|La Pausa Técnica recomienda: ver el último partido de {club} con calma y palomitas.',
-      'digital|El Bloqueo Digital abre debate: ¿qué necesita {club} para dar el salto? Comentad.'
+      'pod|Recomendación de la semana: ver el último partido de {club} con calma.',
+      'digital|¿Qué necesita {club} para dar el salto? Comentad.'
     ],
     // lo que publicas tú (Publicar), por tono
     pub0: [
@@ -388,8 +388,8 @@
     ],
     final: [
       'Final: un partido y el trofeo. {mate} dice que hoy no se escapa ni un balón.',
-      'Final: la peña del barrio ha alquilado un autobús. Hoy se juega todo.',
-      'Final: Radio Arena FM retransmite. El último paso, contra {rival}.',
+      'Final: los del infantil han alquilado un autobús. Hoy se juega todo.',
+      'Final: la radio lo da en directo. El último paso, contra {rival}.',
       'Final: todo el año para llegar aquí. Ahora, a disfrutarlo.'
     ],
     ko: [
@@ -407,7 +407,7 @@
     derby: [
       'Derbi: {club} contra {rival}, misma ciudad. En {ciudad} no se habla de otra cosa.',
       'Derbi: media {ciudad} con una camiseta y media con la otra. Hoy se decide quién presume.',
-      'Derbi: la peña del barrio lleva una semana preparando cánticos contra {rival}.',
+      'Derbi: los del infantil llevan una semana preparando cánticos contra {rival}.',
       'Derbi: en {ciudad} hoy no se habla de otra cosa. Ni en la panadería.'
     ],
     rev: [
@@ -417,10 +417,10 @@
       'Revancha: {coach} ha puesto en el vestuario el resultado del último partido contra {rival}. {s1}-{s2}. Para que nadie lo olvide.'
     ],
     tv: [
-      'Televisado: Radio Arena FM y la tele local retransmiten. La peña del barrio ya ha avisado a todo el mundo.',
-      'Televisado: hoy hay cámaras. Tu gente ha puesto la tele grande del bar.',
+      'Televisado: lo dan la radio y la tele local. Los del infantil ya han avisado a todo el mundo.',
+      'Televisado: hoy hay cámaras. Tu familia ha puesto la tele grande del bar.',
       'Televisado: la tele local abre su programa con este partido. Sonríe, que te ven.',
-      'Televisado: Radio Arena FM retransmite en directo. Medio barrio va a estar pegado a la radio.'
+      'Televisado: la radio lo da en directo. Medio barrio va a estar pegado al transistor.'
     ]
   };
   var TAGS = ['duel', 'final', 'ko', 'boss', 'derby', 'rev', 'tv'];

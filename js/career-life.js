@@ -175,10 +175,10 @@
   }
   var FAME_LINE = ['', 'En tu barrio ya te paran por la calle para pedirte una foto.', 'Los comentaristas del circuito saben pronunciar tu apellido. Casi siempre.',
     'Las gradas empiezan a llevar tu dorsal pintado en la cara.', 'Sales en los resúmenes de la tele y tus jugadas dan la vuelta a las redes.',
-    'Hay peques que se cortan el pelo como tú. Tu nombre llena gradas.', 'Ya no eres un jugador: eres una referencia. Dentro de veinte años aún hablarán de ti.'];
+    'En el infantil hay dos críos que se han cortado el pelo como tú.', 'En la gasolinera te han pedido una foto y no te han querido cobrar el café.'];
   // pista (pabellón): las que cambian
   var FAME_LINE6 = ['', '', 'Los comentaristas de la liga saben pronunciar tu apellido. Casi siempre.', 'En el pabellón ya hay pancartas con tu dorsal.', '',
-    'Hay peques que se cortan el pelo como tú. Cuando sales a calentar, el pabellón se pone en pie.', ''];
+    '', ''];
   /** Interés extra de los clubes por tu fama (career.js offerScore): hasta +3. */
   function offerBonus(c) { var l = c && c.life; if (!l) return 0; return round1(Math.min(3, tierIdx(l.fame || 0) * 0.5) + (l.svc && l.svc.agent ? 2 : 0)); }
 
@@ -269,10 +269,10 @@
     return (me[CH[ch.id].stat] | 0) + ' de ' + ch.n;
   }
 
-  // ------------------------------------------------------------------ patrocinadores (inventados: gag de vóley, sin marcas reales)
-  var SPONSORS = ['Chanclas Voladoras', 'Cremas Quemadito', 'Horchatería El Bloqueo', 'Seguros Arena Mojada', 'Toallas Sin Arena', 'Marisquería El Pulpo Feliz',
-    'Gafas Mediodía', 'Bocatas Remate', 'Helados Punto de Set', 'Sombrillas Tie-Break', 'Zumos La Dejada', 'Autoescuela Saque Flotante', 'Panadería La Colocadora',
-    'Colchones El Banquillo', 'Peluquería Tie-Break', 'Fontanería Toque de Red', 'Croquetas Doble Contacto', 'Paellas Cambio de Campo', 'Ferretería El Muro', 'Gimnasio Salto Vertical'];
+  // ------------------------------------------------------------------ patrocinadores (inventados: comercios de barrio, sin marcas reales)
+  var SPONSORS = ['Carpintería Hermanos Olmedo', 'Autoescuela La Rotonda', 'Panadería Cal Peret', 'Bar La Parada', 'Clínica Dental Soler', 'Construcciones Roig',
+    'Asesoría Grau', 'Fisioterapia del Mar', 'Recambios Sorribes', 'Pinturas Llobet', 'Ferretería Can Valls', 'Croquetas Doble Contacto', 'Náutica Ferrer',
+    'Colchones El Banquillo', 'Restaurante Los Arcos', 'Óptica Marín', 'Peixateria Can Pons', 'Alquiler de Bicis Paco', 'Gestoría Benet', 'Inmobiliaria Costa Azul'];
   var SP_PAY = [0, 120, 400, 1200, 3500, 9000, 20000];   // salpis por jornada según tu escalón de fama
   var SP_GOALS = [
     { stat: 'aces', per: 1.6, txt: '{n} aces en la temporada' },
@@ -281,11 +281,11 @@
     { stat: 'blocks', per: 1.1, txt: '{n} bloqueos punto en la temporada' },
     { stat: 'digs', per: 6, txt: '{n} defensas en la temporada' }
   ];
-  // Pista (pabellón): patrocinadores INVENTADOS con gag de vóley de pabellón (nunca marcas reales; algunos, gags recurrentes del juego)
-  var SPONSORS6 = ['Rodilleras Rodríguez', 'Chanclas Supersónicas', 'Seguros Tie-Break', 'Parqués El Bote', 'Bebidas Tiempo Muerto', 'Fisioterapia El Líbero',
-    'Pizzería La Rotación', 'Talleres Primer Tiempo', 'Cafetería La Pipe', 'Churrería Saque en Salto', 'Ferretería La Antena', 'Academia Zona 4',
-    'Lavandería Camiseta de Líbero', 'Mudanzas Cambio de Saque', 'Clínica Dental Remate Limpio', 'Hamburguesas Bola de Set', 'Zapatillas Suela Pegajosa',
-    'Ópticas Línea de Fondo', 'Colchones El Banquillo', 'Cerrajería Doble Bloqueo'];
+  // Pista (pabellón): también inventados y sin marcas reales; ninguno se repite con los de la playa
+  var SPONSORS6 = ['Talleres Martínez e Hijos', 'Electrodomésticos Puig', 'Farmacia Ribas', 'Cafetería El Andén', 'Transportes Vidal', 'Fontanería Sanz',
+    'Seguros Pallarés', 'Mobles Casals', 'Gimnasio Olimpia', 'Copistería La Esquina', 'Frutas Hermanos Gil', 'Pastisseria Mas',
+    'Neumáticos Ortiz', 'Cristalería Navarro', 'Hamburguesas Bola de Set', 'Floristería Rosa', 'Gráficas Tena',
+    'Lavandería La Pinza', 'Cansaladeria Vila', 'Autocares Bonet'];
   // objetivos de temporada en la pista, por puesto (por partido a 15, × ptsF): ~3/4 de lo medido jugando (ver CH6), porque los partidos
   // simulados y las jornadas de descanso o de banquillo suman menos
   var SP_GOALS6 = {
@@ -389,7 +389,8 @@
     var off = Math.round(1 + r() * 4);
     l.rival = { name: m.name, num: m.num, club: k.id, off: off, w: 0, l: 0, since: c.season };
     var pos = H6 && E.POS && E.POS[role6(c)] ? E.POS[role6(c)].name.toLowerCase() : '';
-    E._msg(c, 'fans', 'Tienes un rival: ' + m.name, m.name + ' (' + k.name + ') tiene tu edad, juega en tu liga' + (pos ? ', también de ' + pos + ',' : '') + ' y no para de decir en las entrevistas que es mejor que tú. Cada partido contra su club es un duelo: el reto vale el doble.');
+    var rm = E._msg(c, 'fans', 'Tienes un rival: ' + m.name, m.name + ' (' + k.name + ') tiene tu edad, ' + (pos ? 'juega de lo mismo' : 'juega en tu liga') + ' y va diciendo en la radio que es mejor que tú.');
+    if (rm) rm.e = 'Duelo: reto x2';
     return l.rival;
   }
   function rivalOvr(c) { var l = c && c.life; return l && l.rival ? clamp(K(c).playerOvr(c) + (l.rival.off | 0), 1, 99) : 0; }
@@ -403,7 +404,7 @@
       o: [{ t: 'Todo es mérito del equipo', e: { chem: 8, coach: 1 } }, { t: '«Hoy he estado imparable»', e: { fame: 0.07, fameMin: 60, chem: -5 } }, { t: 'Ya pensamos en el siguiente', e: { coach: 3 } }] },
     party: { t: 'Fiesta en el chiringuito', th: 'Cena de equipo', x: 'La plantilla ha quedado para celebrar. Mañana hay entreno a primera hora.', when: function () { return true; },
       o: [{ t: 'Quedarte hasta tarde', e: { chem: 10, fatigue: 15, fame: 0.02, fameMin: 15 } }, { t: 'Un rato y a casa', e: { chem: 4 } }, { t: 'Quedarte entrenando', e: { tp: 35, fatigue: 6, coach: 2 } }] },
-    clinic: { t: 'Clínic benéfico', x: 'Una escuela de tu ciudad te invita a entrenar con sus peques el día de descanso.', when: function () { return true; },
+    clinic: { t: 'Clínic benéfico', x: 'Una escuela de tu ciudad te invita a entrenar con los críos el día de descanso.', when: function () { return true; },
       o: [{ t: 'Ir toda la mañana', e: { fame: 0.06, fameMin: 50, fatigue: 5 } }, { t: 'Mandar una camiseta firmada', e: { fame: 0.02, fameMin: 15 } }, { t: 'Esta vez no puedo', e: {} }] },
     viral: { t: 'Reto viral en redes', x: 'Te retan a meter un saque dentro de una papelera a 9 metros. Medio vestuario ya lo ha intentado.', when: function (c) { return tierOf(c) >= 1; },
       o: [{ t: 'Grabar el vídeo', e: { fame: 0.1, coach: -2, fatigue: 3 } }, { t: 'Pasar', e: { coach: 1 } }] },
@@ -415,7 +416,7 @@
       o: [{ t: 'Invitar a cenar', e: { chem: 10, money: -0.15 } }, { t: 'Entrenar juntos extra', e: { chem: 6, fatigue: 8 } }, { t: '«Espabila, que nos jugamos mucho»', e: { chem: -6, form: 1 } }] },
     // solo en la pista: el vestuario de un equipo de seis (más el líbero y el banquillo)
     speech: { only: 'hall', t: 'Charla en el vestuario', x: 'El capitán está lesionado y el entrenador te pide que hables tú al equipo antes del próximo partido.', when: function (c) { return (c.coach | 0) >= 45; },
-      o: [{ t: 'Discurso épico', e: { chem: 8, coach: 2, fame: 0.02, fameMin: 15 } }, { t: 'Cuatro frases y a jugar', e: { chem: 3 } }, { t: '«Que hable otro»', e: { coach: -3 } }] },
+      o: [{ t: 'Soltar el discurso que llevas ensayando en la ducha', e: { chem: 8, coach: 2, fame: 0.02, fameMin: 15 } }, { t: 'Cuatro frases y a jugar', e: { chem: 3 } }, { t: '«Que hable otro»', e: { coach: -3 } }] },
     video: { only: 'hall', t: 'Sesión de vídeo', x: 'El segundo entrenador ha preparado dos horas de vídeo del próximo rival. Tus compañeros ya bostezan.', when: function () { return true; },
       o: [{ t: 'Tomar apuntes', e: { coach: 3, tp: 20 } }, { t: 'Proponer verlo en la cafetería', e: { chem: 6, coach: -1 } }, { t: 'Dormir con los ojos abiertos', e: { fatigue: -6, coach: -2 } }] },
     tv: { t: 'Te invitan a la tele', x: 'Un programa de deportes quiere entrevistarte en directo esta noche.', when: function (c) { return tierOf(c) >= 2; },
@@ -574,26 +575,26 @@
   function trophiesOf(c, k) { return (c.trophies || []).filter(function (t) { return !k || t.kind === k; }).length; }
   var ACH = [
     { id: 'm1', name: 'Debut', d: 'Juega tu primer partido', n: 1, v: function (c) { return T(c).played; }, fans: 30 },
-    { id: 'm50', name: 'Veterano de la arena', nh: 'Veterano del parqué', d: 'Juega 50 partidos', n: 50, v: function (c) { return T(c).played; }, pts: 2 },
+    { id: 'm50', name: 'Medio centenar', d: 'Juega 50 partidos', n: 50, v: function (c) { return T(c).played; }, pts: 2 },
     { id: 'm150', name: 'Incombustible', d: 'Juega 150 partidos', n: 150, v: function (c) { return T(c).played; }, pts: 4 },
     { id: 'w1', name: 'Primera victoria', d: 'Gana un partido', n: 1, v: function (c) { return T(c).won; }, fans: 50 },
     { id: 'w50', name: 'Ganador', d: 'Gana 50 partidos', n: 50, v: function (c) { return T(c).won; }, pts: 3 },
-    { id: 'p500', name: 'Anotador', d: 'Suma 500 puntos', n: 500, v: function (c) { return T(c).pts; }, pts: 2 },
+    { id: 'p500', name: 'Quinientos puntos', d: 'Suma 500 puntos', n: 500, v: function (c) { return T(c).pts; }, pts: 2 },
     { id: 'p2000', name: 'Máquina de puntos', d: 'Suma 2.000 puntos', n: 2000, v: function (c) { return T(c).pts; }, pts: 4 },
-    { id: 'a50', name: 'Saque bomba', d: 'Haz 50 aces', n: 50, v: function (c) { return T(c).aces; }, pts: 2 },
-    { id: 'b50', name: 'Muralla', d: 'Haz 50 bloqueos punto', n: 50, v: function (c) { return T(c).blocks; }, pts: 2 },
-    { id: 'as1k', name: 'Director de orquesta', d: 'Da 1.000 asistencias', n: 1000, v: function (c) { return T(c).assists; }, pts: 3, only: 'hall' },   // (el logro del colocador)
+    { id: 'a50', name: 'Cincuenta aces', d: 'Haz 50 aces', n: 50, v: function (c) { return T(c).aces; }, pts: 2 },
+    { id: 'b50', name: 'Manos arriba', d: 'Haz 50 bloqueos punto', n: 50, v: function (c) { return T(c).blocks; }, pts: 2 },
+    { id: 'as1k', name: 'Mil colocaciones', d: 'Da 1.000 asistencias', n: 1000, v: function (c) { return T(c).assists; }, pts: 3, only: 'hall' },   // (el logro del colocador)
     { id: 'n9', name: 'Partidazo', d: 'Saca un 9 o más en un partido', n: 9, v: function (c) { return c.life.bestNota; }, fans: 150, dec: true },
-    { id: 's5', name: 'En racha', d: 'Gana 5 partidos seguidos', n: 5, v: function (c) { return c.life.best; }, pts: 1 },
-    { id: 's10', name: 'Imparable', d: 'Gana 10 partidos seguidos', n: 10, v: function (c) { return c.life.best; }, pts: 3 },
-    { id: 'ch10', name: 'Retador', d: 'Cumple 10 retos de jornada', n: 10, v: function (c) { return c.life.chDone; }, pts: 2 },
-    { id: 'ch40', name: 'Sin miedo a nada', d: 'Cumple 40 retos de jornada', n: 40, v: function (c) { return c.life.chDone; }, pts: 4 },
-    { id: 'duel5', name: 'Némesis', d: 'Gana 5 duelos a tu rival', n: 5, v: function (c) { return c.life.duelW; }, pts: 2 },
+    { id: 's5', name: 'Cinco seguidas', d: 'Gana 5 partidos seguidos', n: 5, v: function (c) { return c.life.best; }, pts: 1 },
+    { id: 's10', name: 'Diez seguidas', d: 'Gana 10 partidos seguidos', n: 10, v: function (c) { return c.life.best; }, pts: 3 },
+    { id: 'ch10', name: 'Diez retos', d: 'Cumple 10 retos de jornada', n: 10, v: function (c) { return c.life.chDone; }, pts: 2 },
+    { id: 'ch40', name: 'Cuarenta retos', d: 'Cumple 40 retos de jornada', n: 40, v: function (c) { return c.life.chDone; }, pts: 4 },
+    { id: 'duel5', name: 'Tomada la medida', d: 'Gana 5 duelos a tu rival', n: 5, v: function (c) { return c.life.duelW; }, pts: 2 },
     { id: 'up', name: 'Subir de categoría', d: 'Consigue un ascenso', n: 1, v: function (c) { return trophiesOf(c, 'ascenso'); }, money: 2000 },
     { id: 't1', name: 'Campeón', d: 'Gana un título (liga u open)', dh: 'Gana un título (liga o copa)', n: 1, v: function (c) { return trophiesOf(c, 'liga') + trophiesOf(c, 'copa') + trophiesOf(c, 'intl'); }, pts: 2 },
-    { id: 't5', name: 'Coleccionista', d: 'Gana 5 títulos', n: 5, v: function (c) { return trophiesOf(c, 'liga') + trophiesOf(c, 'copa') + trophiesOf(c, 'intl'); }, pts: 5 },
+    { id: 't5', name: 'Vitrina llena', d: 'Gana 5 títulos', n: 5, v: function (c) { return trophiesOf(c, 'liga') + trophiesOf(c, 'copa') + trophiesOf(c, 'intl'); }, pts: 5 },
     { id: 'aw1', name: 'Gala de premios', d: 'Gana un premio individual', n: 1, v: function (c) { return c.life.awards.length; }, pts: 1 },
-    { id: 'mvp', name: 'El mejor de todos', d: 'Gana un MVP', n: 1, v: function (c) { return c.life.awards.filter(function (a) { return a.id === 'mvp'; }).length; }, pts: 3 },
+    { id: 'mvp', name: 'MVP', d: 'Gana un MVP', n: 1, v: function (c) { return c.life.awards.filter(function (a) { return a.id === 'mvp'; }).length; }, pts: 3 },
     { id: 'top', name: 'En la élite', d: 'Juega en la máxima categoría', dh: 'Juega en una liga de élite', ph: function (v) { return 'Tu liga: nivel ' + v + ' de 4 (por su fuerza)'; }, n: 4, v: function (c) { return c.myClub >= 0 ? lvlOf(c) : 0; }, fans: 2000 },
     { id: 'f1', name: 'Te conocen', d: 'Llega a «Conocido en el circuito»', dh: 'Llega a «Conocido en la liga»', n: 2000, v: function (c) { return c.life.fameMax; }, money: 1000 },
     { id: 'f2', name: 'Estrella', d: 'Llega a «Estrella»', n: 20000, v: function (c) { return c.life.fameMax; }, pts: 3 },
@@ -601,12 +602,12 @@
     { id: 'l10', name: 'Nivel 10', d: 'Llega al nivel 10', n: 10, v: function (c) { return c.player.lvl; }, money: 1500 },
     { id: 'l25', name: 'Nivel 25', d: 'Llega al nivel 25', n: 25, v: function (c) { return c.player.lvl; }, pts: 3 },
     { id: 'sp', name: 'Cara de anuncio', d: 'Firma con un patrocinador', n: 1, v: function (c) { return c.life.sponsor || c.life.spDone ? 1 : 0; }, fans: 100 },
-    { id: 'gear', name: 'Equipado hasta arriba', d: 'Todo el material a nivel 3', n: 12, v: function (c) { var s = 0; GEAR_KEYS.forEach(function (k) { s += c.life.gear[k] | 0; }); return s; }, pts: 2 },
+    { id: 'gear', name: 'Material a tope', d: 'Todo el material a nivel 3', n: 12, v: function (c) { var s = 0; GEAR_KEYS.forEach(function (k) { s += c.life.gear[k] | 0; }); return s; }, pts: 2 },
     // sprint 2-4 (SIEMPRE al final, para no mover índices): sesiones de entrenamiento (c.ts.md = [sin, bronce, plata, oro], career.js sessDo)
     // y jefes del circuito (l.bossW)
     { id: 'ses10', name: 'Siempre a punto', d: 'Acaba 10 sesiones de entrenamiento con plata u oro', n: 10, v: function (c) { var s = c.ts && c.ts.md; return Array.isArray(s) ? (+s[2] || 0) + (+s[3] || 0) : 0; }, pts: 1 },
     { id: 'sesg5', name: 'Matrícula de honor', d: 'Saca oro en 5 sesiones de entrenamiento', n: 5, v: function (c) { var s = c.ts && c.ts.md; return Array.isArray(s) ? +s[3] || 0 : 0; }, fans: 40 },
-    { id: 'boss3', name: 'Cazajefes', d: 'Gana a 3 jefes distintos', n: 3, v: function (c) { return c.life.bossW | 0; }, pts: 3, only: 'beach' }
+    { id: 'boss3', name: 'Tres jefes', d: 'Gana a 3 jefes distintos', n: 3, v: function (c) { return c.life.bossW | 0; }, pts: 3, only: 'beach' }
   ];
   /** Lista estática de los logros (sin funciones) para el álbum del perfil (S4 D2): cuenta ACH.length, nunca un número fijo. */
   var ACH_INFO = ACH.map(function (a) { var o = { id: a.id, name: a.name, d: a.d }; if (a.nh) o.nh = a.nh; if (a.dh) o.dh = a.dh; if (a.only) o.only = a.only; return o; });
@@ -967,9 +968,13 @@
   var CHEM_LV = [[0, 'Conocidos'], [30, 'Buena sintonía'], [60, 'Compenetrados'], [90, 'Pareja de oro']];
   var CHEM_LV6 = ['Vestuario nuevo', 'Buen ambiente', 'Bloque sólido', 'Equipo de oro'];
   var CHEM_UP = [null,
-    ['Con {mate} ya os entendéis sin hablar: +1 en reacción, colocación y recepción para los dos.', 'El vestuario empieza a funcionar: +1 en reacción, colocación y recepción para todo el equipo.'],
-    ['{mate} y tú os buscáis sin mirar: +2 en reacción, colocación y recepción. En los puntos grandes lo celebraréis a vuestra manera.', 'Os movéis como un bloque: +2 en reacción, colocación y recepción para todo el equipo.'],
-    ['Sois la pareja que todos quieren evitar: +3 en reacción, colocación y recepción, y un saludo que ya imitan en la grada.', 'Nadie quiere cruzarse con vosotros: +3 en reacción, colocación y recepción para todo el equipo.']];
+    ['{mate} y tú ya os entendéis con una mirada.', 'El vestuario empieza a funcionar.'],
+    ['Con {mate} ya no hace falta hablar en la recepción.', 'Os movéis como un bloque.'],
+    ['En la grada ya imitan el saludo que hacéis {mate} y tú.', 'Nadie quiere cruzarse con vosotros.']];
+  // (lo que suma cada nivel: va aparte del mensaje, en m.e, que career-ui pinta debajo)
+  var CHEM_FX = [null, ['+1 en reacción, colocación y recepción para los dos', '+1 en reacción, colocación y recepción para todo el equipo'],
+    ['+2 en reacción, colocación y recepción para los dos', '+2 en reacción, colocación y recepción para todo el equipo'],
+    ['+3 en reacción, colocación y recepción para los dos', '+3 en reacción, colocación y recepción para todo el equipo']];
   /** Química actual de la carrera c (la de la pareja en la playa, la del equipo en la pista). */
   function chemNow(c) { return clamp(hall(c) ? +c.chem || 0 : c && c.mate ? +c.mate.chem || 0 : 0, 0, 100); }
   /** Nivel 0-3 de una química v (número) o de la carrera c (objeto). */
@@ -990,7 +995,7 @@
     if (lv !== (o.chemLv | 0)) o.chemLv = lv;
     if (up) {
       var name = chemName(lv, c), txt = CHEM_UP[lv][H6 ? 1 : 0].replace('{mate}', c.mate ? c.mate.name : 'Tu compañero');
-      K(c)._msg(c, 'chem', 'Química: ' + name, txt);
+      var cm = K(c)._msg(c, 'chem', 'Química: ' + name, txt); if (cm) cm.e = CHEM_FX[lv][H6 ? 1 : 0];
       if (!H6 && lv >= 2) l.chemEv = lv;
       lookCheck(c);   // Vestuario: lo que se desbloquea con la química ({chem: n})
     }
@@ -1097,7 +1102,7 @@
     out.cards = { y: my, r: mr, team: tm };
     if (mr) {
       out.fans += addFame(c, -Math.max(20, Math.round(l.fame * CARD_FAME)));
-      K(c)._msg(c, 'coach', 'Tarjeta roja', 'El entrenador no quiere más protestas: «Una roja regala un punto. Cabeza fría y a jugar».');
+      K(c)._msg(c, 'coach', 'Penalización', 'El entrenador no quiere más protestas: «Una penalización es un punto regalado. Cabeza fría».');
       if (k.r >= COMITE_R && (k.warn | 0) !== (sum.season | 0)) {
         k.warn = sum.season | 0;
         K(c)._msg(c, 'coach', 'Aviso del comité', 'Llevas ' + k.r + ' tarjetas rojas esta temporada. El comité de competición te avisa: una más y estudiará tu caso.');
@@ -1107,7 +1112,7 @@
     if (sum.review && k.n >= FAIR_MIN && !k.y && !k.r) {
       k.fair++;
       out.fans += addFame(c, FAIR_FANS * LV_MULT[L]);
-      K(c)._msg(c, 'fans', 'Premio a la deportividad', 'Toda la temporada sin una sola tarjeta. La liga te da el premio a la deportividad y la afición lo aplaude.');
+      K(c)._msg(c, 'fans', 'Premio a la deportividad', 'Es una placa y te la dan en la gala, en la mesa del fondo. Cuenta igual.');
       out.fair = true;
     }
   }
@@ -1205,7 +1210,7 @@
       var me = E.myClub(c), dz = false;
       if (hall(c)) dz = !!(me && me.city && rk.city && me.city === rk.city);
       else dz = !!(rv0 && rv0.club === rk.id) || !!bossFor(c, rk.id);
-      if (dz) { bondAdd(c, rk.id, BOND_D.derbi, 'derbi'); E._msg(c, 'fans', 'Derbi para el recuerdo', 'Has dejado fuera a ' + rk.name + '. Su afición tardará en perdonártelo.'); }
+      if (dz) { bondAdd(c, rk.id, BOND_D.derbi, 'derbi'); E._msg(c, 'fans', 'Derbi ganado', 'Has dejado fuera a ' + rk.name + '. Su afición tardará en perdonártelo.'); }
     }
     var a = sum.amb;
     if (a && !sum.sim && (a.myR | 0) > 0 && a.home === 1) {
@@ -1220,7 +1225,7 @@
     if (!won) return;
     b.tS = c.season | 0;
     bondAdd(c, me.id, BOND_D.title, 'title');
-    E._msg(c, 'fans', me.name + ' no lo olvidará', 'La afición ya canta tu nombre. Este título se recordará en ' + sedeOf(me) + ' mucho tiempo.');
+    E._msg(c, 'fans', me.name + ' no lo olvidará', 'En ' + sedeOf(me) + ' el título sale en la portada del semanario.');
   }
   /** Verano: la relación se enfría (×0,75) y se olvida por debajo de 8. Lo de la temporada que acaba de terminar se salta este verano. */
   function bondDecay(c) {

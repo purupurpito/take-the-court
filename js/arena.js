@@ -18,7 +18,25 @@
   var VB = window.VB = window.VB || {};
   var THREE, ctx, C;
   var root, keyLight, rimLight, fillLight, hemi;
-  var FONT = '"Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+  var FONT = '"Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+  var FONT0 = FONT;
+  var FONT_TXT = '"Chivo", system-ui, sans-serif';          // vallas de letra fina (MARINA FM, TERRA, ALBA SPORT)
+  var FONT_LED = '"Doto", ui-monospace, monospace';          // marcador LED del pabellón y la valla de la autoescuela
+  /** Las texturas pintadas con letra propia esperan a sus fuentes (tope 1,5 s, como doll.js) y se repintan; si no llegan,
+   *  se quedan con el respaldo. Una sola promesa para todo el pabellón. */
+  var fontsP = null;
+  function whenFonts(cb) {
+    if (!fontsP) {
+      try {
+        var F = document.fonts;
+        fontsP = F && F.load ? Promise.race([
+          Promise.all([F.load('800 40px "Big Shoulders Display"'), F.load('700 40px "Chivo"'), F.load('800 40px "Doto"')]).catch(function () { }),
+          new Promise(function (r) { setTimeout(r, 1500); })
+        ]) : Promise.resolve();
+      } catch (e) { fontsP = Promise.resolve(); }
+    }
+    fontsP.then(function () { try { cb(); } catch (e) { } });
+  }
 
   // ---------- Dimensiones del pabellón (metros, coordenadas de sim) ----------
   var FZX = 15.5, FZY = 9.5;          // zona libre FIVB: 6.5 m tras los fondos, 5 m en laterales
@@ -366,7 +384,7 @@
     g.font = '900 ' + Math.round(1.35 * ppm) + 'px ' + FONT;
     g.fillText('PALAU  DEL  MAR', X(0), Y(-7.2));
     g.font = '800 ' + Math.round(0.42 * ppm) + 'px ' + FONT; g.fillStyle = 'rgba(255,255,255,0.10)';
-    g.fillText('· VALÈNCIA ·', X(0), Y(-8.35));
+    g.fillText('VALÈNCIA', X(0), Y(-8.35));
     g.restore();
     // ondas decorativas sutiles en las esquinas de la zona libre
     g.save(); g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 0.08 * ppm;
@@ -479,7 +497,7 @@
     } else {
       // marca del fabricante (ficticia) en la banda superior
       g.fillStyle = 'rgba(20,40,70,0.55)'; g.font = '800 ' + Math.round(top * 0.78) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('SALT·9  PRO NET', Wd * 0.5, top * 0.55);
+      g.fillText('SALT 9  PRO NET', Wd * 0.5, top * 0.55);
     }
     // bandas laterales sobre las líneas laterales (5 cm x 1 m)
     function bandAt(yy) { var u0 = (yy + NET_W / 2) * ppm; g.fillStyle = beach ? bandCol : '#f7f4ee'; g.fillRect(u0, 0, 0.05 * ppm, Ht); }
@@ -2221,7 +2239,7 @@
       g.beginPath(); g.arc(cx - r * 1.05, cy - r * 0.95, r * 1.35, 0.15, 1.45); g.stroke(); g.beginPath(); g.arc(cx + r * 1.1, cy + r * 0.2, r * 1.3, 2.25, 3.6); g.stroke();
       g.beginPath(); g.arc(cx + r * 0.1, cy + r * 1.25, r * 1.2, 3.75, 5.3); g.stroke(); g.restore();
     }
-    function num(cx, cy, size, txt, col) { g.fillStyle = col; g.font = 'italic 900 ' + Math.round(size) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, cx, cy + size * 0.04); }
+    function num(cx, cy, size, txt, col) { g.fillStyle = col; g.font = '900 ' + Math.round(size) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, cx, cy + size * 0.04); }
     for (var t = 0; t < 2; t++) {
       var P = t ? AWAY : HOME;
       for (var d = 0; d < 4; d++) {
@@ -2803,16 +2821,36 @@
   /* =====================================================================
    * VALLAS LED (marcas ficticias) y mensajes de partido
    * ===================================================================== */
+  /* Cada marca con su letra (type): w = peso, f = familia, low = minúsculas, sp = espacio entre letras (px a 128 de alto),
+   * sx = estirado horizontal, it = cursiva, lines = en dos renglones. NÓRDIKA es la valla cutre (Arial Black estirada), adrede.
+   * PALAU DEL MAR sigue en el puesto 4 (skinRepaint lo usa para el mensaje de reposo). */
   var BRANDS = [
-    { name: 'NÓRDIKA', fg: '#ffd23f', bg: ['#0d1b2a', '#16324f'], deco: 'flake' },
-    { name: 'VOLTA', fg: '#ffffff', bg: ['#ff5b3a', '#ff8a3d'], deco: 'bolt' },
-    { name: 'ALBA·SPORT', fg: '#0d1b2a', bg: ['#7ee0c3', '#bff3e2'], deco: 'sun' },
-    { name: 'MARINA FM', fg: '#ffffff', bg: ['#2a55c9', '#3f7cf0'], deco: 'wave' },
-    { name: 'PALAU DEL MAR', fg: '#ffffff', bg: ['#0b3a4f', '#146a86'], deco: 'wave' },
-    { name: 'TERRA', fg: '#ffd23f', bg: ['#2a1a0d', '#4a2f17'], deco: 'leaf' },
-    { name: 'SALT·9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
-    { name: 'TAKE THE COURT', fg: '#0e1118', bg: ['#ffd23f', '#ffb03d'], deco: 'ball' }
+    { name: 'NÓRDIKA', fg: '#ffd23f', bg: ['#0d1b2a', '#16324f'], deco: 'flake', type: { w: 900, f: '"Arial Black", Arial, sans-serif', it: true, sx: 1.2 } },
+    { name: 'VOLTA', fg: '#ffffff', bg: ['#ff5b3a', '#ff8a3d'], deco: 'bolt', type: { w: 900 } },
+    { name: 'ALBA SPORT', fg: '#0d1b2a', bg: ['#7ee0c3', '#bff3e2'], deco: 'sun', type: { w: 700, f: 'txt' } },
+    { name: 'MARINA FM', fg: '#ffffff', bg: ['#0c4a4f', '#14666b'], deco: 'wave', type: { w: 700, f: 'txt', low: true } },
+    { name: 'PALAU DEL MAR', fg: '#ffffff', bg: ['#0b3a4f', '#146a86'], deco: 'wave', type: { w: 800 } },
+    { name: 'TERRA', fg: '#5a3a1e', bg: ['#efe3c8', '#f7eedb'], deco: 'leaf', type: { w: 300, f: 'txt', sp: 14 } },
+    { name: 'SALT 9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
+    { name: 'TAKE THE COURT', fg: '#0e1118', bg: ['#ffd23f', '#ffb03d'], deco: 'ball' },
+    { name: 'AUTOESCUELA LA ROTACIÓN', fg: '#14110a', bg: ['#ffd400', '#ffe14d'], deco: 'dots', type: { w: 800, f: 'led', lines: ['AUTOESCUELA', 'LA ROTACIÓN'] } }
   ];
+  /** Pinta el nombre de la marca b con su letra, desde x (izquierda) y centrado en y, sin pasar de maxW. */
+  function brandText(g, b, x, y, fs, maxW) {
+    var T = b.type || {}, F = T.f === 'txt' ? FONT_TXT : T.f === 'led' ? FONT_LED : T.f || FONT;
+    var pre = (T.it ? 'italic ' : '') + (T.w || 900) + ' ', sx = T.sx || 1;
+    var lines = T.lines || [T.low ? b.name.toLowerCase() : b.name], n = lines.length, sp = T.sp ? T.sp * fs / 77 : 0;
+    var hasLS = sp && 'letterSpacing' in g, txt;
+    if (sp && !hasLS) lines = lines.map(function (l) { return l.split('').join(' '); });   // sin letterSpacing: espacios
+    g.save();
+    if (hasLS) g.letterSpacing = Math.round(sp) + 'px';
+    var f0 = n > 1 ? fs * 0.56 : fs, f1 = f0;
+    for (var i = 0; i < n; i++) f1 = Math.min(f1, fitDown(g, lines[i], pre, Math.round(f0), maxW / sx, 10, F));
+    g.font = pre + f1 + 'px ' + F;
+    g.translate(x, y); g.scale(sx, 1);
+    for (var k = 0; k < n; k++) { txt = lines[k]; g.fillText(txt, 0, n > 1 ? (k - 0.5) * f1 * 1.08 : 0); }
+    g.restore();
+  }
   var led = { cv: null, tex: null, mcv: null, mtex: null, mat: null, mesh: null, reflMat: null, refl: null, msgT: 0, msgOn: false, scrollT: 0, scrollM: 0, w: 0, pend: null };
   function drawDeco(g, kind, x, y, h, color) {
     g.save(); g.strokeStyle = color; g.fillStyle = color; g.lineWidth = h * 0.08;
@@ -2855,7 +2893,7 @@
     var D = skinDef('brands'), L = skinDef('ledText');
     var out = D ? BRANDS.map(function (b) { return D[b.name] || b; }) : BRANDS;
     // piel de Palau: def.ledText = [texto | {name, fg, bg: [a, b], deco}] en lugar de las marcas (mismo número de marcas, en rueda)
-    if (L && L.length) out = out.map(function (b, i) { var t = L[i % L.length]; return Object.assign({}, b, typeof t === 'string' ? { name: t } : t); });
+    if (L && L.length) out = out.map(function (b, i) { var t = L[i % L.length]; return Object.assign({}, b, { type: null }, typeof t === 'string' ? { name: t } : t); });
     return out;
   }
   function drawBrands(cv) {
@@ -2866,8 +2904,7 @@
       g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x0, 0, seg, H * 0.12);
       drawDeco(g, b.deco, x0 + H * 0.62, H * 0.5, H, b.fg);
       g.fillStyle = b.fg; g.textAlign = 'left'; g.textBaseline = 'middle';
-      fitDown(g, b.name, 'italic 900 ', Math.round(H * 0.6), seg - H * 1.6, 10);
-      g.fillText(b.name, x0 + H * 1.15, H * 0.54);
+      brandText(g, b, x0 + H * 1.15, H * 0.54, Math.round(H * 0.6), seg - H * 1.6);
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x0 + seg - 2, 0, 2, H);
     }
     // la rejilla de píxeles LED la pinta el shader (ledMaterial): en el canvas producía moiré al mipmapear
@@ -2878,7 +2915,7 @@
     var gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, color); gr.addColorStop(1, '#0b0f18');
     g.fillStyle = '#0b0f18'; g.fillRect(0, 0, W, H);
     g.fillStyle = gr; g.globalAlpha = 0.85; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
-    g.font = 'italic 900 ' + Math.round(H * 0.66) + 'px ' + FONT; g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.font = '900 ' + Math.round(H * 0.66) + 'px ' + FONT; g.textBaseline = 'middle'; g.textAlign = 'left';
     // floor y no ceil: el reparto exacto solo puede AGRANDAR el hueco (con ceil encogía la unidad y el texto pisaba las
     // flechas y la repetición siguiente: «PUNTO DE SETPUNTO DE SET»)
     var unit = g.measureText(text).width + H * (both ? 3.6 : 2.2), n = Math.max(1, Math.floor(W / unit));
@@ -3095,17 +3132,19 @@
    * ===================================================================== */
   var SB = { names: ['TÚ', 'CPU'], score: [0, 0], sets: [0, 0], setNo: 1, serving: 0, msg: '', msgSub: '', msgCol: '#ff6b3d', msgT: 0, tag: '', dirty: true };
   var screens = { big: null, bigTex: null, hung: null, hungTex: null, mats: [], vis: [], flash: 0, ranges: [], visU: null };
-  function fitFont(g, text, weight, size, maxW) {
-    g.font = weight + ' ' + Math.round(size) + 'px ' + FONT;
+  function fitFont(g, text, weight, size, maxW, font) {
+    var F = font || FONT;
+    g.font = weight + ' ' + Math.round(size) + 'px ' + F;
     var w = g.measureText(text).width;
-    if (w > maxW) { size = size * maxW / w; g.font = weight + ' ' + Math.round(size) + 'px ' + FONT; }
+    if (w > maxW) { size = size * maxW / w; g.font = weight + ' ' + Math.round(size) + 'px ' + F; }
     return size;
   }
   /** Mismo resultado (talla y g.font final) que `g.font = pre + fs + 'px ' + FONT; while (g.measureText(text).width > maxW && fs > minFs)
    *  { fs -= 2; g.font = pre + fs + 'px ' + FONT; }`, pero salta a la talla estimada (la anchura crece con la talla) y solo afina
    *  de 2 en 2 alrededor: cada talla nueva cuesta ~3 ms la primera vez (×4 en el móvil) y las vallas probaban hasta 13 por marca
    *  bajo el telón (measureText: ~0,4 s de CPU ×4 al arrancar). Comprobado igual al bucle en 63 936 casos. */
-  function fitDown(g, text, pre, fs, maxW, minFs) {
+  function fitDown(g, text, pre, fs, maxW, minFs, font) {
+    var FONT = font || FONT0;   // (letra de la valla; por defecto la de rótulos)
     g.font = pre + fs + 'px ' + FONT;
     var w = g.measureText(text).width;
     if (!(w > maxW) || fs <= minFs) return fs;
@@ -3129,12 +3168,12 @@
     g.fillStyle = 'rgba(4,7,12,0.9)'; g.fillRect(0, by, W, bh);
     g.fillStyle = SB.msgCol; g.fillRect(0, by, W, H * 0.022); g.fillRect(0, by + bh - H * 0.022, W, H * 0.022);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#ffffff';
-    fitFont(g, SB.msg, 'italic 900', bh * (SB.msgSub ? 0.46 : 0.6), W * 0.92);
+    fitFont(g, SB.msg, '900', bh * (SB.msgSub ? 0.46 : 0.6), W * 0.92);
     g.fillText(SB.msg, mid, by + bh * (SB.msgSub ? 0.38 : 0.52));
     if (SB.msgSub) { g.fillStyle = SB.msgCol; fitFont(g, SB.msgSub, '800', bh * 0.22, W * 0.9); g.fillText(SB.msgSub, mid, by + bh * 0.77); }
     if (SB.msgIcon === 'swap') { // cambio de campo: dos flechas opuestas a cada lado del texto
       var tw = Math.min(W * 0.92, g.measureText(SB.msg).width), ay = by + bh * (SB.msgSub ? 0.38 : 0.52), s = bh * 0.11;
-      g.font = 'italic 900 ' + Math.round(bh * (SB.msgSub ? 0.46 : 0.6)) + 'px ' + FONT; tw = Math.min(W * 0.92, g.measureText(SB.msg).width);
+      g.font = '900 ' + Math.round(bh * (SB.msgSub ? 0.46 : 0.6)) + 'px ' + FONT; tw = Math.min(W * 0.92, g.measureText(SB.msg).width);
       g.fillStyle = SB.msgCol;
       for (var sd = -1; sd <= 1; sd += 2) {
         var ax = mid + sd * (tw / 2 + s * 2.2);
@@ -3149,8 +3188,7 @@
   /** Videomarcador de fondo (ancho, 8:3). */
   function drawScoreWide(cv) {
     var g = cv.getContext('2d'), W = cv.width, H = cv.height;
-    var bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0d1626'); bg.addColorStop(1, '#060a12');
-    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.fillStyle = LED_BG; g.fillRect(0, 0, W, H);
     var hb = H * 0.18;
     var SD = skinDef('screen'), SK = SD || { a: '#0b3a4f', b: '#146a86', fg: '#ffffff' }; // cabecera: la de la sede de pabellón (def.screen) o la de Palau
     var gr = g.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, SK.a); gr.addColorStop(0.5, SK.b); gr.addColorStop(1, SK.a);
@@ -3163,13 +3201,12 @@
       var side = t === 0 ? -1 : 1, cx = mid + side * W * 0.25;
       g.fillStyle = TEAMC[t]; g.fillRect(t === 0 ? 0 : W - W * 0.014, hb, W * 0.014, H - hb);
       g.textAlign = 'center'; g.fillStyle = '#ffffff';
-      fitFont(g, SB.names[t], '800', H * 0.14, W * 0.3); g.fillText(SB.names[t], cx, hb + H * 0.12);
+      fitFont(g, SB.names[t], '800', H * 0.12, W * 0.3, FONT_LED); g.fillText(SB.names[t], cx, hb + H * 0.12);
       if (SB.serving === t) {
         var nw = g.measureText(SB.names[t]).width;
         g.beginPath(); g.arc(cx - nw / 2 - H * 0.07, hb + H * 0.12, H * 0.032, 0, 6.283); g.fillStyle = '#ffd23f'; g.fill();
       }
-      // cifras blanco roto: con el post-proceso, el blanco puro cruzaba el umbral del bloom y la cifra se veía como una mancha
-      g.fillStyle = SCORE_INK; g.font = '900 ' + Math.round(H * 0.5) + 'px ' + FONT; g.fillText(String(SB.score[t]), cx, hb + (H - hb) * 0.55);
+      ledDigits(g, SB.score[t], cx, hb + (H - hb) * 0.55, Math.round(H * 0.5));
       drawSetDots(g, cx, H * 0.91, H * 0.03, H * 0.1, t);
     }
     g.fillStyle = 'rgba(255,255,255,0.3)'; g.font = '800 ' + Math.round(H * 0.2) + 'px ' + FONT; g.textAlign = 'center'; g.fillText('–', mid, hb + (H - hb) * 0.5);
@@ -3177,10 +3214,19 @@
     drawMsgOverlay(g, W, H, hb);
   }
   /** Marcador colgado (16:9), visto a 15-20 m: dos cifras enormes, nombres cortos y gruesos, nada fino. */
-  var SCORE_INK = '#dfe5ee';
+  var LED_AMBER = '#ffb238', LED_BG = '#0b0b0e';
+  /** Cifras del marcador en LED ámbar con los «88» apagados detrás (12 %), alineadas a la derecha de las dos casillas. */
+  function ledDigits(g, n, cx, cy, size) {
+    g.save();
+    g.font = '800 ' + size + 'px ' + FONT_LED; g.textBaseline = 'middle'; g.textAlign = 'right';
+    var x = cx + g.measureText('88').width / 2;
+    g.fillStyle = LED_AMBER; g.globalAlpha = 0.12; g.fillText('88', x, cy);
+    g.globalAlpha = 1; g.fillText(String(n), x, cy);
+    g.restore();
+  }
   function drawScoreHung(cv) {
     var g = cv.getContext('2d'), W = cv.width, H = cv.height, mid = W / 2;
-    g.fillStyle = '#05080e'; g.fillRect(0, 0, W, H);
+    g.fillStyle = LED_BG; g.fillRect(0, 0, W, H);
     var hb = H * 0.17;
     // franja superior: SET n (o PUNTO DE SET / PARTIDO, en amarillo)
     var SD = skinDef('screen'), gr = g.createLinearGradient(0, 0, W, 0); // (cabecera de la sede de pabellón, def.screen)
@@ -3196,14 +3242,13 @@
       pg.addColorStop(t === 0 ? 0 : 1, TEAMC[t]); pg.addColorStop(t === 0 ? 1 : 0, '#0a0f18');
       g.globalAlpha = 0.28; g.fillStyle = pg; g.fillRect(x0, hb, mid, H - hb); g.globalAlpha = 1;
       g.fillStyle = TEAMC[t]; g.fillRect(x0 + W * 0.03, hb + H * 0.205, mid - W * 0.06, H * 0.018);
-      g.fillStyle = '#ffffff'; fitFont(g, SB.names[t], '900', H * 0.15, mid * 0.72);
+      g.fillStyle = '#ffffff'; fitFont(g, SB.names[t], '800', H * 0.13, mid * 0.72, FONT_LED);
       g.fillText(SB.names[t], cx, hb + H * 0.11);
       if (SB.serving === t) {
         var nw = g.measureText(SB.names[t]).width;
         g.beginPath(); g.arc(cx + (t === 0 ? -1 : 1) * (nw / 2 + H * 0.06), hb + H * 0.11, H * 0.035, 0, 6.283); g.fillStyle = '#ffd23f'; g.fill();
       }
-      g.fillStyle = SCORE_INK; g.font = '900 ' + Math.round(H * 0.52) + 'px ' + FONT;
-      g.fillText(String(SB.score[t]), cx, hb + H * 0.5);
+      ledDigits(g, SB.score[t], cx, hb + H * 0.5, Math.round(H * 0.52));
       drawSetDots(g, cx, H * 0.93, H * 0.032, H * 0.11, t);
     }
     g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(mid - W * 0.003, hb + H * 0.06, W * 0.006, H - hb - H * 0.12);
@@ -3371,7 +3416,7 @@
         var H = list[i].height, top = H * (list[i] === screens.big ? 0.18 : 0.17), bh = (H - top) * 0.72;
         var big = [Math.round(bh * 0.46), Math.round(bh * 0.6)];
         for (var b = 0; b < 2; b++) {
-          g.font = 'italic 900 ' + big[b] + 'px ' + FONT;
+          g.font = '900 ' + big[b] + 'px ' + FONT;
           for (var n = 0; n < names.length; n++) { g.measureText('PUNTO PARA ' + names[n]); g.measureText('SET PARA ' + names[n]); g.fillText('PUNTO PARA ' + names[n], 0, 4); }
           g.measureText('¡VICTORIA!');
         }
@@ -3379,7 +3424,7 @@
         for (var j = 0; j < subs.length; j++) { g.measureText(subs[j]); g.fillText(subs[j], 0, 4); }
       }
       if (led.mcv) {                                                    // mensajes de las vallas (drawMsg)
-        g.font = 'italic 900 ' + Math.round(led.mcv.height * 0.66) + 'px ' + FONT;
+        g.font = '900 ' + Math.round(led.mcv.height * 0.66) + 'px ' + FONT;
         var lm = ['PUNTO DE PARTIDO', 'PUNTO DE SET', '¡BLOQUEO!', '¡VICTORIA!', 'FIN DEL PARTIDO', 'VIDEO CHALLENGE'];
         for (var q = 0; q < names.length; q++) lm.push('PUNTO PARA ' + names[q], 'SET PARA ' + names[q]);
         for (var m = 0; m < lm.length; m++) { g.measureText(lm[m]); g.fillText(lm[m], 0, 4); }
@@ -3988,9 +4033,9 @@
   /** «CHALLENGE TUYO» / «CHALLENGE DE LA CPU». */
   function teamOf(t, g) { var an = ambName(t, g); if (an) return 'DE ' + an; return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && (g.online || g.career) ? 'DEL RIVAL' : 'DE LA CPU'); }
   var REASON = { 'in': 'DENTRO', out: 'FUERA', antenna: 'ANTENA', 'double': 'DOBLES', four: '4 TOQUES', net: 'TOQUE DE RED',
-    serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE', penalty: 'PUNTO DE CASTIGO' };
+    serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE', penalty: 'PENALIZACIÓN' };
   /* ---- ambiente de Carrera (P2): eventos amb:* y la grada de cada frame ---- */
-  var CARD_TXT = { yellow: 'TARJETA AMARILLA', red: 'TARJETA ROJA', expel: 'EXPULSIÓN', dq: 'DESCALIFICACIÓN', delayY: 'AVISO POR RETRASO', delayR: 'CASTIGO POR RETRASO' };
+  var CARD_TXT = { yellow: 'AMONESTACIÓN', red: 'PENALIZACIÓN', expel: 'EXPULSIÓN', dq: 'DESCALIFICACIÓN', delayY: 'AMONESTACIÓN POR RETRASO', delayR: 'PENALIZACIÓN POR RETRASO' };
   /** Ritmo de los cánticos (s): ciclo y golpes (palmada / sílaba) dentro de él. EL MISMO patrón que audio.js (AMB_RHYTHM): la grada
    *  da la palmada a la vez que suena. palmas = 3 + 2 («pa-pa-pa · pa-pa»). */
   var AMB_RHYTHM = { palmas: [2.1, [0, 0.3, 0.6, 1.2, 1.5]], vamos: [2.4, [0, 0.45, 1.2, 1.5, 1.8]], oe: [2.4, [0, 0.35, 0.9, 1.25]],
@@ -4035,7 +4080,7 @@
         var kt = e.team === 1 ? 1 : 0, red = e.color !== 'yellow' && e.color !== 'delayY';
         refCard(e.color, kt, e.pid, g); crewReact(kt, red, 'card');
         var cn = (e.num != null && e.num !== '' && e.num >= 0 ? 'Nº ' + e.num + ' ' : '') + (e.name ? String(e.name).toUpperCase() : '');
-        screenMsg(CARD_TXT[e.color] || 'TARJETA', (cn || ambName(kt, g) || '').slice(0, 24), red ? '#e0262f' : '#ffd21f', 3.2);
+        screenMsg(CARD_TXT[e.color] || 'SANCIÓN', (cn || ambName(kt, g) || '').slice(0, 24), red ? '#e0262f' : '#ffd21f', 3.2);
         return true;
       }
       case 'amb:refTalk': refTalk(e.level, e.team, e.pid, g); return true;
@@ -4124,7 +4169,7 @@
           RT.cheerT[1 - w] = Math.min(RT.cheerT[1 - w], 0.0);
           flRate = Math.max(flRate, e.matchWon ? 30 : 12);
           if (!e.setWon && !e.matchWon) {
-            ledMessage(e.penalty ? 'PUNTO DE CASTIGO' : 'PUNTO PARA ' + teamFor(w, g), TEAMC[w], 2.6);
+            ledMessage(e.penalty ? 'PENALIZACIÓN' : ambName(w, g) ? 'PUNTO PARA ' + ambName(w, g) : g && g.demo ? 'PUNTO PARA ' + teamFor(w, g) : 'PUNTO', TEAMC[w], 2.6);   // (la valla nunca dice «la CPU» ni «ti»: el club, o PUNTO a secas)
             screenMsg('PUNTO PARA ' + teamFor(w, g), pointSub(e), TEAMC[w], 2.4);
           }
           refSignal(e, g);
@@ -4147,7 +4192,7 @@
         case 'challengeResult': { // IN/OUT con los cm; si se anula, punto para el que lo pidió (marcador desde g)
           var chT = e.team === 1 ? 1 : 0, cmv = Math.abs(+e.dist || 0) * 100, chW = e.overturned ? chT : 1 - chT;
           // IN: los cm solo cuando la huella pisa la línea (<= 5 cm, su ancho); más adentro no son «por cuánto» (ui.js igual)
-          var chH = !e.truthIn || cmv <= 5 ? (e.truthIn ? 'IN' : 'OUT') + ' POR ' + cmv.toFixed(1).replace('.', ',') + ' cm' : cmv < 200 * ((VB.C && VB.C.BR) || 0.21) + 5 ? 'IN · SOBRE LÍNEA' : 'IN';
+          var chH = !e.truthIn || cmv <= 5 ? (e.truthIn ? 'IN' : 'OUT') + ' POR ' + cmv.toFixed(1).replace('.', ',') + ' cm' : cmv < 200 * ((VB.C && VB.C.BR) || 0.21) + 5 ? 'IN SOBRE LA LÍNEA' : 'IN';
           scoreFromGame(g);
           screenMsg(chH, e.overturned ? 'PUNTO PARA ' + teamFor(chW, g) : 'SE MANTIENE', TEAMC[chW], 3.2);
           ledMessage(e.overturned ? 'PUNTO PARA ' + teamFor(chW, g) : chH, TEAMC[chW], 3);
@@ -4640,7 +4685,7 @@
     return BRANDS.map(function (b) {
       if (b.name === 'PALAU DEL MAR') return P.brand;
       // lonas de un color (p. ej. azul marino de noche): fondo y letra de la sede, el dibujo de cada marca
-      return P.bannerBg ? { name: b.name, fg: P.bannerFg || '#ffffff', bg: P.bannerBg, deco: b.deco } : b;
+      return P.bannerBg ? { name: b.name, fg: P.bannerFg || '#ffffff', bg: P.bannerBg, deco: b.deco, type: b.type } : b;
     });
   }
   function drawBeachBanners(cv) {
@@ -4657,8 +4702,7 @@
       g.fillStyle = BEACH.P.bannerCut; g.beginPath(); g.moveTo(tx, H); g.lineTo(tx + H * 0.36, 0); g.lineTo(tx + H * 0.58, 0); g.lineTo(tx + H * 0.22, H); g.fill();
       drawDeco(g, b.deco, x0 + H * 0.62, H * 0.5, H * 0.86, b.fg);
       g.fillStyle = b.fg; g.textAlign = 'left'; g.textBaseline = 'middle';
-      fitDown(g, b.name, 'italic 900 ', Math.round(H * 0.56), seg - H * 2.3, 10);
-      g.fillText(b.name, x0 + H * 1.12, H * 0.53);
+      brandText(g, b, x0 + H * 1.12, H * 0.53, Math.round(H * 0.56), seg - H * 2.3);
       g.fillStyle = '#1d1530'; g.fillRect(x0 + seg - 3, 0, 3, H);
     }
   }
@@ -5407,11 +5451,9 @@
     root.add(G); G.updateMatrixWorld(true);
     G.traverse(function (o) { if (o !== BEACH.clouds && !o.userData.live) { o.updateMatrix(); o.matrixAutoUpdate = false; } });
     _seed = sd;
-    try {
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
-        if (BEACH.grp === G && BEACH.bannerCv) { drawBeachBanners(BEACH.bannerCv); BEACH.bannerTex.needsUpdate = true; }
-      });
-    } catch (e) { }
+    whenFonts(function () {
+      if (BEACH.grp === G && BEACH.bannerCv) { drawBeachBanners(BEACH.bannerCv); BEACH.bannerTex.needsUpdate = true; }
+    });
   }
   /** Libera lo común de una sede (tintas, sombras, su dispose, geometrías, materiales salvo los compartidos y texturas). */
   function disposeMapState(T) {
@@ -5670,13 +5712,11 @@
       // sin buildEnvironment(): scene.environment solo lo usa MeshStandardMaterial (three r149) y aquí no hay ninguno
       redrawScreens(); warmMsgFonts();
       freezeStatic();
-      // la fuente de la UI puede llegar tarde: repintar textos
-      try {
-        if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
-          try { drawBrands(led.cv); led.tex.needsUpdate = true; SB.dirty = true; padRedraw(); if (flagTex) { flagTex.image = drawFlagAtlas(); flagTex.needsUpdate = true; } if (banner.cv) { drawBanners(); banner.tex.needsUpdate = true; }
-            drawFloor(floorCanvas, floorPpm); floorTex.needsUpdate = true; warmMsgFonts(); } catch (e) { }
-        });
-      } catch (e) { }
+      // las fuentes de las vallas y del marcador pueden llegar tarde: repintar textos (whenFonts: tope de 1,5 s)
+      whenFonts(function () {
+        drawBrands(led.cv); led.tex.needsUpdate = true; SB.dirty = true; padRedraw(); if (flagTex) { flagTex.image = drawFlagAtlas(); flagTex.needsUpdate = true; } if (banner.cv) { drawBanners(); banner.tex.needsUpdate = true; }
+        drawFloor(floorCanvas, floorPpm); floorTex.needsUpdate = true; warmMsgFonts();
+      });
       this.setQuality(c.quality);
       BEACH.light = wantLight();
       setVenue(wantVenue()); // sede: ajustes `arena` + `mapHall` / `mapBeach`, o ?map=beach / ?map=<id>

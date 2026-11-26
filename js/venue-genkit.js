@@ -143,7 +143,7 @@
     if (!(SB.msgT > 0 && SB.msg)) return;
     g.fillStyle = bg; g.fillRect(10 * k, 52 * k, W - 20 * k, 140 * k);
     g.fillStyle = SB.msgCol || fg; g.fillRect(10 * k, 52 * k, W - 20 * k, 5 * k); g.fillRect(10 * k, 187 * k, W - 20 * k, 5 * k);
-    g.fillStyle = fg; fitFont(g, SB.msg, 'italic 900', (SB.msgSub ? 54 : 66) * k, W * 0.9, FONT); g.fillText(SB.msg, W / 2, (SB.msgSub ? 108 : 122) * k);
+    g.fillStyle = fg; fitFont(g, SB.msg, '900', (SB.msgSub ? 54 : 66) * k, W * 0.9, FONT); g.fillText(SB.msg, W / 2, (SB.msgSub ? 108 : 122) * k);
     if (SB.msgSub) { g.fillStyle = sub; fitFont(g, SB.msgSub, '800', 26 * k, W * 0.88, FONT); g.fillText(SB.msgSub, W / 2, 158 * k); }
   }
   /** (copiada de Can Rebot) Marcador de pared de SEGMENTOS: dígitos rojos y ámbar sobre negro. */

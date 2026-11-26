@@ -507,7 +507,7 @@
     if (!canCamp(c, cur)) return false;
     cur.camp++; cur.cw = c.week | 0;
     var L = LF(); if (L && L.applyEff) { try { L.applyEff(c, { coach: -1 }); } catch (e) { c.coach = clamp((c.coach | 0) - 1, 0, 100); } } else c.coach = clamp((c.coach | 0) - 1, 0, 100);
-    wall(c, 'me', '¡Votadme para las Estrellas! Prometo espectáculo.');
+    wall(c, 'me', 'Si os sobra un minuto, votadme para lo de las Estrellas.');
     save(c);
     return true;
   }
@@ -754,7 +754,7 @@
       h += '<p class="as-line">' + sep(H, asPh ? ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), '<span class="nw">' + num(o.votes) + ' votos</span>', '<span class="nw">cierra tras la J' + v.wk + '</span>'] : ['Vas ' + esc(ordn(o.rank)) + (v.six ? ' en tu puesto' : ''), 'entran ' + o.cut], 'v') + '</p>';
       h += '<div class="as-bar" role="img" aria-label="' + esc('Tus votos frente al corte') + '"><i style="width:' + fill + '%"></i><b style="left:' + cut + '%"' + (asPh ? ' data-l="Top ' + o.cut + '"' : '') + '></b></div>';
       if (!asPh) h += '<p class="as-small">' + sep(H, [num(o.votes) + ' votos', 'cierra tras la jornada ' + v.wk], 'v') + '</p>';
-      h += '<div class="acts as-acts">' + btn('as-camp', o.camp >= o.campMax ? 'Ya no puedes pedirlo más' : o.asked ? 'Ya lo has pedido esta jornada' : asPh ? 'Pedir el voto · ' + (o.camp + 1) + '/' + o.campMax : 'Pedir el voto (' + (o.camp + 1) + ' de ' + o.campMax + ')', 'sp-gold', o.canCamp ? 'Entrenador −1' : '', !o.canCamp) + '</div></div>';
+      h += '<div class="acts as-acts">' + btn('as-camp', o.camp >= o.campMax ? 'Ya no puedes pedirlo más' : o.asked ? 'Ya lo has pedido esta jornada' : asPh ? 'Pedir el voto (' + (o.camp + 1) + '/' + o.campMax + ')' : 'Pedir el voto (' + (o.camp + 1) + ' de ' + o.campMax + ')', 'sp-gold', o.canCamp ? 'Entrenador −1' : '', !o.canCamp) + '</div></div>';
       return h;
     }
     if (v.st === 'done') {
@@ -786,7 +786,7 @@
         if (p.res && p.k !== 'm') b += btn('as-more-' + p.k, 'Ver los 6', 'sp-cream');
         var pod = p.res && p.k !== 'm' ? '<p class="as-pod" aria-label="' + esc('Podio: ' + p.res.list.slice(0, 3).map(function (x, i) { return ordn(i + 1) + ' ' + (x.me ? 'tú' : x.nm) + ' ' + x.s; }).join(', ')) + '">' +
           p.res.list.slice(0, 3).map(function (x, i) { return '<span' + (x.me ? ' class="me"' : '') + '>' + esc(ordn(i + 1)) + ' ' + (x.me ? 'Tú' : esc(first(x.nm))) + ' ' + x.s + '</span>'; }).join('') + '</p>'
-          : p.res ? '<p class="as-pod"><span>' + esc('MVP: ' + p.res.mvp + (p.res.nota != null ? ' · nota ' + dec(p.res.nota) : '')) + '</span></p>' : '';
+          : p.res ? '<p class="as-pod"><span>' + esc('MVP: ' + p.res.mvp + (p.res.nota != null ? ', nota ' + dec(p.res.nota) : '')) + '</span></p>' : '';
         h += '<div class="as-row as-rph"><p class="as-rt"><b class="as-rn">' + esc(p.name) + '</b><span class="tag y as-tag">' + esc(tagOf(p)) + '</span></p><span class="as-rm">' + esc(p.meta) + '</span>' + pod +
           (b ? '<div class="acts as-acts">' + b + '</div>' : '') + '</div>';
         return;

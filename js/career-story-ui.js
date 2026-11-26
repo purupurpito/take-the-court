@@ -212,7 +212,7 @@
     if (!c) return '';
     css();
     var l = chips(c).slice(0, MAX_CHIPS);
-    if (!l.length) return '<p class="st-ok">Todo al día. A jugar.</p>';
+    if (!l.length) return '<p class="st-ok">Todo al día.</p>';
     return '<div class="st-chips" data-sp-row role="group" aria-label="Avisos">' + l.map(chipBtn).join('') + '</div>';
   }
 
@@ -246,7 +246,7 @@
 
   // ------------------------------------------------------------------ bandeja
   function arrow(h) { return (h || []).map(function (x) { return '<span class="' + (x[1] ? 'st-up' : 'st-dn') + '">' + esc(x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' '); }
-  var KN = { agent: 'Agente', coach: 'Entrenador', mate: 'Tu pareja', fam: 'Tu gente', press: 'Prensa', rival: 'Tu rival', sponsor: 'Patrocinio', fan: 'Afición', physio: 'Fisio', club: 'Club', barrio: 'La peña del barrio' };
+  var KN = { agent: 'Agente', coach: 'Entrenador', mate: 'Tu pareja', fam: 'Familia', press: 'Prensa', rival: 'Tu rival', sponsor: 'Patrocinio', fan: 'Afición', physio: 'Fisio', club: 'Club', barrio: 'Los del infantil' };
   function who(c, k) {
     var X = S(), ca = null; try { ca = X && X.cast ? X.cast(c) : null; } catch (e) { ca = null; }
     if (k === 'agent') return ca ? ca.agent : KN.agent;

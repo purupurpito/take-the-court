@@ -150,19 +150,19 @@
   // 4 pasos con varios estados a la vez (cada combinación de forma y efecto pide sus propios shaders): teclas de teclado, mando
   // y táctil en el mismo aviso, cinta + pestaña + aviso corto + tarjeta guiada + consejo + contador + etiqueta de punto de set.
   var GYM = [
-    function () { gymBan('¡Remate!', 'Recepción fuera', 'CAMBIO DE SAQUE', 'show win r2 at-l'); gymPr('hit go bar anch', '¡Golpea ahora!', 'key', 1); gymBug('show t0 two', 1);
+    function () { gymBan('Remate', 'Recepción fuera', 'CAMBIO DE SAQUE', 'show win r2 at-l'); gymPr('hit go bar anch', '¡Golpea ahora!', 'key', 1); gymBug('show t0 two', 1);
       el.callout.className = 'show c0'; el.guide.className = 'show'; el.rl.className = 'rl on'; el.rlN.className = 'bump'; el.coach.className = ''; el.touchbar.className = ''; el.tb[0].className = 'tb-seg done'; el.tb[1].className = 'tb-seg next';
       el.tag.hidden = false; el.tag.textContent = 'PUNTO DE SET'; gymTouch(0); gymStamp('on pf', ''); el.off.className = 'on'; el.off.style.transform = 'translate3d(60px,' + Math.round(ctx.height * 0.5) + 'px,0)'; },
-    function () { gymBan('Punto de set', 'Un punto para ganar el primer set', '', 'show gold compact'); gymPr('jump go anch thru', '¡Salta y bloquea!', 'key', 1); gymBug('show t1', 0);
+    function () { gymBan('Punto de set', '', '', 'show gold compact'); gymPr('jump go anch thru', '¡Salta y bloquea!', 'key', 1); gymBug('show t1', 0);
       el.callout.className = 'show good'; el.coach.className = 'faint'; el.rl.className = 'rl on hot'; el.rlN.className = ''; el.touchbar.className = 'thru'; el.tag.className = 'sb-tag cpu'; el.guide.className = 'out'; gymTouch(1); gymStamp('on gd', 'un pelín tarde'); el.off.className = 'on t1'; },
-    function () { gymBan('Gana la CPU', 'Sets 0-2', 'SETS 0-2', 'show lose t3 long'); gymPr('hit clk urg anch', 'Saca ya <span class="nu">1 s</span>', 'key', 1);
+    function () { gymBan('Ganan ellos', 'Sets 0-2', 'SETS 0-2', 'show lose t3 long'); gymPr('hit clk urg anch', 'Saca ya <span class="nu">1 s</span>', 'key', 1);
       gymBug('show t0 out fast', 0); el.rl.className = 'rl on end'; el.coach.className = 'thru'; gymTouch(2);
       el.callout.innerHTML = '¡Pronto!<span class="cg"><i class="cg-l"></i><span class="cg-t"><u></u><b style="left:30%"></b></span><i class="cg-r"></i></span>'; el.callout.className = 'show neg'; },
     function () { gymBan('¡Ace!', 'Saque directo', '', 'show ace r2 at-t out fast'); gymPr('hit soon bar anch', 'Espera… golpea al bajar', 'key', 0); el.callout.className = '';
       if (gym.pre) gymTouch(0); else gymTouchOff(); gymWipe('on cutw'); },
     // tarjeta de presentación (UI-14) y cortinilla de pantalla de la casa: sin ensayar, la tarjeta costaba un frame de 55-85 ms
     // ~0,1 s después de startMatch (raster en la GPU con compilación de shaders de Skia; traza de smtrace.js)
-    function () { gymBan('Cambio de campo', 'Fin del primer set', '', 'show neutral fastin mid'); gymPr('wait anch', 'Espera el silbato', 'key', 0); el.pbug.className = ''; gymTouchOff();
+    function () { gymBan('Cambio de campo', 'Fin del primer set', '', 'show neutral fastin mid'); gymPr('wait anch', 'Espera al pito', 'key', 0); el.pbug.className = ''; gymTouchOff();
       gymIntro(); gymWipe('on brand cutw'); }
   ];
   // controles táctiles de input.js (solo en táctil): se enseñan con sus estados (listo, aro, pulsado, apagado, en reposo) y se
@@ -827,8 +827,8 @@
   //  «Sanciones» de la hoja final. Solo consume eventos amb:* (los genera VB.Ambiente; main.js los mete en el array del frame).
   //  Sin amb:* no se ve nada (partido rápido, Entrenamiento, online, demo). Nada en la franja inferior.
   // =====================================================================
-  var AMB_COL = { yellow: 'Tarjeta amarilla', red: 'Tarjeta roja', expel: 'Expulsión', dq: 'Descalificación', delayY: 'Advertencia por retraso', delayR: 'Castigo por retraso' };
-  var AMB_WHY = { protesta: 'Protesta', conducta: 'Conducta', provocacion: 'Provocación', retraso: 'Retraso' };
+  var AMB_COL = { yellow: 'Amonestación', red: 'Penalización', expel: 'Expulsión', dq: 'Descalificación', delayY: 'Amonestación por retraso', delayR: 'Penalización por retraso' };
+  var AMB_WHY = { protesta: 'Protesta', conducta: 'Conducta incorrecta', provocacion: 'Conducta ofensiva', retraso: 'Retraso' };
   var amb = { ch: null, chT: 0, chEnd: 0, cardT: 0, cardOut: false, cards: [], lastSay: '', sb: ['', ''], cdEl: [null, null], rectC: null, rectK: null };
   function ambRed(c) { return c === 'red' || c === 'delayR' || c === 'expel' || c === 'dq'; }
   function ambTeamName(g, t) {
@@ -837,7 +837,7 @@
   }
   function ambWho(g, c) {
     if (c.who === 'team') return ambTeamName(g, c.team);
-    if (c.who === 'coach') return 'Entrenador · ' + ambTeamName(g, c.team);
+    if (c.who === 'coach') return 'Entrenador de ' + ambTeamName(g, c.team);
     var nm = c.name && !/^(Rival|Compañer[oa]|Equipo|Entrenador)/.test(c.name) ? c.name : '';   // (sin nombre propio: el club)
     return (c.num ? 'N.º ' + c.num + ' ' : '') + (nm || ambTeamName(g, c.team));
   }
@@ -894,7 +894,7 @@
     amb.cards.push(c);
     ambSbTick();
     if (!el.ambCard) return;
-    var t1 = AMB_COL[c.color], t2 = ambWho(g, c) + ' · ' + (AMB_WHY[c.reason] || c.reason);
+    var t1 = AMB_COL[c.color], t2 = ambWho(g, c) + ', por ' + String(AMB_WHY[c.reason] || c.reason).toLowerCase();
     el.ambCard1.textContent = t1; el.ambCard2.textContent = cpuTxt(t2);
     el.ambCard.className = ''; void el.ambCard.offsetWidth;
     el.ambCard.className = 'show' + (c.color === 'expel' || c.color === 'dq' ? ' e' : ambRed(c.color) ? ' r' : '') + (c.color === 'delayY' || c.color === 'delayR' ? ' w' : '');
@@ -954,7 +954,7 @@
     for (var i = 0; i < amb.cards.length && i < 6; i++) {
       var c = amb.cards[i];
       h += '<span class="amb-sn"><i class="sb-cds" aria-hidden="true"><i class="' + (ambRed(c.color) ? 'r' : 'y') + '"></i></i> ' + escT(AMB_COL[c.color]) + ': <b>' + escT(cpuTxt(ambWho(g, c))) + '</b> (' +
-        escT(AMB_WHY[c.reason] || c.reason) + ', ' + (SET_ORD[c.set - 1] || c.set + 'º') + ' set ' + c.score[0] + '-' + c.score[1] + (c.penalty ? ', punto de castigo' : '') + ')</span>';
+        escT(AMB_WHY[c.reason] || c.reason) + ', ' + (SET_ORD[c.set - 1] || c.set + 'º') + ' set ' + c.score[0] + '-' + c.score[1] + (c.penalty ? ', punto para el rival' : '') + ')</span>';
     }
     return '<span class="amb-sh">Sanciones</span>' + h;
   }
@@ -1156,8 +1156,8 @@
             var mpN = e.matchPoint >= 0, spT = mpN ? e.matchPoint : e.setPoint, spKey = g.setNo + '|' + spT + '|' + (mpN ? 'm' : 's');
             var kinSp = spKey !== lastSpKey && kinOn(g); lastSpKey = spKey;
             var spCls = kinSp ? (spT === 0 ? 'gold' : 'lose') + ' compact kin' : 'gold compact';
-            if (mpN) banner('Punto de partido', spT === 0 ? 'Un punto para ganar el partido' : 'La CPU tiene punto de partido', '', spCls, BAN.sp, 'sp');
-            else banner('Punto de set', spT === 0 ? 'Un punto para ganar el ' + (ORD[g.setNo] || g.setNo + 'º') + ' set' : 'La CPU tiene punto de set', '', spCls, BAN.sp, 'sp');
+            if (mpN) banner('Punto de partido', spT === 0 ? '' : 'Para ellos', '', spCls, BAN.sp, 'sp');
+            else banner('Punto de set', spT === 0 ? '' : 'Para ellos', '', spCls, BAN.sp, 'sp');
             if (kinSp) kinPlay(mpN ? 'mp' : 'sp', spT);
           }
           break;
@@ -1172,7 +1172,7 @@
             t3: '', cls: (e.team === 0 ? 'win' : 'lose') + ' t3', dur: BAN.set, kind: 'set', gate: 'cut' });
           break;
         case 'match':
-          queuePres({ t1: e.team === 0 ? '¡Ganas el partido!' : (ctx && ctx.game && ctx.game.netCr && ctx.game.netCr.rivalName ? 'Gana ' + ctx.game.netCr.rivalName : 'Gana la CPU'), t2: 'Sets ' + e.sets[0] + '-' + e.sets[1], t3: '', cls: (e.team === 0 ? 'ace' : 'lose') + ' t3', dur: BAN.match, kind: 'match', gate: 'cut' });
+          queuePres({ t1: e.team === 0 ? 'Partido' : (ctx && ctx.game && ctx.game.netCr && ctx.game.netCr.rivalName ? 'Gana ' + ctx.game.netCr.rivalName : 'Ganan ellos'), t2: 'Sets ' + e.sets[0] + '-' + e.sets[1], t3: '', cls: (e.team === 0 ? 'ace' : 'lose') + ' t3', dur: BAN.match, kind: 'match', gate: 'cut' });
           break;
         case 'courtChange':
           // reglas 18.2.1 / 18.2.2: cuando la cámara pasa al plano 'court' (grúa); se va antes de que la grúa acabe (ccU = 1)
@@ -1215,7 +1215,7 @@
             try { var lsS = g.setScores[g.setScores.length - 1] || g.score; semEnd = VB.Semana.finish(g, { win: e.team === 0, a: lsS[0], b: lsS[1] }, !!ctx.debug); }
             catch (er) { console.error('[VB][ERROR] Semana.finish: ' + er); semEnd = null; }
           }
-          if (VB.Retos && VB.Retos.endMatch && !e.replay && !(g && g.online) && !(g && g.sit)) {   // (online: sin retos, decisión 4 de Ferran)
+          if (VB.Retos && VB.Retos.endMatch && !e.replay && !(g && g.online) && !(g && g.sit)) {   // (online: sin retos, decisión 4)
             try { retoEnd = VB.Retos.endMatch(g, { win: e.team === 0, map: VB.Arena && VB.Arena.map ? VB.Arena.map() : '', sets: e.sets }, !!ctx.debug); }
             catch (er) { console.error('[VB][ERROR] Retos.endMatch: ' + er); retoEnd = null; }
           }
@@ -1229,19 +1229,19 @@
   // S4-D1 / D2: resultado de VB.Retos.endMatch y de VB.Profile.noteMatch del último partido (los lee la hoja de B6, T19)
   var retoEnd = null, profEnd = null;
   // E1 (sprint 5): rótulos por point.move y la última colocación de tu equipo (¿en salto?) para el sello de la jugada perfecta
-  var E1_MOVE = { feint: '¡Finta!', roll: 'Colocado', edge: '¡Al filo!', quick: 'Rápida' }, lastSetJ = false;
+  var E1_MOVE = { feint: 'Finta', roll: 'Colocado', edge: 'En la raya', quick: 'Rápida' }, lastSetJ = false;
   // (en frases de aviso: «Un punto para ganar el primer set», «Fin del segundo set»; las abreviaturas se quedan en etiquetas)
   var SET_ORD = ['1r', '2º', '3r', '4º', '5º']; // etiquetas («1r set»), regla de SIGUIENTE.md
   var ORD = ['', 'primer', 'segundo', 'tercer'], pendCourt = null, courtNoCrane = false, courtNext = null, newSetShown = 0, bodyTipT = 0, lastBn2 = '', lastSub = '', held = null;
   var OUTK = { serve: 'Saque fuera', pass: 'Recepción fuera', set: 'Colocación fuera', spike: 'Remate fuera', free: 'Balón fuera' };
   // sin 'free': un balón libre (3r toque sin saltar) es la opción floja y no se celebra
-  var PERFECT = { pass: 'Recepción perfecta', set: 'Colocación perfecta', spike: '¡Remate perfecto!', serve: '¡Saque perfecto!' };
+  var PERFECT = { pass: 'Recepción a la mano', set: 'Bola puesta', spike: 'Al suelo', serve: 'Saque clavado' };
   function flashRow(t) { restartAnim(t === 0 ? el.row0 : el.row1, 'scored'); }
   /** UI-23: el tanteo, en el aviso educado del lector de pantalla, tras cada punto: «Tú 3, CPU 1. Set 1.» (con el set o el partido
    *  ganado delante). Las mismas cifras que el marcador (point.score = tanteo tras el punto). */
   function srScore(e, g) {
     var sc = e.score || g.score, n = g.setNo, pre = '';
-    if (e.matchWon) pre = e.team === 0 ? 'Ganas el partido. ' : 'Gana la CPU el partido. ';
+    if (e.matchWon) pre = e.team === 0 ? 'Ganas el partido. ' : 'Ganan ellos el partido. ';
     else if (e.setWon) pre = e.team === 0 ? 'Set para ti. ' : 'Set para la CPU. ';
     var sets = (e.setWon || e.matchWon) && g.sets ? ' Sets ' + g.sets[0] + '-' + g.sets[1] + '.' : '';
     srSay(pre + 'Tú ' + sc[0] + ', CPU ' + sc[1] + '. Set ' + n + '.' + sets);
@@ -1437,7 +1437,7 @@
     var di = optIndex('difficulty'), nm = g && VB.DIFF && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
     el.introDiff.textContent = 'Nivel ' + (nm || OPT.difficulty.labels[di]);
     var six = !!(g && g.size === 6);
-    el.introSrv.textContent = cpuTxt(g && g.serving === 1 ? 'Saca la CPU' : six ? 'Saca tu equipo' : 'Sacas tú');
+    el.introSrv.textContent = cpuTxt(g && g.serving === 1 ? 'Sacan ellos' : six ? 'Saca tu equipo' : 'Sacas tú');
     if (el.introFmt) el.introFmt.textContent = fmtTxt(g);
     // antetítulo «Palau del Mar ◆ 2 contra 2» (texto fijo del HTML): el formato del partido (6v6, sprint 3)
     var ik = el.intro.querySelector('.in-k > span'), it = ik && ik.lastChild;
@@ -1759,8 +1759,8 @@
     if (!pf && typeof e.timing === 'number' && Math.abs(e.timing) > 0.03) hint = e.timing < 0 ? 'un pelín pronto' : 'un pelín tarde';
     // E1: Ajustes · Juego · Golpe al milisegundo (msTiming): los milisegundos (siempre, también en el perfecto)
     if (ctx.settings && ctx.settings.msTiming && typeof e.timing === 'number') { var ms = Math.round(Math.abs(e.timing) * 1000); hint = ms < 5 ? 'justo a tiempo' : ms + ' ms ' + (e.timing < 0 ? 'pronto' : 'tarde'); }
-    // E1 (M7): remate perfecto que cierra 3 toques perfectos seguidos de tu equipo: «¡Jugada perfecta!» y la cadena debajo
-    // (R4: el criterio es VB.Retos.chainOk, el mismo del reto «Jugada perfecta»; sin retos.js, el de siempre)
+    // E1 (M7): remate perfecto que cierra 3 toques perfectos seguidos de tu equipo: «De libro» (debajo, solo la colocación en salto)
+    // (R4: el criterio es VB.Retos.chainOk, el mismo del reto «De libro»; sin retos.js, el de siempre)
     var chainOk = pf && (VB.Retos && VB.Retos.chainOk ? VB.Retos.chainOk(e) : (e.kind === 'spike' && (e.chain | 0) >= 3));
     var C = sproj(e.x, e.y, e.z, _sp); if (!C.ok) return;
     var cx = C.x, cy = C.y;
@@ -1794,10 +1794,10 @@
     // salto con impulso (v1.12.0): pipe o remate con impulso (e.mom ≥ 0,5) en el rótulo y la nota debajo. Orden: jugada perfecta, finta,
     // pipe, con impulso (el al filo va en el rótulo del punto)
     var djT = !chainOk && !e.feint && e.kind === 'spike' && e.shot !== 'tip' ? (e.pipe ? '¡Pipe!' : (+e.mom || 0) >= 0.5 ? '¡Con impulso!' : '') : '';
-    el.stampT.textContent = wt || (chainOk ? '¡Jugada perfecta!' : djT || (pf ? 'Perfecto' : 'Bien'));
+    el.stampT.textContent = wt || (chainOk ? 'De libro' : djT || (pf ? 'Perfecto' : 'Bien'));
     if (wt) { el.stampS.textContent = ''; el.stampS.hidden = true; srSay(wt.replace(/¡|!/g, '')); }
     else if (djT) { el.stampS.textContent = (pf ? 'Perfecto' : 'Bien') + (hint ? ', ' + hint : ''); el.stampS.hidden = false; srSay(djT.replace(/¡|!/g, '')); }
-    else if (chainOk) { el.stampS.innerHTML = sepHTML(lastSetJ ? ['Colocación en salto', 'Remate'] : ['Recepción', 'Colocación', 'Remate'], 'v'); el.stampS.hidden = false; srSay('Jugada perfecta'); }
+    else if (chainOk) { el.stampS.textContent = lastSetJ ? 'Colocación en salto y al suelo' : ''; el.stampS.hidden = !lastSetJ; srSay('De libro'); }
     else { el.stampS.textContent = hint; el.stampS.hidden = !hint; }
     el.stamp.className = 'on ' + (wt ? 'ms' : pf ? 'pf' : 'gd');
     stampPlace();
@@ -1866,7 +1866,7 @@
   // repite dos puntos seguidos → 32,5 % en Fácil, 28,5 % en Normal, 27 % en Difícil.
   // SIM-05 (ola 3) ya calibra highlight (jugada larga, defensas, racha, final apretado y bloqueo directo van dentro del número):
   // basta highlight ≥ VB.HOLD.bigAt (la misma frontera que la pausa larga de 2,4 s), más el ace y el punto de set salvado.
-  var RALLY_BIG = 10;   // solo para el subtítulo «¡Jugada de N toques!»
+  var RALLY_BIG = 14;   // solo para el subtítulo «Jugada de N toques» (las de verdad largas)
   function tierOf(e, k) {
     var hl = typeof e.highlight === 'number' ? e.highlight : 0, big = (VB.HOLD && VB.HOLD.bigAt) || 0.55;
     if (k === 'blockPt' || k === 'ace' || e.savedSetPoint) return 2;
@@ -1877,7 +1877,7 @@
     var spNow = atSP; atSP = false;                          // ¿se jugó con punto de set/partido? (serveReady de esta jugada)
     if (e.penalty) {                                         // Ambiente: punto de castigo (roja) → la pestaña de jugada (la cinta grande tapaba el marcador justo al subir el punto)
       lastBig = null; bigGap += 1;
-      showBug(e.team, 'Punto de castigo', me ? 'Roja al rival: punto y saque para ti' : 'Roja a tu equipo: punto y saque del rival', e.sideout ? '⇄ Saque' : '', 2.4);
+      showBug(e.team, 'Penalización', me ? 'Punto y saque para ti' : 'Punto y saque para ellos', e.sideout ? '⇄ Saque' : '', 2.4);
       return;
     }
     if (e.matchWon || e.setWon) { hideBug(false); lastBig = null; bigGap = 9; return; } // lo anuncian 'set' / 'match' (nivel 3)
@@ -1902,24 +1902,24 @@
     // títulos: mismo estilo siempre («… de la CPU»)
     var t1;
     if (k === 'ace') t1 = me ? (tier > 1 ? '¡Ace!' : 'Ace') : 'Ace de la CPU';
-    else if (k === 'kill') t1 = me ? (tier > 1 ? '¡Remate!' : 'Remate') : 'Remate de la CPU';
-    else if (k === 'tip') t1 = g && g.beach ? (me ? (tier > 1 ? '¡Pokey!' : 'Pokey') : 'Pokey de la CPU') : me ? (tier > 1 ? '¡Dejada!' : 'Dejada') : 'Dejada de la CPU';
-    else if (k === 'blockPt') t1 = me ? (tier > 1 ? (kin ? '¡Muro!' : '¡Punto de bloqueo!') : 'Punto de bloqueo') : 'Bloqueo de la CPU';
+    else if (k === 'kill') t1 = me ? 'Remate' : 'Remate de la CPU';
+    else if (k === 'tip') t1 = g && g.beach ? (me ? 'Pokey' : 'Pokey de la CPU') : me ? 'Dejada' : 'Dejada de la CPU';
+    else if (k === 'blockPt') t1 = me ? (tier > 1 && kin ? '¡Muro!' : 'Punto de bloqueo') : 'Bloqueo de la CPU';
     // (6v6: la falta de posición del equipo que saca llega como srvErr; su texto va en el subtítulo, el título es el punto)
     else if (k === 'srvErr') t1 = /^falta de (saque|posición)/i.test(txt) ? (me ? 'Error de la CPU' : 'Punto de la CPU') : (me ? 'Falta de saque de la CPU' : 'Falta de saque');
     else if (k === 'error') t1 = me ? 'Error de la CPU' : 'Punto de la CPU';
-    else t1 = me ? (tier > 1 ? '¡Punto!' : 'Punto') : 'Punto de la CPU';
+    else t1 = me ? 'Punto' : 'Punto de la CPU';
     // ace con roce de recepción: dice por qué (sim lo acredita al saque); el ace limpio no necesita subtítulo. Si el árbitro
     // pita algo («Balón a la red» de la recepción que acaba en la red…), manda su texto, tal cual
     if (k === 'ace' && (e.rallyHits | 0) > 0 && !ref) sub = me ? 'Recepción forzada' : 'Recepción fallida';
     // ace en el que la RECEPCIÓN acaba en la red: «Balón a la red» junto a «¡Ace!» se leía como saque a la red (falta del que
     // saca); se cuenta desde el lado del que recibe (verificación ola 2). Las faltas de red/antena/dobles/8 s siguen tal cual.
-    if (k === 'ace' && /^Balón a la red$/.test(txt)) sub = me ? 'La recepción de la CPU va a la red' : 'Tu recepción va a la red';
+    if (k === 'ace' && /^Balón a la red$/.test(txt)) sub = me ? 'Su recepción va a la red' : 'Tu recepción va a la red';
     // contexto que sí informa (nivel 2), si no hay texto del árbitro
     if (!sub && tier > 1) {
-      if (e.savedSetPoint) sub = me ? 'Punto de set salvado' : 'La CPU salva el punto de set';
-      else if ((e.rallyHits | 0) >= RALLY_BIG) sub = '¡Jugada de ' + e.rallyHits + ' toques!';   // UI-15 (un solo término: «jugada», como en la hoja final)
-      else if ((e.streak | 0) >= 3) sub = me ? e.streak + ' puntos seguidos' : e.streak + ' puntos seguidos de la CPU';
+      if (e.savedSetPoint) sub = me ? 'Punto de set salvado' : 'Ellos salvan el punto de set';
+      else if ((e.rallyHits | 0) >= RALLY_BIG) sub = 'Jugada de ' + e.rallyHits + ' toques';   // UI-15 (un solo término: «jugada», como en la hoja final)
+      else if ((e.streak | 0) >= 3) sub = me ? e.streak + ' puntos seguidos' : 'Llevan ' + e.streak + ' seguidos';
       else if (e.clutch && !spNow) sub = 'Final apretado';   // SIM-05: últimos puntos del set con ≤ 2 de diferencia
     }
     // idea «senas»: la llamada del árbitro (el texto de la sim, tal cual) sale como pegatina con la seña oficial; el texto completo
@@ -2411,7 +2411,7 @@
     // (justo bajo el marcador: antes de la etiqueta «Punto de set», del contador de la jugada y del aviso corto)
     var nx = el.sb.querySelector('.sb-tag'); el.sb.insertBefore(r, nx || null);
     rtUI.row = r; rtUI.pill = r.firstChild; rtUI.v = rtUI.pill.querySelector('b'); rtUI.sc = rtUI.pill.querySelector('small'); rtUI.toast = r.lastChild;
-    // consigna del entrenador del punto (js/consignas.js): una línea bajo la nota, «ENTRENADOR Saca a la zona 1»; ✓ / ✗ al resolverse
+    // consigna del entrenador del punto (js/consignas.js): una línea bajo la nota, «ENTRENADOR Saca a la zona 1»; verde o rojo al resolverse
     var co = document.createElement('div'); co.className = 'co-call'; co.id = 'coCall'; co.hidden = true; co.setAttribute('role', 'status');
     co.innerHTML = '<span class="co-k">ENTRENADOR</span><span class="co-tx"></span>';
     el.sb.insertBefore(co, r.nextSibling);
@@ -2421,7 +2421,7 @@
   }
   function rtToastOff() { if (rtUI.toast) { rtUI.toast.className = 'rt-toast'; rtUI.toast.textContent = ''; } rtUI.t = 0; }
   function coOff() { if (rtUI.co) { rtUI.co.hidden = true; rtUI.co.className = 'co-call'; } rtUI.coSt = ''; rtUI.coT = 0; }
-  /** Consigna del entrenador: a la vista mientras está en juego; cumplida (verde, ✓) o fallada (rojo, ✗) un momento; caducada, fuera. */
+  /** Consigna del entrenador: a la vista mientras está en juego; cumplida (verde) o fallada (rojo) un momento; caducada, fuera. */
   function coTick(c, dt) {
     if (!rtUI.co) return;
     if (!c) { if (rtUI.coSt && rtUI.coSt !== 'ok' && rtUI.coSt !== 'miss') coOff(); else if (rtUI.coT > 0) { rtUI.coT -= dt || 0; if (rtUI.coT <= 0) coOff(); } return; }
@@ -2430,7 +2430,7 @@
       var fresh = c.seq !== rtUI.coSeq;
       rtUI.coSeq = c.seq; rtUI.coSt = stt;
       if (stt === 'gone') { coOff(); rtUI.coSt = 'gone'; return; }
-      rtUI.coTx.textContent = (stt === 'ok' ? '✓ ' : stt === 'miss' ? '✗ ' : '') + c.txt;
+      rtUI.coTx.textContent = c.txt;
       rtUI.co.hidden = false;
       rtUI.co.className = 'co-call' + (stt === 'ok' ? ' ok' : stt === 'miss' ? ' miss' : '') + (fresh && !rm() ? ' in' : '');
       rtUI.coT = stt === 'ok' ? 2.2 : stt === 'miss' ? 1.6 : 0;
@@ -2482,9 +2482,9 @@
    * «RACHA» junto al nombre del rival, cinta «¡EN LA ZONA!» al entrar y un aviso corto al salir. Sin g.zn (o en la demo) no sale nada.
    * CSS propio (#znCss, inyectado una vez; estilo SPLAT: pegatina con tinta, móvil con :root.ph y letra ≥ 12 px reales). */
   var znUI = { row: null, pill: null, k: null, fill: null, toast: null, g: null, vis: false, cls: '', fr: -1, t: 0, cpu: false, cpuSaid: false, n: 0, col: '', tip: false, rk: false };
-  var ZN_OUT = { error: 'Fuera de la zona: un fallo', time: 'Fuera de la zona: se acabó', streak: 'El rival cortó la racha', sub: 'Un cambio del rival cortó la racha',
-    timeout: 'El rival cortó la racha', set: 'Fin del set: zona perdida', bench: 'Al banquillo: zona perdida' };
-  var ZN_IN_SUB = 'Lees antes, aciertas más y pegas más fuerte', ZN_TIP = 'Encadena buenas jugadas: casi estás en la zona', ZN_CPU = '¡El rival está en racha!';
+  var ZN_OUT = { error: 'Un fallo y se acabó lo bueno', time: 'Se ha enfriado', streak: 'El rival cortó la racha', sub: 'Un cambio del rival cortó la racha',
+    timeout: 'El rival cortó la racha', set: 'Set nuevo, se enfría', bench: 'Al banquillo, se enfría' };
+  var ZN_IN_SUB = '', ZN_TIP = 'Dos buenas más y empieza a entrar todo', ZN_CPU = 'A estos les entra todo';
   function znCss() {
     if (document.getElementById('znCss')) return;
     var P = ':root.ph:not(#_):not(#_):not(#_) #sb', st = document.createElement('style'); st.id = 'znCss';
@@ -2567,7 +2567,7 @@
     if ((ctx.frame & 31) === 9) znColor();
     var S = VB.Sim, inZ = S.znOn(g, 0), f = inZ ? S.znEnergy(g, 0) : S.znMeter(g, 0);
     var cls = 'zn-row' + (inZ ? ' on' : f >= 0.8 ? ' hot' : '') + (rm() ? ' still' : '');
-    if (znUI.cls !== cls) { znUI.cls = cls; znUI.row.className = cls; znUI.k.textContent = inZ ? 'EN LA ZONA' : 'ZONA'; }
+    if (znUI.cls !== cls) { znUI.cls = cls; znUI.row.className = cls; znUI.k.textContent = inZ ? 'TODO ENTRA' : 'RACHA'; }
     var fr = Math.round(f * 100) / 100;
     if (znUI.fr !== fr) { znUI.fr = fr; znUI.fill.style.transform = 'scaleX(' + fr + ')'; }
     znChip(S.znOn(g, 1));
@@ -2582,9 +2582,9 @@
         if (e.why === 'undo') return;
         znUI.n++; znToastOff();
         // (en el móvil apaisado, 1 s: la cinta tapa el 3r segmento de la barra de toques)
-        banner('¡EN LA ZONA!', znUI.n === 1 ? ZN_IN_SUB : '', '', 'gold compact', document.documentElement.classList.contains('ph') ? 1.0 : 1.4, 'zone');
-        srSay('En la zona');
-      } else if (e.why !== 'undo' && e.why !== 'end') { znToast(ZN_OUT[e.why] || ZN_OUT.time); srSay('Fuera de la zona'); }
+        banner('TODO ENTRA', znUI.n === 1 ? ZN_IN_SUB : '', '', 'gold compact', document.documentElement.classList.contains('ph') ? 1.0 : 1.4, 'zone');
+        srSay('Todo entra');
+      } else if (e.why !== 'undo' && e.why !== 'end') { znToast(ZN_OUT[e.why] || ZN_OUT.time); srSay('Se acabó la racha'); }
     } else if (e.on && !znUI.cpuSaid && e.why !== 'undo') { znUI.cpuSaid = true; callout(ZN_CPU, 1, '', 1.8); srSay(ZN_CPU); }
   }
   /* fin ZN-HUD */
@@ -2721,8 +2721,8 @@
       var tossed = g.serveState ? g.serveState === 'toss' : !g.ball.held;
       if (myServe && !tossed && g.serveAuth === false) {
         // antes del silbato del árbitro no se puede sacar (regla)
-        pk = 'wait'; ptext = 'Espera el silbato';
-        coach = touchDev ? 'Tu saque · Espera el silbato' : 'Tu saque · Espera el silbato; con ' + gl.move + ' te mueves por el fondo';
+        pk = 'wait'; ptext = 'Espera al pito';
+        coach = touchDev ? 'Tu saque · Espera al pito' : 'Tu saque · Espera al pito; con ' + gl.move + ' te mueves por el fondo';
       } else if (myServe && !tossed) {
         // táctil: los dos saques van en el MISMO aviso junto al sacador, en dos líneas compactas («SACAR Flotante» /
         // «SALTAR En salto»; la tecla SACAR es la de siempre, #promptKey, y el resto se coloca en rejilla: ver .two en index.html); arriba, en un móvil apaisado, la pastilla del consejo tapaba la red y a los receptores de la CPU
@@ -2740,7 +2740,7 @@
         // («3 s», no «3 S»). El texto del árbitro «Falta de saque: 8 segundos» (o 5) es de sim.
         var cm = g.serveClockMax || 8, lim = cm > 5 ? 5 : 3;
         if (g.serveClock != null && g.serveAuth && g.serveClock < lim && g.serveClock > 0 && !(g.opts && g.opts.serveClock === false)) clockF = g.serveClock / lim;
-        if (clockF >= 0 && g.serveClock < lim - 0.5 && g.serveT > 0.35) { ptext = 'Saca ya <span class="nu">' + Math.ceil(g.serveClock) + ' s</span>'; pcls = 'hit'; coach = 'Regla de los <b>' + cm + ' segundos</b>: saca antes de que acabe la cuenta'; }
+        if (clockF >= 0 && g.serveClock < lim - 0.5 && g.serveT > 0.35) { ptext = 'Saca ya <span class="nu">' + Math.ceil(g.serveClock) + ' s</span>'; pcls = 'hit'; coach = '<b>' + cm + ' segundos</b> desde el pito'; }
       } else if (myServe) {
         // Balón lanzado. Mientras SUBE, hitWindow().t pasa por ~0 (cruza la altura de contacto de subida):
         // la tecla encendida y «¡Golpea ahora!» SOLO con el balón BAJANDO y dentro de la ventana del brillo de SACAR.
@@ -2765,7 +2765,7 @@
       } else if (g.mode === 'serve') {
         coach = !tips ? '' : g.size === 6 && (g.serveNo <= 3 || p.role === 'L') ? (touchDev ? 'Llevas al <b>n.º ' + p.num + '</b>, el ' + mateRole(p) : 'Llevas al <b>n.º ' + p.num + '</b>, el ' + mateRole(p) + ': la IA mueve al resto') // 6v6: a quién llevas (primeros saques; y siempre al entrar el líbero por ti)
           : sv && sv.team === 0 ? (g.size === 6 ? 'Saca ' + mate6(sv) : 'Saca tu pareja') // modo uno: saca la IA de tu equipo (6v6: por su puesto)
-          : (touchDev ? 'Saca la CPU · A recibir' : 'Saca la CPU · Prepárate para la <b>recepción</b>');
+          : 'Sacan ellos · A recibir';
       } else if (g.mode === 'rally') {
         var w = VB.Sim && VB.Sim.hitWindow ? hw(g, p) : null;
         var wpr = w ? (w.press === w.press && w.press != null ? w.press : w.t) : 9;
@@ -2802,16 +2802,16 @@
             : g.size === 6 ? (p.role === 'L' ? '<b>Defiende</b>: llevas al líbero' : p.front ? '<b>Retírate</b> a la marca' : '<b>Defiende</b> en la marca')
             : '<b>Defiende</b> el círculo' + (one ? '' : ' (' + gl.sw + ' bloqueas tú)');
         } else if (tips) {
-          if (nt === 1) coach = '1r toque · <b>' + (tbLabel1 === 'DEFENSA' ? 'Defensa' : 'Recepción') + '</b>: ve al círculo y pulsa ' + gl.hit;
+          if (nt === 1) coach = '1r toque · <b>' + (tbLabel1 === 'DEFENSA' ? 'Defensa' : 'Recepción') + '</b>: al círculo y ' + gl.hit;
           else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? (setName6(g) ? '2º toque · Colocas <b>' + setName6(g) + '</b> con ' + gl.hit + ' o ' + gl.jset + ' · ' : '2º toque · <b>Coloca</b> con ' + gl.hit + ' o ' + gl.jset + (kmK() ? '; ' : '; la dirección elige: ')) + lanes6()   // (6v6 D3: el carril lo manda el stick o las flechas; revisión C2: y dice el elegido)
             : g.mastery && g.aimSet !== false ? setCoach(g, gl)   // C2: el destino que se ve en el suelo (en la playa, con «a destiempo, dobles»)
             : g.beach ? '2º toque · <b>Colocación</b>: bajo el balón, ' + gl.hit + ' a tiempo (o salta y ' + gl.jset + '); a destiempo pitan <b>dobles</b>'   // (12-nov: dobles por timing en la playa)
-            : '2º toque · <b>Colocación</b>: ponte debajo del balón y pulsa ' + gl.hit + '. Si saltas y pulsas ' + gl.jset + ', colocas en el aire';
+            : '2º toque · <b>Colocación</b>: debajo del balón y ' + gl.hit + '. En el aire, ' + gl.jset;
           else if (nt === 3) coach = aim3(g, p) ? '3r toque · <b>Apunta con ' + gl.aim + '</b> y golpea con ' + gl.hit + ' en lo alto'
-            : '3r toque · <b>Ataque</b>: ponte bajo el balón, salta con ' + gl.jump + ' y golpea con ' + gl.hit + ' arriba';
-          else if (g.touchTeam === 1 && g.touches === 2) coach = g.defRole === 'block' ? (g.size === 6 ? 'La CPU va a atacar: salta en la marca con ' + gl.jump + ' y pulsa ' + gl.hit + ' justo cuando remata: <b>muro</b>. Antes de tiempo, red' : 'La CPU va a atacar: frente al atacante, ' + gl.jump + ' y pulsa ' + gl.hit + ' justo cuando remata: <b>muro</b>. Antes de tiempo, red')
-            : g.size === 6 ? (p.role === 'L' ? 'La CPU va a atacar: llevas al líbero, <b>defiende</b> en la marca' : p.front ? 'La CPU va a atacar: <b>retírate</b> a la marca, bloquean tus compañeros' : 'La CPU va a atacar: <b>defiende</b> en la marca del fondo')
-            : 'La CPU va a atacar: <b>defiende</b> el círculo, tu pareja bloquea' + (one ? '' : ' (' + gl.sw + ' para bloquear tú)');
+            : '3r toque · <b>Ataque</b>: salta con ' + gl.jump + ' y pega arriba con ' + gl.hit;
+          else if (g.touchTeam === 1 && g.touches === 2) coach = g.defRole === 'block' ? (g.size === 6 ? 'Atacan ellos: salta en la marca con ' + gl.jump + ' y pulsa ' + gl.hit + ' justo cuando remata: <b>muro</b>. Antes de tiempo, red' : 'Atacan ellos: frente al atacante, ' + gl.jump + ' y pulsa ' + gl.hit + ' justo cuando remata: <b>muro</b>. Antes de tiempo, red')
+            : g.size === 6 ? (p.role === 'L' ? 'Atacan ellos: llevas al líbero, <b>defiende</b> en la marca' : p.front ? 'Atacan ellos: <b>retírate</b> a la marca, bloquean tus compañeros' : 'Atacan ellos: <b>defiende</b> en la marca del fondo')
+            : 'Atacan ellos: tú al <b>círculo</b>, tu pareja al bloqueo' + (one ? '' : ' (' + gl.sw + ' si bloqueas tú)');
         }
         // (táctil con ayudas: el aviso de dos opciones ya lo dice; la línea de arriba repetía lo mismo a la vez)
         if (tips && jr) coach = touchDev ? (help ? '' : gl.hit + ' remata, ' + gl.jset + (ar === 'roll' ? ' coloca al fondo' : ' coloca'))
@@ -3325,10 +3325,10 @@
     if (el.btnSeguir) {
       if (el.btnSeguir.hidden === sgOn) el.btnSeguir.hidden = !sgOn;
       if (sg) {
-        var sgS = el.btnSeguir.querySelector('.sp-tk .sp-s'), sgK = el.btnSeguir.querySelector('.sp-tk .sp-k'), sgL = sg.kind === 'career' ? 'Carrera · ' + sg.sub : sg.sub;
+        var sgS = el.btnSeguir.querySelector('.sp-tk .sp-s'), sgK = el.btnSeguir.querySelector('.sp-tk .sp-k'), sgL = sg.kind === 'career' ? 'Carrera, ' + sg.sub : sg.sub;
         if (el.seguirS && el.seguirS.textContent !== sgL) el.seguirS.textContent = sgL;
         if (sgS && sgS.textContent !== sg.sub) sgS.textContent = sg.sub;
-        if (sgK) { var kk = sg.kind === 'career' ? 'Carrera · a medias' : 'Partido a medias'; if (sgK.textContent !== kk) sgK.textContent = kk; }
+        if (sgK) { var kk = sg.kind === 'career' ? 'Carrera a medias' : 'Partido a medias'; if (sgK.textContent !== kk) sgK.textContent = kk; }
         el.btnSeguir.setAttribute('aria-label', 'Seguir el partido: ' + sgL);
       }
     }
@@ -3397,7 +3397,7 @@
     // E6: tarjeta Entrenamiento de Jugar: las medallas conseguidas (si hay alguna)
     if (el.gymSub && VB.Gym && VB.Gym.count) {
       var gc = safe(VB.Gym.count) | 0;
-      setHTML(el.gymSub, 'gyms', gc ? 'Ejercicios con medallas y peloteo libre <span class="chip">Medallas ' + gc + '/15</span>' : 'Ejercicios con medallas y peloteo libre');
+      setHTML(el.gymSub, 'gyms', gc ? 'Cinco ejercicios y pelotear sin más <span class="chip">Medallas ' + gc + '/15</span>' : 'Cinco ejercicios y pelotear sin más');
     }
     renderRetoStrip();   // D1: franja de Retos en Jugar (solo se rehace si cambia la medalla de hoy o lo nuevo)
     pfChip();            // D2: chip del perfil en el pie de la portada (lee pfSum; album() solo con pfDirty)
@@ -3411,8 +3411,8 @@
     if (el.squadSub && VB.Prog) {
       var sq = VB.Prog.get().a, pt = sq[0].pts + sq[1].pts;
       // sin puntos: el nivel de los dos (sin dorsales, 24-nov-2026: «Nivel 3 los dos» o «Niveles 3 y 2»)
-      setHTML(el.squadSub, 'sqs', pt ? pt + (pt === 1 ? ' punto de mejora' : ' puntos de mejora')
-        : sq[0].lvl === sq[1].lvl ? 'Nivel ' + sq[0].lvl + ' los dos' : 'Niveles ' + sq[0].lvl + ' y ' + sq[1].lvl);
+      setHTML(el.squadSub, 'sqs', pt ? pt + (pt === 1 ? ' punto sin repartir' : ' puntos sin repartir') : '');
+      if (el.squadSub.hidden !== !pt) el.squadSub.hidden = !pt;
       el.btnSquad.classList.toggle('has-pts', pt > 0);
     }
     // Vestuario: punto en el botón de la portada mientras haya algo nuevo sin ver
@@ -3437,7 +3437,7 @@
     d.a.forEach(function (a, i) {
       var on = i === sqSel;
       ph += '<button class="sq-pk sp-btn sp-wide sp-calm sp-quiet ' + (on ? 'sp-gold on' : 'sp-ink') + (a.pts ? ' has-pts' : '') + '" data-shape="' + (i * 2 + 1) + '" role="radio" aria-checked="' + on + '" data-pick="' + i + '"' + (on ? '' : ' tabindex="-1"') + '>' +
-        '<span class="sq-num" aria-hidden="true">' + escT(String(a.role || '?').charAt(0)) + '</span><span class="sq-pn' + (String(a.role || '').length > 8 ? ' sq-long' : '') + '">' + escT(a.role || sqRole(a.num)) + '<small class="sq-lm">Nv&nbsp;' + a.lvl + ' · Media ' + P.ovr(a.st) + '</small></span>' +
+        '<span class="sq-num" aria-hidden="true">' + escT(String(a.role || '?').charAt(0)) + '</span><span class="sq-pn' + (String(a.role || '').length > 8 ? ' sq-long' : '') + '">' + escT(a.role || sqRole(a.num)) + '<small class="sq-lm">Nv&nbsp;' + a.lvl + ', media ' + P.ovr(a.st) + '</small></span>' +
         (a.pts ? '<em class="sq-pp" aria-label="' + a.pts + ' puntos de mejora">+' + a.pts + '</em>' : '') + '</button>';
     });
     var ae0 = document.activeElement, pickF = ae0 && el.sqPick && el.sqPick.contains(ae0), pickKb = pickF && ae0.classList.contains('kf');
@@ -3499,7 +3499,7 @@
   }
   function badgeHint(a) {
     var sl = VB.Badges.slots(a);
-    return 'Elige una insignia desbloqueada para equiparla o quitarla. Huecos: ' + sl + (sl < 6 ? ' (uno más cada 5 niveles, hasta 6).' : ' (el máximo).');
+    return 'Toca una insignia para ponértela o quitártela. Tienes ' + sl + (sl === 1 ? ' hueco' : ' huecos') + (sl < 6 ? '; sale uno más cada 5 niveles, hasta 6.' : ', el máximo.');
   }
   /** Línea de detalle de la insignia enfocada o señalada (sin repintar el panel). */
   function badgeInfo(btn, msg) {
@@ -3597,9 +3597,9 @@
     // E6: en un ejercicio no hay marcador; «Reiniciar ejercicio» y «Salir al entrenamiento»
     var dr = !!(g && g.drill && !g.demo);
     el.pause.classList.toggle('drill', dr);
-    // (movil-aire §5.7, móvil: Sugerencia y Bug en un solo botón, «Opinar», que abre el panel con las dos pestañas; el de Bug lo esconde el CSS)
+    // (movil-aire §5.7, móvil: Sugerencia y Bug en un solo botón, «Escríbeme», que abre el panel con las dos pestañas; el de Bug lo esconde el CSS)
     var sgB = $('btnPSug'), sgT = sgB && sgB.querySelector('.sp-t');
-    if (sgT) { var ph0 = phMob(); sgT.textContent = ph0 ? 'Opinar' : 'Sugerencia'; if (ph0) sgB.setAttribute('aria-label', 'Opinar: sugerencia o bug'); else sgB.removeAttribute('aria-label'); }
+    if (sgT) { var ph0 = phMob(); sgT.textContent = ph0 ? 'Escríbeme' : 'Idea'; if (ph0) sgB.setAttribute('aria-label', 'Escríbeme: una idea o un fallo'); else sgB.removeAttribute('aria-label'); }
     var tr = !dr && isTrial();
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : tr ? 'Reiniciar prueba' : 'Reiniciar partido';
     el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : tr ? 'Abandonar la prueba' : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
@@ -3653,7 +3653,7 @@
     var six = !!(ctx.game && ctx.game.size === 6 && !ctx.game.demo);
     // ONLINE (decisión 4 de Ferran): sin récord de Partido rápido, experiencia, perfil, insignias ni Vestuario; el récord online va aparte (fase 3)
     var online = !!(ctx.game && ctx.game.online) || !!ctx.net;
-    var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (Ferran: sin XP ni medallas): sin récord, perfil, XP ni insignias
+    var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (sin XP ni medallas): sin récord, perfil, XP ni insignias
     // partido corto (informe 4.5: un set, final apretado o set a 7): tampoco, para que no se farmeen (los retos los cierra retos.js counts)
     var shortG = !!(ctx.game && ctx.game.short && !ctx.game.demo);
     // retomado tras cerrar la pestaña con el punto en juego (js/resume.js, g.rsNc): tampoco, para que cerrar no deje repetir puntos
@@ -3692,7 +3692,7 @@
     setSep(el.endKicker, [{ h: nw(escT(venueName())) }, { h: nw('Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')])) + '<span class="ph-hide">' + SEP_V + nw((shortFrom(ctx.game) ? 'Desde el ' + shortFrom(ctx.game) + '-' + shortFrom(ctx.game) : oneSet(ctx.game) ? 'Set único a ' : 'Sets a ') + (shortFrom(ctx.game) ? '' : endPts)) + '</span>' }], 'd');
     var gNet = ctx.game && ctx.game.netCr;   // (online: el nombre del rival y «Online» en vez del nivel)
     if (gNet) setSep(el.endKicker, [{ h: nw(escT(venueName())) }, { h: 'Online' + '<span class="ph-hide">' + SEP_V + nw((ctx.game && ctx.game.bo1 ? 'Un set a ' : 'Sets a ') + endPts) + '</span>' }], 'd');
-    el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : gNet ? 'Gana ' + gNet.rivalName : 'Gana la CPU'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
+    el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? 'Victoria' : gNet ? 'Gana ' + gNet.rivalName : 'Ganan ellos'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
     var eOff = sitFill(ctx.game);   // (situación en el «3r set»: solo el set jugado, rotulado «3r set»)
     el.endSets.innerHTML = (e.setScores || []).slice(eOff).map(function (s, i) {
@@ -3716,21 +3716,21 @@
     var nrr = online && ctx.net && ctx.net.recRes;
     if (nrr && nrr.outcome && nrr.outcome.kind === 'unverified') rec += '<span class="new">No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.</span>';
     if (!ctx.debug && !career && !six && !online && !noRec) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
-    if (shortG && !online) rec += '<span>Partido corto: no cuenta para el récord ni da experiencia</span>';
-    else if (rsNc && !online) rec += '<span>Se cerró con un punto en juego: este partido no cuenta para el récord ni da experiencia</span>';
+    if (shortG && !online) rec += '<span>Partido corto: ni récord ni experiencia</span>';
+    else if (rsNc && !online) rec += '<span>Se cerró con el balón en juego: este no cuenta</span>';
     var bs = record.bestStreak;
-    if (isNew) rec += '<span class="new">¡Nueva mejor racha: ' + (bs === 1 ? '1 punto seguido' : bs + ' puntos seguidos') + '!</span>';
+    if (isNew) rec += '<span class="new">Tu mejor parcial: ' + bs + '-0</span>';
     else if (record.winRun > 1 && !career && !online && !noRec) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
     // siguiente paso en un clic: tras ganar, revancha un nivel por encima; tras perder (salvo en Fácil), uno por debajo
     var di = optIndex('difficulty'), alt = win ? (di < OPT.difficulty.vals.length - 1 ? di + 1 : -1) : (di > 0 ? di - 1 : -1);
-    if (!win && alt >= 0 && !career && !online && !sitG) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
+    if (!win && alt >= 0 && !career && !online && !sitG) rec += '<span class="new">Prueba en <b>' + OPT.difficulty.labels[alt] + '</b> un rato</span>';
     el.btnAgainAlt.hidden = alt < 0; el.btnAgainAlt.setAttribute('data-act', 'againAlt');   // (la situación de la semana lo cambia a «share» en endButtons)
-    if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
+    if (alt >= 0) { el.btnAgainAlt.textContent = alt > di ? 'Más difícil' : 'Más fácil'; el.btnAgainAlt.setAttribute('aria-label', 'Revancha en ' + OPT.difficulty.labels[alt]); el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
     el.btnAgainAlt.setAttribute('data-short', alt >= 0 ? (alt > di ? 'Más difícil' : 'Más fácil') : '');   // (móvil: rótulo corto, CSS «SPLAT · PAUSA Y HOJA FINAL»)
     // (botones de siempre; el Resumen de B6 los vuelve a rotular según el caso: Carrera, reto, Partido rápido)
     el.btnAgain.textContent = 'Revancha'; el.btnAgain.setAttribute('data-act', 'again'); el.btnAgain.hidden = false;   // (la Carrera cooperativa la esconde)
-    if (el.btnEndOpts) { el.btnEndOpts.textContent = 'Cambiar opciones'; el.btnEndOpts.setAttribute('data-act', 'opts'); }
-    el.btnMenu.textContent = 'Menú principal'; el.btnMenu.hidden = false;
+    if (el.btnEndOpts) { el.btnEndOpts.textContent = 'Opciones'; el.btnEndOpts.setAttribute('data-act', 'opts'); }
+    el.btnMenu.textContent = 'Menú'; el.btnMenu.hidden = false;
     // «Cambiar opciones»: al menú, directo a la preparación del Partido rápido (dificultad, puntos, control, escenario). En la
     // Carrera no (main.js careerEndSheet esconde además «Revancha en…»); en el 6v6 espectador de pruebas (?format=6v6) tampoco
     var noOpts = !!career || !!(ctx.game && ctx.game.watch0);   // (6v6 humano, sprint 3: sí, vuelve a la preparación con Formato 6 contra 6)
@@ -3741,7 +3741,7 @@
       var dfk = ctx.game.difficulty, perP = [stats.p[0], stats.p[1]];
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
-        xh += '<span>' + escT(sqa[i].role || sqRole(sqa[i].num)) + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">¡NIVEL ' + r.lvl + '! +' + r.pts + ' puntos</span>' : '') + '</span>';
+        xh += '<span>' + escT(sqa[i].role || sqRole(sqa[i].num)) + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">Nivel ' + r.lvl + ' (+' + r.pts + ' para repartir)</span>' : '') + '</span>';
         // (B6: lo mismo para el bloque «Progreso» del Resumen, con la barra de nivel)
         endAw.push({ num: sqa[i].num, xp: r.xp | 0, lvl: r.lvl | 0, lvlUp: !!r.lvlUp, pts: r.pts | 0, cur: sqa[i].xp | 0, need: VB.Prog.need ? VB.Prog.need(sqa[i].lvl) : 0 });
       });
@@ -3987,20 +3987,22 @@
     var s = t.replace(/Partidillo de prueba/, 'Prueba').replace(/Partido de las Estrellas/, 'Estrellas').replace(/Circuito (Regional|Nacional|Internacional|Mundial)/g, '$1')
       .replace(/Jornada (\d+) de (\d+)/g, 'J$1/$2').replace(/Jornada (\d+)(:[^·]*)?/g, 'J$1').replace(/[Cc]lasificación, (\d+)º partido/, 'Clasif. $1º')
       .replace(/[Gg]rupo ([A-D]), (\d+)ª jornada/, 'Grupo $1 · J$2').replace(/\s+/g, ' ').trim();
-    var cm = s.split(', '); if (cm.length > 1) s = cm[0].split(' ')[0] + ' · ' + cm.slice(1).join(' · ');
+    var cm = s.split(', '); if (cm.length > 1) s = cm[0].split(' ')[0] + ', ' + cm.slice(1).join(', ');
     var o = k.querySelector('.ek-s'); if (o) o.parentNode.removeChild(o);
     k.classList.toggle('ek-on', !!s && s !== t);
-    if (s && s !== t) k.insertAdjacentHTML('beforeend', '<span class="ph-only ek-s" aria-hidden="true">' + escT(s) + '</span>');
+    if (s && s !== t) k.insertAdjacentHTML('beforeend', '<span class="ph-only ek-s" aria-hidden="true">' + escT(s.replace(/\s*·\s*/g, ', ')) + '</span>');
   }
   /** SPLAT: hoja final del reto del día → sello dorado (.sp-stamp, decorativo) junto al título con la medalla de hoy (la mejor del
    *  día); el detalle sigue en el bloque «Reto del día» del Resumen. Sin reto, escondido. */
+  /** Texto de la vuelta del sello del reto del día: una sola vuelta con la fecha («RETO DEL DÍA — 26 NOV 2026 — »). */
+  function ringDay() { var d = new Date(); return 'RETO DEL DÍA|' + d.getDate() + ' ' + MESES[d.getMonth()].toUpperCase() + ' ' + d.getFullYear(); }
   function endSeal(day) {
     var hd = el.end && el.end.querySelector('.end-hd'); if (!hd) return;
     var s = hd.querySelector('.end-seal');
     hd.classList.toggle('has-seal', !!day);
     if (!day) { if (s) s.hidden = true; return; }
     var m = Math.max(0, Math.min(3, Math.max(day.best | 0, day.medal | 0)));
-    if (!s) { s = document.createElement('span'); s.className = 'sp-stamp end-seal'; s.setAttribute('data-ring', 'RETO DEL DÍA ★ RETO DEL DÍA ★'); s.setAttribute('aria-hidden', 'true'); hd.appendChild(s); }
+    if (!s) { s = document.createElement('span'); s.className = 'sp-stamp end-seal'; s.setAttribute('data-ring', ringDay()); s.setAttribute('aria-hidden', 'true'); hd.appendChild(s); }
     s.hidden = false; s.classList.toggle('sp-new', !!(day.newMedal && day.medal));
     var inner = '<span class="sp-sc">' + (m ? '<i class="sc-med t' + m + '"></i>' : (VB.Splat ? VB.Splat.BALL : '')) + '<b>' + ['Hoy', 'Bronce', 'Plata', 'Oro'][m] + '</b></span>';
     var sc = s.querySelector('.sp-sc'); if (sc) sc.outerHTML = inner; else s.insertAdjacentHTML('beforeend', inner);
@@ -4199,7 +4201,7 @@
   /** Datos del acta: en la Carrera, la competición (el rótulo de la jornada), quién juega en casa, capitanes y líberos (career.js). */
   function actaMeta(g) {
     var nm = msNames(g), cs = g && !g.demo && g.career, ca = (cs && cs.acta) || {};
-    var comp = cs && cs.label ? cs.label : g && g.online ? 'Online' : g && g.watch0 ? 'Partido de la jornada' : 'Partido rápido';
+    var comp = cs && cs.label ? String(cs.label).split(' · ').join(', ') : g && g.online ? 'Online' : g && g.watch0 ? 'Partido de la jornada' : 'Partido rápido';
     var ar = cs && cs.arb, refs = ar && ar.name && ar.r2 && ar.sc ? [String(ar.name), String(ar.r2), String(ar.sc)] : null;   // (1r, 2º y anotador designados en la Carrera)
     return { names: nm.names, atHome: cs && cs.atHome === false ? false : true, capt: ca.capt, lib: ca.lib, competition: comp, refs: refs,
       venue: venueName(), seed: g ? g.seed | 0 : 0, now: Date.now() };
@@ -4249,8 +4251,8 @@
   /** Pestañas de la hoja: ids de M.tabs; una sola (o sin recap.js) = sin barra. */
   function endPanes(tabs, cur, noBar, labels) {
     // (móvil: si la tira no cabe, fitTabs pone los rótulos cortos; «Jugadas (3)» → «Jugadas»)
-    // (ronda 2: en el móvil la pestaña se llama «Cifras» en las dos orientaciones —antes «Cifras» en horizontal y «Estadísticas» en vertical—)
-    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: t === 'stats' && phMob() ? 'Cifras' : L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
+    // (la pestaña se llama «Cifras» en todos los tamaños)
+    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: t === 'stats' ? 'Cifras' : L[t] || (t === 'sum' ? 'Resumen' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
     var bar = !noBar && items.length > 1;
     if (el.endTabs) {
       el.endTabs.hidden = !bar;
@@ -4302,7 +4304,7 @@
     var B = M.buttons; if (!B) return;
     el.btnAgain.textContent = B.primary.label; el.btnAgain.setAttribute('data-act', B.primary.id); el.btnAgain.disabled = false;   // (la revancha online lo deja desactivado)
     var has = {}; (B.rest || []).forEach(function (b) { has[b.id] = b; });
-    el.btnAgainAlt.hidden = !has.againAlt && !has.share; if (has.againAlt) el.btnAgainAlt.textContent = has.againAlt.label; else if (has.share) el.btnAgainAlt.textContent = has.share.label;
+    el.btnAgainAlt.hidden = !has.againAlt && !has.share; if (has.againAlt) { el.btnAgainAlt.textContent = altShort(has.againAlt.label) || has.againAlt.label; el.btnAgainAlt.setAttribute('aria-label', has.againAlt.label); } else if (has.share) el.btnAgainAlt.textContent = has.share.label;
     el.btnAgainAlt.setAttribute('data-act', has.share && !has.againAlt ? 'share' : 'againAlt');   // (la situación de la semana: «Compartir»)
     var o = has.opts || has.retos || has.group;
     if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
@@ -4396,7 +4398,7 @@
     if (n.multi && n.cr) {
       var cr = n.cr, lt = function (L) { return R.listTxt ? R.listTxt(L) : (L || []).join(', '); };
       var q = document.createElement('p'); q.className = 'rc-net rc-teams'; q.style.cssText = 'margin:8px 0 0;font:700 14px var(--ui);color:var(--soft,#cfd6e4);text-align:center';
-      q.textContent = (cr.mates && cr.mates.length ? 'Tu equipo: tú, ' + lt(cr.mates) : 'Tu equipo: tú') + ' · Rivales: ' + (cr.rivals && cr.rivals.length ? lt(cr.rivals) : 'la IA');
+      q.textContent = (cr.mates && cr.mates.length ? 'Tu equipo: tú, ' + lt(cr.mates) : 'Tu equipo: tú') + '. Rivales: ' + (cr.rivals && cr.rivals.length ? lt(cr.rivals) : 'la IA');
       el.endSum.appendChild(q);
     }
     var ln = ''; try { ln = R.line(); } catch (e) { ln = ''; }
@@ -4431,10 +4433,10 @@
   function rcDayHTML(day) {
     var T = ['Bronce', 'Plata', 'Oro'], best = Math.max(day.best | 0, day.medal | 0), mh = '';
     for (var k = 1; k <= 3; k++) mh += '<span class="ge-m' + (best >= k ? ' on' : '') + (day.newMedal && day.medal === k ? ' new' : '') + '">' + medalSVG(best >= k ? k : 0, best >= k ? '' : 'off') + T[k - 1] + '</span>';
-    var line = day.newMedal && day.medal ? '¡Medalla de ' + RC_MED[day.medal] + ' en el reto del día!' : day.prev && day.medal <= day.prev ? 'Hoy ya tenías ' + RC_MED[day.prev] : 'Sin medalla: gana un set para el bronce';
-    // (movil-aire §5.7, móvil: la medalla y la experiencia en una línea, «¡Plata! +55 XP», sin «(a cada jugador)»)
+    var line = day.newMedal && day.medal ? 'Hoy, ' + RC_MED[day.medal] : day.prev && day.medal <= day.prev ? 'Hoy ya tenías ' + RC_MED[day.prev] : 'Sin medalla: gana un set para el bronce';
+    // (movil-aire §5.7, móvil: la medalla y la experiencia en una línea, «Plata +55 XP», sin «(a cada jugador)»)
     if (phHud()) {
-      var ln = day.newMedal && day.medal ? '¡' + T[day.medal - 1] + '!' : line;
+      var ln = day.newMedal && day.medal ? T[day.medal - 1] : line;
       return '<div class="rc-meds">' + mh + '</div><span class="rc-l rc-dl">' + escT(ln) + (day.xp ? ' <b class="nw">+' + (day.xp | 0) + ' XP</b>' : '') + '</span>';
     }
     // (ronda 2, partido-v: en vertical, la frase entera y «+115 de experiencia» en su línea, sin «(a cada jugador)»)
@@ -4449,8 +4451,8 @@
     if (cs && amb.cards.length) {   // Ambiente de Carrera: tarjetas del partido (como en el acta)
       var sh = '';
       for (var si = 0; si < amb.cards.length && si < 4; si++) { var sc = amb.cards[si];
-        sh += '<span class="rc-l amb-sn"><i class="sb-cds" aria-hidden="true"><i class="' + (ambRed(sc.color) ? 'r' : 'y') + '"></i></i> ' + escT(cpuTxt(ambWho(ctx.game, sc))) + ' · ' +
-          escT(AMB_COL[sc.color]) + ' (' + (SET_ORD[sc.set - 1] || sc.set + 'º') + ' set ' + sc.score[0] + '-' + sc.score[1] + ')</span>'; }
+        sh += '<span class="rc-l amb-sn"><i class="sb-cds" aria-hidden="true"><i class="' + (ambRed(sc.color) ? 'r' : 'y') + '"></i></i> ' + escT(cpuTxt(ambWho(ctx.game, sc))) + ': ' +
+          escT(AMB_COL[sc.color].toLowerCase()) + ' (' + (SET_ORD[sc.set - 1] || sc.set + 'º') + ' set ' + sc.score[0] + '-' + sc.score[1] + ')</span>'; }
       blk('rc-san', 'Sanciones', sh);
     }
     M.blocks.forEach(function (k) {
@@ -4863,7 +4865,7 @@
     if (!el.plFmt) return;
     var six = ctx.settings.format === '6v6', bs = el.plFmt.querySelectorAll('[data-fmt]');
     for (var i = 0; i < bs.length; i++) { var on = (bs[i].getAttribute('data-fmt') === '6v6') === six; if (bs[i].getAttribute('aria-checked') !== String(on)) bs[i].setAttribute('aria-checked', String(on)); bs[i].classList.toggle('on', on); }
-    setText(el.quickSub, 'qs', six ? '6 contra 6: equipos completos, eliges tu puesto' : '2 contra 2: tú y tu pareja contra la CPU');
+    setText(el.quickSub, 'qs', six ? 'Equipos completos, eliges tu puesto' : 'Tú y tu pareja, contra dos');
   }
   function setPage(p, anim) {
     var was = mpage;
@@ -5074,7 +5076,7 @@
     try { var it = Lk.item ? Lk.item(id) : null; if (it && it.name) return it.name; var n = Lk.name ? Lk.name(id) : ''; return n || String(id); } catch (e) { return String(id); }
   }
   function lkUnseen() { var Lk = LK(); if (!Lk || !Lk.unseen) return []; try { return Lk.unseen() || []; } catch (e) { return []; } }
-  function lkStars(r) { var s = ''; for (var i = 0; i <= r; i++) s += '★'; return s; }
+  function lkStars(r) { var s = ''; for (var i = 0; i <= r; i++) s += '●'; return s; }
   function lkTabOf(slot) {
     if (slot === 'hairTint') return 'pelo';
     for (var t in LK_ROWS) if (LK_ROWS[t].indexOf(slot) >= 0) return t;
@@ -5216,7 +5218,7 @@
     if (hp.k === 'use' && phMob() && hp.t.toLowerCase() === ('Pinta: ' + label).toLowerCase()) hp = { t: '', k: '' };
     var sw = o.hex >= 0 ? '<i class="lk-sw" style="background:' + hx(o.hex) + '"></i>' : col ? '<i class="lk-sw auto"></i>' : '';
     var help = hp.t ? (hp.k === 'lock' ? LK_LOCK : hp.k === 'warn' ? LK_EYE : '') + escT(hp.t) : '';
-    // la estrella solo desde rareza 1 (lo común no lleva: antes todo llevaba «★», U9)
+    // la estrella solo desde rareza 1 (lo común no lleva: antes todo llevaba marca, U9)
     var st = o.rar != null && o.rar >= 1 ? '<span class="lk-st" aria-hidden="true">' + lkStars(o.rar) + '</span>' : '';
     var aria = label + ': ' + o.name + ', ' + (i >= 0 ? i + 1 : 1) + ' de ' + n + (o.rar != null && o.rar >= 1 ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') +
       (locked ? '. Bloqueado: ' + (lt || 'aún no lo tienes') + '. Se puede probar, pero no se guarda' : '') + (hp.t && !locked ? '. ' + hp.t : '') + (isNew ? '. Hay algo nuevo' : '') +
@@ -6118,7 +6120,7 @@
   //  PANELES: tutorial, controles, ajustes
   // =====================================================================
   // (UI-18: el antetítulo da contexto, nunca repite el título ni las pestañas)
-  var PANELS = { tut: ['pnTut', '', 'Cómo se juega'], ctl: ['pnCtl', '', 'Controles'], set: ['pnSet', '', 'Ajustes'], first: ['pnFirst', '', 'Primer partido'], squad: ['pnSquad', '', 'Jugadores'], about: ['pnAbout', '', 'Acerca de'], fb: ['pnFb', '', 'Tu sugerencia'] };
+  var PANELS = { tut: ['pnTut', '', 'Cómo se juega'], ctl: ['pnCtl', '', 'Controles'], set: ['pnSet', '', 'Ajustes'], first: ['pnFirst', '', 'Primer partido'], squad: ['pnSquad', '', 'Jugadores'], about: ['pnAbout', '', 'Info'], fb: ['pnFb', '', 'Escríbeme'] };
   // E3/E7: UNA sola pila de vuelta entre paneles. openPanel(name, {from, tab}) abierto con otro panel delante (Ajustes › Controles,
   // Ajustes › Info › Créditos) apila el de delante; «Volver» / Esc / B / «Entendido» vuelven a él, en la misma pestaña y con el
   // foco en la fila que lo abrió. openPanel(name, 'menu' | 'paused') (forma antigua) empieza una pila nueva.
@@ -6287,8 +6289,8 @@
   /** «2026-11-12» → «12 nov 2026». */
   function fmtDate(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? (+m[3]) + ' ' + MESES[+m[2] - 1] + ' ' + m[1] : String(iso || ''); }
   var abOld = false, abLic = '';
-  function verCard(e, open, noSm) {   // (noSm: «v1.x · fecha» repetido con la cabecera .ab-k; el CSS lo oculta solo donde .ab-k se ve —en el móvil apaisado .ab-k no sale—)
-    var h = '<div class="card"><h3>' + escT(e.t || ('Versión ' + e.v)) + '<small' + (noSm ? ' class="ab-dup"' : '') + '>' + sepHTML(['v' + e.v, fmtDate(e.d)], 's') + '</small></h3>';
+  function verCard(e, open, noSm, noDate) {   // (noSm: «v1.x · fecha» repetido con la cabecera .ab-k; el CSS lo oculta solo donde .ab-k se ve —en el móvil apaisado .ab-k no sale—)
+    var h = '<div class="card"><h3>' + escT(e.t || ('Versión ' + e.v)) + '<small' + (noSm ? ' class="ab-dup"' : '') + '>' + (noDate ? escT('v' + e.v) : sepHTML(['v' + e.v, fmtDate(e.d)], 's')) + '</small></h3>';
     if (open && e.items && e.items.length) h += '<ul>' + e.items.map(function (x) { return '<li>' + escT(x) + '</li>'; }).join('') + '</ul>';
     else if (e.items) h += '<ul>' + e.items.map(function (x) { return '<li>' + escT(x) + '</li>'; }).join('') + '</ul>';
     return h + '</div>';
@@ -6299,13 +6301,14 @@
     h += verCard(L[0], true, L[0].v === VB.VERSION);
     if (L.length > 1) {
       h += '<button type="button" class="opt-reset ab-tg sp-pill" data-ab="old" aria-expanded="' + abOld + '">' + (abOld ? 'Ocultar versiones anteriores' : 'Versiones anteriores') + '</button>';
-      if (abOld) for (var i = 1; i < L.length; i++) h += verCard(L[i], false);
+      if (abOld) for (var i = 1; i < L.length; i++) h += verCard(L[i], false, false, true);
     }
     return h;
   }
   function aboutCreditsHTML() {
     var C = VB.CREDITS || {}, Lc = C.licenses || {}, h = '';
-    h += '<div class="card"><h3>Creado por</h3><p>' + escT(C.by || 'Ferran') + '</p></div>';
+    h += '<div class="card"><h3>Lo hace</h3><p>' + escT(C.by || 'Ferran') + '</p></div>';
+    if (C.thanks && C.thanks.length) h += '<div class="card"><h3>Gracias</h3><ul>' + [].concat(C.thanks).map(function (t) { return '<li>' + escT(t) + '</li>'; }).join('') + '</ul></div>';
     if (C.tools && C.tools.length) h += '<div class="card"><h3>Hecho con</h3><ul>' + C.tools.map(function (t) { return '<li>' + escT(t) + '</li>'; }).join('') + '</ul></div>';
     if (C.fonts) h += '<div class="card"><h3>Tipografía</h3><p>' + escT(C.fonts) + '</p></div>';
     var lic = function (id, label, txt) {
@@ -6404,8 +6407,8 @@
     if (!live) t = car ? 'Carrera — ' + T : T;
     else if (st === 2) t = 'Pausa — ' + T;
     else if (drill) t = 'Entrenamiento — ' + T;
-    else if (fin) t = (g.sets[0] > g.sets[1] ? '¡Victoria! ' : 'Derrota ') + g.sets[0] + '-' + g.sets[1] + ' — ' + T;
-    else if (intro) t = '¡A jugar! — ' + T;
+    else if (fin) t = (g.sets[0] > g.sets[1] ? 'Victoria ' : 'Derrota ') + g.sets[0] + '-' + g.sets[1] + ' — ' + T;
+    else if (intro) t = 'Calentando — ' + T;
     else t = 'Set ' + (g.setNo || 1) + ' | ' + g.score[0] + '-' + g.score[1] + ' — ' + T;
     try { document.title = t; } catch (e) { }
   }
@@ -6705,7 +6708,7 @@
     setTabs = makeTabs(el.setTabs, SET_TABS.map(function (t) { return { id: t[0], label: t[1], icon: TAB_IC[t[0]] }; }),
       { value: 'audio', label: 'Apartado de ajustes', pane: el.optList, onChange: function (id) { setTab(id); } });
     if (el.abTabs) abTabs = makeTabs(el.abTabs, [{ id: 'news', label: 'Novedades', icon: TAB_IC.news }, { id: 'credits', label: 'Créditos', icon: TAB_IC.credits }],
-      { value: 'news', label: 'Acerca de', pane: el.abBody, onChange: function () { renderAbout(); } });
+      { value: 'news', label: 'Info', pane: el.abBody, onChange: function () { renderAbout(); } });
     sqTabs = makeTabs(el.sqTabs, sqItems(), { value: 'g0', label: 'Apartado', pane: el.sqBody, onChange: function () { renderSquad(); phPanel(); } });
   }
 
@@ -6878,7 +6881,7 @@
     else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
     else if (g === 'priv') openPrivacy();
     else if (g === 'fbsug' || g === 'fbbug') openFb(g === 'fbbug' ? 'bug' : 'sug');           // 1.22.1: sugerencia / bug (se apila Ajustes)
-    else if (g === 'fbview' && actaOk && VB.Feedback) { try { window.open(VB.Feedback.viewerUrl(), '_blank'); } catch (e) { } }   // visor (solo Ferran)
+    else if (g === 'fbview' && actaOk && VB.Feedback) { try { window.open(VB.Feedback.viewerUrl(), '_blank'); } catch (e) { } }   // visor (solo admin)
   }
   /** Google Play (24-nov-2026): «Privacidad» abre la política (pages/privacidad.html) en otra pestaña. En Pages (window.__vbBuild, lo pone
    *  tools/build-pages.js) está al lado de index.html; en local (file://, Artifact) se abre la publicada en takethecourt.com. */
@@ -7087,7 +7090,7 @@
   var lastDiffI = -1;
   /** Ajustes · Juego: filas «La zona», «Saque de firma» y «Gesto antes de sacar» (las pone ui.js una vez, antes de Repeticiones; sin la
    *  sim nueva, sin filas). La ayuda del saque de firma dice cómo es el elegido. */
-  var ZN_ROWS = [['zone', 'La zona', 'Buenas jugadas seguidas te mejoran un rato'],
+  var ZN_ROWS = [['zone', 'Racha', 'Buenas jugadas seguidas te mejoran un rato'],
     ['serveSig', 'Saque de firma', ''], ['serveGest', 'Gesto antes de sacar', 'Solo se ve: pulsa y lanzas al momento']];
   function znOptRows() {
     var gt = document.querySelector('#optList .opt-g[data-tab="game"]');
@@ -7261,10 +7264,10 @@
       : [vb ? 'Playa' : 'Pabellón', { t: OPT.difficulty.labels[di], c: 'hi' }, vb ? 'Sets a 21' : 'Sets a ' + OPT.setPoints.vals[pi], ci > 0 ? 'Solo el ' + sqRole(tn[0]).toLowerCase() : 'A los dos'], 'c');
     el.optCtrl.classList.toggle('one', ci > 0 && !six);
     // Partido rápido: una línea de ayuda bajo cada fila (con Playa, Puntos explica las reglas de playa)
-    setText(el.fmtHelp, 'fh', six ? 'Equipos completos: llevas al ' + roleName().toLowerCase() : 'Tú y tu pareja contra la CPU');
-    setText(el.venueHelp, 'vh', six ? 'El 6 contra 6 se juega en el pabellón' : venueHelpOf(vb ? 'beach' : 'hall') || (vb ? 'Platja Llarga, vóley playa en pista de 16 × 8' : 'Palau del Mar, pista cubierta de 18 × 9'));
+    setText(el.fmtHelp, 'fh', six ? 'Equipos completos: llevas al ' + roleName().toLowerCase() : 'Tú y tu pareja, contra dos');
+    setText(el.venueHelp, 'vh', (six ? 'El 6 contra 6 se juega en el pabellón' : venueHelpOf(vb ? 'beach' : 'hall') || (vb ? 'Platja Llarga, vóley playa en pista de 16 × 8' : 'Palau del Mar, pista cubierta de 18 × 9')).replace(/(\d+) × (\d+)/g, '$1 × $2'));
     setText(el.diffHelp, 'dh', laNoteOf(di) || DIFF_HELP[di] || 'Nivel de la CPU');
-    setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
+    setText(el.ptsHelp, 'ph', 'Hasta ' + (vb ? 21 : ptsN) + ' con dos de diferencia' + (lk !== 'full' ? '' : '; el tercero, a ' + (vb ? 15 : Math.min(15, OPT.setPoints.vals[pi]))));
     var lshort = lk !== 'full' || (!vb && ptsN === 7);
     setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da experiencia' : ''));
     setText(el.ctrlHelp, 'ch', six ? ((role6 === 'S' && kmK() ? 'El 2º toque es tuyo: apunta con el ratón al atacante' : ROLE_HELP[role6]) || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al ' + sqRole(tn[0]).toLowerCase() + '; la IA lleva al ' + sqRole(tn[1]).toLowerCase() : 'El control pasa a quien va a tocar');
@@ -7379,7 +7382,7 @@
     svgEl('path', Object.assign({ d: 'M-6 -38 a6 6 0 0 1 12 0 z', fill: dark }, ink), body);
     if (pl.you) svgEl('path', { d: 'M-4.5 -51 h9 l-4.5 5.5 z', fill: '#ffd23f', stroke: INK, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, body);
     if (pl.lbl) {
-      var t = svgEl('text', { x: 0, y: pl.you ? -55 : -48, 'text-anchor': 'middle', fill: '#fff', 'font-family': 'Barlow Condensed,Arial Narrow,sans-serif', 'font-weight': 800, 'font-size': Math.max(12.8, 12.8 * 1.55 / s).toFixed(1), 'letter-spacing': 1, stroke: INK, 'stroke-width': 3, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, body);
+      var t = svgEl('text', { x: 0, y: pl.you ? -55 : -48, 'text-anchor': 'middle', fill: '#fff', 'font-family': 'Big Shoulders Display,Arial Narrow,sans-serif', 'font-weight': 800, 'font-size': Math.max(12.8, 12.8 * 1.55 / s).toFixed(1), 'letter-spacing': 1, stroke: INK, 'stroke-width': 3, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, body);
       t.textContent = pl.lbl;
     }
     return { g: g, body: body, arms: arms, shadow: shadow, base: p, s: s, pl: pl };
@@ -7434,7 +7437,7 @@
             : ' Apunta con el ratón a tu campo y eliges el destino (lo ves en el suelo); fuera de tu campo, va <b>alta a la 4</b>. Cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.')
           : ctx.settings.aimSet !== false ? ' Si no tocas la dirección, va <b>alta a la 4</b>, a la izquierda de la red. Ya bajo el balón, una dirección elige el destino y lo ves en el suelo (la que traías corriendo no cuenta): cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.' : '';
         var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;   // (táctil: COLOCAR solo sale en el aire)
-        if (oneMode()) return 'Llevas siempre al mismo jugador: tu pareja (la IA) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque es suyo, la colocación es tuya: ponte bajo el balón y pulsa ' + both + '.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto.' + jdT(g);
+        if (oneMode()) return 'Llevas siempre al mismo jugador: tu pareja (la lleva el juego) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque es suyo, la colocación es tuya: ponte bajo el balón y pulsa ' + both + '.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto.' + jdT(g);
         return 'El control pasa solo a tu pareja (la cámara se desliza hacia ella). Ponte bajo el balón y pulsa ' + both + ': es la <b>colocación</b>.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto: más rápida, con menos margen.' + jdT(g);
       },
       rule: 'Cada equipo tiene <b>3 toques</b>. Un jugador no puede tocar dos veces seguidas: eso son <b>dobles</b>.',
@@ -7443,7 +7446,7 @@
         players: [{ t: 0, x: 1.3, y: -2.4, you: 1, lbl: '3' }, { t: 0, x: 1.8, y: 1.2 }, { t: 1, x: -5.5, y: -2 }, { t: 1, x: -5.5, y: 2 }],
         segs: [{ a: [1.8, 1.2, 2.3], b: [1.05, -2.4, 3.15], apex: 5.3, dur: 1.15 }, { a: [1.05, -2.4, 3.15], b: [-6.2, 2.8, 0.2], dur: 0.38, who: 0, spike: 1 }],
         ring: [1.3, -2.4], jump: [[0, 0.62, 1.05]], swing: [[0, 1.05, 0.25]] },
-      text: function (g) { return 'En el 3r toque ponte bajo la colocación, pulsa ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' en lo alto: <b>remate</b>.' + momT() + ' En el aire, mueve la <b>diana</b> por el campo rival con ' + g.aim + '; en el <b>momento justo</b>, el remate va exacto a ella. Para engañar al bloqueo: ' + g.hit + ' pronto y ' + g.jump + ' al golpear (<b>finta</b>), o ' + g.jset + ' en el aire (<b>golpe colocado</b>). La diana pegada a la línea va <b>al filo</b>.'; },   // (salto con impulso: momT justo detrás de «remate», para que en móvil se vea sin desplazar)
+      text: function (g) { return 'En el 3r toque ponte bajo la colocación, pulsa ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' en lo alto: <b>remate</b>.' + momT() + ' En el aire, mueve la <b>diana</b> por el campo rival con ' + g.aim + '; en el <b>momento justo</b>, el remate va exacto a ella. Para engañar al bloqueo: ' + g.hit + ' pronto y ' + g.jump + ' al golpear (<b>finta</b>), o ' + g.jset + ' en el aire (<b>golpe colocado</b>). La diana pegada a la línea va <b>a la raya</b>.'; },   // (salto con impulso: momT justo detrás de «remate», para que en móvil se vea sin desplazar)
       rule: 'En el aire, ' + '<b>Saltar</b> otra vez hace una <b>dejada</b>. Si golpeas el 3r toque sin saltar, el balón pasa en globo (<b>balón libre</b>).',
       ruleBeach: 'En el aire, <b>Saltar</b> otra vez hace una dejada <b>de nudillos</b> (<b>pokey</b>): en la playa, con la yema de los dedos sería falta. Sin saltar, el 3r toque pasa en globo (<b>balón libre</b>).' },
     { step: 'Paso 5 de 6', title: 'El bloqueo', fig: {
@@ -7466,7 +7469,7 @@
     function (g) { return ['Sale un <b>círculo</b> donde cae el balón: ve hasta él.', 'Pulsa ' + g.hit + ' cuando se cierre: <b>recepción</b> a tu pareja.', 'Tú solo te colocas y golpeas: el toque lo elige el juego.']; },
     function (g) {
       var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;
-      return [oneMode() ? 'Tu pareja (la IA) coloca; si el 1r toque es suyo, colocas tú.' : 'El control pasa a tu pareja: ponte bajo el balón.',
+      return [oneMode() ? 'Tu pareja (la lleva el juego) coloca; si el 1r toque es suyo, colocas tú.' : 'El control pasa a tu pareja: ponte bajo el balón.',
         'Pulsa ' + both + ': <b>colocación</b>. Sin dirección, va alta a la 4.', '<b>3 toques</b> por equipo; nadie toca dos veces seguidas.'];
     },
     function (g) { return ['Bajo la colocación: ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' arriba: <b>remate</b>.', 'En el aire, mueve la <b>diana</b> con ' + g.aim + ': en el momento justo, va exacta.', 'Sin saltar, el 3r toque pasa en globo (<b>balón libre</b>).']; },
@@ -7481,7 +7484,7 @@
     var S = TUT[tut.i], g = G(), rl = tutBeach() && S.ruleBeach ? S.ruleBeach : S.rule, SP = VB.Splat;
     if (!SP || !SP.sheet || S.faults) return;
     if (rl && tutBeach()) rl = rl.replace('<b>8 segundos</b>', '<b>5 segundos</b>');
-    SP.sheet({ title: S.title, cls: 'tut-sheet', html: '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '') });
+    SP.sheet({ title: S.title.replace(/ · /g, ': '), cls: 'tut-sheet', html: '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '') });
   }
   var FAULTS = '<ul class="faults">' +
     '<li><b>Fuera</b>El balón cae fuera de las líneas: punto para el rival de quien lo tocó por última vez.</li>' +
@@ -7527,7 +7530,7 @@
     var dots = ''; for (var k = 0; k < TUT.length; k++) dots += '<i class="' + (k === i ? 'on' : tut.seen[k] ? 'seen' : '') + '"></i>';
     el.tutDots.innerHTML = dots;
     el.btnTutPrev.disabled = i === 0; el.btnTutPrev.style.visibility = i === 0 ? 'hidden' : '';
-    var ntx = i === TUT.length - 1 ? (panelFrom === 'menu' ? '¡A jugar!' : 'Volver al partido') : 'Siguiente', nt = el.btnTutNext.querySelector('.sp-t');   // (parche SPLAT: solo el rótulo)
+    var ntx = i === TUT.length - 1 ? (panelFrom === 'menu' ? 'Jugar' : 'Volver al partido') : 'Siguiente', nt = el.btnTutNext.querySelector('.sp-t');   // (parche SPLAT: solo el rótulo)
     if (nt) nt.textContent = ntx; else el.btnTutNext.textContent = ntx;
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
     tutStop();
@@ -7666,15 +7669,15 @@
       }
       var r = Gm.get(d.id), m = r ? r.m | 0 : 0, b = r ? r.b | 0 : 0, th = Gm.medalsOf ? safe(function () { return Gm.medalsOf(d.id); }) : Gm.MEDALS && Gm.MEDALS[d.id];
       var lo = m && th ? th[m - 1] : 0, fr = m >= 3 || !th ? 1 : (b - lo) / Math.max(1, th[m] - lo);
-      var nx = m >= 3 ? '¡Oro!' : th ? MEDAL_N[m + 1] + ' con ' + th[m] : '';
+      var nx = m >= 3 ? 'Oro' : th ? MEDAL_N[m + 1] + ' con ' + th[m] : '';
       aria += r && r.n ? ', récord ' + r.b + (m ? ', medalla de ' + MEDAL_N[m].toLowerCase() : '') : ', sin jugar';
       if (nx && m < 3) aria += '. ' + nx;
       h += '<button class="mi gy-d sp-btn sp-wide sp-calm ' + (GY_COL[d.id] || 'sp-ink') + '" data-shape="' + (k++) + '" data-drill="' + d.id + '" aria-label="' + escT(aria + '. ' + d.help) + '">' +
         '<span class="sp-medal t' + m + '">' + medalSVG(m) + '</span><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s" data-ph-ell' + (GY_SHORT[d.id] ? ' data-ph-short="' + escT(GY_SHORT[d.id]) + '"' : '') + '>' + escT(d.help) + '</small>' + (r && r.n && m < 3 ? spBar(fr) : '') + '</span>' +
-        '<span class="gy-rec' + (r && r.n ? '' : ' gy-new') + '"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
+        '<span class="gy-rec' + (r && r.n ? '' : ' gy-new') + '"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? 'Oro' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
     });
     if (el.gymList._h !== h) { el.gymList._h = h; el.gymList.innerHTML = h; gymHov = null; if (VB.Splat) VB.Splat.decorate(el.gymList); }
-    if (el.gymFoot && Gm) setSep(el.gymFoot, [{ h: 'Medallas: <b>' + Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
+    if (el.gymFoot && Gm) setSep(el.gymFoot, [{ h: 'Medallas: <b>' + Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15) + '</b>' }], 'v');
     // móvil: el recuento va en una pegatina de la cabecera (el pie se oculta)
     var gch = document.getElementById('gymChip');
     if (gch && Gm) { var gtx = Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15); if (gch.textContent !== gtx) gch.textContent = gtx; gch.hidden = false; gch.setAttribute('aria-label', 'Medallas: ' + gtx); }
@@ -7752,7 +7755,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Jugada' }] : []).concat([{ id: 'hoy', label: 'Reto' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Jugada' }] : []).concat([{ id: 'hoy', label: 'Reto' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
@@ -7782,7 +7785,7 @@
         });
       });
       var n = 0; try { n = R.count() | 0; } catch (e) { }
-      foot = sepHTML([{ h: 'Medallas: <b>' + n + ' de ' + (R.LIST.length * 3) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
+      foot = sepHTML([{ h: 'Medallas: <b>' + n + ' de ' + (R.LIST.length * 3) + '</b>' }], 'v');
     } else {
       var dd = rtDaily(), ds = R.dayState(), m = ds.m | 0;
       if (!dd) h = '<p class="rt-none">El reto del día no está disponible.</p>';
@@ -7800,11 +7803,11 @@
             (sh ? '<span class="rt-tl">' + escT(t) + '</span><span class="rt-ts">Oro: ' + escT(sh) + '</span>' : '<span>' + escT(t) + '</span>') + '</span>';
         });
         var med = (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ', ' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') : '');
-        h = '<div class="rt-day sp-ticket sp-noshine" data-shape="1"><span class="sp-stamp rt-stamp" aria-hidden="true" data-ring="RETO DEL DÍA ★ RETO DEL DÍA ★"><span class="sp-sc">' +
+        h = '<div class="rt-day sp-ticket sp-noshine" data-shape="1"><span class="sp-stamp rt-stamp" aria-hidden="true" data-ring="' + ringDay() + '"><span class="sp-sc">' +
           (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + (dl ? '<b class="ph-no">Hoy</b><b class="ph-only rt-sd">' + escT(dl) + '</b>' : '<b>Hoy</b>') + '</span></span>' +
           '<div class="rt-dm"><p class="rt-k">' + sepHTML(['Reto del día', dl], 'd') + '</p><p class="rt-map">' + escT(dd.mapName || '') + '</p><p class="rt-bits">' + bits + '</p></div></div>' +
           '<div class="rt-tiers">' + th + '</div>' +
-          '<button class="mi primary rt-go sp-patch" data-reto="day"><span class="sp-l"><span class="sp-t">' + (m >= 3 ? 'Jugar otra vez' : '¡A jugar!') + '</span><small class="sp-s rt-med">' + escT(med) + '</small></span></button>';
+          '<button class="mi primary rt-go sp-patch" data-reto="day"><span class="sp-l"><span class="sp-t">' + (m >= 3 ? 'Jugar otra vez' : 'Jugar') + '</span><small class="sp-s rt-med">' + escT(med) + '</small></span></button>';
       }
       var sm = null; try { sm = R.summary(); } catch (e) { }
       foot = sm ? sepHTML([{ h: 'Días con medalla: <b>' + (sm.days | 0) + '</b>' }, { h: 'Medallas de maestría: <b>' + (sm.total | 0) + ' de ' + (sm.of | 0) + '</b>' }], 'v') : '';
@@ -7814,7 +7817,7 @@
     // Maestría a la vista: lo nuevo queda visto (el punto sale esta vez y la siguiente ya no; la franja se rehace)
     if (R && rtTab === 'maestria' && R.markSeen) { try { if (R.unseen().length) { R.markSeen(R.unseen()); rtStrip = ''; } } catch (e) { } }
   }
-  /** (móvil, movil-aire §5.6) «Aces en un partido: récord 0, bronce con 2» → «récord 0 · bronce 2» (lo de antes de «:» ya lo dice el nombre). */
+  /** (móvil, movil-aire §5.6) «Aces en un partido: récord 0, bronce con 2» → «récord 0, bronce 2» (lo de antes de «:» ya lo dice el nombre). */
   /** (ronda 2, recortes) Lo que mide la medalla («Aces en un partido»), que la ronda 1 quitó: en el móvil va en su propia línea, encima. */
   function rtWhatPh(t) {
     t = String(t || ''); var i = t.indexOf(': ');
@@ -7822,7 +7825,7 @@
   }
   function rtTxtPh(t) {
     t = String(t || ''); var i = t.indexOf(': '); if (i > 0 && i < 60) t = t.slice(i + 2);
-    return t.replace(/, (bronce|plata|oro) con /g, ' · $1 ').replace(/, /g, ' · ');
+    return t.replace(/, (bronce|plata|oro) con /g, ', $1 ');
   }
   /** Al reto del día (el de HOY: si ha cambiado el día, el nuevo), bajo la cortinilla. mini = previa mini («Otra vez»). */
   function goReto(mini) {
@@ -7883,7 +7886,7 @@
       VB.UI.openRetos('semana');
       if (r.gone) semToast('Ese enlace es de la antigua situación de la semana: ya está cerrada');
       else if (r.old) semToast('Es la cadena del ' + M.dayLbl(r.wk) + ': ya está cerrada');
-      else if (r.n) semToast('Tienes la cadena de ' + String(r.from).replace(/_/g, ' ') + (r.n > 1 ? ' y ' + (r.n - 1) + (r.n === 2 ? ' más' : ' más') : '') + '. ¡Te toca!');
+      else if (r.n) semToast('Tienes la cadena de ' + String(r.from).replace(/_/g, ' ') + (r.n > 1 ? ' y ' + (r.n - 1) + (r.n === 2 ? ' más' : ' más') : '') + '.');
     }, 250);
   }
 
@@ -7916,7 +7919,7 @@
     uiSound('click');
     semPopApi = VB.Splat.sheet({ title: 'La jugada del día', html: P.html, cls: 'semp-sh',
       actions: [{ label: 'Ahora no', cls: 'sp-cream', id: 'btnSemPopNo', fn: function () { uiSound('back'); } },
-        { label: '¡A por ella!', cls: 'sp-kit', primary: true, id: 'btnSemPopGo', fn: function () { uiSound('start'); setTimeout(function () { goSemana(false); }, 0); } }],
+        { label: 'Vamos', cls: 'sp-kit', primary: true, id: 'btnSemPopGo', fn: function () { uiSound('start'); setTimeout(function () { goSemana(false); }, 0); } }],
       onClose: function () { semPopApi = null; } });
     try { if (semPopApi && semPopApi.el) { semPopApi.el.setAttribute('aria-describedby', 'sempDesc'); semPopApi.el.classList.add('semp-sheet'); } } catch (e) { }
     // con el mando o el teclado, el foco en «¡A por ella!» con su aro (Splat.sheet solo lo pinta si quien la abrió tenía el aro)
@@ -8018,7 +8021,7 @@
       LOST.forEach(function (x) { if (x[0] && typeof x[0].lost === 'function' && safe(function () { return x[0].lost(); })) out.push(x[1] + '. Hay una copia en este dispositivo.'); });
     }
     if (r) {
-      (r.lvlUp || []).forEach(function (n) { out.push('¡Perfil Nv ' + n + '!'); });
+      (r.lvlUp || []).forEach(function (n) { out.push('Perfil: nivel ' + n); });
       (r.hitos || []).forEach(function (id) {
         var h = (P.HITOS || []).filter(function (x) { return x.id === id; })[0];
         if (h) out.push('Hito: ' + h.name + ' (+' + h.xp + ' XP)');
@@ -8086,7 +8089,7 @@
     var vh = '<p class="pf-vk">Vitrina<small>Fija tus 3 favoritos desde el álbum</small></p><div class="pf-vs">';
     for (var i = 0; i < 3; i++) {
       var it = vit[i];
-      vh += it ? '<span class="pf-v t' + pfTier(it) + '" title="' + escT(it.name) + '"><span class="pf-si">' + pfIcon(it) + '</span><span class="pf-vn">' + escT(it.name) + '</span></span>' : '<span class="pf-v free">Libre</span>';
+      vh += it ? '<span class="pf-v t' + pfTier(it) + '" title="' + escT(it.name) + '"><span class="pf-si">' + pfIcon(it) + '</span><span class="pf-vn">' + escT(String(it.name).replace(/ \((bronce|plata|oro)\)$/, '')) + '</span></span>' : '<span class="pf-v free">Libre</span>';
     }
     vh += '</div>';
     if (el.pfVit._h !== vh) { el.pfVit._h = vh; el.pfVit.innerHTML = vh; }
@@ -8153,7 +8156,7 @@
       var shortPin = rule && !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone));
       var h = k + '<span>' + (pinned ? (shortPin ? 'Quitar' : 'Quitar de la vitrina') : (shortPin ? 'Fijar' : 'Fijar en la vitrina')) + '</span>';
       el.pfPin.setAttribute('aria-label', pinned ? 'Quitar de la vitrina' : 'Fijar en la vitrina');
-      var pc = el.pfPin.querySelector('.pf-pinc') || el.pfPin;   // (SPLAT: la mancha es el 1.er hijo del botón; el texto va en su span)
+      var pc = el.pfPin.querySelector('.pf-pinc') || el.pfPin;   // (SPLAT: la mancha es el 1r hijo del botón; el texto va en su span)
       if (el.pfPin._h !== h) { el.pfPin._h = h; pc.innerHTML = h; }
     }
   }
@@ -8263,7 +8266,7 @@
       var isB = (rb ? rb.isBest : !!e.isBest) && hits > 1;
       if (rb) gymBestV = rb.best | 0; else if (e.best > gymBestV) gymBestV = e.best | 0;
       if (hits < 1 || !p) return;
-      title = isB ? '¡Récord de peloteo!' : 'Peloteo de ' + hits + (hits === 1 ? ' toque' : ' toques');
+      title = isB ? 'Tu peloteo más largo' : 'Peloteo de ' + hits + (hits === 1 ? ' toque' : ' toques');
       sub = isB ? hits + ' toques' : ''; cls = isB ? 'pf' : 'gd';
       x = p.x; y = p.y; z = 2.4;
     } else {
@@ -8328,7 +8331,7 @@
     var rec = '';
     if (total > 0 && res.isBest) rec += '<span class="new">¡Nuevo récord!' + (res.prev ? ' Antes: ' + res.prev : '') + '</span>';
     else rec += '<span>Récord: <b>' + best + '</b></span>';
-    if (res.newMedal && res.medal) rec += '<span class="new">¡Medalla de ' + MEDAL_N[res.medal].toLowerCase() + '!</span>';
+    if (res.newMedal && res.medal) rec += '<span class="new">Medalla de ' + MEDAL_N[res.medal].toLowerCase() + '</span>';
     if (res.xp > 0) rec += '<span><b>+' + res.xp + ' de experiencia</b> (a cada jugador)</span>';
     if (res.medal < 3 && M[res.medal] < 99) rec += '<span class="ge-nx">' + MEDAL_N[res.medal + 1] + ': ' + M[res.medal] + ' puntos</span>';   // (móvil: fuera, las medallas ya lo dicen)
     if (cdr) rec = careerDrillRec(cdr, total, res.medal);
@@ -8369,7 +8372,7 @@
   }
   /** Líneas de la hoja final de una sesión de la Carrera (resultado de VB.Career.drillDone en g.careerDrill.res; P6): «Récord: B → A»
    *  (o el primero), la barra del atributo que se llena de prog0 a prog con lo ganado (si llega a 100, «+1 Recepción (64)»), las marcas
-   *  «¡Primera vez! +50 %» y «Plan +20 %», y fatiga e impresión antes y después. Estilos en career-ui.js (#gymEnd .cdr-*). */
+   *  «Estreno: +50 %» y «Plan +20 %», y fatiga e impresión antes y después. Estilos en career-ui.js (#gymEnd .cdr-*). */
   function careerDrillRec(cdr, total, medal) {
     var r = cdr.res, out = '';
     if (!r || !r.ok) return '<span>' + (r && r.why === 'fatiga' ? 'Demasiada fatiga: la sesión no cuenta' : r && r.why === 'done' ? 'Ya no quedaban sesiones: no cuenta' : 'La sesión no se ha podido apuntar') + '</span>';
@@ -8378,7 +8381,7 @@
     else if (r.best0 == null && r.bestGrade) out += '<span class="new">Primer récord: ' + escT(r.bestGrade) + '</span>';
     else if (r.bestGrade) out += '<span>Récord: <b>' + escT(r.bestGrade) + '</b> (' + (r.best | 0) + ' puntos)</span>';
     var tags = [];
-    if (r.first) tags.push('¡Primera vez! +50 %');
+    if (r.first) tags.push('Estreno: +50 %');
     if (r.focus) tags.push('Plan del entrenador +20 %');
     if (tags.length) out += '<div class="cdr-tags">' + tags.map(function (t) { return '<span>' + escT(t) + '</span>'; }).join('') + '</div>';
     // barra: de prog0 a prog (si sube, se llena hasta el final y el +1 va al lado)
@@ -8423,7 +8426,7 @@
     if (dp) out.push((dp === 1 ? 'Pipe ' : 'Pipes ') + '<b>' + dp + '</b>');
     if (f) out.push((f === 1 ? 'Finta ' : 'Fintas ') + '<b>' + f + '</b>');
     if (r) out.push((r === 1 ? 'Colocado ' : 'Colocados ') + '<b>' + r + '</b>');
-    if (e) out.push('Al filo <b>' + e + '</b>');
+    if (e) out.push('En la raya <b>' + e + '</b>');
     if (q) out.push((q === 1 ? 'Rápida ' : 'Rápidas ') + '<b>' + q + '</b>');
     return out.length ? sepHTML(out, 'v', true) : '';
   }
@@ -8446,7 +8449,7 @@
     else if (!g.mastery) { k = ''; }   // (6v6 o sin maestría: solo los del salto con impulso y la finta)
     else if (ar === 'roll') { k = 'air'; txt = 'En el aire, ' + gl.hit + ' remata, ' + gl.jump + ' deja caer y ' + gl.jset + ' coloca al fondo'; }
     else if (nt === 2 && mine && g.aimSet !== false && g.size !== 6) { k = 'aim'; txt = 'Colocas <b>' + setName(g) + '</b>; con ' + gl.aim + ' eliges otro destino: cerca, rápida; lejos, alta'; }
-    else if (nt === 3 && aim3(g, p)) { k = 'edge'; txt = 'Al filo: más difícil de defender, más fácil de fallar'; }
+    else if (nt === 3 && aim3(g, p)) { k = 'edge'; txt = 'En la raya: más difícil de defender, más fácil de fallar'; }
     if (!k || (S[k] | 0) >= 2 || (e1.k && e1.k !== k)) return '';
     if (!e1.k) {
       // el consejo de este partido: el primero cuyo momento llega (y que no se haya visto ya 2 veces)
@@ -8635,12 +8638,12 @@
         if (grp.length && grp[0].team !== e.team) { gl.push(grp); grp = []; }
         grp.push(e);
         if (e.team === 0 && (e.meIn || e.meOut)) {
-          var tx = e.meIn ? '¡Entras! Por el ' + pnmT(e.outP) : 'Te cambian: entra el ' + pnmT(e.inP);
+          var tx = e.meIn ? 'Entras por el ' + pnmT(e.outP) : 'Te cambian: entra el ' + pnmT(e.inP);
           callout(tx, 0, 'tip', 2.2); srSay(tx);
         } else srSay('Cambio ' + (e.team === 0 ? 'en tu equipo' : 'del rival') + ': entra el ' + e.inP.num + ', sale el ' + e.outP.num);
         if (e.team === 0) subUI.pick = null;
       } else if (e.type === 'lineup' && e.team === 0 && (e.meIn || e.meOut)) {
-        var lt = e.meIn ? '¡Entras! Sales de inicio en el ' + subOrd(e.set) + ' set' : 'Empiezas el ' + subOrd(e.set) + ' set en el banquillo';
+        var lt = e.meIn ? 'Sales de titular en el ' + subOrd(e.set) + ' set' : 'Empiezas el ' + subOrd(e.set) + ' set en el banquillo';
         callout(lt, 0, 'tip', 2.4); srSay(lt);
       } else if (e.type === 'subDenied' && e.team === 0) {
         var dt = 'Cambio anulado: ' + (SUB_WHY[e.why] || 'no se puede').toLowerCase();
@@ -8733,7 +8736,7 @@
     $('sbOn').innerHTML = hon; $('sbBench').innerHTML = hb;
     var m = subUI.msg || (q ? 'Cambio pedido: entra el ' + q.inn.num + ' por el ' + q.out.num + ' al acabar la jugada' : 'Quedan ' + S.subsLeft(g, 0) + ' de ' + (S.SUB_MAX || 6) + ' cambios en este set. Toca quién sale y luego quién entra');
     // (movil-aire §5.7, móvil: la ayuda corta, en la cabecera: «6/6 cambios · sale → entra»)
-    if (phHud() && !subUI.msg && !q) m = S.subsLeft(g, 0) + '/' + (S.SUB_MAX || 6) + ' cambios · toca quién sale → quién entra';
+    if (phHud() && !subUI.msg && !q) m = S.subsLeft(g, 0) + '/' + (S.SUB_MAX || 6) + ' cambios, toca quién sale → quién entra';
     $('sbMsg').textContent = m;
     $('sbCancel').hidden = !q;
     if (focusSel) { var f = subUI.pn.querySelector(focusSel); if (f && !f.disabled) focusEl(f, kbNow() || ctx.inputDevice === 'gamepad'); }
@@ -8824,7 +8827,7 @@
     var gl = GLYPH[device()] || GLYPH.keyboard;
     // (movil-aire §5.1: en el móvil, dos frases y «Más» abre el resto; en PC, el texto entero de siempre)
     sn.root.classList.remove('sn-x');
-    sn.root.querySelector('.sn-t').innerHTML = '<span class="ph-only sn-sh">En la colocación en salto puedes llevar la diana, como en el remate. Si no la tocas, todo sigue como ahora. ' +
+    sn.root.querySelector('.sn-t').innerHTML = '<span class="ph-only sn-sh">Nuevo: la colocación en salto también lleva diana. Si pasas de ella, nada cambia. ' +
       '<button type="button" class="sn-more" data-snm aria-expanded="false">Más</button></span><span class="sn-lg">En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.</span>';
     sn.root.hidden = false; sn.root.classList.remove('in');
     // móvil: tinte del 20 % detrás mientras está abierto (VB.Splat.modal); en PC, como siempre
@@ -8846,7 +8849,7 @@
       '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Imagen.</small></div>' +
       '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">' +
       // (1.24.0, móvil: la frase de PC no cabía en el parche; escrita más corta a mano, sin «…»)
-      (phMob() ? 'Se ajusta sola · ahora, ' + (nm[st] || 'media') : 'Recomendada · se ajusta sola (ahora: ' + (nm[st] || 'media') + ')') + '</small></span></button>' +
+      (phMob() ? 'Se ajusta sola, ahora ' + (nm[st] || 'media') : 'La que uso yo: se ajusta sola (ahora, ' + (nm[st] || 'media') + ')') + '</small></span></button>' +
       '<div class="sn-row">' + ['high', 'medium', 'low'].map(function (v, i) { return '<button type="button" class="sp-btn sp-sm ' + (i === 2 ? 'sp-cream' : 'sp-teal') + '" data-shape="' + (i + 2) + '" data-sn="q-' + v + '"><span class="sp-l"><span class="sp-t">' + lb(v) + '</span>' + now(v) + '</span></button>'; }).join('') + '</div></div></div>';
   }
   function perfNote(o, cb) {
@@ -8873,7 +8876,7 @@
     return '<div class="sp-panel sn-sheet sn-perf sn-ctrl"><div class="sn-txt"><p class="sp-k">Controles de PC</p><h2 class="sp-h" id="snH">Nuevos controles en PC</h2>' +
       '<p class="sn-t" id="snT">Ahora apuntas con el ratón: el cursor sobre la pista lleva la diana del saque y del remate y elige adónde colocas. W A S D (o las flechas) solo mueven; clic izquierdo golpea y clic derecho coloca.</p>' +
       '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Controles, Teclado.</small></div>' +
-      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="c-km"><span class="sp-l"><span class="sp-t">Teclado y ratón</span><small class="sp-s">Recomendado · el ratón apunta</small></span></button>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="c-km"><span class="sp-l"><span class="sp-t">Teclado y ratón</span><small class="sp-s">El que uso yo: el ratón apunta</small></span></button>' +
       '<div class="sn-row"><button type="button" class="sp-btn sp-sm sp-cream" data-shape="3" data-sn="c-kb"><span class="sp-l"><span class="sp-t">Solo teclado</span><small class="sp-s">Como antes</small></span></button></div></div></div>';
   }
   function ctrlNote(o, cb) {

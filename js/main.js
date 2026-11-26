@@ -1664,7 +1664,7 @@
       } else if (net.away0) msg += ' (tu jugador lo lleva la IA)';
       if (net.menu) btn = r.gone ? '<button data-n="quit">Salir</button>' : '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
     }
-    if (r && r.status === 'ended' && net.recRes && net.recRes.cap) msg += '. Nuevo en tu vestuario: Online Beta Tester';
+    if (r && r.status === 'ended' && net.recRes && net.recRes.cap) msg += '. Nuevo en tu vestuario: la gorra «Estuve en la beta»';
     var key = msg + who + name;
     netHudPlace(h);
     // (auditoría: los botones solo se rehacen si cambian; la cuenta atrás del texto no les quita el foco del mando o del teclado)
@@ -1985,7 +1985,7 @@
     var $ = function (id) { return document.getElementById(id); }, X = careerExt(s.ext);
     var en = $('end'), a = $('btnAgain'), alt = $('btnAgainAlt'), mn = $('btnMenu'), t = $('endTitle'), k = $('endKicker');
     if (a) { if (!a.getAttribute('data-cr')) a.setAttribute('data-cr', a.textContent); a.textContent = s.back || (X && X.back) || 'Volver a la Carrera'; }
-    if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú principal'; mn.hidden = false; }
+    if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú'; mn.hidden = false; }
     if (alt) alt.hidden = true;
     if (t) { t.classList.remove('long'); if (s.title) t.textContent = s.title; }
     if (k && s.kicker) { var kp = Array.isArray(s.kicker) ? s.kicker : [s.kicker]; try { if (VB.UI && VB.UI.setSep) VB.UI.setSep(k, kp, 'd'); else k.textContent = kp.join(' | '); } catch (e) { k.textContent = kp.join(' | '); } try { if (VB.UI && VB.UI.crKick) VB.UI.crKick(kp); } catch (e) { } }
@@ -2110,7 +2110,7 @@
     var $ = function (id) { return document.getElementById(id); };
     var en = $('end'), a = $('btnAgain'), alt = $('btnAgainAlt'), mn = $('btnMenu'), t = $('endTitle'), k = $('endKicker'), rec = $('endRecord');
     if (a) { if (!a.getAttribute('data-cr')) a.setAttribute('data-cr', a.textContent); a.textContent = 'Volver a la Carrera'; }
-    if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú principal'; mn.hidden = false; }
+    if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú'; mn.hidden = false; }
     if (alt) alt.hidden = true;
     if (t) t.classList.remove('long');
     trialEndSheet(g, s, en, t, k, rec);

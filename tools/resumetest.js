@@ -8,7 +8,7 @@
  *     lo que cuentan insignias, retos y la Estadística del partido idéntico. Además: nada antes del primer punto, gameOver borra, otra
  *     versión se descarta, una foto tocada no se aplica, ordinales «1r/2º/3r set», plain/unplain con jugadores.
  *  B) navegador (Chrome headless, perfil nuevo, UNA página; sin depuración): Partido rápido → 2 puntos → make-the-cut.resume con el
- *     marcador → recarga → billete «Seguir el partido a-b · 1r set» (y sin «¡Jugar ya!») → un toque → mismo marcador, armado, la hoja
+ *     marcador → recarga → billete «Seguir el partido a-b · 1r set» (y sin «Jugar ya») → un toque → mismo marcador, armado, la hoja
  *     final con los puntos contados; restaurar en mitad de la pausa del punto (modo 'point') también; salir al menú lo borra; otra
  *     versión no sale; autopilot no se guarda. Carrera (22-nov-2026): guardado desde el primer saque con el candado en la Carrera, pausa
  *     sin «Reiniciar» y con «Salir (se guarda)», salir a la portada con el billete, sin simular, hub bloqueado → «Seguir el partido»
@@ -471,7 +471,7 @@ async function partB() {
     const por = await J(pg, "(function(){var b=document.getElementById('btnSeguir'),n=document.getElementById('btnNow'),c=document.getElementById('btnCont');return {vis:!!b&&!b.hidden&&b.offsetParent!==null,txt:b?b.textContent.replace(/\\s+/g,' ').trim():'',now:!!n&&!n.hidden,cont:!!c&&!c.hidden,tk:!!b&&b.classList.contains('sp-ticket')}})()");
     const sub = saved.sc.score[0] + '-' + saved.sc.score[1] + ' · 1r set';
     ok(por.vis && por.tk && por.txt.indexOf('Seguir el partido') >= 0 && por.txt.indexOf(sub) >= 0, 'portada: billete «' + por.txt + '»');
-    ok(!por.now && !por.cont, 'sin «¡Jugar ya!» ni «Continuar carrera» a la vez');
+    ok(!por.now && !por.cont, 'sin «Jugar ya» ni «Continuar carrera» a la vez');
     await pg.evalJs("document.getElementById('btnSeguir').click()");
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 10000), 'un toque: el partido sigue');
     const back = await J(pg, "(function(){var g=VB.ctx.game,u=VB.UI._netStats();return {sc:[g.score[0],g.score[1]],set:g.setNo,armed:VB.Resume.armed()===g,ui:u.t[0].points+u.t[1].points}})()");

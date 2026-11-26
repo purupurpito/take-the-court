@@ -50,28 +50,29 @@
   var TALK = [0.18, 0.48];   // (subido tras quitar protestas «tocado» sin sentido: 1 frase cada 3-4 puntos)
 
   // ------------------------------------------------------------------ banco de frases
-  // Comodines: {me} {mate} {rival} {club} {rivalClub} {home} {away} {city} {n} {set} {venue} {name}. Todo neutro de género.
+  // Comodines: {me} {mate} {rival} {club} {rivalClub} {home} {away} {city} {n} {set} {venue} {name} {liga} {score} {d}. Todo neutro de género.
+  // Un comodín de los que pasa quien llama (v) que no llega deja la frase sin usar: así «Número {n}» no sale sin dorsal.
   // Cada clave: { quién: 'frase|frase|…' }. La prueba tools/ambientetest.js las pasa por el filtro (longitud, palabras, comodines).
   var BANK = {
     welcome: {
-      speaker: '¡Os damos la bienvenida a {venue}!|¡Arriba ese {home}, que se oiga!|¡Hoy la grada empuja! ¡Vamos, {home}!|¡Qué ambientazo hoy en {venue}!|¡Afición de {city}, a por todas!|¡Empieza el partido! ¡Vamos, {home}!|¡Llenazo en {venue}! ¡A disfrutar!|¡Palmas para {home}, que salen a la arena!'
+      speaker: 'Buenas tardes. {liga}{home} contra {away}.|Se ruega no bajar a la pista durante el calentamiento.|Les presentamos al equipo local…'
     },
     welcomeN: {
-      speaker: '¡Gran final en {venue}!|¡Que gane quien mejor juegue!|¡Todo listo para la final!|¡Final! ¡Aplauso para los dos equipos!|¡Esto es una final, afición!|¡Llega el gran partido del año!'
+      speaker: '¡Gran final en {venue}!|Buenas tardes. Final: {home} contra {away}.|Que gane quien mejor juegue.|Aplauso para los dos equipos.'
     },
     welcomeD: {
-      speaker: '¡Derbi en {city}! ¡Que se oiga!|¡Esto es un derbi, afición!|¡Derbi! ¡Todo el mundo de pie!|¡Hoy {city} se para! ¡Vamos, {home}!|¡Derbi en {venue}! ¡A rugir!|¡Partido de los que se recuerdan!'
+      speaker: 'Está todo lleno. Por favor, dejen libres los pasillos.|Buenas tardes. Derbi: {home} contra {away}.|Se ruega no lanzar nada a la pista.|¡Derbi en {city}!'
     },
     // playa: el «derbi» es el duelo con tu rival personal o con el jefe del circuito (no hay ciudad de por medio)
     welcomeDu: {
-      speaker: '¡Duelo de altura en {venue}!|¡Hoy hay cuentas pendientes!|¡Duelo con historia! ¡A disfrutar!|¡Partido con rivalidad! ¡Que se oiga!|¡Llega el duelo que esperábamos!|¡Mucha tela en este duelo, afición!'
+      speaker: 'Buenas tardes. {home} contra {away}.|Hoy hay cuentas pendientes en {venue}.|Duelo con historia.|¡Mucha tela en este duelo!'
     },
     // (la previa se dice en la primera bola muerta: nada de «primer punto» ni de historial que no se mira)
     pre: {
       rival: 'Hoy no os lleváis nada.|A ver si hoy aguantas.|Esta vez va en serio.|Te tengo ganas.|Hoy la pista es nuestra.|Esto acaba de empezar.',
-      mate: 'Disfrutemos, que esto es lo bonito.|Saque seguro y a jugar.|Hoy se gana con la cabeza.|Paso a paso, ¿vale?|Tú y yo. Como siempre.|Sin prisas, que esto es largo.|A pasarlo bien, {me}.|Buen comienzo. Seguimos.',
+      mate: 'Mira cómo calienta el alto: todo a la diagonal.|Primer balón, mío.|Hoy saco bien, lo noto.|Vamos, {me}.',
       team: 'Vamos, que hoy sale.|Cabeza y saque, como entrenamos.|Hoy se nota el trabajo.|Paso a paso, equipo.|Sin prisas, que esto es largo.|A lo nuestro.',
-      coach: 'Lo hablado: saque tenso y paciencia.|Jugad a lo nuestro.|Que nos vean con ganas.|Recepción limpia y a correr.|Disfrutad. Esto es lo bonito.|Paciencia. Esto es largo.'
+      coach: 'Saque a la 5.|El primer tiempo muerto lo pido yo.|Recepción alta. Lo demás, ya.'
     },
     // revancha (career.js ambCtx: el último cruce con este rival lo perdisteis)
     preRev: {
@@ -85,15 +86,15 @@
     },
     preD: {
       rival: 'Derbi. Aquí no se regala nada.|Esta ciudad es nuestra.|Hoy se ve quién manda aquí.|Vas a oír a nuestra grada.|En el derbi no hay favoritos.|Nos vemos en la red.',
-      mate: 'Es el derbi. Sangre fría.|Que griten. Nosotros, a jugar.|El derbi se gana con calma.|Hoy vale doble. A por ello.|No te pique nadie, ¿eh?|Esto se juega con la cabeza.',
+      mate: 'Es el derbi. Sangre fría.|Que griten. Nosotros, a jugar.|El derbi se gana con calma.|Hoy vale doble.|No te pique nadie, ¿eh?|Esto se juega con la cabeza.',
       team: 'Derbi. Nadie se esconde.|Hoy vale doble, equipo.|Que se oiga en toda la ciudad.|Un derbi no se juega, se gana.|Calma, que nos quieren picar.|Pase lo que pase, juntos.'
     },
     // rencor y cariño del club rival contigo (career-life bond → career.js ambCtx → amb.bond −2..2): megafonía al empezar y previa
     welcomeGrudge: {
-      speaker: '¡Vuelve {me} a {venue}! La grada tiene memoria.|¡Atención, {venue}: hoy vuelve {me}!|¡Llega {me}! Y la grada lo tiene muy presente.|¡Vuelve {me}! Se nota en el ambiente…|¡Hoy hay visita conocida en {venue}!|¡{me} vuelve a {venue}! A ver cómo lo recibís.'
+      speaker: 'Vuelve {me} a {venue}. La grada tiene memoria.|Atención, {venue}: hoy vuelve {me}.|¡Llega {me}! Y la grada lo tiene muy presente.|Vuelve {me}. Se nota en el ambiente…|Hoy hay visita conocida en {venue}.|{me} vuelve a {venue}. A ver cómo lo reciben.'
     },
     welcomeFond: {
-      speaker: '¡Aplauso para {me}, que vuelve a {venue}!|¡{venue} recibe a {me} con los brazos abiertos!|¡Esta casa no te olvida, {me}!|¡Un aplauso enorme para {me}!|¡Vuelve {me}! ¡Qué recuerdos!|¡Hoy vuelve una cara muy querida a {venue}!'
+      speaker: 'Aplauso para {me}, que vuelve a {venue}.|{venue} recibe a {me} con los brazos abiertos.|¡Esta casa no te olvida, {me}!|Un aplauso para {me}.|Vuelve {me}. Qué recuerdos.|Hoy vuelve una cara muy querida a {venue}.'
     },
     preGrudge: {
       rival: 'Aquí no se te ha olvidado.|¿Oyes la grada? Es por ti.|Hoy te lo vamos a cobrar.|Aquí ya no juegas en casa.|Esta grada tiene memoria.|Después de lo de la otra vez…',
@@ -106,15 +107,15 @@
       team: '¿Habéis oído ese aplauso? Para {me}.|Se nota que aquí te quieren, {me}.|Qué bonito, ¿eh? Ahora, a jugar.|Disfrutad, que esto no pasa siempre.|Emociones luego. Ahora, a ganar.|Bonito recibimiento. A lo nuestro.'
     },
     streakUs: {
-      mate: '¡Seguimos, seguimos!|¡Esta racha no se toca!|¡Que no pare!|¡Así, así!|¡Vamos, que les cuesta!|¡Uno más y otro!|¡Estamos que nos salimos!|¡Qué bien lo estamos haciendo!',
+      mate: '¡Esa!|¡Otra igual!|¡Va, va, va!|¡Bona!|No toquéis nada.',
       team: '¡Seguimos, seguimos!|¡Esta racha no se toca!|¡Que no pare!|¡Les cuesta! ¡A por el partido!|¡Otro! ¡Y otro!|¡Así se juega, equipo!',
-      speaker: '¡{n} seguidos! ¡Vamos, {home}!|¡Esto es un vendaval!|¡Racha de {home}! ¡Más fuerte!|¡No para, no para!|¡{n} puntos seguidos! ¡Arriba!|¡La grada lo empuja!'
+      speaker: '¡{n} seguidos de {home}!|Racha de {home}. Más fuerte.|{n} puntos seguidos.|La grada lo empuja.|¡Vamos, {home}!'
     },
     streakThem: {
       coach: 'Calma. Punto a punto.|Seguro en recepción y salimos.|Respirad. Esto se gira.|Un punto y cortamos esto.|Paciencia, que llega.|Saque dentro y a defender.',
       mate: 'Tranqui, que los cortamos.|Un punto y salimos.|Calma, calma.|Vamos, que esto se gira.|Respira. Siguiente.|Sin nervios, que llega el nuestro.',
       team: 'Tranqui, que lo cortamos.|Un punto y salimos.|Cabeza fría, equipo.|Esto se gira, ya veréis.|Sin dramas. Siguiente.|Respirad y a defender.',
-      speaker: '¡{n} seguidos! ¡Vamos, {home}!|¡Racha de {home}! ¡Más fuerte!|¡La grada lo empuja!|¡Imparables! ¡Vamos!|¡Esto es un vendaval!|¡Que no pare la fiesta!',
+      speaker: '¡{n} seguidos de {home}!|Racha de {home}. Más fuerte.|La grada lo empuja.|¡Vamos, {home}!',
       rival: '¡Esto ya es nuestro!|¡No nos paráis!|¡Vamos, que se rinden!|¡Seguimos!|¡Otro más para la cuenta!|¡Hoy no salís de esta!'
     },
     myErr: {
@@ -134,7 +135,7 @@
     myAce: {
       mate: '¡Ace! ¡Otro así!|¡Directo, qué saque!|¡Bien sacado, {me}!|¡Eso es saque!|¡Ni la han visto!|¡Sigue así, {me}!',
       team: '¡Ace! ¡Otro así!|¡Qué saque, {me}!|¡Directo!|¡Sigue sacando así!|¡Ni la han olido!|¡Bravo!',
-      speaker: '¡Ace de {me}!|¡Saque directo! ¡Aplauso!|¡Qué saque! ¡Arriba!|¡Ace! ¡La grada se viene arriba!'
+      speaker: '¡Ace de {me}!|Saque directo de {me}.|Ace. Aplauso.|Saque directo. Arriba esa grada.'
     },
     myBlock: {
       rival: 'Vale, vale…|Me la guardo.|Esa la apunto.|Bien puesta. La próxima, no.|Uf, menuda pared.|Lo veremos en la siguiente.',
@@ -154,33 +155,33 @@
       mate: 'Aguantamos. Una cada vez.|Aquí no se rinde nadie.|Una y la salvamos.|Defensa, que esto no acaba.|Venga, que podemos.|Tranqui, salimos de esta.'
     },
     matchPoint: {
-      speaker: '¡Punto de partido! ¡Todo el mundo de pie!|¡Punto de partido para {home}!|¡Uno más y es nuestro! ¡Arriba!|¡Bola de partido! ¡Más fuerte!|¡Que se oiga en {city}!|¡A un punto! ¡Vamos!'
+      speaker: '¡Punto de partido! Todo el mundo de pie.|Punto de partido para {home}.|¡Uno más y es nuestro!|Punto de partido. Más fuerte.|¡Que se oiga en {city}!|A un punto.'
     },
     matchPointN: {
-      speaker: '¡Punto de partido!|¡Bola de partido! ¡Silencio en {venue}!|¡A un punto del título!|¡Todo se decide aquí!'
+      speaker: 'Punto de partido.|Punto de partido. Silencio en {venue}, por favor.|¡A un punto del título!|Todo se decide aquí.'
     },
     saved: {
-      speaker: '¡Salvado! ¡Aquí no se rinde nadie!|¡Qué manera de salvarla!|¡Seguimos en pie!|¡Salvada! ¡Arriba esa grada!|¡No se rinde nadie en {venue}!|¡Salvado con el corazón!',
+      speaker: '¡Salvado!|Qué manera de salvarla.|Seguimos en pie.|Salvada. Arriba esa grada.|Aquí no se rinde nadie.',
       mate: '¡Salvada! ¡Vamos!|¡Aquí seguimos!|¡De aquí no nos echan!|¡Esa es la actitud!|¡Seguimos en pie!|¡Seguimos, seguimos!',
       team: '¡Salvada! ¡Vamos!|¡Aquí seguimos!|¡No nos echa nadie!|¡En pie, equipo!|¡Esa es la actitud!|¡Una más!'
     },
     comeback: {
       tv: '¡Remontada en marcha!|Partido nuevo en {venue}.|Esto ha cambiado por completo.|Quién lo iba a decir hace un rato.|Qué reacción de {club}.|Vuelta al marcador. Todo igualado.',
-      speaker: '¡Empatados! ¡Arriba, {home}!|¡Esto es remontar! ¡Vamos!|¡Lo hemos igualado! ¡Más fuerte!|¡Remontada! ¡Que se oiga!'
+      speaker: '¡Empatados! Arriba, {home}.|Esto es remontar.|¡Lo hemos igualado!|Remontada. Que se oiga.'
     },
     longRally: {
-      speaker: '¡Qué punto! ¡Aplauso!|¡Eso es vóley!|¡Qué peloteo! ¡Arriba!|¡Puntazo! ¡Palmas para todo el mundo!|¡Así da gusto!|¡Qué manera de defender!',
+      speaker: '¡Qué punto!|Eso es vóley.|Qué peloteo. Aplauso.|Palmas para los dos equipos.|Así da gusto.|Qué manera de defender.',
       tv: 'Qué peloteo más largo.|Punto de los que gustan.|Ni un balón al suelo.|Defensa de altísimo nivel.|Eso es vóley de verdad.|Aplauso merecido.'
     },
     setUs: {
       mate: 'Uno nuestro. Mismo plan.|Buen set. Que no se relaje nadie.|Así. Saque igual de tenso.|Seguimos igual, que funciona.|Ni un paso atrás.|Les cuesta la diagonal. A por ella.',
       coach: 'Bien. Ahora, mismo plan.|Ni un paso atrás. Seguimos igual.|Buen set. Que no se relaje nadie.|Así. Saque igual de tenso.|Les cuesta la diagonal. A por ella.|Mismo plan, más rápido.',
-      speaker: '¡Set para {home}!|¡Primer paso! ¡Set de {home}!|¡Qué set! ¡Aplauso!|¡Set! ¡La grada lo celebra!'
+      speaker: '¡Set para {home}!|Set de {home}.|Qué set. Aplauso.|Set. La grada lo celebra.'
     },
     setThem: {
       mate: 'Un set no es nada. Vamos.|Esto no ha acabado.|Recepción alta y a correr.|Les cuesta la diagonal. A por ella.|Saque al {n}, que sufre.|Respira. Partido nuevo.',
       coach: 'Les cuesta la diagonal. A por ella.|Saque al {n}, que sufre.|Mismo plan, más rápido.|Recepción alta y a correr.|Esto no ha acabado. Cabeza.|Un set no es nada. Vamos.',
-      speaker: '¡Set para {home}!|¡Set de {home}! ¡Arriba!|¡Qué set! ¡Aplauso!'
+      speaker: '¡Set para {home}!|Set de {home}. Arriba.|Qué set. Aplauso.'
     },
     // Protestas: SIEMPRE desde el equipo que sufre la decisión (D.team; el que la discute). protestIn = la pitaron fuera y la ven dentro;
     // protestOut = la pitaron dentro y la ven fuera (g.call.calledIn); protestTouch = «tocado» en su bloqueo y dicen que no
@@ -248,7 +249,7 @@
     backUp: {
       mate: '¡Eso es! Ahora, a por ellos.|Bien dicho. A jugar.|Que sepan que estamos.|Con esa rabia, a por la siguiente.|Mensaje enviado. Siguiente.|Así se defiende al equipo.',
       team: '¡Eso es! A por ellos.|Bien dicho. A jugar.|Que sepan que estamos.|Con esa rabia, equipo.|Mensaje enviado. Siguiente.|Así se defiende al equipo.',
-      speaker: '¡La grada está contigo!|¡Que se oiga, afición!|¡Arriba, {home}!|¡Todo el mundo con el equipo!'
+      speaker: 'La grada está contigo.|¡Que se oiga, afición!|Arriba, {home}.|Todo el mundo con el equipo.'
     },
     // «Frenar a …»: tú, capitán, calmas al compañero que iba a protestar ({who}: su nombre de pila)
     brakeMate: {
@@ -260,39 +261,39 @@
       coach: 'Bien, {me}. Cabeza fría.|Así se lleva. Siguiente.|Bien. Que no nos saquen del partido.|Eso es madurez. Seguimos.|Bien hecho. A jugar.|Correcto. A por la otra.'
     },
     ref: {
-      ref: 'Decisión tomada.|Lo he visto claro.|Juego.|La decisión no cambia.|Está pitado. Seguimos.|Lo siento, es así.|Lo he visto bien. Seguimos.|Es mi decisión.'
+      ref: 'Juego.|Capitán.|Solo habla el capitán.|(pito)'
     },
     refCalm: {
-      ref: 'Calma, por favor.|Tranquilidad. Seguimos.|Bajad el tono, por favor.|Ya está. A jugar.|Calma, que seguimos.|Por favor, a vuestro sitio.'
+      ref: 'Calma.|A su sitio, por favor.|Ya está.'
     },
     refVerbal: {
-      ref: 'Capitán, aquí, por favor.|Ni una más.|Aviso. El próximo, tarjeta.|Último aviso, ¿de acuerdo?|Capitán, que se calmen.|Esto se acaba aquí.'
+      ref: 'Capitán.|Número {n}.'
     },
     refYellow: {
-      ref: 'Amarilla. Último aviso.|Ya avisé. Amarilla.|Advertencia. A jugar.|Lo siento. Amarilla.|Amarilla. Se acabó la charla.|Tarjeta amarilla. Y a jugar.'
+      ref: 'Amonestación, n.º {n}.|Amonestación.'
     },
     refRed: {
-      ref: 'Roja. Punto para el rival.|Ya está bien. Roja.|Lo siento. Roja y punto.|Avisé. Roja.|Roja. Seguimos.|Se acabó. Roja.'
+      ref: 'Penalización, n.º {n}. Punto y saque para ellos.|Penalización.'
     },
     refDelay: {
-      ref: 'Retraso. Advertencia.|Tiempo, por favor. Retraso.|A jugar ya. Retraso.|Se acabó la charla.'
+      ref: '{d} por retraso.|Retraso.'
     },
     cardTv: {
-      tv: 'Amarilla para {name}.|El 1r árbitro no ha dudado.|Advertencia para {name}.|Tarjeta amarilla. Se calienta esto.|Primer aviso serio del 1r.|Amarilla. Ahora toca cuidarse.'
+      tv: 'Amonestación para {name}.|El 1r árbitro no ha dudado.|Amonestación. Se calienta esto.|Primer aviso serio del 1r.|Ahora toca cuidarse.'
     },
     redTv: {
-      tv: 'Roja. Punto para {benef}.|Roja para {name}. Punto de castigo.|El 1r no ha dudado. Roja.|Castigo. Se regala un punto.|Roja. Eso duele en el marcador.|Qué caro sale protestar.'
+      tv: 'Penalización. Punto para {benef}.|Penalización para {name}.|El 1r no ha dudado.|Eso duele en el marcador.|Qué caro sale protestar.'
     },
     redMate: {
       mate: 'Bueno, a recuperarlo.|Venga, que lo arreglamos.|Cabeza. Esto sigue.|Ahora, a jugar.|Se acabó. A por la siguiente.|Tranqui. Lo remontamos.',
       team: 'Bueno, a recuperarlo.|Venga, que lo arreglamos.|Cabeza, equipo.|Ahora, a jugar.|A por la siguiente.|Lo remontamos.'
     },
     redMine: {
-      me: 'Culpa mía. Lo arreglo.|Lo siento. Lo recupero.|Me he pasado. Siguiente.|Mea culpa. A jugar.|Ya está. Lo devuelvo jugando.|Lo arreglo en la pista.'
+      me: 'Culpa mía. Lo arreglo.|Perdón. Lo recupero.|Me he pasado. Siguiente.|Mea culpa. A jugar.|Ya está. Lo devuelvo jugando.|Lo arreglo en la pista.'
     },
     cardRival: {
       mate: 'Les pueden los nervios. Aprovecha.|Se les va la cabeza. A jugar.|Tú tranqui, que el otro lado se calienta.|A nuestro ritmo.|Que se quejen. Nosotros, a lo nuestro.|Bien. Cabeza fría y a por el partido.',
-      team: 'Les pueden los nervios. ¡A jugar!|Se les va la cabeza.|Nosotros, a lo nuestro.|A nuestro ritmo, equipo.|Que se quejen.|Cabeza fría.'
+      team: 'Les pueden los nervios. A jugar.|Se les va la cabeza.|Nosotros, a lo nuestro.|A nuestro ritmo, equipo.|Que se quejen.|Cabeza fría.'
     },
     chalWon: {
       mate: '¡Lo sabía!|¡Bien pedido!|¡Te lo dije!|¡Eso es!|¡Para casa!|¡Justicia!',
@@ -310,33 +311,37 @@
       team: 'Ni caso. A jugar.|Que hablen.|No entres al trapo.|Ya callarán.|A lo nuestro.|Eso nos da alas.'
     },
     faro: {
-      faro: 'Respira. El siguiente punto es el único que importa.|Juega a tu vóley, no al suyo.|Lo que pasó, pasó. Mira la siguiente bola.|Confía en lo que entrenas.|Los partidos se ganan en los puntos feos.|Cabeza. El marcador ya se moverá.'
+      faro: 'Más abajo en recepción, que estás de pie.|Mírale los pies al colocador antes de saltar.|Saca a la 1, que su líbero está en la otra punta.|Deja de mirar al árbitro.|Esa diagonal te la están esperando. Línea.'
     },
     endWin: {
       rival: 'Buen partido.|Bien jugado. Nos vemos.|En la vuelta, otra historia.|Enhorabuena. Hoy has sido mejor.|Felicidades. Merecido.|Tocará revancha.',
-      mate: '¡Lo hemos hecho!|¡Qué partidazo!|¡Esto es equipo!|¡Vamos! ¡Para casa!|¡Así se gana!|¡Brutal, {me}!',
-      team: '¡Lo hemos hecho!|¡Qué partidazo, equipo!|¡Así se gana!|¡Vamos! ¡Para casa!|¡Esto es equipo!|¡Enorme!'
+      mate: '¡Lo hemos hecho!|Qué partidazo.|Esto es equipo.|Vamos, para casa.|Así se gana.|Brutal, {me}.',
+      team: '¡Lo hemos hecho!|Qué partidazo, equipo.|Así se gana.|Vamos, para casa.|Esto es equipo.|Enorme.'
     },
     endHomeW: {
-      speaker: '¡Gracias, afición!|¡Qué partidazo en {venue}!|¡Victoria para {home}!|¡Así se defiende la casa!|¡Hasta la próxima, {city}!|¡Qué manera de ganar!'
+      speaker: 'Resultado final: {score}.|Gracias por su asistencia. Próximo partido en casa, el sábado.'
     },
     endHomeL: {
-      speaker: '¡Gracias, afición!|¡Aplauso para los dos equipos!|¡Hoy no ha podido ser! ¡Gracias!|¡Volveremos más fuertes, {city}!|¡Gracias por empujar hasta el final!|¡Qué partido en {venue}!'
+      speaker: 'Resultado final: {score}.|Gracias por su asistencia. Próximo partido en casa, el sábado.'
     },
     endLoss: {
       rival: 'Buen partido.|Bien jugado. Nos vemos.|Has dado guerra, ¿eh?|Gran partido. Hasta la próxima.|Nos has hecho sudar. Bien jugado.|Nos vemos en la vuelta.',
-      mate: 'Hoy no ha salido. La próxima.|Cabeza alta. Hemos peleado.|Esto se entrena. Volveremos.|Lo hemos dado todo.|Aprendemos y seguimos.|Mañana, a mejorar.',
-      team: 'Cabeza alta, equipo.|Hoy no ha salido.|Lo hemos dado todo.|Aprendemos y seguimos.|Volveremos más fuertes.|La próxima es nuestra.'
+      mate: 'Madre mía, el tercer set.|Ducha y a casa.|Ese 24-22… buf.|Nada, nada.|¿Quién conduce a la vuelta?',
+      team: 'Madre mía, el tercer set.|Ducha y a casa.|Ese 24-22… buf.|Nada, nada.|¿Quién conduce a la vuelta?'
     },
     endN: {
-      speaker: '¡Gracias, afición!|¡Qué final en {venue}!|¡Aplauso para los dos equipos!|¡Final para el recuerdo!'
+      speaker: '¡Gracias, afición!|Aplauso para los dos equipos.|Qué final.'
+    },
+    // anécdotas de megafonía entre sets (pabellón): cada una sale como mucho una vez por temporada (st.anec, o.amb.anec, sum().anec)
+    anec: {
+      speaker: 'El bar del pabellón estará abierto entre sets.|Se han encontrado unas llaves en la grada. Están en la mesa.'
     }
   };
   // disparador → prioridad por defecto
   var TRIG = { welcome: 2, welcomeN: 2, welcomeD: 2, welcomeDu: 2, pre: 1, preD: 2, preDu: 2, preRev: 2, welcomeGrudge: 2, welcomeFond: 2, preGrudge: 2, preFond: 2, backUp: 2, protestIn: 3, protestOut: 3, protestAnt: 3, refYellow: 3, refRed: 3, streakUs: 1, streakThem: 1, myErr: 1, myErr2: 2, myKill: 1, myAce: 1, myBlock: 1, theirBlock: 1,
     spUs: 1, spThem: 2, matchPoint: 2, matchPointN: 2, saved: 2, comeback: 2, longRally: 1, setUs: 2, setThem: 2, protestTouch: 3, protestNet: 3,
     protestFault: 3, protestChal: 3, calmMate: 1, dropWrong: 2, ref: 2, refCalm: 2, refVerbal: 3, refDelay: 3, cardTv: 3, redTv: 3, redMate: 2,
-    redMine: 3, brakeMate: 2, cardRival: 1, chalWon: 1, chalLost: 1, shh: 2, shhReply: 1, faro: 2, endWin: 3, endLoss: 3, endHomeW: 2, endHomeL: 2, endN: 3 };
+    redMine: 3, brakeMate: 2, cardRival: 1, chalWon: 1, chalLost: 1, shh: 2, shhReply: 1, faro: 2, endWin: 3, endLoss: 3, endHomeW: 2, endHomeL: 2, endN: 3, anec: 1 };
   var SPLIT = {};
   function lines(trig, who) {
     var k = trig + '/' + who, a = SPLIT[k];
@@ -430,7 +435,8 @@
       energy: [0, 0], boo: [0, 0], hush: 0, chant: null, chantT: 0,
       cards: [], protests: 0, drops: 0, coldHead: 0, lines: 0, say: 0,
       force: o.force || '', arb: null,
-      ref: o.ref && typeof o.ref === 'object' ? o.ref : null, brakes: 0, brkName: '', myProt: 0   // (árbitro con nombre, frenadas, tus protestas)
+      ref: o.ref && typeof o.ref === 'object' ? o.ref : null, brakes: 0, brkName: '', myProt: 0,   // (árbitro con nombre, frenadas, tus protestas)
+      anec: Array.isArray(A.anec) ? A.anec.filter(function (x) { return x === (x | 0) && x >= 0; }).slice(0, 8) : []   // (anécdotas ya dichas esta temporada)
     };
     var Ar = ARB();
     st.Ar = Ar; st.arb = null;   // (el árbitro se crea con la primera partida que llega: capitanes y tu atleta por pid)
@@ -474,7 +480,7 @@
     if (t === 0) return p === teamOf(g, 0)[1] && st.mate && st.mate.name ? st.mate.name : st.me.name;
     if (st.rivalP && st.rivalP.name && p === teamOf(g, 1)[0]) return st.rivalP.name;
     if (st.boss && st.boss.nick && p === teamOf(g, 1)[0]) return st.boss.nick;
-    return (st.rivalClub || 'Rival') + (p.num ? ' · n.º ' + p.num : '');
+    return (st.rivalClub || 'Rival') + (p.num ? ', n.º ' + p.num : '');
   }
   /** Nombre propio del atleta p del equipo t, o '' (en la playa los rivales no tienen nombre salvo tu rival personal o el jefe). */
   function realName(st, g, p, t) {
@@ -500,7 +506,7 @@
     return s.replace(/\{(\w+)\}/g, function (m, k) {
       var r = k === 'me' ? (FIRST[who] ? first(st.me.name) : st.me.name) : k === 'mate' ? (st.mate && st.mate.name || '') : k === 'club' ? st.club : k === 'rivalClub' ? st.rivalClub
         : k === 'home' ? homeName(st) : k === 'away' ? (st.home === 1 ? st.club : st.rivalClub) : k === 'city' ? (st.city || st.venue) : k === 'venue' ? (st.venue || st.city)
-        : k === 'rival' ? (st.rivalP && st.rivalP.name || st.rivalClub) : v && v[k] != null ? v[k] : '';
+        : k === 'rival' ? (st.rivalP && st.rivalP.name || st.rivalClub) : v && v[k] != null ? v[k] : m;
       return String(r);
     }).replace(/\s+([,.!?…])/g, '$1').replace(/¡\s*,/g, '¡').trim();
   }
@@ -670,7 +676,7 @@
     if (offer) {
       st.choiceN++; st.choicePt = st.pts;
       var isCapt = g.size !== 6 || captOf(st, g, 0) === myP(g), hasY = st.arb && st.Ar.state ? !!(st.Ar.state(st.arb).yellow || [])[0] : false;
-      var lab = (isCapt ? 'Protestar' : 'Quejarte') + (hasY ? ' (ya tenéis amarilla)' : '');
+      var lab = (isCapt ? 'Protestar' : 'Quejarte') + (hasY ? ' (ya hay amonestación)' : '');
       var id = ++st.idN;
       st.choice = { id: id, D: D, at: now + CHOICE.at, until: now + CHOICE.at + CHOICE.dur, open: false, pick: '', by: '', capt: isCapt, done: false };
       st.wantHold = Math.max(st.wantHold || 0, CHOICE.hold);
@@ -740,7 +746,9 @@
     if (res !== 'none') {
       push(st, at + SEQ.ref, { type: 'amb:refTalk', team: team, pid: who.pid, level: lvl, dur: 1.4 });
       var rc = R && R.card ? R.card.color : '', rcRed = (rc === 'red' || rc === 'delayR') && R.penalty >= 0 && D.canRed;
-      if (st.mode === 'full' || lvl === 'verbal') say(st, at + SEQ.ref + 0.05, rc ? (rc.indexOf('delay') === 0 ? 'refDelay' : rcRed ? 'refRed' : 'refYellow') : res === 'verbal' ? 'refVerbal' : res === 'calm' ? 'refCalm' : 'ref', spRef(st), 3, null, true);
+      var rn = who.role === 'coach' ? 0 : numOf(g, R && R.card && R.card.pid >= 0 ? R.card.pid : who.pid);
+      if (st.mode === 'full' || lvl === 'verbal') say(st, at + SEQ.ref + 0.05, rc ? (rc.indexOf('delay') === 0 ? 'refDelay' : rcRed ? 'refRed' : 'refYellow') : res === 'verbal' ? 'refVerbal' : res === 'calm' ? 'refCalm' : 'ref', spRef(st), 3,
+        { n: rn > 0 ? rn : null, d: rc === 'delayR' && rcRed ? 'Penalización' : 'Amonestación' }, true);
     }
     // grada: pitada al árbitro si la decisión perjudica al local; la otra afición, «uuuh»
     if (st.home === team) { st.boo[st.home] = Math.max(st.boo[st.home], 0.5 + 0.4 * st.heat); push(st, at + 0.2, { type: 'amb:boo', target: 'ref', by: st.home, k: 0.5 + 0.4 * st.heat, dur: 2.2 }); }
@@ -769,6 +777,23 @@
     st.wantHold = Math.max(st.wantHold || 0, (at - st.now) + need);
     return R;
   }
+  /** «3-1» para megafonía (sets del local primero), o null si la partida no los trae. */
+  function finalScore(g, w, home) {
+    if (!g || !g.sets || g.sets.length !== 2) return null;
+    var s = [g.sets[0] | 0, g.sets[1] | 0], need = g.bo1 ? 1 : (g.toWin || 2);
+    if (s[w] < need) s[w] = need;   // (el set del punto final puede no estar sumado todavía)
+    return home === 1 ? s[1] + '-' + s[0] : s[0] + '-' + s[1];
+  }
+  /** Anécdota de megafonía entre sets (pabellón, con local): cada frase una vez por temporada como mucho (st.anec). */
+  function anec(st, at) {
+    if (!st.hall || st.home < 0 || st.mode !== 'full' || st.ff || st.rep) return;
+    var a = lines('anec', 'speaker'), free = [];
+    for (var i = 0; i < a.length; i++) if (st.anec.indexOf(i) < 0) free.push(i);
+    if (!free.length || roll(st, 0xA9E) > 0.3) return;
+    var j = free[Math.floor(roll(st, 0xA9F) * free.length)], txt = fill(st, a[j], null, 'speaker');
+    st.anec.push(j); st.lines++;
+    push(st, at, { type: 'amb:say', id: ++st.idN, who: 'speaker', name: NAME.speaker, team: -1, pid: -1, text: txt, dur: clamp(1.3 + txt.length * 0.045, 1.6, 3.2), pri: 1, key: 'anec/speaker/' + j });
+  }
   function numOf(g, pid) { var p = byPid(g, pid); return p ? p.num | 0 : 0; }
   function cardEv(st, g, c, team, who, pen) {
     var p = byPid(g, c.pid >= 0 ? c.pid : who.pid), whoK = c.who || (who.role === 'coach' ? 'coach' : 'player');
@@ -782,7 +807,7 @@
 
   function onPenalty(st, e, g) {
     // el punto de castigo ya llegó: frase corta de megafonía si el castigado es el visitante, LED
-    push(st, st.now + 0.2, { type: 'amb:led', text: 'PUNTO DE CASTIGO', team: e.team, dur: 3 });
+    push(st, st.now + 0.2, { type: 'amb:led', text: 'PENALIZACIÓN', team: e.team, dur: 3 });
   }
 
   /** Frases del punto (si no hay disputa en marcha). */
@@ -796,7 +821,7 @@
       var wn = w === 0 ? 'endWin' : 'endLoss';
       say(st, now + 1.6, wn, spRival(st, g), 3, null, true);
       say(st, now + 2.6, wn, spMate(st, g), 2, null, true);
-      say(st, now + 3.2, home < 0 ? 'endN' : w === home ? 'endHomeW' : 'endHomeL', spSpeaker(st), 2, null, true);
+      say(st, now + 3.2, home < 0 ? 'endN' : w === home ? 'endHomeW' : 'endHomeL', spSpeaker(st), 2, { score: finalScore(g, w, home) }, true);
       return;
     }
     if (busy) return;
@@ -817,6 +842,7 @@
       if (home >= 0 && w === home) add('setUs', spSpeaker(st), 0.6, 2);
       if (st.faro && !st.faroDone && w === 1) { st.faroDone = true; add('faro', spOf('faro'), 2.4, 2); }
       if (home >= 0 && w === home) push(st, now + 0.5, { type: 'amb:led', text: ledTxt('¡VAMOS ' + homeName(st).toUpperCase() + '!'), team: home, dur: 3 });
+      anec(st, now + 3.4);
     }
     var myErr = w === 1 && mePid >= 0 && (pidOf(e.player) === mePid || pidOf(e.faultPlayer) === mePid || (e.how === 'error' && st.lastHit && st.lastHit.team === 0 && st.lastHit.pid === mePid && !e.player));
     if (myErr) st.myErrN++; else if (w === 0) st.myErrN = 0;
@@ -1012,7 +1038,7 @@
           else if (st.bond < 0) push(st, st.now + 0.6, { type: 'amb:boo', target: 'me', by: 1, k: 0.35, dur: 2 });   // (en tu casa: su afición visitante)
           else if (st.home === 1) { wk = 'welcomeFond'; push(st, st.now + 0.6, { type: 'amb:roar', team: 1, k: 0.6 + 0.15 * bk }); }
         }
-        say(st, st.now + 0.2, wk, spSpeaker(st), 2, null, true);
+        say(st, st.now + 0.2, wk, spSpeaker(st), 2, { liga: st.hall ? 'Partido de liga: ' : '' }, true);
         var led = st.home < 0 ? 'GRAN FINAL' : derbyCity(st) ? '¡DERBI!' : duel(st) ? '¡DUELO!' : ledTxt('¡VAMOS ' + homeName(st).toUpperCase() + '!');
         push(st, st.now + 0.1, { type: 'amb:led', text: led, team: st.home, dur: 4 });
       }
@@ -1058,7 +1084,7 @@
   function cut12(s) { s = String(s || ''); return s.length > 12 ? s.slice(0, 11) + '.' : s; }
   function onCard(st, ev) {
     st.cards.push({ id: ev.id, team: ev.team, pid: ev.pid, num: ev.num, name: ev.name, who: ev.who, color: ev.color, reason: ev.reason, set: ev.set, score: ev.score.slice(), penalty: ev.penalty, mine: !!ev.mine });
-    if (ev.mine && st.rate) { try { st.rate('sanction', ev.color, ev.color === 'red' || ev.color === 'delayR' ? 'Tarjeta roja' : 'Tarjeta amarilla'); } catch (e) { } }
+    if (ev.mine && st.rate) { try { st.rate('sanction', ev.color, ev.color === 'red' || ev.color === 'delayR' ? 'Penalización' : 'Amonestación'); } catch (e) { } }
   }
   function penaltyDone(st, ok) {
     if (!st) return;
@@ -1085,7 +1111,7 @@
       myY: st.cards.filter(function (c) { return c.mine && (c.color === 'yellow' || c.color === 'delayY'); }).length,
       myR: st.cards.filter(function (c) { return c.mine && (c.color === 'red' || c.color === 'delayR' || c.color === 'expel' || c.color === 'dq'); }).length,
       teamR: mine.filter(function (c) { return c.color === 'red' || c.color === 'delayR' || c.color === 'expel' || c.color === 'dq'; }).length, choices: st.choiceN,
-      ref: st.ref && st.ref.id ? String(st.ref.id) : '', brk: st.brakes, brkName: st.brkName, myProt: st.myProt };   // (libreta del 1r: career-world refAfter)
+      ref: st.ref && st.ref.id ? String(st.ref.id) : '', brk: st.brakes, brkName: st.brkName, myProt: st.myProt, anec: st.anec.slice() };   // (libreta del 1r: career-world refAfter)
   }
 
   VB.Ambiente = {

@@ -42,7 +42,7 @@
     SPEED: 5.6,      // velocidad de carrera
     JUMP_V: 4.4,     // velocidad inicial de salto
     REACH: 1.35,     // alcance horizontal para tocar
-    DIVE: 0.8,       // alcance extra lanzándose en plancha (17-nov-2026, Ferran: «la plancha está muy OP»; antes 1,05)
+    DIVE: 0.8,       // alcance extra lanzándose en plancha (antes 1,05)
     SIM_HZ: 120,     // paso fijo recomendado (main.js)
     // --- timing ---
     IN_TOL: 0.21,    // "dentro" (regla FIVB 8.3: el balón toca el suelo con CUALQUIER parte de él, líneas incluidas): el centro del
@@ -3097,7 +3097,7 @@
       if (!fp && g.roster) for (var rt = 0; rt < 2 && !fp; rt++) for (i = 0; i < g.roster[rt].length; i++) if (g.roster[rt][i].id === pid) { fp = g.roster[rt][i]; break; }
     }
     g.call = null; g._pendCall = null; g.cpuChal = null; g._snap = null; // el punto anterior ya no se puede revisar
-    var text = 'Punto de castigo', sideout = w !== g.serving;
+    var text = 'Penalización', sideout = w !== g.serving;
     g.score[w]++;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.how = g.stats.how || {}; g.stats.how.penalty = (g.stats.how.penalty || 0) + 1; }
     emit(g, { type: 'whistle', reason: 'penalty', team: team });

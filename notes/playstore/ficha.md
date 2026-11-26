@@ -54,44 +54,44 @@ Vóley 3D de playa y pista: 2 contra 2, 6 contra 6 y una Carrera de verdad.
 
 ### Descripción completa (máx. 4000)
 
-2.316 caracteres:
+2.309 caracteres:
 
 ```text
 Take the Court es un juego de vóley en 3D con estilo cartoon. Juega en la playa o en pabellón, con las reglas de verdad y partidos que se deciden en el último punto.
 
-CÓMO SE JUEGA
+Cómo se juega
 • Vóley playa 2 contra 2 y vóley de pista 6 contra 6.
 • Saca, recibe, coloca, remata, bloquea y defiende. Hay fintas, pipes, remate con impulso y colocación con destino.
 • Cuatro niveles: Fácil, Normal, Difícil y Experto. Si juegas bien, la CPU te estudia y cambia el plan.
 • Partidos cortos para cuando tienes poco tiempo: un set, sets a 7 o un final apretado.
 
-PENSADO PARA EL MÓVIL
+Pensado para el móvil
 • Botones táctiles a tu gusto: sitio, tamaño, opacidad y modo zurdos.
 • También con mando, o con teclado y ratón en el ordenador.
 • Menús con letra grande y botones para el pulgar.
 • Accesibilidad: la marca de tu jugador, más grande o en alto contraste.
 
-CARRERA
+Carrera
 Crea tu jugador y llévalo desde el instituto hasta el Salón de la Fama.
 • Carrera de playa y Carrera de pista, con ligas de 28 países.
 • Pruebas de club, fichajes, cesiones, entrenos y plan de desarrollo.
 • Selección nacional, Mundial y Partido de las Estrellas.
-• Te escriben tu agente, tu entrenador, la prensa y el rival. Tú decides qué contestas.
+• Te escriben tu agente, tu entrenador, la prensa y el rival, y les contestas tú.
 • La grada anima, pita y canta, y la charanga suena en los partidos grandes.
 • Rachas, lesiones poco frecuentes, premios de temporada y 28 logros.
 
-ÁRBITROS COMO EN LA VIDA REAL
+Árbitros como los de verdad
 1r y 2º árbitro con las señas oficiales, jueces de línea en las grandes competiciones, tarjetas y challenge en las bolas dudosas.
 
-MÁS MODOS
+Más modos
 • Entrenamiento con ejercicios, medallas y peloteo libre.
 • Reto del día y «El mismo 22-24»: cada semana, el mismo final apurado para todos. Comparte tu resultado y compáralo con tus amigos.
 • Vestuario: 32 peinados, gorras, gafas, zapatillas y mucho más. Solo estética: no cambia cómo juegas.
 
-ONLINE (BETA)
-Juega 1 contra 1 con otra persona: cada una lleva a su jugador y la IA hace de pareja. Busca una sala abierta o entra con el código de un amigo. Elige la conexión Precisa o la Fluida. Para el online hace falta una cuenta gratuita.
+Online (beta)
+Juega 1 contra 1 con otra persona: cada una lleva a su jugador y la CPU hace de pareja. Busca una sala abierta o entra con el código de un amigo. Elige la conexión Precisa o la Fluida. Para el online hace falta una cuenta gratuita.
 
-SIN ANUNCIOS NI COMPRAS
+Sin anuncios ni compras
 No hay anuncios ni compras dentro del juego. Juega sin conexión: sin cuenta puedes jugar a todo menos al online. Con una cuenta opcional, tu progreso se guarda en la nube y sigues en otro dispositivo.
 
 Clubes, jugadores y patrocinadores son inventados.
@@ -126,19 +126,19 @@ Alternativa corta (14): `Take the Court`
 ```text
 Take the Court is a cartoon-style 3D volleyball game. Play on the beach or indoors, with real rules and matches decided on the last point.
 
-HOW IT PLAYS
+How it plays
 • 2v2 beach volleyball and 6v6 indoor volleyball.
 • Serve, pass, set, spike, block and dig. Includes tips, pipes, approach spikes and targeted sets.
 • Four levels: Easy, Normal, Hard and Expert. Play well and the CPU studies you and changes its plan.
 • Short matches when you are in a hurry: one set, sets to 7 or a tight finish.
 
-BUILT FOR PHONES
+Built for phones
 • Touch buttons your way: position, size, opacity and left-handed mode.
 • Also with a controller, or keyboard and mouse on a computer.
 • Big text and thumb-sized buttons in every menu.
 • Accessibility: a bigger or high-contrast marker for your player.
 
-CAREER
+Career
 Create your player and take them from high school to the Hall of Fame.
 • Beach Career and Indoor Career, with leagues in 28 countries.
 • Club tryouts, transfers, loans, training and a development plan.
@@ -147,18 +147,18 @@ Create your player and take them from high school to the Hall of Fame.
 • The crowd cheers, whistles and sings, and the brass band plays at big matches.
 • Hot streaks, rare injuries, season awards and 28 achievements.
 
-REFEREES LIKE THE REAL THING
+Referees like the real thing
 1st and 2nd referee with official hand signals, line judges at big competitions, cards and challenges on close calls.
 
-MORE MODES
+More modes
 • Training with drills, medals and free practice.
 • Daily challenge and "The same 22-24": every week, the same tight finish for everyone. Share your result and compare with friends.
 • Locker room: 32 hairstyles, caps, glasses, shoes and much more. Cosmetic only: it never changes how you play.
 
-ONLINE (BETA)
+Online (beta)
 Play 1v1 against another person: each of you controls your own player, with the AI as your partner. Join an open room or enter a friend's code. Choose Precise or Smooth connection. Online play needs a free account.
 
-NO ADS, NO PURCHASES
+No ads, no purchases
 There are no ads and no in-game purchases. Play offline: without an account you can play everything except online. With an optional account, your progress is saved in the cloud and you can continue on another device.
 
 Clubs, players and sponsors are fictional.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* TAKE THE COURT — tools/semanacdp.js (owner: ui_main)
  * La jugada del día (antes «La situación de la semana») DE VERDAD en Chrome (tools/cdp.js), el flujo completo que semanatest (node) no ve:
- *   a) Retos › Jugada › «¡A jugar!» → el partido arranca en el marcador de hoy (g.score = situation().score), Semana.begin
+ *   a) Retos › Jugada › «Jugar» → el partido arranca en el marcador de hoy (g.score = situation().score), Semana.begin
  *      gasta el intento al empezar (left 3 → 2) y la previa dice «Intento 1 de 3 de hoy» (sin «Tu balance en…»)
  *   b) pausa: aviso «Reiniciar o salir gasta este intento» y «Reiniciar» a la vista (quedan intentos)
  *   c) hoja final (autopilot hasta el final): VB.Semana.finish cerró el intento y la hoja lleva Otro intento, Compartir, Ver el grupo y Menú
@@ -9,8 +9,8 @@
  *   e) ?sem=… (enlace de un amigo): se une la cadena, se abre Retos › Jugada y se quita sem= de la barra
  *   f) el sello de la portada (junto a JUGAR) es el de la jugada, con su marcador, y abre Retos › Jugada
  *   g) la ventana al entrar (24-nov-2026): sale la primera (sin Novedades encima) a quien ya ha jugado, con título, objetivo, racha,
- *      «¡A por ella!» y «Ahora no»; Esc la cierra; una vez por sesión; no sale con un partido a medias («Seguir el partido»); «¡A por
- *      ella!» arranca la jugada; cumplida hoy ya no sale y el sello dice «Hecha» con la chapa de la racha; con ella abierta la portada
+ *      «Vamos» y «Ahora no»; Esc la cierra; una vez por sesión; no sale con un partido a medias («Seguir el partido»); «Vamos»
+ *      arranca la jugada; cumplida hoy ya no sale y el sello dice «Hecha» con la chapa de la racha; con ella abierta la portada
  *      no cuenta como libre (ni instalar ni Novedades encima); un intento colgado de una pestaña muerta no la quita
  *   h) jugada del día en 6v6 con el 1r 6v6 del aparato: antes la ventana de la calidad (sin gastar el intento), luego el partido, y sin
  *      el aviso de colocador detrás
@@ -40,7 +40,7 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
     const sit = await J('(function(){ var s = VB.Semana.situation(); return { score: s.score, label: s.label, setNo: s.setNo }; })()');
     check('a) 3 intentos al empezar el día', (await E('VB.Semana.left()')) === 3);
     await E('VB.UI.openRetos("semana"), 1'); await sleep(600);
-    check('a) Retos › Jugada con «¡A jugar!» a la vista', await E('(function(){ var b = document.querySelector("[data-sem=go]"); if (!b || b.closest("[hidden]")) return false; var r = b.getBoundingClientRect(); return r.width > 0 && r.height >= 44; })()'));
+    check('a) Retos › Jugada con «Jugar» a la vista', await E('(function(){ var b = document.querySelector("[data-sem=go]"); if (!b || b.closest("[hidden]")) return false; var r = b.getBoundingClientRect(); return r.width > 0 && r.height >= 44; })()'));
     await E('document.querySelector("[data-sem=go]").click(), 1');
     check('a) el partido arranca', await waitFor('!!(VB.ctx.game && VB.ctx.game.sit && (VB.ctx.state === "playing" || VB.ctx.state === "intro"))', 15000));
     const g0 = await J('{ score: VB.ctx.game.score, sit: VB.ctx.game.sit, setNo: VB.ctx.game.setNo, sets: VB.ctx.game.sets }');
@@ -111,7 +111,7 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
     const popped = await waitFor('VB.UI.semPopOpen()', 9000);
     const pop = await J('(function(){ var p = document.querySelector("#spSheets .sp-sheet"); if (!p) return null; var t = p.querySelector(".sp-sh-t"); return { t: t && t.textContent, go: !!document.getElementById("btnSemPopGo"), no: !!document.getElementById("btnSemPopNo"), goal: (p.querySelector(".semp-goal") || {}).textContent || "", rk: (p.querySelector(".semp-rk") || {}).textContent || "", desc: p.getAttribute("aria-describedby"), panel: VB.UI.isPanelOpen(), page: VB.UI.menuPage(), sit: VB.Semana.situation().goal }; })()');
     check('g) la ventana sale sola al entrar, la primera (sin Novedades ni Retos encima)', popped && pop && !pop.panel && pop.page === 'main', pop);
-    check('g) título, objetivo de hoy, racha, «¡A por ella!» y «Ahora no» (con descripción para el lector)', pop && pop.t === 'La jugada del día' && pop.goal === pop.sit && /racha/i.test(pop.rk) && pop.go && pop.no && pop.desc === 'sempDesc', pop);
+    check('g) título, objetivo de hoy, racha, «Vamos» y «Ahora no» (con descripción para el lector)', pop && pop.t === 'La jugada del día' && pop.goal === pop.sit && /racha/i.test(pop.rk) && pop.go && pop.no && pop.desc === 'sempDesc', pop);
     await sleep(2600);
     check('g) con la ventana abierta la portada no cuenta como libre: el aviso de instalar ni las Novedades salen encima', !(await E('VB.UI.menuIdle()')) && !(await E('!!(VB.Install && VB.Install.isOpen())')) && !(await E('VB.UI.isPanelOpen()')));
     await E('document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })), window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })), 1'); await sleep(300);
@@ -130,7 +130,7 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
     await page.navigate('uianim=0'); await ready();
     await waitFor('VB.UI.semPopOpen()', 9000);
     await E('document.getElementById("btnSemPopGo").click(), 1');
-    check('g) «¡A por ella!» arranca la jugada (intento 1)', await waitFor('!!(VB.ctx.game && VB.ctx.game.sit && VB.ctx.game.sit.i === 1)', 15000) && (await E('VB.Semana.left()')) === 2);
+    check('g) «Vamos» arranca la jugada (intento 1)', await waitFor('!!(VB.ctx.game && VB.ctx.game.sit && VB.ctx.game.sit.i === 1)', 15000) && (await E('VB.Semana.left()')) === 2);
     await E('VB.ctx.actions.toMenu(), 1'); await ready();
     await E('(function(){ var M = VB.Semana, s = M.situation(), o = M.begin(), w = Math.max(s.T, s.score[1] + 2); M.finish({ sit: o.sit }, { win: true, a: w, b: w - 2 }); sessionStorage.clear(); return 1; })()');
     await page.navigate('uianim=0'); await ready(); await sleep(3500);
@@ -145,7 +145,7 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
     await E('VB.UI.openRetos("semana"), 1'); await sleep(600);
     await E('document.querySelector("[data-sem=go]").click(), 1');
     const pq = await waitFor('!!document.querySelector("#setNote:not([hidden]) .sn-perf")', 4000);
-    check('h) «¡A jugar!» en una jugada 6v6: primero la ventana de la calidad, sin gastar el intento', pq && !(await E('!!(VB.ctx.game && VB.ctx.game.sit)')) && (await E('VB.Semana.left()')) === 3);
+    check('h) «Jugar» en una jugada 6v6: primero la ventana de la calidad, sin gastar el intento', pq && !(await E('!!(VB.ctx.game && VB.ctx.game.sit)')) && (await E('VB.Semana.left()')) === 3);
     await sleep(500); await E('document.querySelector("#setNote [data-sn=q-auto]").click(), 1');
     check('h) al elegir, arranca la jugada en 6v6 (intento 1) y queda apuntado en este aparato', await waitFor('!!(VB.ctx.game && VB.ctx.game.sit && VB.ctx.game.size === 6)', 15000) && (await E('VB.ctx.settings.q6Asked === true')) && (await E('VB.Semana.left()')) === 2);
     check('h) tras la ventana de la calidad, el aviso de colocador ya no sale en esta sesión', !(await E('VB.UI.setterNote({ from: "x" })')));

@@ -34,13 +34,13 @@
  *   streak()          {cur, best} (cur ya a 0 si ayer no la cumpliste)
  *   popWanted()       ¿tiene sentido la ventana al entrar? (no cumplida hoy y con intentos). El resto de condiciones las mira ui.js
  *   link() → URL ?sem=…  (tu mejor entra en la cadena) · readLink(s) → {wk, list, gone?} | null · mergeLink(s) → {wk, list, old, gone, n} | null
- *   shareText() → «La jugada del día (24 nov): levanta el 22-24 y gana el set. Yo la gané 26-24. Llevo 3 días seguidos. ¿Y tú?»
+ *   shareText() → «22-24 abajo y lo he levantado: 26-24.» / «22-24 abajo. Me he quedado en 23-25.» (+ « Y van N días.» con racha de 7 o más)
  *   myName(), resLbl(e) → «Ganada 26-24» / «Perdida 23-25»
  *   peek() → {wk, day, sit, left, best, done, streak} solo lectura (sello de la portada; no cierra intentos abiertos en otra pestaña)
  *   _reset(), _now(k AAAAMMDD | 0), _sid, _ms (reloj en ms), _touch (señal de vida) (pruebas)
  *
  * Guardado 'make-the-cut.semana' v2 (solo del aparato; nunca va a la cuenta):
- *   {v:2, day, me (3 caracteres: el nombre sin apodo de antes; desde el 24-nov-2026 el nombre sin apodo es el anónimo del aparato, «Jugador_NNNN», js/namefilter.js), n (intentos gastados hoy), open:{sid, i}|null, best:{w,a,b,S,A}|null,
+ *   {v:2, day, me (3 caracteres: el nombre sin apodo de antes; desde el 24-nov-2026 el nombre sin apodo es el anónimo del aparato, js/namefilter.js; sin él, un apodo de pista y las 3 letras, «Zurdo_abc»), n (intentos gastados hoy), open:{sid, i}|null, best:{w,a,b,S,A}|null,
  *    tries:[{w,a,b}] (los de hoy, ≤ 3), streak:{cur, best, last (AAAAMMDD del último día cumplido)}, group:{wk, list:[{n,w,a,b,S,A}] ≤ 8}}
  *   Si cambia el día se vacía todo menos «me», la racha y la cadena antigua, que queda en solo lectura hasta que llegue una de hoy.
  *   El v1 (semanal) se migra quedándose solo con «me»: la situación de la semana era otra y su mejor ya no vale para la de hoy.
@@ -317,12 +317,14 @@
 
   // ---------------------------------------------------------------- enlace y mapa del grupo
   /** Tu nombre en la cadena: el que escribiste en «Tu nombre en el online» (si vale y no lleva insultos); si no, el anónimo del
-   *  aparato, el mismo que en el online («Jugador 1234» → «Jugador_1234»). Sin js/namefilter.js, el de antes (3 letras al azar). */
+   *  aparato, el mismo que en el online. Sin js/namefilter.js, un apodo de pista y las 3 letras al azar de antes («Zurdo_abc»). */
+  var APODOS = ['Zurdo', 'Líbero', 'Central', 'Opuesto', 'Punta', 'Colocador'];
+  function apodo(me) { return APODOS[(hashStr('mtc-apodo|' + me) >>> 0) % APODOS.length] + '_' + me; }
   function myName() {
     var F = VB.NameFilter, nk = '';
     if (F) { nk = F.nick(); return baseName(nk) || baseName(F.anonName()); }
     try { nk = root.localStorage.getItem('make-the-cut.nick') || ''; } catch (e) { }
-    return cleanName(nk) || 'Jugador_' + load().me;
+    return cleanName(nk) || apodo(load().me);
   }
   function entryStr(e) { return e.n + '~' + (e.w ? 'w' : 'l') + e.a + '-' + e.b + '~S' + zs(e.S) + '~A' + zs(e.A); }
   function check(s) { var h = hashStr('mtc-semlink|' + s) % 1679616; return ('000' + h.toString(36)).slice(-4); }   // 36^4
@@ -386,10 +388,12 @@
   function resLbl(e) { return e ? (e.w ? 'Ganada ' : 'Perdida ') + e.a + '-' + e.b : ''; }
   function streakTxt(n) { return n === 1 ? '1 día seguido' : n + ' días seguidos'; }
   function shareText() {
-    var o = load(), sit = situation(o.day), sk = streakOf(o);
-    var me = o.best ? (o.best.w ? ' Yo la gané ' + o.best.a + '-' + o.best.b + '.' : ' A mí se me escapó ' + o.best.a + '-' + o.best.b + '.') : '';
-    var rk = sk.cur >= 2 ? ' Llevo ' + streakTxt(sk.cur) + '.' : '';
-    return 'La jugada del día (' + sit.dayLbl + '): ' + sit.goal.charAt(0).toLowerCase() + sit.goal.slice(1) + '.' + me + rk + ' ¿Y tú?';
+    var o = load(), sit = situation(o.day), sk = streakOf(o), a = sit.score[0], b = sit.score[1];
+    var rk = sk.cur >= 7 ? ' Y van ' + sk.cur + ' días.' : '';
+    if (!o.best) return sit.goal + '.' + rk;
+    var from = a + '-' + b + (a < b ? ' abajo' : a > b ? ' arriba' : ''), score = o.best.a + '-' + o.best.b;
+    var won = a < b ? ' y lo he levantado: ' : a > b ? ' y lo he cerrado: ' : ' y lo he sacado: ';
+    return (o.best.w ? from + won + score + '.' : from + '. Me he quedado en ' + score + '.') + rk;
   }
 
   VB.Semana = {

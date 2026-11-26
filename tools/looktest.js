@@ -67,8 +67,8 @@ check(L.PALETTE.every(p => IDRE.test(p.id) && (!ids.includes(p.id) || p.id === '
 const SLOTX = L.SLOTS.concat(['style', 'hairTint', 'hairFx', 'color']);
 check(C.every(x => x.slots.length && x.slots.every(s => SLOTX.includes(s)) && x.slot === x.slots[0]), 'cada objeto con ranura válida');
 check(C.every(x => ['P', 'Y', 'A'].includes(x.venue)), 'cada objeto con sede válida (P, Y, A)');
-check(C.every(x => x.rarity >= 0 && x.rarity <= 3 && L.stars(x.id).length === 4 && L.stars(x.id).replace(/☆/g, '').length === x.rarity + 1), 'rareza 0-3 y estrellas');
-const KINDS = ['start', 'shop', 'fame', 'ach', 'award', 'gym', 'gymN', 'rec', 'boss', 'reto', 'retoN', 'semana', 'dias', 'lvl', 'chem', 'online'];   // (online: la gorra «Online Beta Tester», fase 3 del online)
+check(C.every(x => x.rarity >= 0 && x.rarity <= 3 && L.stars(x.id) === ['de mercadillo', 'normal', 'de tienda buena', 'de lujo'][x.rarity]), 'rareza 0-3 y en palabras');
+const KINDS = ['start', 'shop', 'fame', 'ach', 'award', 'gym', 'gymN', 'rec', 'boss', 'reto', 'retoN', 'semana', 'dias', 'lvl', 'chem', 'online'];   // (online: la gorra «Estuve en la beta», fase 3 del online)
 check(C.every(x => Array.isArray(x.unlock) && x.unlock.length && x.unlock.every(u => Object.keys(u).length === 1 && KINDS.includes(Object.keys(u)[0]))), 'desbloqueos con formato (una clave conocida por alternativa)');
 check(C.every(x => Array.isArray(x.tris) && x.tris.length === 3 && x.tris[0] <= x.tris[1] && x.tris[1] <= x.tris[2]), 'tris [LOD0, LOD1, LOD2] crecientes');
 check(C.every(x => typeof x.geo === 'boolean' && typeof x.hint === 'string' && x.name && !/·|1\.er|2\.º/.test(x.name + x.hint)), 'geo booleano, hint y nombres sin «·»');
@@ -355,7 +355,7 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(shopIt.every(x => { const p = L.price(x.id), b = band[x.lux ? 3 : x.rarity]; return p >= b[0] && p <= b[1]; }), 'precios por rareza (común 500-1.200, rara 3.000-8.000, épica 15.000-20.000, lujo 40.000-60.000)');
   check(L.lockText('manguitoCuadros') === 'Tienda de la Carrera: 6.000 salpis', 'lockText: «Tienda de la Carrera: 6.000 salpis»');
   // (fame = índice de TIERS de career-life.js, contra tierIdx(fameMax): 4 Estrella, 5 Ídolo, 6 Leyenda viva)
-  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 salpis o Reto: Rodillo (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
+  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 salpis o Reto: Parcial (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
   check(L.lockText('dedos') === 'Logro: b50 (50 bloqueos punto) o Entrenamiento: medalla en Bloqueo', 'lockText sin la Carrera cargada enseña el id: «' + L.lockText('dedos') + '»');
   check(L.lockText('manguitoLlamas').indexOf('Entrenamiento: oro en Saque') > 0 && L.lockText('cresta') === 'Tienda de la Carrera: 3.000 salpis o Entrenamiento: 3 medallas', 'lockText: oro en Saque; 3 medallas');
   check(L.lockText('kinesio').endsWith('Récord: 1 partido') && L.lockText('rayasEq').indexOf('Récord: 25 victorias') > 0 && L.lockText('desparejados').endsWith('Récord: 5 puntos seguidos en un partido'), 'lockText: récords');
@@ -367,7 +367,7 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   const all = C.map(x => L.lockText(x.id) + L.lockText(x.id, true) + x.name + L.name(x.id)).join('|');
   check(!/·|1\.er|2\.º|undefined|NaN/.test(all), 'textos sin «·», sin ordinales con punto y sin undefined');
   check(L.name('', 'head') === 'Sin gorro' && L.name('rojo') === 'Rojo' && L.name('auto') === 'Automático' && L.name(0xd8d4cc) === 'Canas' && /^Tono \d+$/.test(L.name(0x5a3626, 'skin')) && L.name('cintaRizo') === 'Cinta de rizo', 'name: objetos, «nada», fichas, colores de pelo y tonos de piel');
-  check(L.stars('corona') === '★★★★' && L.stars('pasta') === '★☆☆☆' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'estrellas y aria-label de la rareza');
+  check(L.stars('corona') === 'de lujo' && L.stars('pasta') === 'de mercadillo' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'rareza en palabras y aria-label');
   check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 35 && L.choices('skin').length === 14 &&
     L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 7, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
   check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana,gorroPompon,pescadorCuadros', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online, el pañuelo (1.16, WP3), el gorro de lana y el pescador de cuadros (WP7)');
@@ -400,7 +400,7 @@ console.log('== sprint 2-4 (T9) ==');
   check(X.unlockText({ semana: 1 }) === 'Torneo de la semana: 1 ganado' && X.unlockText({ semana: 5 }) === 'Torneo de la semana: 5 ganados' && !C.some(x => x.unlock.some(u => u.semana)), 'unlockText {semana} listo; ningún objeto lo usa (torneo cortado)');
   // textos
   check(X.lockText('munhCanon') === 'Jefe: gana a un Cañón' && X.lockText('dedosMuro') === 'Jefe: gana a un Muro' && X.lockText('manguitoMazo') === 'Jefe: gana a un Martillo' && X.lockText('rodiPulpo') === 'Jefe: gana a un Pulpo' && X.lockText('tobiPulpo') === 'Jefe: gana a un Pulpo', 'lockText jefe: «' + X.lockText('dedosMuro') + '»');
-  check(X.lockText('bandana').endsWith(' o Reto: Lluvia de aces (plata)') && X.lockText('deporte').endsWith('Reto: Pase al dedo (plata)'), 'lockText reto: «' + X.lockText('bandana') + '»');
+  check(X.lockText('bandana').endsWith(' o Reto: Aces (plata)') && X.lockText('deporte').endsWith('Reto: Doble positiva (plata)'), 'lockText reto: «' + X.lockText('bandana') + '»');
   check(X.lockText('tTurquesa').endsWith('Retos: 30 medallas') && X.lockText('tVerde').endsWith('Reto del día: 7 oros'), 'lockText retoN / dias: «' + X.lockText('tTurquesa') + '», «' + X.lockText('tVerde') + '»');
   check(X.lockText('manguitoRayas') === 'Tienda de la Carrera: 1.200 salpis o Perfil: Nv 8' && X.lockText('tAzul') === 'Tienda de la Carrera: 1.200 salpis o Perfil: Nv 10', 'lockText lvl: «' + X.lockText('tAzul') + '»');
   check(X.lockText('rayasEq').endsWith('Química: Pareja de oro') && X.lockText('rayasEq', true).endsWith('Química: Equipo de oro'), 'lockText chem por modo: «' + X.lockText('rayasEq', true) + '»');

@@ -1,7 +1,7 @@
 /* =====================================================================
  * TAKE THE COURT — js/netrec.js   (owner: net)
  * Modo online, fase 3 (notes/net.md «Fase 3»): el RÉCORD ONLINE (aparte del de Partido rápido) y la única recompensa del online, la
- * gorra «Online Beta Tester» (decisión 4 de Ferran: sin experiencia, insignias ni retos por el online). SIN DOM y SIN THREE: se
+ * gorra «Estuve en la beta» (decisión 4: sin experiencia, insignias ni retos por el online). SIN DOM y SIN THREE: se
  * prueba en Node con vm (tools/netrectest.js). localStorage siempre dentro de try/catch.
  *
  * Guardado 'make-the-cut.online' (JSON, v1): { v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}] (10 como mucho) }

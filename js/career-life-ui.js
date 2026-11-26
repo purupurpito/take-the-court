@@ -127,7 +127,7 @@
     '#career .lf-a .bar{display:block;height:8px;border-radius:5px;background:rgba(0,0,0,.4);overflow:hidden}#career .lf-a .bar i{display:block;height:100%;background:#ffd23f}',
     '#career .lf-a em{display:block;font:700 11.5px var(--ui);font-style:normal;color:#ffd23f;margin-top:4px}',
     '#career .lf-fm .bar{display:block;height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;margin:6px 0 2px}#career .lf-fm .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8040,#ffd23f)}',
-    // Tienda › Vestuario: estrellas de rareza (★ a ★★★★, las que faltan apagadas) junto al nombre
+    // Tienda › Vestuario: «Rareza n/4» junto al nombre
     // jefe del circuito (S3 C3): tarjeta normal; la pista en frase plana (var(--ui), minúscula de frase)
     '#career .lf-bh{font:600 14px var(--ui);margin:6px 0 4px;color:#e9e4ff}',
     '#career .lf-stars{margin-left:6px;font:700 13px var(--ui);letter-spacing:.06em;color:#ffd23f;white-space:nowrap}#career .lf-stars .off{color:rgba(255,255,255,.22)}'
@@ -185,18 +185,18 @@
     if (qph()) {   // móvil (movil-aire §5.4): «113 seguidores · Desconocido» + «Legado ↓» + «?» en una fila y la barra con lo que falta (≤ 140 px)
       var fx0 = 'Ganas seguidores con buenas notas, victorias, retos, títulos y premios. La fama trae patrocinadores y hace que los clubes te miren más (+' + String(Lf().offerBonus(c)).replace('.', ',') + ' de interés).';
       var ex = [l.streak >= 2 ? 'Racha de ' + l.streak + ' victorias' : '', 'Mejor racha: ' + (l.best | 0), l.bestNota ? 'Mejor nota: ' + String(l.bestNota).replace('.', ',') : '',
-        l.cards && (l.cards.n | 0) > 0 ? 'Tarjetas: ' + (l.cards.y | 0) + ' amarillas, ' + (l.cards.r | 0) + ' rojas' : ''].filter(Boolean);
-      h += '<div class="card lf-fm lf-fph"><div class="lf-fr"><b class="lf-fn">' + num(f.fans) + '</b><span class="lf-ft">seguidores · <b>' + esc(f.name) + '</b></span>' +
+        l.cards && (l.cards.n | 0) > 0 ? 'Sanciones: ' + (l.cards.y | 0) + ' amonestaciones, ' + (l.cards.r | 0) + ' penalizaciones' : ''].filter(Boolean);
+      h += '<div class="card lf-fm lf-fph"><div class="lf-fr"><b class="lf-fn">' + num(f.fans) + '</b><span class="lf-ft">seguidores, <b>' + esc(f.name) + '</b></span>' +
         '<button type="button" class="cr-anb" data-act="anc" data-to="crAnLegacy">Legado ↓</button>' +
-        H.q('Seguidores', fx0 + (l.cards && (l.cards.n | 0) > 0 ? ' En tu carrera: ' + ((l.cards.tot && l.cards.tot.y) | 0) + ' amarillas y ' + ((l.cards.tot && l.cards.tot.r) | 0) + ' rojas' + ((l.cards.fair | 0) ? '; premios a la deportividad: ' + (l.cards.fair | 0) : '') + '.' : '')) + '</div>' +
+        H.q('Seguidores', fx0 + (l.cards && (l.cards.n | 0) > 0 ? ' En tu carrera: ' + ((l.cards.tot && l.cards.tot.y) | 0) + ' amonestaciones y ' + ((l.cards.tot && l.cards.tot.r) | 0) + ' penalizaciones' + ((l.cards.fair | 0) ? '; premios a la deportividad: ' + (l.cards.fair | 0) : '') + '.' : '')) + '</div>' +
         (f.next ? '<div class="lf-fb">' + bar(f.p) + '<small>→ ' + esc(f.next) + ', faltan ' + num(f.to - f.fans) + '</small></div>' : '<p class="lf-fx">Lo máximo: tu nombre ya es historia del vóley.</p>') +
-        '<p class="lf-fx">' + esc(ex.join(' · ')) + '</p></div>';
+        '<p class="lf-fx">' + esc(ex.join(', ')) + '</p></div>';
     } else
     h += '<div class="card lf-fm"><h3>Seguidores</h3><p class="lf-big">' + num(f.fans) + '</p><p class="lf-tier">' + esc(f.name) + '</p>' +
       (f.next ? bar(f.p) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(f.next), 'faltan ' + num(f.to - f.fans)], 'v') + '</p>' : '<p class="muted">Lo máximo. Tu nombre ya es historia del vóley.</p>') +
       '<p class="muted">' + sp([l.streak >= 2 ? 'Racha de ' + l.streak + ' victorias (más seguidores por partido)' : '', 'Mejor racha: ' + (l.best | 0), l.bestNota ? 'Mejor nota: ' + String(l.bestNota).replace('.', ',') : ''], 'v') + '</p>' +
       // ambiente de Carrera: tarjetas de la temporada y de la carrera, premios a la deportividad (career-life.js cardsOf)
-      (l.cards && (l.cards.n | 0) > 0 ? '<p class="muted">' + sp(['Tarjetas esta temporada: ' + (l.cards.y | 0) + ' amarillas, ' + (l.cards.r | 0) + ' rojas',
+      (l.cards && (l.cards.n | 0) > 0 ? '<p class="muted">' + sp(['Sanciones esta temporada: ' + (l.cards.y | 0) + ' amonestaciones, ' + (l.cards.r | 0) + ' penalizaciones',
         'En tu carrera: ' + ((l.cards.tot && l.cards.tot.y) | 0) + ' y ' + ((l.cards.tot && l.cards.tot.r) | 0), (l.cards.fair | 0) ? 'Premios a la deportividad: ' + (l.cards.fair | 0) : ''], 'v') + '</p>' : '') +
       (function () {
         var fx = 'Ganas seguidores con buenas notas, victorias, retos, títulos y premios. La fama trae patrocinadores y hace que los clubes te miren más (+' + String(Lf().offerBonus(c)).replace('.', ',') + ' de interés).';
@@ -269,7 +269,7 @@
       h += '<div class="card lf-sph"><div class="lf-shd"><h3>Material</h3><span class="lf-sav">Ahorros <b>' + eur(money) + '</b></span>' + H.q('Ahorros', sx) + '</div>' + Lf().GEAR_KEYS.map(function (id) {
         var G = Lf().GEAR[id], lv = l.gear[id] | 0, pr = Lf().gearPrice(c, id), nm = Lf().gearName(c, id), mx = lv >= Lf().GEAR_MAX, poor = money < pr;
         return '<div class="lf-item"><div><b><span class="lf-nm">' + esc(nm) + '</span><i class="lf-nv" aria-label="Nivel ' + lv + ' de ' + Lf().GEAR_MAX + '">Nv ' + lv + '/' + Lf().GEAR_MAX + '</i></b>' +
-          '<small>' + esc(G.hint) + (lv ? ': +' + lv : '') + (!mx && poor ? ' · <span class="lf-short">faltan ' + eur(pr - money) + '</span>' : '') + '</small></div>' +
+          '<small>' + esc(G.hint) + (lv ? ': +' + lv : '') + (!mx && poor ? ', <span class="lf-short">faltan ' + eur(pr - money) + '</span>' : '') + '</small></div>' +
           (mx ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (poor ? ' aria-disabled="true"' : '') + ' aria-label="' + esc((lv ? 'Mejorar ' : 'Comprar ') + nm + ' por ' + eur(pr)) + '">' + eur(pr) + '</button>') + '</div>';
       }).join('') + '</div>';
     } else {
@@ -294,11 +294,10 @@
   var SLOT_N = { style: 'Peinado', hairTint: 'Color de pelo', hairFx: 'Efecto de pelo', head: 'Gorro', eyes: 'Gafas', ears: 'Pendientes', paint: 'Pintura', marks: 'Marcas', beard: 'Barba', neck: 'Cuello',
     under: 'Interior', band: 'Brazalete', armL: 'Manguito', armR: 'Manguito', elbows: 'Coderas', wristL: 'Muñeca', wristR: 'Muñeca', hands: 'Manos',
     legs: 'Mallas', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas', color: 'Color' };
-  /** Rareza 0-3 en estrellas (★ … ★★★★), con su lectura para el lector de pantalla. */
+  /** Rareza 0-3 como «Rareza n/4». */
   function starsHTML(r) {
-    var n = Math.max(0, Math.min(3, r | 0)) + 1, s = '';
-    for (var i = 0; i < 4; i++) s += i < n ? '★' : '<span class="off">★</span>';
-    return '<span class="lf-stars" role="img" aria-label="Rareza: ' + n + ' de 4">' + s + '</span>';
+    var n = Math.max(0, Math.min(3, r | 0)) + 1;
+    return '<span class="lf-stars">Rareza ' + n + '/4</span>';
   }
   /** Tienda › Vestuario: cosméticos a la venta (VB.CareerLife.lookShop), por precio. Sin look.js, nada. */
   function lookCard(c, money) {
@@ -321,8 +320,8 @@
       var rwS = function (r) { return String(r || '').replace(/ puntos? de mejora/, ' pts').replace(/ seguidores/, ' seg.'); };
       var card = function (x) {
         var v = x.dec ? String(x.v).replace('.', ',') : num(x.v), n = x.dec ? String(x.n).replace('.', ',') : num(x.n);
-        return '<div class="lf-a' + (x.done ? ' done' : '') + '">' + (x.done ? '<i class="lf-st" role="img" aria-label="Conseguido">✓</i>' : '') + '<b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' +
-          (x.done ? '<small>' + esc(rwS(x.reward)) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small><span class="lf-gn">' + (x.pt ? esc(String(x.pt).replace(/^Tu liga: nivel (\d+) de (\d+).*$/, 'Nivel $1/$2')) : v + '/' + n) + '</span><span class="lf-gs"> · </span><span class="lf-gr">' + esc(rwS(x.reward)) + '</span></small></div>') + '</div>';
+        return '<div class="lf-a' + (x.done ? ' done' : '') + '"><b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' +
+          (x.done ? '<small>' + esc(rwS(x.reward)) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small><span class="lf-gn">' + (x.pt ? esc(String(x.pt).replace(/^Tu liga: nivel (\d+) de (\d+).*$/, 'Nivel $1/$2')) : v + '/' + n) + '</span><span class="lf-gs">, </span><span class="lf-gr">' + esc(rwS(x.reward)) + '</span></small></div>') + '</div>';
       };
       var todo = a.filter(function (x) { return !x.done; }), got = a.filter(function (x) { return x.done; });
       return '<div class="card lf-gph">' + H.q('Logros', 'Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero. Llevas ' + done + ' de ' + a.length + '.') +
@@ -332,7 +331,7 @@
     return '<div class="card"><h3>' + sp(['Logros', done + ' de ' + a.length], 'd') + '</h3><p class="muted">Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero.</p><div class="lf-ach">' +
       a.map(function (x) {
         var v = x.dec ? String(x.v).replace('.', ',') : num(x.v);
-        return '<div class="lf-a' + (x.done ? ' done' : '') + '">' + (x.done ? '<i class="lf-st" role="img" aria-label="Conseguido">✓</i>' : '') + '<b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' + (x.done ? '' : bar(x.v / x.n) + '<small style="margin:3px 0 0">' + (x.pt ? esc(x.pt) : v + ' de ' + (x.dec ? String(x.n).replace('.', ',') : num(x.n))) + '</small>') + '<em>' + esc(x.reward) + '</em></div>';
+        return '<div class="lf-a' + (x.done ? ' done' : '') + '"><b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' + (x.done ? '' : bar(x.v / x.n) + '<small style="margin:3px 0 0">' + (x.pt ? esc(x.pt) : v + ' de ' + (x.dec ? String(x.n).replace('.', ',') : num(x.n))) + '</small>') + '<em>' + esc(x.reward) + '</em></div>';
       }).join('') + '</div></div>';
   }
   function legacy(c) {
@@ -340,7 +339,7 @@
     h += '<div class="card lf-fm' + (qph() ? ' lf-leg' : '') + '"><h3>Legado</h3><p class="lf-big">' + sc + '</p><p class="lf-tier">' + esc(t.name) + '</p>' +
       (t.next ? bar((sc) / t.next[0]) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(t.next[1]), 'a ' + t.next[0] + ' puntos'], 'v') + '</p>' : '') +
       '<p class="muted">Suman los títulos (más cuanto más alta la categoría), los premios individuales, la fama, las victorias y los logros.</p></div>';
-    h += '<div class="card"><h3>Premios individuales</h3>' + (l.awards.length ? '<div class="lf-aws">' + l.awards.slice().reverse().map(function (a) { return '<div class="lf-aw"><i class="lf-st" aria-hidden="true">★</i><span><b>' + esc(a.name) + '</b><small>' + sp(['T' + a.season, esc(a.club)], 'v') + '</small></span></div>'; }).join('') + '</div>'
+    h += '<div class="card"><h3>Premios individuales</h3>' + (l.awards.length ? '<div class="lf-aws">' + l.awards.slice().reverse().map(function (a) { return '<div class="lf-aw"><i class="lf-st" aria-label="Temporada ' + a.season + '">T' + a.season + '</i><span><b>' + esc(a.name) + '</b><small>' + esc(a.club) + '</small></span></div>'; }).join('') + '</div>'
       : '<p class="muted">Aún ninguno. Al final de cada temporada se entregan: MVP, máximo anotador, mejor sacador, muro del año, mejor defensa' + (isHall(c) ? ', mejor colocador' : '') + ' y revelación. Hay que jugar los partidos: simulando no te ve nadie.</p>') + '</div>';
     h += '<div class="card"><h3>' + sp(['Retirada', age + ' años'], 'd') + '</h3>';
     if (Lf().canRetire(c)) {

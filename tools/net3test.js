@@ -2,7 +2,7 @@
 /* TAKE THE COURT — tools/net3test.js  (owner: net)
  * Fase 3 del online (notes/net.md «Fase 3»), lo que se prueba en Node sin navegador:
  *   (1) Récord online y gorra (js/netrec.js + js/look.js en vm, localStorage de mentira): ganar, perder, abandonar (= derrota),
- *       «no cuenta», la gorra «Online Beta Tester» una sola vez y solo si terminaste el partido, la marca de partido a medias (cerrar
+ *       «no cuenta», la gorra «Estuve en la beta» una sola vez y solo si terminaste el partido, la marca de partido a medias (cerrar
  *       la pestaña = abandono; con latido reciente no), nombres saneados (nunca un correo) y guardado dañado.
  *   (2) Revancha sobre el MISMO enlace (memPair 60 ms ± 10, 2 % de pérdida): dos sesiones juegan con bots hasta el final, piden la
  *       revancha por el canal de la interfaz (sendApp → r.app), el anfitrión manda «go» con la época 1 y semilla nueva, y las dos
@@ -36,7 +36,7 @@ function recCtx() {
   let { VB, store } = recCtx();
   const R = VB.NetRec, L = VB.Look;
   check('récord vacío al empezar', R.get().played === 0 && R.line() === '' && !L.owned('gorraMTC'));
-  check('la gorra existe en el Vestuario (cabeza, pista y playa) y está bloqueada', !!L.item('gorraMTC') && L.item('gorraMTC').name === 'Online Beta Tester' &&
+  check('la gorra existe en el Vestuario (cabeza, pista y playa) y está bloqueada', !!L.item('gorraMTC') && L.item('gorraMTC').name === 'Estuve en la beta' &&
     L.items('head', 'hall').includes('gorraMTC') && L.items('head', 'beach').includes('gorraMTC') && L.lockText('gorraMTC') === 'Online: termina tu primer partido');
   R.begin('Ana');
   check('marca de partido en curso al empezar', !!store[R.PEND]);

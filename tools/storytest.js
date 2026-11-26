@@ -191,7 +191,7 @@ section('8. API del núcleo');
   // rng y reparto
   ok(S.rng(c, 'st-a', 1)() === S.rng(c, 'st-a', 1)() && S.rng(c, 'st-a', 1)() !== S.rng(c, 'st-a', 2)() && S.rng(c, 'a', 1)() === S.rng(c, 'st-a', 1)(), 'rng determinista y con prefijo st-');
   const ca = S.cast(c);
-  ok(ca.agent === 'Cris Montoya' && S.COACH_N.indexOf(ca.coach) >= 0 && ca.media.radio === 'Radio Arena FM' && ca.media.pod === 'La Pausa Técnica' && ca.acc.cronista === '@CronistaDeArena' && /^@PeñaVoley\S+$/.test(ca.acc.pena) && ca.fam === 'Tu gente' && ca.barrio === 'La peña del barrio', 'reparto: ' + ca.coach + ', ' + ca.acc.pena);
+  ok(ca.agent === 'Cris Montoya' && S.COACH_N.indexOf(ca.coach) >= 0 && ca.media.radio === 'Radio Litoral' && ca.media.pod === 'La Previa' && ca.acc.cronista === '@CronistaDeArena' && /^@GradaPoli\S+$/.test(ca.acc.pena) && ca.fam === 'Familia' && ca.barrio === 'Los del infantil', 'reparto: ' + ca.coach + ', ' + ca.acc.pena);
   // ctx de 'match'
   const nk0 = c.story.nk; log.length = 0;
   K.simulateNext(); c = K.load();

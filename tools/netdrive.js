@@ -245,7 +245,7 @@ if (RTC) (async () => {
     if (!t || String(t).charAt(0) === '\u0001') break;
     await sleep(150);
   }
-  check('primera vez en Online: «Cómo funciona» (1 contra 1, sin pausa, 10 s entre sets, abandonar = derrota, la gorra)', helpOn && /n.º 1/.test(helpTxt) && /10 s/.test(helpTxt) && /derrota/.test(helpTxt) && /Online Beta Tester/.test(helpTxt), helpTxt.slice(0, 80));
+  check('primera vez en Online: «Cómo funciona» (1 contra 1, sin pausa, 10 s entre sets, abandonar = derrota, la gorra)', helpOn && /n.º 1/.test(helpTxt) && /10 s/.test(helpTxt) && /derrota/.test(helpTxt) && /Estuve en la beta/.test(helpTxt), helpTxt.slice(0, 80));
   await waitFor(P[0], "!!document.querySelector('#mpOnline [data-a=new]')", 15000);
   await waitFor(P[1], "!!document.querySelector('#mpOnline [data-a=new]')", 15000);
   check('las dos páginas en el lobby (lista de salas)', (await lob(P[0])).view === 'list' && (await lob(P[1])).view === 'list', [await lob(P[0]), await lob(P[1])]);
@@ -583,7 +583,7 @@ if (GUION) (async () => {
   check('hoja final online: «Revancha» y «Volver al menú»', eA && eB && eA.on && eB.on && eA.again === 'Revancha' && eB.act === 'rematch' && eA.menu === 'Volver al menú', { anf: eA && [eA.again, eA.menu], inv: eB && [eB.again, eB.menu] });
   // (las dos páginas comparten localStorage pero cada una en su proceso: dos escrituras casi a la vez pueden pisarse; se mira lo que apuntó cada una)
   check('récord online: cada lado apunta su resultado (uno ganado y otro perdido, con los sets)', eA && eB && eA.rec && eB.rec && eA.rec.w + eB.rec.w === 1 && eA.rec.w >= 0 && eB.rec.w >= 0 && /^\d-\d$/.test(eA.rec.s), { anf: eA && eA.rec, inv: eB && eB.rec, guardado: eB && eB.stored });
-  check('la gorra «Online Beta Tester» se desbloquea al terminar el primer partido online (y sale en el resumen)', eA && eB && eB.cap && (eA.rec.cap || eB.rec.cap) && /Online Beta Tester/.test(eA.rec.cap ? eA.sum : eB.sum), { capA: eA && eA.rec.cap, capB: eB && eB.rec.cap });
+  check('la gorra «Estuve en la beta» se desbloquea al terminar el primer partido online (y sale en el resumen)', eA && eB && eB.cap && (eA.rec.cap || eB.rec.cap) && /Estuve en la beta/.test(eA.rec.cap ? eA.sum : eB.sum), { capA: eA && eA.rec.cap, capB: eB && eB.rec.cap });
   check('el resumen enseña tu récord online', eA && /Tu récord online/.test(eA.sum));
   for (let k = 0; k < 2; k++) console.log('  captura', await P[k].shot(path.join(OUT, 'net3-' + (k ? 'invitado' : 'anfitrion') + '-fin.png')));
   // ---- revancha pactada ----

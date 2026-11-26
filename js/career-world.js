@@ -95,32 +95,32 @@
   var MENTOR = { name: 'Álex Marí', nick: 'Faro', role: 'Tu mentor' };
   // Escenas: 1-3 frases cortas (≤ 140 caracteres). act: botón opcional ('tab:sub', career-ui ya lo entiende); al: su texto.
   var BEATS = {
-    hola: { t: 'Faro se presenta', l: ['Soy Álex Marí, aunque en la arena todo el mundo me llama Faro.', 'Doce temporadas en el Circuito Mundial. Ahora me toca ver cómo empiezas tú.', 'Primer consejo: mira bien la pareja que te ofrece cada club. En la playa sois dos y no hay dónde esconderse.'] },
-    debut: { t: 'Antes del debut', l: ['Primer partido con {club}. Los nervios son buena señal: quiere decir que te importa.', 'Mira el reto de la jornada. No es obligatorio, pero se nota cuando lo cumples.'] },
+    hola: { t: 'Faro se presenta', l: ['Soy Álex Marí. Me llaman Faro desde juveniles, por la cabeza.', 'Jugué doce temporadas fuera y ahora estoy en la federación.', 'Primer consejo: mira bien la pareja que te ofrece cada club. En la playa sois dos y no hay dónde esconderse.'] },
+    debut: { t: 'Antes del debut', l: ['Primer partido con {club}.', 'Si te entran ganas de ir al baño cada diez minutos, normal. Ve antes del calentamiento.'] },
     win1: { t: 'Primera victoria', l: ['¡Esa es! La primera nunca se olvida.', 'Ahora viene lo difícil: que no sea la única.'] },
-    loss1: { t: 'Primera derrota', l: ['Perder también se entrena. Mañana mira qué falló, no quién falló.'] },
-    rival: { t: 'Tienes rival', l: ['{rival} va diciendo que es mejor que tú. Un rival te hace mejor o te vuelve loco. Tú eliges.'] },
-    bench1: { t: 'Al banquillo', l: ['Duele ver la jornada desde fuera, lo sé. Tus notas son tu voz: súbelas y no podrán dejarte fuera.'], act: 'player:train', al: 'Ver entreno' },
+    loss1: { t: 'Primera derrota', l: ['Ya está. Esta noche no mires el vídeo; mañana sí.'] },
+    rival: { t: 'Tienes rival', l: ['{rival} va diciendo por ahí que es mejor que tú. No contestes: sácale a la zona 1.'] },
+    bench1: { t: 'Al banquillo', l: ['Banquillo. Calienta como si fueras a salir: el entrenador mira quién calienta y quién está con el móvil.'], act: 'player:train', al: 'Ver entreno' },
     slump: { t: 'Mala racha', l: ['{n} derrotas seguidas. Todo el mundo pasa por esto, hasta en el Mundial.', '{tip}'], act: '{act}', al: '{al}', max: 3 },
     streak: { t: 'En racha', l: ['Cinco seguidas. Disfrútalo, pero no te lo creas: la arena siempre te baja los humos.'] },
-    title: { t: 'Primer título', l: ['{title}. Esto ya nadie te lo quita.', 'Guárdate la sensación: es la que te va a hacer madrugar los próximos diez años.'] },
+    title: { t: 'Primer título', l: ['{title}. Hazte una foto con el trofeo, aunque te dé vergüenza.'] },
     award: { t: 'Primer premio', l: ['{award}. Te han visto, y eso en este circuito vale oro.'] },
-    up: { t: 'Ascenso', l: ['¡Subís {toL}! Celebra hoy.', 'Mañana, a entrenar: arriba la IA perdona mucho menos y los clubes miran más.'] },
+    up: { t: 'Ascenso', l: ['Subís {toL}.', 'Arriba esas bolas que hoy caen te las devuelven, y los desplazamientos son más largos.'] },
     down: { t: 'Descenso', l: ['Bajar duele. A mí me pasó dos veces y aquí sigo.', 'Una temporada abajo puede ser el mejor sitio para coger confianza.'] },
-    move: { t: 'Club nuevo', l: ['Cambiar de club es empezar de cero con {mate}: la química no se ficha, se juega.'] },
+    move: { t: 'Club nuevo', l: ['Club nuevo. La primera semana, escucha más que hablas.'] },
     top: { t: 'En la élite', l: ['El Circuito Mundial. Aquí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.'] },
-    vet: { t: 'Treinta años', l: ['Treinta. Las piernas empiezan a hablar, la cabeza va mejor que nunca.', 'Tú decides cuándo parar. Lo verás en Fama › Legado.'], act: 'life:legacy', al: 'Ver legado' },
+    vet: { t: 'Treinta años', l: ['Treinta. Estira, que no cuesta nada.'], act: 'life:legacy', al: 'Ver legado' },
     // (sesiones de entrenamiento de la Carrera, career.js sessDo: gancho 'sess' con la primera sesión de la carrera)
-    ses1: { t: 'El primer entreno', l: ['Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan.', 'Jugado de verdad rinde más que en rápido. Y tu entrenador se fija en cómo entrenas.'] }
+    ses1: { t: 'El primer entreno', l: ['Buen primer entreno. No te mates a sesiones antes de un partido, que llegas sin piernas.', 'Y tu entrenador se fija en cómo entrenas.'] }
   };
   // Carrera de pista: las frases que hablan de arena, pareja o del Circuito Mundial (mismo id, mismo título; el resto, igual).
   var BEATS_H = {
-    hola: ['Soy Álex Marí, aunque en el pabellón todo el mundo me llama Faro.', 'Doce temporadas en las grandes ligas. Ahora me toca ver cómo empiezas tú.', 'Primer consejo: mira bien el rol que te ofrece cada club. Ser titular o ir a la rotación lo cambia todo.'],
+    hola: ['Soy Álex Marí. Me llaman Faro desde juveniles, por la cabeza.', 'Jugué doce temporadas fuera y ahora estoy en la federación.', 'Primer consejo: mira bien el rol que te ofrece cada club. Ser titular o ir a la rotación lo cambia todo.'],
     slump: ['{n} derrotas seguidas. Todo el mundo pasa por esto, hasta en las grandes ligas.', '{tip}'],
     streak: ['Cinco seguidas. Disfrútalo, pero no te lo creas: la pista siempre te baja los humos.'],
-    move: ['Club nuevo, vestuario nuevo: la química no se ficha, se juega.'],
+    move: ['Club nuevo. La primera semana, escucha más que hablas.'],
     top: ['{lg}: una de las grandes ligas del mundo. Ahí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.'],
-    ses1: ['Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan.', 'Jugado de verdad rinde más que en rápido. Y el entrenador mira los entrenos para elegir el seis.']
+    ses1: ['Buen primer entreno. No te mates a sesiones antes de un partido, que llegas sin piernas.', 'El entrenador mira los entrenos para elegir el seis.']
   };
   // (midLow del diseño, recortado por el plan: midWindow del entrenador ya cubre el ecuador)
   var BEAT_ORDER = ['hola', 'debut', 'win1', 'loss1', 'rival', 'bench1', 'slump', 'streak', 'title', 'award', 'up', 'down', 'move', 'top', 'vet', 'ses1'];
@@ -184,7 +184,7 @@
   }
   var NEWS_MAX = 60, ANNALS_MAX = 40, ROUND_MAX = 3, W_SUMMER = 0, W_END = 15;
   var STREAK_AT = { 4: 1, 6: 1, 8: 1, 11: 1, 14: 1 };   // rachas que son noticia (antes 4, 6, 8, 10, 12, 14: el colista salía cada dos jornadas)
-  var MKT = true;   // mercado de verano inventado (pura ambientación; plan §3: apagable, lo decide Ferran)
+  var MKT = true;   // mercado de verano inventado (pura ambientación; plan §3: apagable)
   function pick(r, a) { return a[Math.floor(r() * a.length) % a.length]; }
   function ordn(n) { return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   // Plantillas (género neutro: «líder», «gana el Open», nunca «campeón»). {a}/{b} clubes, {sc} parciales, {L} «el Circuito…»,
@@ -407,14 +407,25 @@
   }
 
   // ------------------------------------------------------------------ enciclopedia de clubes (E5b)
-  // Apodos de cosas del mar (no de personas): masculinos y femeninos sin marcar género de nadie.
-  var NICKS = ['Los Cangrejos', 'La Marea', 'Las Gaviotas', 'Los Delfines', 'La Ola', 'Los Erizos', 'La Brisa', 'Las Medusas', 'Los Pelícanos', 'El Faro', 'La Espuma', 'Los Albatros',
-    'Las Caracolas', 'El Oleaje', 'Los Tiburones', 'La Duna', 'Los Corsarios', 'La Resaca', 'Los Salinos', 'Las Mareas Vivas'];
-  // Pista: apodos y lemas de pabellón (sin mar), con el mismo cuidado de no marcar el género de nadie.
-  var NICKS6 = ['Los Halcones', 'La Muralla', 'Los Lobos', 'La Fortaleza', 'Las Águilas', 'El Muro', 'Los Toros', 'La Marea Roja', 'Los Linces', 'La Colmena',
-    'El Vendaval', 'Los Búhos', 'La Forja', 'Los Cometas', 'La Tormenta', 'Los Osos', 'El Trueno', 'Las Panteras', 'Los Zorros', 'La Avalancha'];
-  var MOTTOS6 = ['Ni un balón al suelo', 'La red es nuestra casa', 'Seis como uno', 'Bloqueo y corazón', 'Del barrio al mundo', 'Pabellón lleno, red alta', 'Nunca dejamos de saltar', 'Cada punto, una batalla'];
-  var MOTTOS = ['Nacido en la orilla', 'Arena en las venas', 'Ni un balón al suelo', 'De la cala al mundo', 'Sol, sal y bloqueo', 'Siempre de cara al viento', 'La red es nuestra casa', 'Cada punto, una ola'];
+  // Apodos por el sitio o por el color de la camiseta ('*': «Los » + color, sale de kit.shirt).
+  var NICKS = ['*', 'Los de la cala', 'Los del paseo', 'Los del espigón', '*', 'Los de la lonja', 'Los del chiringuito', 'Los de la playa chica', '*', 'Los de la bocana',
+    'Los de las rocas', 'Los del puerto', '*', 'Los de la barca', 'Los de la duna', 'Los del náutico', '*', 'Los de poniente', 'Los de levante', 'Los de la escollera'];
+  var NICKS6 = ['*', 'Los del puerto', 'Los de la riera', 'El Poli', '*', 'Los del barrio alto', 'Los de la fábrica', 'Los del instituto', '*', 'Los de la estación',
+    'Los de la plaza', 'Los del polígono', '*', 'Los de arriba', 'Los del mercado', 'Los de la carretera', '*', 'Los del río', 'Los de la cooperativa', 'Los del Ensanche'];
+  // Cómo empezó el club (lore.motto: se queda la clave)
+  var MOTTOS6 = ['Lo fundaron cuatro profesores del instituto', 'Nació como sección del club de atletismo', 'Jugó veinte años al aire libre hasta que hicieron el poli', 'Tiene el mismo presidente desde que se fundó',
+    'Viste de ese color porque sobró tela de otro equipo', 'Desapareció una temporada por deudas y lo refundaron los jugadores', 'Empezó con los padres de la escuela de minivóley', 'Entrena en un colegio porque el pabellón se lo queda el fútbol sala'];
+  var MOTTOS = ['Lo fundaron cuatro socorristas un verano', 'Nació como sección del club náutico', 'Empezó con una red atada a dos farolas del paseo', 'Tiene el mismo presidente desde que se fundó',
+    'Viste de ese color porque sobró tela de otro equipo', 'Desapareció un verano por deudas y lo refundaron los jugadores', 'Guarda los postes en el almacén de un chiringuito', 'Nació del torneo de las fiestas del pueblo'];
+  function colWord(v) {
+    var n = colN(v, -1); if (n < 0) return '';
+    var r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    if (l > 0.86) return 'blancos'; if (l < 0.14) return 'negros'; if (d < 0.12) return '';
+    var h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60;
+    if (h < 15 || h >= 340) return l < 0.36 ? 'granas' : 'rojos'; if (h < 42) return 'naranjas'; if (h < 70) return 'amarillos'; if (h < 165) return 'verdes';
+    if (h < 200) return 'celestes'; if (h < 255) return 'azules'; if (h < 300) return 'morados'; return 'granas';
+  }
+  function nickOf(nk, k) { if (nk !== '*') return nk; var w = colWord(k && k.kit && k.kit.shirt); return w ? 'Los ' + w : 'Los de casa'; }
   /** Historia inventada (pura, por semilla e id; no se guarda): fundación, apodo, lema y títulos de antes de tu carrera. */
   function lore(c, k) {
     if (!c || !k) return null;
@@ -422,7 +433,7 @@
     var founded = ym ? +ym[1] : 1962 + Math.floor(r() * 50);
     var old = Math.max(0, Math.min(4, Math.round((k.q != null ? k.q : 0.5) * 3 * r() + lv * 0.6 * r() - 0.6)));
     var cups = Math.max(0, Math.min(4, Math.round(old * 0.8 * r() + r() - 0.4)));
-    return { founded: founded, nick: pick(r, H ? NICKS6 : NICKS), motto: pick(r, H ? MOTTOS6 : MOTTOS), oldLg: old, oldCup: cups };
+    return { founded: founded, nick: nickOf(pick(r, H ? NICKS6 : NICKS), k), motto: pick(r, H ? MOTTOS6 : MOTTOS), oldLg: old, oldCup: cups };
   }
   /** Filas de Liga › Clubes (orden de tabla): kit, posición, puntos, media, estrellas, cara a cara contigo y marcas. */
   function clubRows(c, lvl) {
@@ -476,7 +487,7 @@
   // no se repite la terna, así que tampoco dentro de una liga. Se resuelve recorriendo el grupo por id: determinista y estable.
   var CREST_SHAPES = ['clasico', 'redondo', 'frances', 'hex', 'moderno'], CREST_DIVS = ['liso', 'partido', 'tronchado', 'franja', 'cuartel'];
   var CREST_EMB = ['balon', 'estrella', 'ola', 'sol', 'red', 'torre', 'ancla', 'rayo'], CREST_EMB_H = ['balon', 'estrella', 'red', 'torre', 'ancla', 'rayo'];
-  var CREST_SALT = {};   // nombre del club → sal (por si Ferran ve uno que «recuerda» a un escudo real)
+  var CREST_SALT = {};   // nombre del club → sal (por si alguno que «recuerda» a un escudo real)
   var CREST_INK = 0x1d1530, CREST_WHITE = 0xffffff, CREST_MIN = 0.18;
   /** Hash de una cadena (FNV-1a, el mismo que hash() de career.js con un argumento). */
   function hstr(s) { var h = 2166136261; s = String(s); for (var j = 0; j < s.length; j++) { h ^= s.charCodeAt(j); h = Math.imul(h, 16777619); } h ^= 124; return h >>> 0; }

@@ -203,7 +203,7 @@ console.log('4) Racha de días seguidos');
   const v1 = J({ v: 1, wk: 202648, me: 'abc', days: { 20261123: 2 }, open: null, best: { w: 1, a: 26, b: 24, S: '1', A: '4' }, tries: [{ w: 1, a: 26, b: 24, k: 20261123 }], group: { wk: 202648, list: [{ n: 'Ana', w: 1, a: 26, b: 24, S: '', A: '' }] } });
   const M = load(fakeStorage({ 'make-the-cut.semana': v1 })).Semana; M._now(20261124);
   const ms = M.state();
-  ok('guardado v1 (semanal): se queda el nombre y lo demás empieza de cero', M.myName() === 'Jugador_abc' && !ms.best && ms.left === 3 && !ms.group && ms.streak.cur === 0, J({ n: M.myName(), best: ms.best, g: ms.group }));
+  ok('guardado v1 (semanal): se queda el nombre y lo demás empieza de cero', /^(Zurdo|Líbero|Central|Opuesto|Punta|Colocador)_abc$/.test(M.myName()) && !ms.best && ms.left === 3 && !ms.group && ms.streak.cur === 0, J({ n: M.myName(), best: ms.best, g: ms.group }));
 }
 
 // ------------------------------------------------------------------ 5) enlace
@@ -232,7 +232,7 @@ console.log('5) Enlace y mapa del grupo');
   ok('tu entrada se sustituye y no se duplica', rb2.list.length === 2 && rb2.list[1].w === 1 && rb2.list[1].S === '1');
   ok('nombre con @ (correo) no vale; largo se recorta a 12', A.cleanName('pepe@correo.es') === '' && A.cleanName('Nombre Muy Largo De Verdad') === 'Nombre_Muy_L' && A.cleanName('Àlex Ñu') === 'Àlex_Ñu');
   const N = load(fakeStorage()).Semana; N._now(20261123);
-  ok('sin apodo: «Jugador_xxx» estable', /^Jugador_[a-z0-9]{3}$/.test(N.myName()) && N.myName() === N.myName());
+  ok('sin apodo: apodo de pista y 3 letras, estable', /^(Zurdo|Líbero|Central|Opuesto|Punta|Colocador)_[a-z0-9]{3}$/.test(N.myName()) && N.myName() === N.myName());
   const stC = fakeStorage({ 'make-the-cut.nick': 'Cesc' }), C = load(stC).Semana; C._now(20261123);
   C.begin(); C.finish({}, { win: true, a: T + 1, b: T - 1 }); C.link();
   for (let i = 0; i < 9; i++) {
@@ -253,7 +253,7 @@ console.log('5) Enlace y mapa del grupo');
   const E = load(fakeStorage()).Semana; E._now(20261124);
   const mE = E.mergeLink(oldLink);
   ok('enlace semanal de antes: gone y sin guardar', mE && mE.gone && mE.old && !E.state().group, J(mE));
-  ok('texto para compartir', /^La jugada del día \(23 nov\): .+ gana el set\. Yo la gané \d+-\d+\. ¿Y tú\?$/.test(A.shareText()), A.shareText());
+  ok('texto para compartir', /^\d+-\d+( abajo| arriba)?(\. Me he quedado en| y lo he (levantado|sacado|cerrado):) \d+-\d+\.$/.test(A.shareText()) && A.shareText().indexOf('¿') < 0, A.shareText());
 }
 
 // ------------------------------------------------------------------ 6) zonesOf
@@ -292,10 +292,10 @@ console.log('8) Hoja final con d.sit');
   const base = { win: true, sets: [1, 0], setScores: [[26, 24]], pl: [], moments: [], spSaved: [], size: 2, seed: 1 };
   const M1 = R.endModel(Object.assign({ sit: { dayLbl: '24 nov', label: 'Set único a 25', start: [22, 24], a: 26, b: 24, win: true, i: 2, tries: 3, left: 1, best: { w: 1, a: 26, b: 24 }, isBest: true, streak: 3, up: true } }, base));
   ok('título «¡Salvada! 26-24» y sin titular', M1.title === '¡Salvada! 26-24' && !M1.headline && M1.blocks[0] === 'sit', M1.title + ' ' + M1.blocks.join());
-  ok('bloque «Jugada del día» con la racha que sube (en dorado)', (M1.heads || {}).sit === 'Jugada del día' && J(M1.sit.lines) === J(['Empezaste 22-24 (Set único a 25)', 'Intento 2 de 3 de hoy', '¡Cumplida! Racha: 3 días seguidos']) && M1.sit.isBest && M1.sit.upLine === 2, (M1.heads || {}).sit + ' ' + J(M1.sit.lines));
+  ok('bloque «Jugada del día» con la racha que sube (en dorado)', (M1.heads || {}).sit === 'Jugada del día' && J(M1.sit.lines) === J(['Empezaste 22-24 (Set único a 25)', 'Intento 2 de 3 de hoy', 'Hecho. Racha: 3 días seguidos']) && M1.sit.isBest && M1.sit.upLine === 2, (M1.heads || {}).sit + ' ' + J(M1.sit.lines));
   ok('botones: Otro intento | Compartir, Ver el grupo, Menú principal', M1.buttons.primary.id === 'again' && M1.buttons.primary.label === 'Otro intento' && J(M1.buttons.rest.map(b => b.id)) === J(['share', 'group', 'menu']));
   const M1b = R.endModel(Object.assign({ sit: { label: 'Set único a 25', start: [22, 24], a: 26, b: 24, win: true, i: 3, tries: 3, left: 0, best: { w: 1, a: 26, b: 24 }, isBest: true, streak: 3, up: false } }, base));
-  ok('2ª victoria del día: «¡Nuevo mejor de hoy!» y sin racha', M1b.sit.lines[2] === '¡Nuevo mejor de hoy: ganada 26-24!' && M1b.sit.lines[1] === 'Intento 3 de 3 de hoy: mañana, otra jugada', J(M1b.sit.lines));
+  ok('2ª victoria del día: «Nuevo mejor de hoy» y sin racha', M1b.sit.lines[2] === 'Nuevo mejor de hoy: ganada 26-24' && M1b.sit.lines[1] === 'Intento 3 de 3 de hoy: mañana, otra jugada', J(M1b.sit.lines));
   const M2 = R.endModel(Object.assign({}, base, { win: false, sets: [0, 1], setScores: [[23, 25]], sit: { label: '3r set a 15', start: [14, 13], a: 23, b: 25, win: false, i: 3, tries: 3, left: 0, best: { w: 1, a: 16, b: 14 }, isBest: false } }));
   ok('sin intentos: «Compartir» es el principal y «Se escapó: 23-25»', M2.buttons.primary.id === 'share' && J(M2.buttons.rest.map(b => b.id)) === J(['group', 'menu']) && M2.title === 'Se escapó: 23-25');
   const M3 = R.endModel(Object.assign({}, base, { sit: { label: '3r set a 15', start: [14, 13], a: 15, b: 13, win: true, i: 1, tries: 3, left: 2, best: null } }));

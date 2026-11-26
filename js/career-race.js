@@ -593,9 +593,9 @@
     }).join('') + '</div></div>';
   }
   function subLine(c, st) {
-    if (c.phase === 'off') return 'Temporada cerrada — resultado final';
-    if (c.phase !== 'league') return 'Liga terminada — tus partidos de copa aún suman';
-    return 'Jornada ' + st.wk + ' de ' + st.W + ' — se actualiza cada jornada';
+    if (c.phase === 'off') return 'Temporada cerrada: resultado final';
+    if (c.phase !== 'league') return 'Liga terminada; tus partidos de copa aún suman';
+    return 'Jornada ' + st.wk + ' de ' + st.W + ', se actualiza cada jornada';
   }
   var HELP = 'El 1r al final de la liga gana el premio en la gala. Para el MVP tu club debe acabar 1r o 2º. Si simulas más de la mitad de los partidos, no te ven. Con menos de 6 partidos no entras.';
   function page(c, subId, H) {
@@ -616,7 +616,7 @@
     if (id !== 'oth') {
       var st = standings(c, id), cat = CATS[id], ttl = id === posCat(c) && id !== 'ace' && id !== 'mvp' ? 'Tu puesto: ' + cat.name : cat.name;
       var wk = c.phase === 'league' ? 'jornada ' + st.wk + ' de ' + st.W : c.phase === 'off' ? 'final' : 'liga terminada';
-      if (ph) h += '<div class="card cpr-tbl cpr-tph"><p class="cpr-unit">' + hE(H, ttl + ': ' + cat.unit.charAt(0).toLowerCase() + cat.unit.slice(1) + (st.open ? '' : ', favoritos') + ' — ' + wk) + '</p>' + listHTML(c, st, H) + '</div>';   // (sin el sello «MVP»)
+      if (ph) h += '<div class="card cpr-tbl cpr-tph"><p class="cpr-unit">' + hE(H, ttl + ': ' + cat.unit.charAt(0).toLowerCase() + cat.unit.slice(1) + (st.open ? '' : ', favoritos') + ', ' + wk) + '</p>' + listHTML(c, st, H) + '</div>';   // (sin el sello «MVP»)
       else h += '<div class="card cpr-tbl"><h3>' + hE(H, ttl) + '</h3><p class="cpr-unit">' + hE(H, cat.unit + (st.open ? '' : ', favoritos')) + '</p>' + listHTML(c, st, H) + '</div>';
       h += needCard(c, id, st, H);
     }
@@ -645,7 +645,7 @@
     var g = gala(c); if (!g || !g.it.length) return '';
     var it = g.it.filter(function (x) { return x.me; }).concat(g.it.filter(function (x) { return !x.me; }));
     var n = g.it.filter(function (x) { return x.me; }).length;
-    return '<div class="card cpr-gala"><h3>Gala de premios</h3><p class="cpr-unit">' + hE(H, (n ? (n === 1 ? 'Te llevas 1 premio' : 'Te llevas ' + n + ' premios') : 'Esta vez no hay premio para ti') + (g.lg ? ' — ' + g.lg : '')) + '</p>' +
+    return '<div class="card cpr-gala"><h3>Gala de premios</h3><p class="cpr-unit">' + hE(H, (n ? (n === 1 ? 'Te llevas 1 premio' : 'Te llevas ' + n + ' premios') : 'Esta vez no hay premio para ti') + (g.lg ? ', ' + g.lg : '')) + '</p>' +
       '<div class="cpr-gl" role="list">' + it.map(function (x) {
         var w = !x.me && x.why && WHY[x.why] ? WHY[x.why](x) : !x.me && x.r ? 'Tú: ' + ord(x.r) + '.' : '';
         var v = f1(x.v);

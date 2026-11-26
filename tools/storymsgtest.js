@@ -163,7 +163,8 @@ for (const mode of ['beach', 'hall']) {
   fakeMatch(S, c);
   ok(pq() === 1, mode + ': con otra decisión pendiente y la prensa tocando, sí sale');
   const e = c.story.feed.filter(x => /^pq\d+$/.test(x.b)).pop(), t = S.text(c, e);
-  ok(t.o.length === 3 && /^De equipo/.test(t.o[0].t) && /^Humilde/.test(t.o[1].t) && /^Chulería/.test(t.o[2].t), mode + ': 3 respuestas apiladas (equipo, humilde, chulería): ' + t.x);
+  const tw = (S.sys('msgs').tpl[e.b].o || []).map(o => o.why);
+  ok(t.o.length === 3 && t.o.every(o => /^«/.test(o.t)) && /equipo/.test(tw[0]) && /humilde/i.test(tw[1]) && /Chulería/.test(tw[2]), mode + ': 3 respuestas apiladas sin etiqueta de tono (equipo, humilde, chulería en el porqué): ' + t.x);
   c.life.ev = null; c.story.pressNext = c.story.mN + 1;
   const used = c.story.pressQ.slice(); fakeMatch(S, c);
   const e2 = c.story.feed.filter(x => /^pq\d+$/.test(x.b)).pop();
@@ -176,7 +177,7 @@ section('7. Textos de todas las plantillas (todas las variantes) en playa y pist
   const B0 = H.boot({}), T0 = B0.S.sys('msgs').tpl.studyBroke;
   ok(!!T0 && T0.k === 'press' && !T0.o && T0.x.length === 3, 'studyBroke: plantilla de prensa sin opciones');
 }
-const DEMO = { who: 'Alex Prueba', otro: 'Sam Ensayo', rival: 'Voley Cádiz', nota: '7,8', n: '4', m: 'Diario La Red', seat: 'Gael Arnedo', ref: 'Nerea Quirada Garbero', fama: 'de mano dura', quien: 'Sam', cerrada: 'diagonal', abierta: 'línea' };   // (cerrada / abierta: T.studyBroke)
+const DEMO = { who: 'Alex Prueba', otro: 'Sam Ensayo', rival: 'Voley Cádiz', nota: '7,8', n: '4', m: 'Diario La Red', seat: 'Gael Arnedo', ref: 'Nerea Quirada Garbero', fama: 'de mano dura', quien: 'Sam', cerrada: 'diagonal', abierta: 'línea', fin: '15-13 en el quinto' };   // (cerrada / abierta: T.studyBroke)
 for (const mode of ['beach', 'hall']) {
   const B = H.boot({}), S = B.S, M = S.sys('msgs');
   const c = drive(B, { mode, seasons: 1, seed: 88 });
@@ -277,7 +278,7 @@ for (const mode of ['beach', 'hall']) {
   const R = W.arbPanel(c)[0], X = { played: true, end: false, real: true, H: mode === 'hall', mN: 1 }, beat = id => M.BEATS.filter(b => b.id === id)[0];
   const amb = o => Object.assign({ cards: [], myY: 0, myR: 0, myProt: 0, brk: 0, brkName: '', protests: 0, fair: true, ref: R.id }, o);
   const sumOf = a => ({ season: c.season, rivalName: 'Voley Prueba', win: false, sets: [1, 2], nota: 6, amb: a });
-  ok(M.PRESS.length === 17 && M.PRESS[16][2] === 'ref' && /\{ref\}/.test(M.PRESS[16][1]), 'pregunta 17 de prensa, al final, solo con árbitro');
+  ok(M.PRESS.length === 20 && M.PRESS[16][2] === 'ref' && /\{ref\}/.test(M.PRESS[16][1]), 'pregunta 17 de prensa solo con árbitro (las nuevas, detrás)');
   ok(beat('refCard').when(c, sumOf(amb({ myY: 1, cards: [{ team: 0, color: 'yellow', mine: true }] })), X, c.story) && !beat('refCard').when(c, sumOf(amb({ myY: 1, ref: '' })), X, c.story) && !beat('refCard').when(c, sumOf(amb({})), X, c.story),
     mode + ': refCard solo con 1r designado y tarjeta tuya');
   const vc = beat('refCard').v(c, sumOf(amb({ myY: 1 })), X, c.story);

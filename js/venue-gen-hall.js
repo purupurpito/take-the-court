@@ -186,7 +186,7 @@
         g.fillStyle = bg; g.fillRect(qq[0], qq[1], qq[2], qq[3]);
         g.strokeStyle = fg === ink ? 'rgba(29,21,48,0.6)' : 'rgba(255,255,255,0.85)'; g.lineWidth = 3 * k; g.setLineDash([10 * k, 7 * k]); g.strokeRect(qq[0] + 6 * k, qq[1] + 6 * k, qq[2] - 12 * k, qq[3] - 12 * k); g.setLineDash([]);
         g.save(); g.translate(qq[0] + qq[2] / 2, qq[1] + qq[3] / 2); g.rotate(i % 2 ? 0.02 : -0.025);
-        g.fillStyle = fg; KIT.fitFont(g, t, 'italic 900', 40 * k, qq[2] * 0.86, FONT); g.fillText(t, 0, 2 * k); g.restore();
+        g.fillStyle = fg; KIT.fitFont(g, t, '900', 40 * k, qq[2] * 0.86, FONT); g.fillText(t, 0, 2 * k); g.restore();
       });
       // escudo grande (fondo y vitrina)
       var cq = R(A.crest); g.fillStyle = KM(P.wall, '#ffffff', 0.5); g.fillRect(cq[0], cq[1], cq[2], cq[3]);

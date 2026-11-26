@@ -54,12 +54,13 @@
     [0x7b2cbf, 0xffd60a, 0x240046, 0x80ffdb, 'franjas'], [0x2b9348, 0xffffff, 0x1b4332, 0xff70a6, 'liso'],
     [0xffd60a, 0x000814, 0x003566, 0xe63946, 'rayas'], [0xff70a6, 0x3a0ca3, 0x3a0ca3, 0x70e000, 'diag']];
   var COACHES = {
-    sarg: { name: 'Silbato y disciplina', ns: ['Maite Olano', 'Ramón Ezcurra'], line: 'Silbato al cuello y cero excusas. Si llegas tarde, corres. Si llegas pronto, también.' },
-    poeta: { name: 'Recetas de cocina', ns: ['Toni Bergara', 'Lola Arrieta'], line: 'Jugó en la élite hasta que la rodilla dijo basta. Explica la recepción con recetas de cocina.' },
-    datos: { name: 'La libreta', ns: ['Rosa Quintana', 'Iñaki Soler'], line: 'Libreta de colores y una estadística para todo. Sabe cuántos saques fallaste el curso pasado.' },
-    opti: { name: '¡Vamos, familia!', ns: ['Chema Urrutia', 'Nuria Calvet'], line: 'Optimismo sin fin. Grita «¡vamos, familia!» hasta perdiendo 0-10.' }
+    sarg: { name: 'El del silbato', nameF: 'La del silbato', fem: ['Maite Olano'], ns: ['Maite Olano', 'Ramón Ezcurra'], line: 'Silbato al cuello y cero excusas. Si llegas tarde, corres. Si llegas pronto, también.' },
+    poeta: { name: 'El exjugador de la rodilla', nameF: 'La exjugadora de la rodilla', fem: ['Lola Arrieta'], ns: ['Toni Bergara', 'Lola Arrieta'], line: 'Jugó en la élite hasta que la rodilla dijo basta. Explica la recepción con recetas de cocina.' },
+    datos: { name: 'El del Excel', nameF: 'La del Excel', fem: ['Rosa Quintana'], ns: ['Rosa Quintana', 'Iñaki Soler'], line: 'Libreta de colores y una estadística para todo. Sabe cuántos saques fallaste el curso pasado.' },
+    opti: { name: 'El que grita', nameF: 'La que grita', fem: ['Nuria Calvet'], ns: ['Chema Urrutia', 'Nuria Calvet'], line: 'Optimismo sin fin. Grita «¡vamos, familia!» hasta perdiendo 0-10.' }
   };
   var COACH_K = ['sarg', 'poeta', 'datos', 'opti'];
+  function coachTag(co) { var C0 = COACHES[co.p]; return C0.fem.indexOf(co.n) >= 0 ? C0.nameF : C0.name; }
   var FRIENDS = ['Sasha Merino', 'Noa Lastra', 'Iker Bosque', 'Lu Carrasco', 'Ari Montes', 'Jon Telmo', 'Vera Ocaña', 'Dani Rius'];
   var RIVALS = ['Bruno Salcedo', 'Kai Navarro', 'Mara Villalta', 'Teo Arribas', 'Nil Castell', 'Gala Ortuño', 'Unai Brea', 'Iris Pons'];
   var RIVAL_STORY = {
@@ -120,12 +121,12 @@
   // La variante sale de hash(seed, 'pro-v', b, i) (sin tirar). Variables: {yo} {amigo} {rival} {coach} {school} {rschool} {opp}
   // {cup} {lg} {ciudad} {sitio} {nota} {n} {w}. Frases cortas, ≤ 140 caracteres.
   var CH = {
-    intro_team: { k: 'team', x: ['{coach} ha creado el grupo «Juvenil {ciudad}». Silenciadlo bajo vuestra responsabilidad.'] },
+    intro_team: { k: 'team', x: ['{coach} ha creado el grupo «Juvenil {ciudad}»'] },
     intro_coach: { k: 'coach', xc: {
-      sarg: ['Te damos la bienvenida al {school}. Entreno a las 9. Las 9 son las 8:45.'],
-      poeta: ['Te damos la bienvenida. El vóley es como un buen guiso: sin prisa y con cariño.'],
-      datos: ['Te damos la bienvenida. Ya tienes tu página en mi libreta. De momento está en blanco.'],
-      opti: ['¡Te damos la bienvenida a la familia del {school}! Esto va a ser enorme. Enorme.'] } },
+      sarg: ['Fotocopia del DNI y la autorización firmada antes del viernes, que si no no os puedo tramitar la ficha. Las 9 son las 8:45.'],
+      poeta: ['Fotocopia del DNI y la autorización firmada antes del viernes, que si no no os puedo tramitar la ficha. Entreno a las 9.'],
+      datos: ['Fotocopia del DNI y la autorización firmada antes del viernes, que si no no os puedo tramitar la ficha. Entreno a las 9.'],
+      opti: ['Fotocopia del DNI y la autorización firmada antes del viernes, que si no no os puedo tramitar la ficha. Entreno a las 9.'] } },
     intro_friend: { k: 'friend', x: ['¡Por fin en el mismo equipo! Este año el {cup} es nuestro.', '¿Has visto el calendario? El derbi es en la jornada 2. Ya me sudan las manos.'] },
     pers_coach: { k: 'coach', xp: {
       work: ['{yo}, me dicen que llegas antes que yo a los entrenos. Eso se acaba: ahora llego a las 6.'],
@@ -139,19 +140,19 @@
     pre_j1_friend: { k: 'friend', x: ['¿Nervios? He desayunado dos veces sin darme cuenta.', 'Mañana me pongo las rodilleras de la suerte. Las lavé. Creo.'] },
     post_w_coach: { k: 'coach', xc: {
       sarg: ['Bien. Mañana, a las 8:45. Ya sabes.', 'Correcto. No te emociones, que aún queda.'],
-      poeta: ['Hoy el guiso ha salido sabroso. Que no se nos pegue.', 'Buen partido. Eso es cocinar a fuego lento.'],
+      poeta: ['Buen partido. El jueves repasamos la recepción, que hoy ha habido sustos.', 'Bien. Estirad antes de iros, que mañana hay clase.'],
       datos: ['Nota {nota}. La apunto en verde.', 'Victoria. Ya van {w}. Lo tengo todo apuntado.'],
       opti: ['¡ESO ES, FAMILIA! Mañana más.', '¡Qué orgullo! Me he quedado sin voz y sin uñas.'] } },
     post_w_friend: { k: 'friend', x: ['¡Qué partidazo! Esta noche no duermo.', '¿Has visto mi saque del final? Dime que lo has visto.', 'Ganar contigo es lo mejor. Bueno, y el bocadillo de después.'] },
     post_l_coach: { k: 'coach', xc: {
       sarg: ['Hoy no. Mañana, vídeo a las 8:45.', 'Derrota. Se acepta y se corrige. En ese orden.'],
-      poeta: ['Se nos ha quemado el arroz. Pasa en las mejores cocinas.', 'Hoy faltó sal. Mañana probamos otra vez.'],
+      poeta: ['Se nos ha quemado el arroz. Pasa en las mejores cocinas.', 'Hoy no ha salido. El jueves lo vemos con calma.'],
       datos: ['Nota {nota}. La apunto en lápiz: se puede borrar.', 'Derrota. Los números dicen que el próximo toca ganar.'],
-      opti: ['Perder también se entrena. Mañana, más.', '¡Cabeza alta, familia! Esto es una carrera, no un sprint.'] } },
+      opti: ['Perder también se entrena. Mañana, más.', '¡Cabeza alta! Y mañana, el que llegue tarde hincha los balones.'] } },
     post_l_friend: { k: 'friend', x: ['Bah. El próximo lo ganamos. Lo he soñado.', 'Pizza y a olvidarlo. Pago yo. Bueno, a medias.'] },
     sim_coach: { k: 'coach', xc: {
       sarg: ['Resultado apuntado. Yo quiero verlo, no que me lo cuenten.'],
-      poeta: ['Me cuentan el partido, pero un plato contado no alimenta.'],
+      poeta: ['Me han pasado el resultado. Prefiero verlo desde el banquillo.'],
       datos: ['Tengo el resultado, pero ninguna estadística tuya. Nadie te ha visto.'],
       opti: ['¡Partido jugado! Bueno, eso dicen. Ningún ojeador lo vio.'] } },
     pre_j2_rival: { k: 'rival', x: ['Dicen que el derbi lo ganáis. Lo dicen en vuestro instituto, claro.', 'Te he guardado sitio en la red. Para pasarte por encima.'] },
@@ -167,9 +168,9 @@
     pre_j3_friend: { k: 'friend', x: ['Si ganamos la última, entramos mejor al torneo. Hoy no fallo ni una.', 'Último de la liguilla. Me he aprendido de memoria los saques de {opp}.'] },
     pre_sf_coach: { k: 'coach', xc: {
       sarg: ['Hay ojeadores. No me importa. A mí me importa la colocación.'],
-      poeta: ['Hay ojeadores en la grada. Vosotros, como el pan: a vuestro horno.'],
+      poeta: ['Hay ojeadores en la grada. Jugad como en el entreno del jueves.'],
       datos: ['Tres ojeadores en la grada. Ya he apuntado de qué clubes son. Vosotros, a lo vuestro.'],
-      opti: ['¡Familia! Hay ojeadores. No los miréis. Bueno, una vez y ya.'] } },
+      opti: ['Hay ojeadores. No los miréis. Bueno, una vez y ya.'] } },
     pre_sf_fam: { k: 'fam', x: ['Mañana vamos todos. Tu tía ha pedido el día libre. Para ella ya eres profesional.'] },
     post_sf_w_friend: { k: 'friend', x: ['¡A LA FINAL! Ya he avisado a medio instituto.'] },
     post_sf_l_friend: { k: 'friend', x: ['La semi duele. Mañana lo arreglamos con un bronce.'] },
@@ -177,17 +178,17 @@
       sarg: ['Final. Lo de siempre: saque dentro y cabeza fría.'],
       poeta: ['La final es el postre. Nadie se va sin postre.'],
       datos: ['Final a 21. Seis puntos más que de costumbre. He hecho los cálculos: nos sobran.'],
-      opti: ['¡UNA FINAL, FAMILIA! Respirad. Yo no puedo, pero el equipo sí.'] } },
+      opti: ['¡UNA FINAL! Respirad. Yo no puedo, pero el equipo sí.'] } },
     pre_f_world: { k: 'friend', world: 1, x: ['En la grada está Álex Marí, Faro. Doce temporadas en la élite. Dicen que ha venido a ver a alguien.'] },
     pre_f_fam: { k: 'fam', x: ['Vamos todos. La abuela ha hecho una pancarta. No te asustes.'] },
     pre_p3_coach: { k: 'coach', xc: {
       sarg: ['Mañana, el bronce. Un bronce también pesa.'],
-      poeta: ['No hay final, pero hay bronce. Es la tortilla del día siguiente: aún mejor.'],
+      poeta: ['No hay final, pero hay bronce. Y el bronce se lleva a casa igual.'],
       datos: ['Por el 3r puesto. Los ojeadores siguen en la grada. Los he contado.'],
-      opti: ['¡A por el bronce, familia! El bronce brilla si lo frotas.'] } },
+      opti: ['Mañana, el bronce. El bronce brilla si lo frotas.'] } },
     pre_p3_fam: { k: 'fam', x: ['Mañana también vamos. La pancarta vale para un bronce. La abuela dice que sí.'] },
     post_f_w_friend: { k: 'friend', x: ['¡CAMPEONES! Voy a dormir con la medalla puesta.'] },
-    post_f_w_fam: { k: 'fam', x: ['La abuela ha llorado. Dice que es la alergia. En noviembre.'] },
+    post_f_w_fam: { k: 'fam', x: ['La abuela ha llorado y luego ha preguntado si te pagan.'] },
     post_f_l_friend: { k: 'friend', x: ['Plata. Suena a poco, pero es de plata de verdad. Bueno, pintada.'] },
     post_p3_w_friend: { k: 'friend', x: ['¡Bronce! Medalla es medalla. Me la cuelgo hasta para dormir.'] },
     post_p3_l_friend: { k: 'friend', x: ['Cuartos. Pero qué temporada, ¿eh? Qué temporada.'] },
@@ -195,7 +196,7 @@
     end_friend: { k: 'friend', x: ['Prométeme que cuando salgas en la tele me saludarás.', 'Vayas donde vayas, el grupo del juvenil no se borra.'] },
     end_coach: { k: 'coach', xc: {
       sarg: ['Buen trabajo. No te lo diré dos veces, así que léelo dos veces.'],
-      poeta: ['Te vas a una cocina más grande. No olvides la receta: sin prisa y con cariño.'],
+      poeta: ['Te vas a un club grande. Allí no te van a esperar. Llega pronto.'],
       datos: ['{n} partidos, nota media {nota}. Te guardo una página en la libreta.'],
       opti: ['Ha sido un honor, familia. Un honor enorme. Voy a llorar un poquito.'] } }
   };
@@ -214,18 +215,18 @@
   };
   // frase del entrenador en la tarjeta del próximo partido (por partido y personalidad)
   var LINES = {
-    j1: { sarg: 'Saque dentro y a correr. No pido más. Bueno, sí: no llegues tarde.', poeta: 'Primer partido: como el primer café, que entre suave.',
+    j1: { sarg: 'Saque dentro y a correr. No pido más. Bueno, sí: no llegues tarde.', poeta: 'Primer partido. Que entre el saque y lo demás ya vendrá.',
       datos: '{opp} recibe mal por la zona 5. Saca ahí. Lo tengo apuntado.', opti: '¡Primer partido de la temporada! Disfrutad, que esto pasa volando.' },
     j2: { sarg: 'Es un derbi. Para mí, un partido más. Para ti, también.', poeta: 'Un derbi es como una paella en domingo: todos opinan y nadie la hace bien.',
       datos: '{rival} remata casi siempre en diagonal. Ya sabes dónde ponerte.', opti: '¡DERBI, familia! Que se oiga desde la otra punta de la ciudad.' },
-    j3: { sarg: 'Último de la liguilla. Ganarlo da mejor cruce. Sin excusas.', poeta: 'Cerramos la liguilla. Que el postre no se nos queme.',
+    j3: { sarg: 'Último de la liguilla. Ganarlo da mejor cruce. Sin excusas.', poeta: 'Cerramos la liguilla. Ganar da mejor cruce.',
       datos: 'Si ganamos, cruce más cómodo en el torneo. He hecho las cuentas tres veces.', opti: 'Último de liga. ¡Vamos a por él con todo!' },
-    sf: { sarg: 'Hay ojeadores. Me da igual. A ti también te tiene que dar igual.', poeta: 'Hay gente mirando desde la grada. Cocina como si no hubiera nadie.',
-      datos: 'Tres ojeadores en la grada. Ya he apuntado de qué clubes son.', opti: '¡Hay ojeadores, familia! No los miréis. Bueno, una vez y ya.' },
+    sf: { sarg: 'Hay ojeadores. Me da igual. A ti también te tiene que dar igual.', poeta: 'Hay gente mirando desde la grada. Juega como si no hubiera nadie.',
+      datos: 'Tres ojeadores en la grada. Ya he apuntado de qué clubes son.', opti: 'Hay ojeadores. No los miréis. Bueno, una vez y ya.' },
     f: { sarg: 'Final a 21. Seis puntos más para equivocarse menos.', poeta: 'La final es el postre. Nadie se va sin postre.',
       datos: 'Final a 21. He calculado que nos sobran puntos. Cuatro, más o menos.', opti: '¡UNA FINAL! Respirad. Yo no puedo, pero el equipo sí.' },
-    p3: { sarg: 'El bronce también pesa. Quiero verlo colgado.', poeta: 'No hay final, pero hay bronce: la tortilla del día siguiente, aún mejor.',
-      datos: 'Por el 3r puesto. Los ojeadores siguen en la grada. Los he contado.', opti: '¡A por el bronce! El bronce brilla si lo frotas.' }
+    p3: { sarg: 'El bronce también pesa. Quiero verlo colgado.', poeta: 'No hay final, pero hay bronce. Se lleva a casa igual.',
+      datos: 'Por el 3r puesto. Los ojeadores siguen en la grada. Los he contado.', opti: 'El bronce brilla si lo frotas.' }
   };
   var AGENT_TX = {
     joya: 'Después del {cup} no paran de llamarme: {n} ofertas y {t} pruebas, una en {liga}. No te lo creas mucho. Bueno, un poco sí.',
@@ -718,7 +719,7 @@
     if (p.st === 'intro') return { title: 'Juvenil', chip: 'Presentación', line: x.sch[0].n, aria: 'Juvenil: presentación' };
     if (p.st === 'scout') return { title: 'Juvenil', chip: 'Informe', line: 'Informe de los ojeadores', aria: 'Juvenil: informe de los ojeadores' };
     var m = p.m[Math.min(4, p.i)], op = m && m.opp >= 0 ? x.sch[m.opp] : null;
-    return { title: 'Juvenil', chip: 'J' + (p.i + 1) + ' de 5', line: op ? x.sch[0].ab + ' — ' + op.ab : x.sch[0].n, aria: 'Juvenil: jornada ' + (p.i + 1) + ' de 5' };
+    return { title: 'Juvenil', chip: 'J' + (p.i + 1) + ' de 5', line: op ? x.sch[0].ab + ' contra ' + op.ab : x.sch[0].n, aria: 'Juvenil: jornada ' + (p.i + 1) + ' de 5' };
   }
 
   // ================================================================== chat
@@ -751,7 +752,7 @@
     if (p.chat.length > CHAT_MAX) p.chat = p.chat.slice(-CHAT_MAX);
   }
   function unreadChat(c) { var p = c && c.pro; return p && Array.isArray(p.chat) ? p.chat.filter(function (x) { return !x.r; }).length : 0; }
-  function senderName(c, k) { var x = c.pro.cast; return k === 'coach' ? x.coach.n : k === 'friend' ? x.friend.n : k === 'rival' ? x.rival.n : k === 'fam' ? 'Tu gente' : k === 'agent' ? (story() ? 'Cris Montoya' : 'Tu agente') : 'Grupo'; }
+  function senderName(c, k) { var x = c.pro.cast; return k === 'coach' ? x.coach.n : k === 'friend' ? x.friend.n : k === 'rival' ? x.rival.n : k === 'fam' ? 'Familia' : k === 'agent' ? (story() ? 'Cris Montoya' : 'Tu agente') : 'Grupo'; }
 
   // ================================================================== interfaz (cadenas HTML; career-ui pone cabecera y pestañas)
   var Q = ':root:not(#_):not(#_):not(#_) #career', PQ = Q.replace(':root', ':root.ph'), PS = Q.replace(':root', ':root.ph.ph-s');
@@ -974,7 +975,7 @@
   function scoreTxt(c, m) { var x = c.pro.cast; return m.res ? x.sch[0].ab + ' ' + m.res.sc[0] + '-' + m.res.sc[1] + ' ' + x.sch[m.opp].ab : ''; }
   function pills(h, goals, res) {
     return '<div class="pro-pills" role="list">' + goals.map(function (g, j) {
-      var ok = res ? res.ok[j] : undefined, cl = ok === 1 ? ' ok' : ok === 0 ? ' no' : ok === null ? ' na' : '', ic = ok === 1 ? '✓' : ok === 0 ? '✗' : ok === null ? '–' : '◎';
+      var ok = res ? res.ok[j] : undefined, cl = ok === 1 ? ' ok' : ok === 0 ? ' no' : ok === null ? ' na' : '', ic = ok === 1 ? 'Sí' : ok === 0 ? 'No' : ok === null ? '–' : '';
       var sr = ok === 1 ? ', cumplido' : ok === 0 ? ', no cumplido' : ok === null ? ', nadie te vio' : '';
       return '<span class="pro-pill' + cl + '" role="listitem" aria-label="' + h.esc(g.txt + sr) + '"><i aria-hidden="true">' + ic + '</i>' + h.esc(g.txt) + '</span>';
     }).join('') + '</div>';
@@ -994,7 +995,7 @@
     } else if (pg === 1) {
       var C0 = COACHES[x.coach.p];
       b += '<div class="pro-panel p2"><span class="pro-pt">Tu equipo</span><div class="pro-two">' +
-        '<div class="pro-card">' + av('coach', x.coach.n.charAt(0), true) + '<div><b class="pro-n">' + h.esc(x.coach.n) + '</b><br><span class="pro-tag">' + h.esc('Te entrena: ' + C0.name) + '</span><p>' + h.esc(C0.line) + '</p></div></div>' +
+        '<div class="pro-card">' + av('coach', x.coach.n.charAt(0), true) + '<div><b class="pro-n">' + h.esc(x.coach.n) + '</b><br><span class="pro-tag">' + h.esc('Te entrena: ' + coachTag(x.coach)) + '</span><p>' + h.esc(C0.line) + '</p></div></div>' +
         '<div class="pro-card">' + av('friend', x.friend.n.charAt(0), true) + '<div><b class="pro-n">' + h.esc(x.friend.n) + '</b><br><span class="pro-tag">' + h.esc(hall ? (x.friend.pos === 'S' ? 'Te coloca' : roleName(c, x.friend.pos)) + ', n.º ' + x.friend.num : 'Tu primera pareja, n.º ' + x.friend.num) + '</span>' +
         '<p>Os conocéis desde primaria y os lo contáis todo.' + (hall ? '' : ' En la arena sois dos y no hay dónde esconderse.') + '</p></div></div></div></div>';
     } else {
@@ -1019,7 +1020,7 @@
     // (móvil, movil-aire §5.5: tres filas compactas «J3 A vs B» / «1 set a 15 | IA Fácil» / objetivos; la competición ya va en la cabecera)
     return '<div class="card x-go pro-go"><h3>' + h.esc(MATCH[m.id].lbl) + '</h3>' +
       '<div class="pro-vs">' + (ph ? '<em class="pro-j">' + h.esc(MATCH[m.id].short) + '</em>' : '') + h.kitSw(kitObj(x.sch[0])) + '<b>' + h.esc(x.sch[0].n) + '</b><i>vs</i>' + h.kitSw(kitObj(op)) + '<b>' + h.esc(op.n) + '</b></div>' +
-      '<p class="muted">' + spv(h, ['1 set a ' + m.pts, ph ? '' : ko ? h.esc(x.comp.cup) : h.esc(x.comp.lg), 'IA ' + h.esc(ai.name)]) + (ko ? ' <span class="tag y">Ojeadores</span>' : '') + '</p>' +
+      '<p class="muted">' + spv(h, ['1 set a ' + m.pts, ph ? '' : ko ? h.esc(x.comp.cup) : h.esc(x.comp.lg), h.esc({ 'Fácil': 'Rival flojo', 'Normal': 'Rival parejo', 'Difícil': 'Rival duro', 'Experto': 'Rival muy duro' }[String(ai.name || '').replace(/ suave$/, '')] || '')]) + (ko ? ' <span class="tag y">Ojeadores</span>' : '') + '</p>' +
       pills(h, m.goals, null) +
       '<div class="pro-say">' + av('coach', x.coach.n.charAt(0)) + '<p>' + h.esc(ln) + '</p></div>' +
       '<p class="pro-note" role="status" aria-live="polite">' + h.esc(note) + '</p>' +
@@ -1032,7 +1033,7 @@
       var op = m.opp >= 0 ? x.sch[m.opp] : null, lbl = '<b>' + h.esc(MATCH[m.id].short) + '</b>';
       if (!m.res) return '<div class="pro-row' + (j === p.i ? ' next' : '') + '">' + lbl + '<span>' + (op ? 'vs ' + h.esc(op.n) : 'Rival por decidir') + '</span><span class="r muted">' + (j === p.i ? 'Ahora' : 'Pendiente') + '</span></div>';
       var met = m.res.ok.filter(function (v) { return v === 1; }).length;
-      return '<div class="pro-row">' + lbl + '<span><span class="' + (m.res.w ? 'w' : 'l') + '">' + (m.res.w ? '✓' : '✗') + '</span> ' + h.esc(scoreTxt(c, m)) + '</span><span class="r">' +
+      return '<div class="pro-row">' + lbl + '<span><span class="' + (m.res.w ? 'w' : 'l') + '">' + (m.res.w ? 'G' : 'P') + '</span> ' + h.esc(scoreTxt(c, m)) + '</span><span class="r">' +
         h.sp(['nota ' + fmt1(m.res.nota), m.res.sim ? 'simulado' : met + ' de 2'], 'v') + '</span></div>';
     }).join('');
     return '<div class="card' + (h.ph() ? ' pro-ih' : '') + '"><h3>Tus partidos</h3><div class="pro-rows">' + rows + '</div></div>';
@@ -1048,7 +1049,7 @@
     var row = function (lbl, g) {
       if (!g) return '<div class="pro-row"><b>' + h.esc(lbl) + '</b><span class="muted">Por decidir</span><span class="r muted">—</span></div>';
       var a = x.sch[g[0]], b = x.sch[g[1]], has = g.length > 2;
-      return '<div class="pro-row' + (g[0] === 0 || g[1] === 0 ? ' next' : '') + '"><b>' + h.esc(lbl) + '</b><span>' + h.esc(a.ab + ' — ' + b.ab) + '</span><span class="r">' + (has ? g[2] + '-' + g[3] : 'Pendiente') + '</span></div>';
+      return '<div class="pro-row' + (g[0] === 0 || g[1] === 0 ? ' next' : '') + '"><b>' + h.esc(lbl) + '</b><span>' + h.esc(a.ab + ' - ' + b.ab) + '</span><span class="r">' + (has ? g[2] + '-' + g[3] : 'Pendiente') + '</span></div>';
     };
     return '<div class="card"><h3>' + h.esc(x.comp.cup) + '</h3><div class="pro-rows">' + row('Semi', br.semis[0]) + row('Semi', br.semis[1]) + row('Final', br.final) + row('3r puesto', br.p3) + '</div></div>';
   }
@@ -1068,7 +1069,7 @@
         (right ? '<span class="pro-ar">' + right + '</span>' : '') + '<i class="pro-chev" aria-hidden="true">▾</i></summary>' + bio + '</details></div>';
     };
     var b = '<div class="card pro-tl"><div class="pro-tg">' +
-      row('Te entrena', 'coach', x.coach.n, h.esc(C0.name), '', '<p>' + h.esc(C0.line) + '</p>') +
+      row('Te entrena', 'coach', x.coach.n, h.esc(coachTag(x.coach)), '', '<p>' + h.esc(C0.line) + '</p>') +
       row(hall ? 'Tu mejor amistad' : 'Tu pareja', 'friend', x.friend.n, h.sp(['n.º ' + x.friend.num, h.esc(roleName(c, x.friend.pos))], 'v'), '', '<p>Os conocéis desde primaria y os lo contáis todo.' + (hall ? '' : ' En la arena sois dos y no hay dónde esconderse.') + '</p>') +
       row('Tu rival', 'rival', rv.n, h.sp([h.esc(x.sch[3].n), 'n.º ' + rv.num], 'v'), '<b>' + p.h2h[0] + '-' + p.h2h[1] + '</b>', '<p>Estilo: ' + h.esc(sn) + '. ' + h.esc(RIVAL_STORY[rv.style]) + '</p><p>Cara a cara: ' + p.h2h[0] + '-' + p.h2h[1] + '</p>') +
       '</div>';
@@ -1083,7 +1084,7 @@
     var p = c.pro, x = p.cast, hall = hallC(c), C0 = COACHES[x.coach.p], rv = x.rival, L = VB.CareerLife;
     var sn = L && L.BOSS_STYLES && L.BOSS_STYLES[rv.style] ? L.BOSS_STYLES[rv.style].name : STYLE_NAME[rv.style], ab = armed('pro-abandon');
     var b = '<div class="pro-two">' +
-      '<div class="card"><h3>Te entrena</h3><div class="pro-card">' + av('coach', x.coach.n.charAt(0), true) + '<div><b>' + h.esc(x.coach.n) + '</b><p class="muted">' + h.esc(C0.name) + '</p><p>' + h.esc(C0.line) + '</p></div></div></div>' +
+      '<div class="card"><h3>Te entrena</h3><div class="pro-card">' + av('coach', x.coach.n.charAt(0), true) + '<div><b>' + h.esc(x.coach.n) + '</b><p class="muted">' + h.esc(coachTag(x.coach)) + '</p><p>' + h.esc(C0.line) + '</p></div></div></div>' +
       '<div class="card"><h3>' + (hall ? 'Tu mejor amistad' : 'Tu pareja') + '</h3><div class="pro-card">' + av('friend', x.friend.n.charAt(0), true) + '<div><b>' + h.esc(x.friend.n) + '</b><p class="muted">' +
         h.sp(['n.º ' + x.friend.num, h.esc(roleName(c, x.friend.pos))], 'v') + '</p><p>Os conocéis desde primaria y os lo contáis todo.</p></div></div></div></div>';
     if (hall) b += '<div class="card"><h3>' + h.esc(x.sch[0].n) + '</h3><div class="pro-rows">' + x.mates.map(function (mt) {
@@ -1208,14 +1209,14 @@
 
   // ---- hoja final del partido (main.js careerExtSheet: html + title + kicker + back)
   function rtBand(v) { if (v == null) return 'rt-na'; v = round1(v); return v < 5 ? 'rt-bad' : v < 6 ? 'rt-low' : v < 7 ? 'rt-mid' : v < 8 ? 'rt-good' : 'rt-top'; }
-  function titleOf(id, win) { return id === 'f' ? (win ? '¡Título!' : 'Plata') : id === 'p3' ? (win ? '¡Bronce!' : 'Cuartos') : win ? '¡Victoria!' : 'Derrota'; }
+  function titleOf(id, win) { return id === 'f' ? (win ? '¡Título!' : 'Plata') : id === 'p3' ? (win ? '¡Bronce!' : 'Cuartos') : win ? 'Victoria' : 'Derrota'; }
   function sheetData(d) {
     var gl = (d.goals || []).map(function (g) {
       var ok = g.ok === true, no = g.ok === false;
       // (móvil, movil-aire §5.5: el objetivo en corto en una ficha de una línea; en PC, el largo: .ph-only / .ph-no)
       var gs = String(g.txt || '').replace(/^Como mucho (\d+)/, '≤ $1').replace(/^Nota de ([\d,]+) o más$/, 'Nota ≥ $1');
       var gt = gs !== g.txt ? '<span class="ph-no">' + esc(g.txt) + '</span><span class="ph-only" aria-hidden="true">' + esc(gs) + '</span>' : esc(g.txt);
-      return '<span class="' + (ok ? 'ok' : no ? 'no' : '') + '"><i aria-hidden="true">' + (ok ? '✓' : no ? '✗' : '–') + '</i>' + gt + (g.v != null ? ' <small>(' + (g.v | 0) + ')</small>' : '') + '<span class="sr">' + (ok ? ', cumplido' : no ? ', no cumplido' : ', nadie te vio') + '</span></span>';
+      return '<span class="' + (ok ? 'ok' : no ? 'no' : '') + '"><i aria-hidden="true">' + (ok ? 'Sí' : no ? 'No' : '–') + '</i>' + gt + (g.v != null ? ' <small>(' + (g.v | 0) + ')</small>' : '') + '<span class="sr">' + (ok ? ', cumplido' : no ? ', no cumplido' : ', nadie te vio') + '</span></span>';
     }).join('');
     var html = '<div class="pro-end"><div class="pro-en ' + rtBand(d.nota) + '" aria-label="' + esc('Nota ' + fmt1(d.nota)) + '"><b>' + fmt1(d.nota) + '</b><small>NOTA</small></div>' +
       '<div class="pro-et"><strong class="pro-sc">' + esc(d.score) + '</strong>' + (gl ? '<div class="et-goals">' + gl + '</div>' : '') +

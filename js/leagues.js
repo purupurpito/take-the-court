@@ -202,32 +202,32 @@
       ] },
       { country: "España", code: "ES", tier: 3, divisions: [
         { lvl: 1, name: "Hiperliga", short: "HPL", strength: 72, clubs: [
-            {"name":"Voley Roque Nublo","sponsor":"Gofio La Plancha","short":"RNB","city":"Las Palmas de Gran Canaria","gender":"M","colors":{"shirt":"#ffe900","shirt2":"#002fa7","libero":"#ffffff"},"liberoEstimated":false,"ovr":75},
-            {"name":"Voley Numantia Soria","sponsor":"Torreznos El Remate","short":"NUM","city":"Soria","gender":"M","colors":{"shirt":"#7a1e48","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":73},
+            {"name":"Voley Roque Nublo","short":"RNB","city":"Las Palmas de Gran Canaria","gender":"M","colors":{"shirt":"#ffe900","shirt2":"#002fa7","libero":"#ffffff"},"liberoEstimated":false,"ovr":75},
+            {"name":"Voley Numantia Soria","short":"NUM","city":"Soria","gender":"M","colors":{"shirt":"#7a1e48","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":73},
             {"name":"Vóley Rusadir","short":"RUS","city":"Melilla","gender":"M","colors":{"shirt":"#2e64fe","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":true,"ovr":71},
-            {"name":"Vòlei Manacor","sponsor":"Ensaïmades Es Bloqueig","short":"MAN","city":"Manacor","gender":"M","colors":{"shirt":"#e60026","shirt2":"#000000","libero":"#8e5cc8"},"liberoEstimated":false,"ovr":70},
+            {"name":"Vòlei Manacor","sponsor":"Forn Can Toni","short":"MAN","city":"Manacor","gender":"M","colors":{"shirt":"#e60026","shirt2":"#000000","libero":"#8e5cc8"},"liberoEstimated":false,"ovr":70},
             {"name":"Voley Lagunero","short":"LAG","city":"San Cristóbal de La Laguna","gender":"M","colors":{"shirt":"#1f4e9e","shirt2":"#ffffff","libero":"#4fa8e0"},"liberoEstimated":true,"ovr":67},
-            {"name":"Voley Turia","sponsor":"Chanclas Supersónicas","short":"TUA","city":"Teruel","gender":"M","colors":{"shirt":"#e55206","shirt2":"#1a1a1a","libero":"#ffffff"},"liberoEstimated":false,"ovr":67},
-            {"name":"Vòlei Ciutadellenc","sponsor":"Formatges Es Mur","short":"CIU","city":"Ciutadella de Menorca","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#1b2a4a"},"liberoEstimated":false,"ovr":73},
-            {"name":"Voley Hispalis","sponsor":"Churrería El Saque","short":"HIS","city":"Sevilla","gender":"W","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#e0409a"},"liberoEstimated":false,"ovr":72},
-            {"name":"Voley Tamarán","sponsor":"Mojo Picón La Red","short":"TAM","city":"Las Palmas de Gran Canaria","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#005bac","libero":"#c9b3e6"},"liberoEstimated":false,"ovr":70},
-            {"name":"Voley Vegueta","sponsor":"Talleres La Colocación","short":"VEG","city":"Las Palmas de Gran Canaria","gender":"W","colors":{"shirt":"#005bac","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":69},
-            {"name":"Voley Jarrero","sponsor":"Bodegas La Diagonal","short":"JAR","city":"Haro","gender":"W","colors":{"shirt":"#7b1e3a","shirt2":"#ffffff","libero":"#e86a92"},"liberoEstimated":true,"ovr":68},
-            {"name":"Vòlei Santcugatenc","sponsor":"Forn de Pa La Recepció","short":"SCG","city":"Sant Cugat del Vallès","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#111111","libero":"#ffffff"},"liberoEstimated":true,"ovr":67}
+            {"name":"Voley Turia","short":"TUA","city":"Teruel","gender":"M","colors":{"shirt":"#e55206","shirt2":"#1a1a1a","libero":"#ffffff"},"liberoEstimated":false,"ovr":67},
+            {"name":"Vòlei Ciutadellenc","short":"CIU","city":"Ciutadella de Menorca","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#1b2a4a"},"liberoEstimated":false,"ovr":73},
+            {"name":"Voley Hispalis","sponsor":"Reformas Hnos. Prieto","short":"HIS","city":"Sevilla","gender":"W","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#e0409a"},"liberoEstimated":false,"ovr":72},
+            {"name":"Voley Tamarán","short":"TAM","city":"Las Palmas de Gran Canaria","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#005bac","libero":"#c9b3e6"},"liberoEstimated":false,"ovr":70},
+            {"name":"Voley Vegueta","sponsor":"Talleres Suárez","short":"VEG","city":"Las Palmas de Gran Canaria","gender":"W","colors":{"shirt":"#005bac","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":69},
+            {"name":"Voley Jarrero","short":"JAR","city":"Haro","gender":"W","colors":{"shirt":"#7b1e3a","shirt2":"#ffffff","libero":"#e86a92"},"liberoEstimated":true,"ovr":68},
+            {"name":"Vòlei Santcugatenc","short":"SCG","city":"Sant Cugat del Vallès","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#111111","libero":"#ffffff"},"liberoEstimated":true,"ovr":67}
         ] },
         { lvl: 2, name: "Hiperliga 2", short: "HL2", strength: 60, clubs: [
             {"name":"Rei en Jaume Vòlei","short":"RJV","city":"Valencia","gender":"M","colors":{"shirt":"#f28c00","shirt2":"#1a1a1a","libero":"#f4b6c4"},"liberoEstimated":false,"ovr":64},
-            {"name":"Voley Indalo","sponsor":"Tomates El Líbero","short":"IND","city":"Almería","gender":"M","colors":{"shirt":"#3f8f00","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":63},
-            {"name":"Voley Pepinero","sponsor":"Fotocopias La Finta","short":"PEP","city":"Leganés","gender":"M","colors":{"shirt":"#00305e","shirt2":"#ffffff","libero":"#f39200"},"liberoEstimated":true,"ovr":62},
-            {"name":"Voley Benidormí","sponsor":"Hamacas El Ace","short":"BND","city":"Benidorm","gender":"M","colors":{"shirt":"#0072bc","shirt2":"#ffd100","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":61},
-            {"name":"Voley Sanroqueño","sponsor":"Autoescuela La Rotación","short":"SRQ","city":"San Roque","gender":"M","colors":{"shirt":"#003da5","shirt2":"#ffffff","libero":"#e53935"},"liberoEstimated":true,"ovr":60},
-            {"name":"Vòlei Tàrraco","sponsor":"Romesco La Dejada","short":"TRC","city":"Tarragona","gender":"M","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":false,"ovr":58},
-            {"name":"Voley Nivaria","sponsor":"Plátanos El Pipe","short":"NIV","city":"San Cristóbal de La Laguna","gender":"W","colors":{"shirt":"#1e50a0","shirt2":"#ffffff","libero":"#f39200"},"liberoEstimated":true,"ovr":64},
-            {"name":"Voley Isleta","sponsor":"Sancocho El Flotante","short":"ISL","city":"Las Palmas de Gran Canaria","gender":"W","colors":{"shirt":"#00a3e0","shirt2":"#ffffff","libero":"#e4002b"},"liberoEstimated":true,"ovr":63},
-            {"name":"Voley Lucus","sponsor":"Pulpería El Bloqueo","short":"LUC","city":"Lugo","gender":"W","colors":{"shirt":"#0033cc","shirt2":"#ffffff","libero":"#e8708a"},"liberoEstimated":true,"ovr":62},
-            {"name":"Voley Socuellamino","sponsor":"Quesos El Contraataque","short":"SOC","city":"Socuéllamos","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#1a1a1a","libero":"#ffffff"},"liberoEstimated":true,"ovr":60},
-            {"name":"Voley Chicharrero","sponsor":"Barraquito El Toque","short":"CHT","city":"Santa Cruz de Tenerife","gender":"W","colors":{"shirt":"#1e50a0","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":58},
-            {"name":"Voley Alcobendense","sponsor":"Colchones La Zambullida","short":"ALB","city":"Alcobendas","gender":"W","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#2456c8"},"liberoEstimated":false,"ovr":57}
+            {"name":"Voley Indalo","short":"IND","city":"Almería","gender":"M","colors":{"shirt":"#3f8f00","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":63},
+            {"name":"Voley Pepinero","short":"PEP","city":"Leganés","gender":"M","colors":{"shirt":"#00305e","shirt2":"#ffffff","libero":"#f39200"},"liberoEstimated":true,"ovr":62},
+            {"name":"Voley Benidormí","sponsor":"Apartamentos Marisa","short":"BND","city":"Benidorm","gender":"M","colors":{"shirt":"#0072bc","shirt2":"#ffd100","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":61},
+            {"name":"Voley Sanroqueño","sponsor":"Autoescuela Campo","short":"SRQ","city":"San Roque","gender":"M","colors":{"shirt":"#003da5","shirt2":"#ffffff","libero":"#e53935"},"liberoEstimated":true,"ovr":60},
+            {"name":"Vòlei Tàrraco","short":"TRC","city":"Tarragona","gender":"M","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":false,"ovr":58},
+            {"name":"Voley Nivaria","short":"NIV","city":"San Cristóbal de La Laguna","gender":"W","colors":{"shirt":"#1e50a0","shirt2":"#ffffff","libero":"#f39200"},"liberoEstimated":true,"ovr":64},
+            {"name":"Voley Isleta","short":"ISL","city":"Las Palmas de Gran Canaria","gender":"W","colors":{"shirt":"#00a3e0","shirt2":"#ffffff","libero":"#e4002b"},"liberoEstimated":true,"ovr":63},
+            {"name":"Voley Lucus","sponsor":"Óptica Miño","short":"LUC","city":"Lugo","gender":"W","colors":{"shirt":"#0033cc","shirt2":"#ffffff","libero":"#e8708a"},"liberoEstimated":true,"ovr":62},
+            {"name":"Voley Socuellamino","short":"SOC","city":"Socuéllamos","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#1a1a1a","libero":"#ffffff"},"liberoEstimated":true,"ovr":60},
+            {"name":"Voley Chicharrero","sponsor":"Bar Chicho","short":"CHT","city":"Santa Cruz de Tenerife","gender":"W","colors":{"shirt":"#1e50a0","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":58},
+            {"name":"Voley Alcobendense","short":"ALB","city":"Alcobendas","gender":"W","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#2456c8"},"liberoEstimated":false,"ovr":57}
         ] }
       ] },
       { country: "Bélgica", code: "BE", tier: 3, divisions: [

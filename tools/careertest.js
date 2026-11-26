@@ -2038,7 +2038,7 @@ else {
     ok(fi.name === 'Conocido en la liga' && Lf.tierName(2) === 'Conocido en el circuito', 'escalón de fama de pabellón: «' + fi.name + '» (playa: «' + Lf.tierName(2) + '»)');
     ok(Lf.legacyTier(160, c).name === 'Ídolo del pabellón' && Lf.legacyTier(160).name === 'Ídolo del circuito', 'legado de pabellón: «' + Lf.legacyTier(160, c).name + '»');
     const al = Lf.achList(c), txt = al.map(a => a.name + ' ' + a.d).join(' | ');
-    ok(al.some(a => a.name === 'Veterano del parqué') && al.some(a => a.name === 'Director de orquesta') && !/arena|circuito|\bopen\b/i.test(txt), 'logros de pabellón (sin arena, circuito ni open)');
+    ok(al.some(a => a.name === 'Medio centenar') && al.some(a => a.name === 'Mil colocaciones') && !/arena|circuito|\bopen\b/i.test(txt), 'logros de pabellón (sin arena, circuito ni open)');
     ok(Lf.GEAR_KEYS.every(k => Lf.gearName(c, k)) && Lf.gearName(c, 'eyes') === 'Rodilleras de gel', 'material de pabellón'); }
   // cierre de temporada y temporada nueva
   { let g = 0; while (C.get().phase !== 'off' && g++ < 60) C.simulateNext();
@@ -2062,7 +2062,7 @@ else {
     const lg = C.get().life.log.slice(-1)[0];
     ok(lg && lg.t === 'Un compañero está de bajón' && lg.o === pe.opts[0].t && !/\{/.test(lg.o), 'historial de decisiones con el título de pabellón: «' + (lg && lg.t) + '» / «' + (lg && lg.o) + '»');
     c = C.get(); c.career.played = 49; C.save(c); let sm = null, g = 0; while (!sm && g++ < 5) { const x = C.simulateNext(); if (x && x.life && x.life.ach && x.life.ach.length) sm = x; }
-    ok(sm && sm.life.ach.indexOf('Veterano del parqué') >= 0 && sm.life.ach.every(n => !/arena/i.test(n)), 'la tarjeta del partido nombra el logro de pabellón (' + (sm && sm.life.ach.join(', ')) + ')');
+    ok(sm && sm.life.ach.indexOf('Medio centenar') >= 0 && sm.life.ach.every(n => !/arena/i.test(n)), 'la tarjeta del partido nombra el logro de pabellón (' + (sm && sm.life.ach.join(', ')) + ')');
     c = C.get(); const k = C.myClub(c), nC = H.leagueClubs(c, k.lid).length, w = H.weeksOf(c, k.lid);
     ok(Lf.seasonWeeks(c) === (nC % 2 ? w - w / nC : w), 'objetivo de patrocinio con las jornadas que juegas (' + nC + ' clubes: ' + Lf.seasonWeeks(c) + ' de ' + w + ')');
     const odd = [3, 5, 7, 9, 11].every(n => { const ww = n <= 8 ? 2 * n : n; return ww - ww / n === (n <= 8 ? 2 * (n - 1) : n - 1); });
@@ -2071,7 +2071,7 @@ else {
   ok(mem['make-the-cut.career'] === beachRaw, 'la Carrera de playa guardada al lado no ha cambiado');
   { C.setMode('beach'); C._reset(); const cb = C.get(), ch = Lf.challenge(cb);
     ok(cb && cb.mode !== 'hall' && ch && (ch.id === 'win' || ch.id === 'clean' || Lf.CH[ch.id].n[cb.myClub >= 0 ? C.myClub(cb).lvl : 0] === ch.n), 'playa: el reto sigue con sus umbrales (' + (ch && ch.txt) + ')');
-    ok(Lf.fameInfo(cb).name === 'Desconocido' && Lf.achList(cb).some(a => a.name === 'Veterano de la arena') && !Lf.achList(cb).some(a => a.name === 'Director de orquesta'), 'playa: sus textos y logros'); }
+    ok(Lf.fameInfo(cb).name === 'Desconocido' && Lf.achList(cb).some(a => a.name === 'Medio centenar') && !Lf.achList(cb).some(a => a.name === 'Mil colocaciones'), 'playa: sus textos y logros'); }
   // dejar todo como estaba
   C.abandon(); C._reset();
   if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6; else delete mem['make-the-cut.career6'];
@@ -2108,7 +2108,7 @@ else {
   const { c, hola } = run();
   ok(c && c.mode === 'hall' && c.season === 3 && !noW.world, 'dos temporadas de pista simuladas (' + c.history.map(h => h.lgShort + ' ' + h.pos).join(', ') + ')');
   ok(strip(c) === strip(noW), 'con y sin career-world.js la Carrera de pista es idéntica (salvo c.world y los mensajes de Faro)');
-  ok(hola && /pabellón/.test(hola) && !BAD.test(hola), 'Faro se presenta con textos de pabellón: «' + (hola || '').slice(0, 70) + '…»');
+  ok(hola && /federación/.test(hola) && /rotación/.test(hola) && !BAD.test(hola), 'Faro se presenta con textos de pabellón: «' + (hola || '').slice(0, 70) + '…»');
   ok(c.world.mentor.seen.hola && c.world.mentor.seen.debut, 'escenas «hola» y «antes del debut» (gancho join de la pista)');
   const allQ = c.world.mentor.q.concat([]).map(q => q.l.join(' ')).join(' | ') + ' | ' + c.inbox.filter(m => m.k === 'mentor').map(m => m.x).join(' | ');
   ok(!BAD.test(allQ) && !/\{/.test(allQ), 'escenas y bandeja de Faro sin arena, playa, circuito ni pareja');
@@ -2201,7 +2201,7 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
       const m0 = K.load().money; played(K); ok(K.load().money >= m0 && !('make-the-cut.look' in B.mem), 'sin look.js: se juega igual y no se escribe make-the-cut.look');
     } catch (e) { err = e.message; }
     ok(!err, 'sin look.js: las guardas no rompen nada' + (err ? ' — ' + err : ''));
-    ok(L.achName('m50', true) === 'Veterano del parqué' && L.achName('m50', false) === 'Veterano de la arena' && L.achName('m1') === 'Debut' && L.achName('nada') === '', 'achName: nh en la pista, name en la playa, «» si no existe');
+    ok(L.achName('m50', true) === 'Medio centenar' && L.achName('m50', false) === 'Medio centenar' && L.achName('m1') === 'Debut' && L.achName('nada') === '', 'achName: el mismo nombre en pista y playa, «» si no existe');
   }
   if (!fs.existsSync(LOOKF)) console.log('  (sin js/look.js: se salta el Vestuario con look.js)');
   else {

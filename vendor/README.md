@@ -7,18 +7,16 @@ worker y la política de privacidad ya no tiene que nombrar a cdnjs ni a Google 
 | Archivo | De dónde sale | Licencia |
 |---|---|---|
 | `three/three.min.js` | paquete oficial de npm `three@0.149.0`, `build/three.min.js`. Es byte a byte el mismo que servía cdnjs (sha1 `a13f10ad8e51d0398090f702eb553625fceded15`). | MIT, `three/LICENSE` |
-| `fonts/*.woff2` | Google Fonts, los mismos archivos que daba la hoja `css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=Bowlby+One&family=Titan+One&family=Rubik:wght@500;600;700;800&display=swap` pedida con un Chrome de escritorio (todos los subconjuntos: latin, latin-ext, vietnamese, cyrillic, hebrew, arabic; 45 archivos, 0,78 MB). El navegador solo baja los que necesita el texto; el service worker los guarda todos. | SIL Open Font License 1.1, `fonts/OFL-<familia>.txt` (copiados de github.com/google/fonts) |
-| `fonts/fonts.css` | la misma hoja de Google con las direcciones cambiadas a los archivos de al lado (mismos `unicode-range`, pesos y `font-display: swap`). | — |
+| `fonts/*.woff2` | Fontsource 5.3.0 (npm `@fontsource-variable/big-shoulders-display`, `@fontsource-variable/chivo` y `@fontsource-variable/doto`), carpeta `files/` por cdn.jsdelivr.net: las versiones variables (eje wght) de los subconjuntos latin y latin-ext (Doto, solo latin). 5 archivos, unos 125 KB. Big Shoulders Display para rótulos y cifras grandes, Chivo para el texto y Doto para el marcador del pabellón. | SIL Open Font License 1.1: `fonts/OFL-bigshoulders.txt` (github.com/xotypeco/big_shoulders), `fonts/OFL-chivo.txt` y `fonts/OFL-doto.txt` (github.com/google/fonts) |
+| `fonts/OFL-barlowcondensed.txt` | Se queda porque el rótulo del telón usa un recorte de Barlow Condensed incrustado en el index («VB Marca»). | SIL Open Font License 1.1 |
+| `fonts/fonts.css` | `@font-face` escritos a mano con los mismos `unicode-range` que trae Fontsource (`font-weight: 100 900`, `font-display: swap`). | — |
 
-Mismo aspecto: capturas a 568×320 antes y después (menú, Ajustes, marcador, pausa) con las mismas letras; `window.__vbFontFaces`
-sigue dando 7.
+`window.__vbFontFaces` cuenta las caras que han cargado al arrancar (4: dos pesos de cada familia de la interfaz).
 
 ## Cambiar algo
 
 - **three.js**: no cambiar de versión sin probar todo (CONTRACT.md: r149 es la última sin aviso del build UMD). Para volver a
   bajarla: `npm pack three@0.149.0` y sacar `package/build/three.min.js` y `package/LICENSE`.
-- **Una fuente o un peso nuevo**: pedir la hoja nueva a Google Fonts con un User-Agent de Chrome de escritorio, bajar los woff2,
-  cambiar las direcciones de `fonts.css` a nombres locales (`familia_versión_id.woff2`) y añadir el `OFL-<familia>.txt`. El build
-  mete en el service worker todo lo que nombra `fonts.css`.
+- **Una fuente nueva**: bajar el woff2 variable de Fontsource (`files/<familia>-latin-wght-normal.woff2` y `-latin-ext-`), añadir su `@font-face` a `fonts.css` con el `unicode-range` de su `index.css` y el `OFL-<familia>.txt`. Al ser variables, cualquier peso entre 100 y 900 sale del mismo archivo. El build mete en el service worker todo lo que nombra `fonts.css`.
 - El index las carga con rutas relativas (`vendor/fonts/fonts.css`, `vendor/three/three.min.js`): funcionan en file:// (las
   herramientas de `tools/`), en localhost y en Pages. build-pages les pone `?v=<hash>` como a los js.

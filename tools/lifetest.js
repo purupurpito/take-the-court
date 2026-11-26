@@ -271,7 +271,7 @@ if (!BOSS_ONLY) {
     ok(m.career.rivalP === rv.name && m.career.rivalNum === rv.num, 'm.career.rivalP = nombre del rival');
     // Cazajefes
     c.life.bossW = 3; const got = Lf.check(c).map(a => a.id);
-    ok(got.indexOf('boss3') >= 0, 'logro «Cazajefes» con 3 jefes');
+    ok(got.indexOf('boss3') >= 0, 'logro «Tres jefes» con 3 jefes');
     // pista: jefe de la liga (C3 fase 2), setup sin romper (también empezando en el banquillo)
     const H = C.hall;
     if (H && H.available && H.available()) {
@@ -336,7 +336,7 @@ if (!BOSS_ONLY) {
     c.mate.chem = 55; c.mate.chemLv = 1; c.life.ev = null; c.life.chemEv = 0; C.save(c);
     const s = playNext(C, true); c = C.get();
     const cm = c.inbox.filter(x => x.k === 'chem');
-    ok(c.mate.chem === 60 && cm.length === 1 && cm[0].t === 'Química: Compenetrados' && cm[0].x.indexOf(c.mate.name) === 0, 'de 55 a 60 tras matchDone → un mensaje «Química: Compenetrados»');
+    ok(c.mate.chem === 60 && cm.length === 1 && cm[0].t === 'Química: Compenetrados' && cm[0].x.indexOf(c.mate.name) >= 0 && !/\+\d/.test(cm[0].x) && /^\+2 /.test(cm[0].e), 'de 55 a 60 tras matchDone → un mensaje «Química: Compenetrados»');
     ok(s.life.chemUp && s.life.chemUp.name === 'Compenetrados' && s.life.chemUp.lv === 2, 'sum.life.chemUp = {lv 2, name}');
     ok(c.life.chemEv === 2, 'l.chemEv === 2');
     C.simulateNext(); c = C.get();
@@ -403,7 +403,7 @@ if (!BOSS_ONLY) {
     ok(Array.isArray(info) && info.length === 32 && info.filter(a => a.only !== 'hall').length === 31, 'ACH_INFO con 32 logros (31 en la playa; as1k es de pista): ' + info.length);
     ok(info.slice(-3).map(a => a.id).join() === 'ses10,sesg5,boss3', 'los 3 nuevos al final: ses10, sesg5, boss3');
     ok(info.every(a => a.id && a.name && a.d && Object.values(a).every(v => typeof v !== 'function')), 'ACH_INFO sin funciones, con id, name y d');
-    ok(info.filter(a => a.id === 'as1k')[0].only === 'hall' && info.filter(a => a.id === 'm50')[0].nh === 'Veterano del parqué', 'ACH_INFO conserva only y nh');
+    ok(info.filter(a => a.id === 'as1k')[0].only === 'hall', 'ACH_INFO conserva only');
     const c = C.create({ name: 'Entrenos', num: 3, seed: 99, autoClub: true });
     c.ts = { md: [0, 2, 6, 3] }; let got = Lf.check(c).map(a => a.id);
     ok(got.indexOf('ses10') < 0 && got.indexOf('sesg5') < 0, '9 de plata u oro y 3 oros: aún nada');

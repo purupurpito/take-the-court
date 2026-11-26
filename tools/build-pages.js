@@ -27,17 +27,86 @@
  * worker borra las viejas (el hash del index se calcula sin window.__vbBuild, que cambia en cada build: mismos archivos → mismo
  * sw.js). Luego escribe __vbBuild.sw = ese hash (js/sw-reg.js activa sin esperar el service worker de su propio build). Lo
  * registra js/sw-reg.js. Prueba: node tools/offlinetest.js.
+ * Comentarios: lo publicado sale sin los comentarios de línea entera de js/ (vendor/ no se toca), sin los <!-- --> del index
+ * y de pages/ ni los comentarios del CSS y de los <script> en línea del index; cada js resultante pasa node --check y los hash
+ * (?v= y sw.js) se calculan después.
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..'), OUT = path.resolve(ROOT, process.argv[2] || '_site');
 function fail(msg) { console.error('build-pages: ' + msg); process.exit(1); }
+// ---- comentarios fuera de lo que se publica (conservador: si hay duda, el comentario se queda)
+// JS: solo líneas enteras de // y bloques /* … */ que empiezan al principio de la línea y acaban la suya en */. Nunca los // de
+// final de línea (un '//' dentro de un string con URL rompería el código). Las líneas dentro de un template literal multilínea no
+// se tocan: se sigue el estado (strings, regex, plantillas) de lo que se queda; si al final del fichero no cuadra, el fichero se
+// copia tal cual. Se respetan /*! … */ y los bloques con License, Copyright o @license.
+const KEEP_BLOCK = /^\/\*!|License|Copyright|@license/;
+function jsScan(line, st) {   // st.tpl: dentro de una plantilla `…`; st.blk: dentro de un /* … */ que empezó a media línea
+  let prev = '';   // último carácter significativo fuera de strings (para distinguir una regex de una división)
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (st.blk) { if (c === '*' && line[i + 1] === '/') { st.blk = false; i++; } continue; }
+    if (st.tpl) { if (c === '\\') i++; else if (c === '`') { st.tpl = false; prev = '`'; } continue; }
+    if (c === ' ' || c === '\t') continue;
+    if (c === '/' && line[i + 1] === '/') return;
+    if (c === '/' && line[i + 1] === '*') { st.blk = true; i++; continue; }
+    if (c === '`') { st.tpl = true; continue; }
+    if (c === '"' || c === "'") {
+      for (i++; i < line.length && line[i] !== c; i++) if (line[i] === '\\') i++;
+      prev = c; continue;
+    }
+    if (c === '/' && (!prev || /[(,=:[!&|?{};+\-*%<>~^]/.test(prev))) {   // regex literal
+      let cls = false;
+      for (i++; i < line.length; i++) {
+        const d = line[i];
+        if (d === '\\') { i++; continue; }
+        if (cls) { if (d === ']') cls = false; } else if (d === '[') cls = true; else if (d === '/') break;
+      }
+      prev = '/'; continue;
+    }
+    prev = c;
+  }
+}
+function stripJs(src) {
+  const lines = src.split('\n'), out = [], st = { tpl: false, blk: false };
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (!st.tpl && !st.blk) {
+      if (t.startsWith('//')) continue;
+      if (t.startsWith('/*')) {
+        let j = i, end = -1;
+        for (; j < lines.length; j++) { const k = lines[j].indexOf('*/', j === i ? lines[i].indexOf('/*') + 2 : 0); if (k >= 0) { end = k; break; } }
+        if (end >= 0 && lines[j].slice(end + 2).trim() === '' && !KEEP_BLOCK.test(lines.slice(i, j + 1).join('\n'))) { i = j; continue; }
+      }
+    }
+    out.push(lines[i]);
+    jsScan(lines[i], st);
+  }
+  return st.tpl || st.blk ? null : out.join('\n');   // null: el estado no cuadra al final → se copia sin tocar
+}
+// HTML: <!-- … --> fuera de <script> y <style>; con css, también los /* … */ de dentro de <style> (no /*!). Un comentario que
+// ocupa líneas enteras se lleva sus líneas.
+function stripHtml(html, css) {
+  return html.split(/(<script\b[\s\S]*?<\/script>|<style\b[\s\S]*?<\/style>)/i).map((part, i) => {
+    if (i % 2) {
+      if (!css) return part;
+      if (/^<script/i.test(part)) {   // script en línea del index: las mismas reglas que js/, y tiene que seguir compilando
+        const m = /^(<script\b[^>]*>)([\s\S]*)(<\/script>)$/i.exec(part), body = m && stripJs(m[2]);
+        if (!m || body == null || body === m[2]) return part;
+        try { new vm.Script(body); } catch (e) { fail('un <script> del index no compila tras quitar comentarios (' + e.message + ')'); }
+        return m[1] + body + m[3];
+      }
+      return part.replace(/^[ \t]*\/\*(?!!)(?:(?!\*\/)[\s\S])*\*\/[ \t]*\r?\n/gm, '').replace(/\/\*(?!!)(?:(?!\*\/)[\s\S])*\*\//g, '');
+    }
+    return part.replace(/^[ \t]*<!--(?:(?!-->)[\s\S])*-->[ \t]*\r?\n/gm, '').replace(/<!--(?:(?!-->)[\s\S])*-->/g, '');
+  }).join('');
+}
 const srcRaw = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // El favicon con data URI de index.html (para file:// y el Artifact) sobra en Pages: manda icon.svg.
 // (los valores entre comillas pueden llevar «>» sin escapar dentro del SVG, por eso se recorre atributo a atributo)
 const linkTag = /[ \t]*<link\b(?:[^>"']|"[^"]*"|'[^']*')*>[ \t]*\r?\n?/gi;
 const noDataIcon = s => s.replace(linkTag, t => /\brel=["'](?:shortcut )?icon["']/i.test(t) && /\bhref=["']\s*data:/i.test(t) ? '' : t);
-const src = noDataIcon(srcRaw);
+const src = stripHtml(noDataIcon(srcRaw), true);
 if (/<!doctype|<html[\s>]|<head[\s>]|<body[\s>]/i.test(srcRaw)) throw new Error('index.html ya trae doctype/html/head/body: revisa el formato Artifact');
 
 // ---- versión: una sola fuente, js/version.js
@@ -110,7 +179,13 @@ const manifest = { id: './', name: 'Take the Court', short_name: 'Take the Court
 // Cada script lleva ?v=<hash de su contenido>: así el navegador (y la caché de 10 min de GitHub Pages) no sirve un js viejo
 // con un index nuevo. El index.html sí puede tardar esos 10 min en renovarse; los js que referencia son siempre los suyos.
 const crypto = require('crypto');
-const ver = f => crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, 'js', f))).digest('hex').slice(0, 8);
+const JS = new Map(), jsKept = [];   // js/ sin comentarios (lo que se publica y de lo que salen los hash)
+for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (f.endsWith('.js')) {
+  const raw = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'), st = stripJs(raw);
+  if (st == null) jsKept.push(f);
+  JS.set(f, st == null ? raw : st);
+}
+const ver = f => crypto.createHash('sha1').update(JS.has(f) ? JS.get(f) : fs.readFileSync(path.join(ROOT, 'js', f))).digest('hex').slice(0, 8);
 const hashOf = rel => crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, rel))).digest('hex').slice(0, 8);
 const htmlV = html.replace(/src="js\/([A-Za-z0-9_-]+\.js)"/g, (m, f) => 'src="js/' + f + '?v=' + ver(f) + '"')
   .replace(/(src|href)="(vendor\/[A-Za-z0-9_\/.-]+\.(?:js|css))"/g, (m, a, f) => a + '="' + f + '?v=' + hashOf(f) + '"');
@@ -126,7 +201,19 @@ fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest
 fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ v: VERSION }));   // (js/update.js: aviso de versión nueva en los móviles con una anterior)
 fs.cpSync(path.join(ROOT, 'pages'), OUT, { recursive: true }); // iconos, og.png, páginas legales y .well-known/ (con subcarpetas)
 if (fs.existsSync(path.join(ROOT, 'vendor'))) fs.cpSync(path.join(ROOT, 'vendor'), path.join(OUT, 'vendor'), { recursive: true, filter: f => !/README\.md$/i.test(f) }); // three.js, fuentes y sus licencias
-for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (f.endsWith('.js')) fs.copyFileSync(path.join(ROOT, 'js', f), path.join(OUT, 'js', f));
+for (const [f, txt] of JS) fs.writeFileSync(path.join(OUT, 'js', f), txt);
+{ const cp = require('child_process'), bad = [];
+  for (const f of JS.keys()) { const r = cp.spawnSync(process.execPath, ['--check', path.join(OUT, 'js', f)], { encoding: 'utf8' }); if (r.status !== 0) bad.push(f); }
+  if (bad.length) fail('node --check falla tras quitar comentarios en: ' + bad.join(', '));
+}
+if (jsKept.length) console.log('build-pages: aviso: copiados con comentarios (el recuento de strings no cuadra): ' + jsKept.join(', '));
+(function stripPages(dir) {   // <!-- --> de las páginas de pages/ copiadas
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) { if (p !== path.join(OUT, 'js') && p !== path.join(OUT, 'vendor')) stripPages(p); }
+    else if (/.html$/i.test(e.name) && p !== path.join(OUT, 'index.html')) fs.writeFileSync(p, stripHtml(fs.readFileSync(p, 'utf8'), false));
+  }
+})(OUT);
 // ---- service worker (sw.js): lista de lo que hace falta para jugar sin red, con el sha-256 de cada archivo
 // (las copias mínimas de abouttest/policytest no llevan la plantilla sw.js: entonces no hay service worker y se avisa)
 const swTplFile = path.join(ROOT, 'sw.js'), hasSw = fs.existsSync(swTplFile);

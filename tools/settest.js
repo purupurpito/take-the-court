@@ -257,10 +257,10 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await tab('info');
       await E(`document.querySelector('[data-go="credits"]').click(), 1`); await sleep(400);
       st = await J('VB.UI._settings()');
-      check('Info › Créditos abre Acerca de (Créditos) apilando Ajustes', st.panel === 'about' && st.stack.join() === 'set' && (await E(vis('#pnAbout'))) && /Creado por/i.test(await E(`document.getElementById('abBody').textContent`)), st);
+      check('Info › Créditos abre Info (Créditos) apilando Ajustes', st.panel === 'about' && st.stack.join() === 'set' && (await E(vis('#pnAbout'))) && /Lo hace/i.test(await E(`document.getElementById('abBody').textContent`)), st);
       await E(`document.getElementById('btnAbOk').click(), 1`); await sleep(400);
       st = await J('VB.UI._settings()');
-      check('«Entendido» vuelve a Ajustes › Info', st.panel === 'set' && st.tab === 'info', st);
+      check('«Vale» vuelve a Ajustes › Info', st.panel === 'set' && st.tab === 'info', st);
       await tap('Escape'); await sleep(400);
       check('Esc en Ajustes cierra el panel', !(await E('VB.UI.isPanelOpen()')));
     }
@@ -330,7 +330,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       check('pausa: «Pausa — Take the Court»', (await E('document.title')) === 'Pausa — Take the Court', await E('document.title'));
       await page.navigate('debug=over&nonews=1'); await ready(); await sleep(3000);
       const to = await E('document.title');
-      check('final: «¡Victoria! a-b» o «Derrota a-b»', /^(¡Victoria!|Derrota) \d-\d — Take the Court$/.test(to), to);
+      check('final: «Victoria a-b» o «Derrota a-b»', /^(Victoria|Derrota) \d-\d — Take the Court$/.test(to), to);
     }
     errs.push.apply(errs, page.errors);
   } catch (e) { fails++; console.log('  FAIL excepción: ' + (e && e.stack || e)); if (page) errs.push.apply(errs, page.errors); }

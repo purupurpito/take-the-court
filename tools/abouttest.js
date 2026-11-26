@@ -174,7 +174,7 @@ async function browser() {
     check(tz === 'Pausa — Take the Court', '(d) pausa: «' + tz + '»');
     await pg.navigate('debug=over'); await ready(pg); await sleep(3500);
     const to = await pg.evalJs('document.title');
-    check(/^(¡Victoria!|Derrota)/.test(to), '(d) debug=over: «' + to + '»');
+    check(/^(Victoria|Derrota|Ganan ellos)/.test(to), '(d) debug=over: «' + to + '»');
     pg.close();
     // (e) mando falso: Ajustes › Info › Créditos › B
     const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/const PAD = `([\s\S]*?)`;/)[1].replace('__PADID__', JSON.stringify('Mando virtual de pruebas (STANDARD GAMEPAD)'));
@@ -194,7 +194,7 @@ async function browser() {
     if (focused) {
       await press(0);
       const ok = await waitFor(pg, vis('#pnAbout'), 2000);
-      check(ok, '(e) A en «Créditos» abre Acerca de');
+      check(ok, '(e) A en «Créditos» abre Info');
       await press(1);
       const back = await waitFor(pg, '!' + vis('#pnAbout') + '&&' + vis('.opt-g[data-tab="info"]'), 2000);
       check(back, '(e) B vuelve a Ajustes en la pestaña Info');

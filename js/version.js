@@ -1,71 +1,4 @@
-/* TAKE THE COURT — js/version.js (owner: ui_main)
- * Una sola fuente para el número de versión, las novedades y los créditos. Solo datos: sin DOM y sin red.
- * Se carga el primero después de three.js (antes de account.js). Lo leen ui.js (panel «Acerca de», pestaña Info de Ajustes,
- * #btnVer de la portada, aviso de novedades una vez por versión), main.js (ctx.bootInfo.version) y tools/build-pages.js (con vm:
- * metadatos de Pages y guardas del build) y tools/abouttest.js.
- * REGLA DE VERSIONADO: cada publicación con un cambio que se vea en el juego sube VERSION y añade su entrada ARRIBA de CHANGELOG
- * (la más nueva primero). build-pages falla si CHANGELOG[0].v !== VERSION o si VERSION no es semver (x.y.z).
- * Textos (notes/ui_main.md, «Textos: guía de estilo»): frases cortas, sin el punto medio como pegamento, ordinales «1r» «2º»,
- * género neutro, sin nombres reales ni patrocinadores de verdad. Este fichero no lleva arrobas ni la palabra del programa de
- * navegación web (tools/abouttest.js lo comprueba en todo el fichero, comentarios incluidos).
- * 1.0.0 (12-nov-2026, decisión de Ferran): cierre del sprint 5. Sin créditos a herramientas de IA (Ferran, 12-nov-2026).
- * 1.1.0 (13-nov-2026): Vestuario (personalización del aspecto, js/look.js). Solo estética.
- * 1.2.0 (15-nov-2026): sedes generadas por club (js/venue-gen*.js) y pabellón al azar por partido.
- * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
- *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
- * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
- * 1.9.0 (17-nov-2026): Online V2, conexión Fluida (js/netfluid.js, notes/net.md «Online V2»).
- * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
- * 1.7.0 (17-nov-2026): Acta del partido (js/acta.js): los partidos 6v6 salen como acta de emPat (formato empat/acta). NO es público
- *   (Ferran, 17-nov-2026): el botón solo sale con su cuenta (ui.js ACTA_ALLOW) y las novedades no lo anuncian.
- * 1.8.0 (17-nov-2026): fusión de la rama pruebas-entrenos: pruebas con partidillo de petos (ampliadas: IA un nivel por encima,
- *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
- * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
- * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
- * 1.10.0 (17-nov-2026): consignas del entrenador en directo en la Carrera (js/consignas.js), idea de Ferran.
- * 1.11.0 (18-nov-2026): árbitros como en la vida real (FIVB 2025-2028, Guidelines) y bandera roja de vóley, a petición de Ferran.
- * 1.15.0 (19-nov-2026): IA con esfuerzo real (VB.EFFORT en sim.js): sin dado previo ni defensor «perdido» lento, a petición de Ferran.
- * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
- * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
- * 1.12.1 (18-nov-2026): vuelve la cámara de juego de antes de 1.8.1 (Ferran: «la nueva es horrible») con la regla de no perder el
- *   balón (js/camera.js ctUpdate: solo corrige cuando el balón se va del cuadro). El zoom de cámara se queda.
- * 1.14.0 (18-nov-2026): menús pensados para el móvil apaisado (Ferran: «se ve todo muy cramped»): escala de letra y piezas .ph
- *   de js/splat.js, cada pantalla con su versión de móvil (notes/splat.md §9, notes/ui_main.md «Móvil (v-next)»).
- * 1.14.1 (18-nov-2026): challenge en la conexión Fluida (Ferran: «pon challenge en v2»): árbitro con errores de línea como en
- *   Precisa; lo pide el que pierde el punto (ch), lo acepta la otra máquina (chok/chno) y la revisión corre en las dos
- *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
- * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
- *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
- * 1.19.0 (20-nov-2026): Carrera ampliada (notes/carrera.md, CONTRACT.md § extensiones): selección, lesiones, Estrellas y
- *   concursos, cesiones, carrera por los premios, plan de desarrollo, la zona, saque de firma y prólogo juvenil.
- * 1.18.0 (20-nov-2026): Vestuario renovado (notes/vestuario-plan.md, notes/players.md § Vestuario): casco de pelo nuevo con 32
- *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
- * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
- *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
- * 1.19.1 / 1.19.2 (21-nov-2026): icono nuevo de la app y logo «Red cruzada» (TAKE / THE en la cinta / COURT con balón como O).
- * 1.20.0 (21-nov-2026): el juego pasa a llamarse Take the Court (decisión de Ferran, marca libre) y se muda a takethecourt.com.
- *   Lo visible cambia; las claves internas (make-the-cut.*, proyecto de Firebase, gorraMTC) se quedan (notes/nombre.md). La
- *   partida viaja sola desde la dirección antigua con el puente (bridge/, js/migrate.js, notes/dominio.md).
- * 1.21.0 (21-nov-2026): sprint «único» (señas del
- *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
- *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
- * 1.22.0 (22-nov-2026, rama investigacion, publicada): imprescindibles del informe de la revisión (Jugar ya, partidos cortos,
- *   disposición táctil, marca e indicador de caída, IA variada, Retomar el partido). Versión nueva OBLIGATORIA: la IA variada cambia
- *   lo que simula cada lado y el lobby online y el sello de Retomar separan por VB.VERSION (una 1.21.0 en caché no debe cruzarse).
- * 1.23.0 (24-nov-2026): online de varios (sprint online-multi, notes/net.md «Online de varios»): 2 contra 2 con hasta 4 personas
- *   (Precisa-N), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js; beta), salas con formato y sitios, y Carrera cooperativa
- *   de playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas. La rama online-multi se numeró
- *   1.22.0 sin publicar; la investigacion salió antes como 1.22.0, así que esta es 1.23.0: el online decide si dos versiones juegan
- *   juntas SOLO por este número (salas: v = PROTO|VB.VERSION; sesiones: el saludo compara VB.VERSION).
- *   Fusión de la rama playstore (24-nov-2026): jugar sin red (sw.js + js/sw-reg.js, solo en la web publicada; notes/offline.md),
- *   privacidad y borrar la cuenta, app de Android (TWA, android/), nombre anónimo «Jugador NNNN» y filtro de nombres
- *   (js/namefilter.js, también en salas de varios, coop y 6v6) y caducidad de los informes de red (exp, EXP_RULES = true).
- * 1.24.0 (25-nov-2026, rama release-124): una sola versión con tres ramas sobre 1.23.0: decisiones (decisiones de Ferran del
- *   24-nov: primera vez con ¡Jugar ya!/Tutorial, formato del Partido rápido en Jugar, jugada del día, «Te leen», repeticiones a
- *   petición y en 6v6, salpis, cámara quieta en el saque, árbitros con aspecto, premios por nivel; notes/pendientes-ferran.md),
- *   feedback (Sugerencia y Bug, js/feedback.js, notes/feedback.md; numerada 1.22.1 sin publicar, su entrada pasa aquí) y
- *   movil-aire (móvil en horizontal html.ph y vertical html.pv, notes/movil-aire.md; el PC no cambia).
- */
+/* version.js: número de versión, novedades y créditos. Solo datos. Cada versión que cambia algo visible sube VERSION y pone su entrada ARRIBA del CHANGELOG (build-pages falla si no cuadran). Items de 90 caracteres como mucho, sin punto medio, sin arrobas y sin la palabra del programa de navegación (abouttest.js). */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
@@ -76,481 +9,139 @@
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.24.0', d: '2026-11-25', t: 'La jugada del día',
+      v: '1.24.0', d: '2026-11-25', t: 'Un final al día',
       items: [
-        'La jugada del día: cada día, un final apretado para todos. Cuenta tus días seguidos.',
-        'Sugerencia y Bug: mándanos ideas o avisa de un fallo desde Ajustes › Info o la pausa.',
-        'Móvil con aire: todo se lee entero y los menús se ven bien también en vertical.',
-        'Repeticiones cuando tú quieras: tras un gran punto, pídela. Ahora también en 6 contra 6.',
-        'En tu saque la cámara se queda quieta: ves el campo rival, al sacador y el lanzamiento.',
-        'Te leen: si rematas siempre por el mismo lado, el rival corre el bloqueo hacia ahí.',
-        'Doce premios nuevos al subir de nivel, del 40 al 99. En el 99, el pelo arcoíris.'
+        'Cada día, un final apretado. El mismo para todos. Si lo pierdes, mañana hay otro.',
+        'Botones de Sugerencia y Bug en la pausa y en Ajustes. Los leo todos.',
+        'En vertical ya se puede jugar sin dejarse los ojos. En horizontal también se lee mejor.',
+        'La repetición ya no sale sola: si el punto lo merece, la pides tú. También en 6 contra 6.',
+        'Cuando sacas, la cámara se está quieta.',
+        'Si rematas siempre por el mismo lado, el bloqueo rival se acaba enterando.',
+        'Premios nuevos del nivel 40 al 99. El del 99 es un pelo arcoíris.'
       ]
     },
     {
-      v: '1.23.0', d: '2026-11-24', t: 'Online con amigos',
+      v: '1.23.0', d: '2026-11-24', t: 'Online para más de dos',
       items: [
-        'Online 2 contra 2: hasta 4 personas, cada una con su jugador. La IA llena los huecos.',
-        'Online 6 contra 6 en pista (beta): hasta 12 personas, cada una en su puesto.',
-        'Al crear la sala eliges el formato: 1 contra 1, 2 contra 2 o 6 contra 6.',
-        'Sala de espera con sitios: elige el tuyo, mira el ping de cada uno y pulsa «Listo».',
-        'Carrera cooperativa de playa: juega la liga y el Open con otra persona como tu pareja.',
-        'Tu pareja sube de nivel con su propio jugador, y la Carrera sigue siendo tuya.',
-        'Juega sin conexión: tras abrirlo una vez con red, va sin internet (salvo el online).'
+        'Online 2 contra 2 con hasta cuatro personas. Si falta alguien, juega la CPU.',
+        '6 contra 6 online con hasta doce. Está en beta: si se rompe, avisadme.',
+        'En la sala cada uno coge su sitio, mira su ping y le da a Listo.',
+        'Carrera de playa con otra persona de pareja. Ella sube su jugador; la Carrera es tuya.',
+        'Funciona sin cobertura una vez abierto con red. El online, no.'
       ]
     },
     {
-      v: '1.22.0', d: '2026-11-22', t: 'A tu manera',
+      v: '1.22.0', d: '2026-11-22', t: 'Para cuando hay prisa',
       items: [
-        '¡Jugar ya!: la primera vez, un botón en la portada te pone a jugar sin pasar por menús.',
-        'Partidos cortos: en Partido rápido elige un set, un final apretado o sets a 7.',
-        'Coloca los botones táctiles a tu gusto: sitio, tamaño, opacidad y modo zurdos.',
-        'La marca de tu jugador, más grande o en alto contraste (Ajustes › Accesibilidad).',
-        'El aro de caída, a tu gusto: siempre, solo al final del vuelo o nunca.',
-        'La CPU ya no repite el mismo ataque: cambia de zona, de carril y de receptor.',
-        'Seguir el partido: se guarda punto a punto, también en la Carrera, y sigues donde ibas.'
+        'La primera vez sale un botón de Jugar ya, para no tragarse los menús.',
+        'Partido rápido a un set, a 7 puntos, o empezando en un final apretado.',
+        'Los botones táctiles se pueden mover, agrandar, hacer transparentes y poner para zurdos.',
+        'La marca de tu jugador, más grande o en alto contraste, en Accesibilidad.',
+        'El aro de dónde cae el balón: siempre, solo al final o nunca.',
+        'La CPU ya no remata siempre igual.',
+        'Si se cierra el juego a mitad de partido, vuelves al mismo punto. En la Carrera también.'
       ]
     },
     {
-      v: '1.21.0', d: '2026-11-21', t: 'Árbitros, grada y rivales',
+      v: '1.21.0', d: '2026-11-21', t: 'Xaranga',
       items: [
-        'Señas del árbitro: cada falta sale con su seña oficial y se apunta en tu Cuaderno.',
-        'La Xaranga: la charanga de la grada suena en la Carrera y en Difícil y Experto.',
-        'Fuera de casa toca la charanga del rival. Su volumen, en Ajustes › Audio.',
-        'El mismo 22-24: cada semana, el mismo final apurado para todos, con 3 intentos al día.',
-        'Comparte tu resultado de la semana con un enlace y mira cómo le fue a tu grupo.',
-        'Árbitros con nombre y carácter en la Carrera: unos ven más las líneas y otros menos.',
-        'Te tienen estudiado: si juegas bien, el rival te tapa el remate y cambia el plan.',
-        'Rencor y cariño: tus antiguos clubes se acuerdan de ti, y se nota en sus ofertas.',
-        'Jefes también en la Carrera de pista: uno por liga, en el club más fuerte.',
-        'La Cúpula del Far acoge las finales de copa, y Can Rebot, partidos de la 2ª.',
-        'Tu perfil, los retos y la Carrera de pista se guardan ya en tu cuenta.'
+        'Cada falta sale con su seña, y las que vas viendo se apuntan en tu Cuaderno.',
+        'Xaranga en la grada, en la Carrera y en Difícil o Experto. Fuera de casa, la del rival.',
+        'La xaranga tiene su propio volumen en Ajustes › Audio.',
+        'El mismo 22-24: un final por semana, el mismo para todos, tres intentos al día.',
+        'En la Carrera los árbitros tienen nombre.',
+        'Si te sale un partidazo, el siguiente rival se lo habrá mirado.',
+        'Los clubes de los que te fuiste se acuerdan de ti.',
+        'La final de copa se juega en la Cúpula del Far.',
+        'Jefes en la Carrera de pista: uno por liga.',
+        'El perfil, los retos y la Carrera de pista ya se guardan en la cuenta.'
       ]
     },
     {
-      v: '1.20.0', d: '2026-11-21', t: 'Ahora somos Take the Court',
+      v: '1.20.0', d: '2026-11-21', t: 'Nombre nuevo',
       items: [
-        'Make the Cut ahora se llama Take the Court.',
-        'Nueva dirección: takethecourt.com.',
-        'Tu partida viene contigo: abre el enlace de siempre y se trae sola.',
-        'Si juegas con cuenta, entra con ella y lo tendrás todo.',
-        'Si lo tenías instalado, vuelve a instalarlo desde takethecourt.com.'
+        'Make the Cut pasa a llamarse Take the Court y se muda a takethecourt.com.',
+        'Si entras por el enlace viejo, tu partida se viene sola.',
+        'Si lo tenías instalado, toca instalarlo otra vez. Lo siento.'
       ]
     },
     {
       v: '1.19.2', d: '2026-11-21', t: 'Logo nuevo',
       items: [
-        'Logo nuevo en el menú y al arrancar.'
+        'Logo e icono nuevos. La O de COURT es un balón.'
       ]
     },
     {
-      v: '1.19.1', d: '2026-11-21', t: 'Icono nuevo',
+      v: '1.19.0', d: '2026-11-20', t: 'Convocado',
       items: [
-        'Icono nuevo de la app.'
-      ]
-    },
-    {
-      v: '1.19.0', d: '2026-11-20', t: 'Carrera ampliada',
-      items: [
-        'Selección nacional: convocatorias, clasificación, Mundial y Juegos Cuatrienales.',
-        'Lesiones poco frecuentes: unos partidos de baja, y puedes volver antes con riesgo.',
+        'Selección: convocatorias, Mundial y Juegos Cuatrienales, si das la talla.',
+        'Lesiones, pocas: unos partidos de baja. Puedes volver antes, pero te arriesgas.',
         'Partido de las Estrellas, Sol contra Luna, con concursos de saque, recepción y remate.',
-        'Cesiones: pide salir cedido o que te cedan, y pide el traspaso si no juegas.',
-        'Carrera por los premios: sigue cada semana quién va primero en cada trofeo.',
-        'Plan de desarrollo y cambio de puesto: pídeselo al entrenador.',
-        'La zona: encadena buenas jugadas y juega encendido. El rival también tiene rachas.',
-        'Saque de firma: elige tu estilo de saque y celebra tus aces.',
-        'Prólogo juvenil: empieza en el instituto y gánate las pruebas de los clubes.'
+        'Cesiones: si no juegas, pide salir cedido o el traspaso.',
+        'Cada semana ves quién va primero en cada premio de la temporada.',
+        'El entrenador te prepara un plan, o te cambia de puesto si se lo pides.',
+        'Rachas: si enganchas tres o cuatro buenas seguidas, se nota. Al rival también le pasa.',
+        'Saque de firma: eliges cómo sacas y cómo celebras el ace.',
+        'La Carrera puede empezar en el instituto, ganándote las pruebas de los clubes.'
       ]
     },
     {
-      v: '1.18.0', d: '2026-11-20', t: 'Vestuario renovado',
+      v: '1.18.0', d: '2026-11-20', t: 'Peluquería',
       items: [
-        '32 peinados, y el pelo asoma por debajo de la gorra, el pescador o el pañuelo.',
-        'Segundo color de pelo: raíces, puntas, mechas, flequillo teñido o mitad y mitad.',
-        'Más de 40 objetos nuevos: pendientes, cadenas, gafas, manguitos, calcetines y zapatillas.',
-        'Miniaturas de cada opción y una cámara que enfoca lo que vas eligiendo.',
-        'Probar: mira tu aspecto en un remate, una celebración o una recepción.'
-      ]
-    },
-    {
-      v: '1.17.1', d: '2026-11-20', t: 'Repaso para el móvil',
-      items: [
-        'Menús, Carrera y partido repasados en el móvil: nada cortado ni tapando los mandos.'
+        '32 peinados, y el pelo ya asoma por debajo de la gorra o del pañuelo.',
+        'Dos colores de pelo: raíces, puntas, mechas o mitad y mitad.',
+        'Más de 40 cosas nuevas: pendientes, cadenas, gafas, manguitos, calcetines...',
+        'Botón Probar: tu jugador remata o celebra con lo que llevas puesto.'
       ]
     },
     {
       v: '1.17.0', d: '2026-11-19', t: 'Fintas',
       items: [
         'La finta llega al 6 contra 6 y a la Carrera de pista.',
-        'Más fácil de hacer: en el aire, Golpear pronto y Saltar en el momento del golpe.',
-        'En el móvil: toca Golpear pronto y desliza el dedo a Saltar al golpear.',
-        'Con el bloqueo rival ya en el aire, a la defensa le cuesta mucho más leerla.'
+        'En el aire, Golpear pronto y Saltar justo al golpe. En el móvil, desliza de uno a otro.',
+        'Con el bloqueo ya arriba, a la defensa le cuesta mucho leerla.'
       ]
     },
     {
-      v: '1.16.1', d: '2026-11-19', t: 'Camino y Cifras renovados',
+      v: '1.16.0', d: '2026-11-19', t: 'La grada',
       items: [
-        'Camino de temporada y Cifras con el estilo de los menús y pensados para el móvil.'
+        'La grada anima, pita al rival y se calla en los puntos de set.',
+        'A veces toca elegir: protestar al árbitro o dejarlo estar.',
+        'Tarjetas: la amonestación es un aviso; la penalización, punto y saque para el rival.',
+        'El ambiente se regula en Ajustes › Juego: completo, tranquilo o apagado.'
       ]
     },
     {
-      v: '1.16.0', d: '2026-11-19', t: 'Ambiente de Carrera',
+      v: '1.15.1', d: '2026-11-19', t: 'Aviso de versión',
       items: [
-        'La grada vive el partido: anima, pita al rival, canta y calla en los puntos de set.',
-        'Discusiones con el árbitro: a veces eliges entre Protestar o Dejarlo.',
-        'Tarjetas de reglamento: la amarilla avisa y la roja da punto y saque al rival.',
-        'Pique entre equipos y frases del banquillo, el rival, el árbitro y la megafonía.',
-        'Nuevo ajuste en Ajustes › Juego: Ambiente de Carrera completo, tranquilo o apagado.'
+        'Si tienes una versión vieja, te avisa y se reinicia con un botón.',
+        'En el online dice quién tiene que reiniciar.'
       ]
     },
     {
-      v: '1.15.1', d: '2026-11-19', t: 'Aviso de versión nueva',
+      v: '1.15.0', d: '2026-11-19', t: 'Planchas',
       items: [
-        'Si tu móvil tiene una versión anterior del juego, te avisa y lo reinicias con un botón.',
-        'En el online te dice quién tiene la versión anterior y tiene que reiniciar.'
+        'La CPU va a por todas: si no llega, es por reacción, velocidad o alcance.',
+        'Si no llega por poco, se tira en plancha igual.',
+        'Los jugadores arrancan como en una pista de verdad, sin salir disparados.',
+        'Velocidad, Reacción, Defensa y Recepción pesan más.'
       ]
     },
     {
-      v: '1.15.0', d: '2026-11-19', t: 'La IA lo intenta todo',
+      v: '1.14.1', d: '2026-11-18', t: 'Online',
       items: [
-        'La IA siempre va a por el balón: si no llega, es por su reacción, velocidad y alcance.',
-        'Cuando no llega por poco, se tira en plancha igualmente y se ve cómo lo intenta.',
-        'Los jugadores arrancan y reaccionan como en el vóley real, sin salir disparados.',
-        'Velocidad, Reacción, Defensa y Recepción pesan más: un buen defensor llega a mucho más.'
+        'Online 1 contra 1, cada uno con su jugador y la CPU de pareja. Con código o con lobby.',
+        'Dos conexiones: Precisa, que va igual en los dos lados, y Fluida, que responde antes.',
+        'Challenge también en el online. El primer partido da la gorra Estuve en la beta.'
       ]
     },
     {
-      v: '1.14.1', d: '2026-11-18', t: 'Challenge en la Fluida',
+      v: '1.0.0', d: '2026-11-12', t: 'La primera que se podía enseñar',
       items: [
-        'Online con la conexión Fluida: ahora también hay challenge, como en la Precisa.',
-        'El árbitro de la Fluida ya puede equivocarse en las bolas de línea, y se puede revisar.'
-      ]
-    },
-    {
-      v: '1.14.0', d: '2026-11-18', t: 'Menús para el móvil',
-      items: [
-        'Menús rehechos para el móvil: letra más grande y menos cosas en cada pantalla.',
-        'Botones grandes para el pulgar: Volver arriba a la izquierda y la acción principal abajo.',
-        'Las listas largas se desplazan por dentro y los botones de salir siempre se ven.',
-        'La Carrera, el Online y la hoja final del partido, con su versión para el móvil.',
-        'Las explicaciones largas se abren con la «i», sin llenar la pantalla de texto.'
-      ]
-    },
-    {
-      v: '1.13.2', d: '2026-11-18', t: 'Mensajes en el móvil',
-      items: [
-        'Los mensajes de la Carrera, ahora como un chat de móvil: una conversación por persona.',
-        'En el ordenador salen dentro de un teléfono; en el móvil, a pantalla completa.',
-        'Respondes con burbujas de respuesta rápida, como en cualquier chat.'
-      ]
-    },
-    {
-      v: '1.13.1', d: '2026-11-18', t: 'Quejas del vestuario',
-      items: [
-        'Tu vestuario se queja por mensaje: de jugar poco, de otros compañeros o del entreno.',
-        'También del partido, del árbitro, del plan del entrenador y hasta del hotel.',
-        'Tú decides qué contestas: mediar, animar, dar la razón o no meterte.'
-      ]
-    },
-    {
-      v: '1.13.0', d: '2026-11-18', t: 'Carrera con vida',
-      items: [
-        'Carrera con vida: te escriben agente, entrenador, tu gente, la prensa y el rival.',
-        'Muchos mensajes piden respuesta, y ves el efecto antes de elegir.',
-        'Redes: la gente comenta tus partidos y puedes publicar una vez por jornada.',
-        'Tu semana: elige qué haces en el día libre. Y pactos con el entrenador.',
-        'Ruedas de prensa, partidos marcados (Derbi, Revancha, Televisado...) y Figura del mes.',
-        'Pestañas nuevas: Gente, Estado, Camino de temporada y Estadísticas.',
-        'En Palmarés › Opciones eliges cuánta vida quieres: Poca, Normal o Mucha.'
-      ]
-    },
-    {
-      v: '1.12.1', d: '2026-11-18', t: 'Cámara',
-      items: [
-        'Vuelve la cámara de antes: tranquila, sin ir detrás de cada balón.',
-        'Y ya no pierde el balón cuando queda detrás de ti, como tras un bloqueo.'
-      ]
-    },
-    {
-      v: '1.12.0', d: '2026-11-18', t: 'Salto con impulso',
-      items: [
-        'Salto con dirección: salta hacia donde apuntas con el joystick, el stick o las flechas.',
-        'Remate con impulso: corre hacia la red, salta hacia delante y el remate sale más fuerte.',
-        'Pipes de verdad: despega detrás de la línea de 3 m y salta hacia delante para rematar.',
-        'Colocación en salto con diana: llévala donde quieras y el balón va allí (Ajustes, Juego).',
-        'Si eres colocador en la Carrera, te avisamos de la diana al entrar.'
-      ]
-    },
-    {
-      v: '1.11.0', d: '2026-11-18', t: 'Árbitros de verdad',
-      items: [
-        'Los jueces de línea llevan la bandera de vóley: roja entera.',
-        'La falta de posición la pita el 2º árbitro y señala a los dos jugadores.',
-        'Solo el equipo que recibe puede cometer falta de posición, como en el reglamento.',
-        'El 1r árbitro sigue el orden real: silbato, quién saca, la falta y el jugador.',
-        'Nuevas señas: saque a la red, cambio de campo, sustitución y 5 segundos en la playa.',
-        'Cada juez de línea señala solo su línea.'
-      ]
-    },
-    {
-      v: '1.10.1', d: '2026-11-17', t: 'Pases, bloqueo y defensa',
-      items: [
-        '6 contra 6: las recepciones y defensas buenas quedan más cerca de la red.',
-        'El colocador de delante ya puede atacar de segunda tras un buen pase.',
-        'Bloquear un balón que cruza la red cuenta como bloqueo, nunca como remate.',
-        'Defender con el balón lejos del cuerpo sale menos preciso, aunque aciertes el momento.'
-      ]
-    },
-    {
-      v: '1.10.0', d: '2026-11-17', t: 'Consignas del entrenador',
-      items: [
-        'Carrera: en algunos puntos, el entrenador te pide algo antes del saque.',
-        'Saca a una zona, remata en diagonal, juega con el central, bloquea la línea…',
-        'Si cumples la consigna, tu nota del partido sube un poco.',
-        'Se pueden apagar en Ajustes › Juego › Consignas.'
-      ]
-    },
-    {
-      v: '1.9.2', d: '2026-11-17', t: 'Falta de posición con los pies',
-      items: [
-        '6 contra 6: la falta de posición se mira con los pies, como en el reglamento.',
-        'Si corres al moverte en el saque, el pie que adelantas también cuenta.'
-      ]
-    },
-    {
-      v: '1.9.1', d: '2026-11-17', t: 'Menús nuevos',
-      items: [
-        'Menús rediseñados de arriba abajo: pintura, pegatinas y parches cosidos de vóley.',
-        'Los botones se tiñen con los colores de tu equipación (o de tu club en la Carrera).',
-        'Mejor en el móvil: todo cabe, se desplaza por dentro y se puede pulsar bien.'
-      ]
-    },
-    {
-      v: '1.9.0', d: '2026-11-17', t: 'Online V2',
-      items: [
-        'Al crear una sala online eliges la conexión: Precisa o Fluida.',
-        'Fluida: tu equipo responde al instante y el rival se ve una pizca en diferido.',
-        'Precisa: los dos veis exactamente lo mismo, como hasta ahora.'
-      ]
-    },
-    {
-      v: '1.8.2', d: '2026-11-17', t: 'Balones a toda velocidad',
-      items: [
-        '6 contra 6: la cámara no persigue los balones que salen disparados; se van y punto.'
-      ]
-    },
-    {
-      v: '1.8.1', d: '2026-11-17', t: 'Cámara',
-      items: [
-        '6 contra 6: la cámara sigue mejor al balón y se aleja para no perderlo.',
-        'Zoom de cámara: rueda del ratón, teclas + y -, stick derecho o la lupa en el móvil.',
-        'Ajustes: elige el zoom de cámara, de 1 (cerca) a 5 (lejos).'
-      ]
-    },
-    {
-      v: '1.8.0', d: '2026-11-17', t: 'Pruebas, entrenos y nota en directo',
-      items: [
-        'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
-        'Con nota B o mejor te fichan; con C decide la suerte y ganar el partidillo ayuda.',
-        'Rivales mejores que tú y la IA un nivel por encima. Simularla da menos opciones.',
-        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.',
-        'Ojo: si reinicias o abandonas la prueba, la pierdes.',
-        'Nota en directo en los partidos de Carrera: tus buenas acciones suman y las malas restan.',
-        'Pista: con muy mala nota vas al banquillo; si destacas saliendo de él, juegas de inicio.',
-        'Plan del entrenador: tres sesiones por jornada, jugadas, rápidas o de descanso.',
-        'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
-        'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
-        'Entreno automático para quien solo quiere jugar los partidos.'
-      ]
-    },
-    {
-      v: '1.7.0', d: '2026-11-17', t: 'Más datos en la estadística',
-      items: [
-        'La estadística del 6 contra 6 guarda también alineaciones, cambios y tiempos muertos.'
-      ]
-    },
-    {
-      v: '1.6.0', d: '2026-11-17', t: 'Estadística del partido',
-      items: [
-        'Al acabar un partido, pulsa «Estadística del partido»: los números de los dos equipos.',
-        'Side-out, break point, quién iba por delante, mapas de saque y ataque y dónde se falla.',
-        'Tabla por jugador con saque, recepción, ataque, bloqueo y defensa, de todo o set a set.'
-      ]
-    },
-    {
-      v: '1.5.8', d: '2026-11-17', t: 'Pruebas jugadas',
-      items: [
-        'Carrera: las pruebas se juegan: un set a 15 contra rivales mejores y la IA un nivel más.',
-        'Te fichan por tu nota; ganar el mini partido ayuda un poco. También puedes simularla.',
-        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.'
-      ]
-    },
-    {
-      v: '1.5.7', d: '2026-11-17', t: 'Moverte en el saque',
-      items: [
-        '6 contra 6: muévete en el saque en todos los niveles; si te solapas, falta de posición.',
-        'En Fácil y Normal, una marca en el suelo te enseña tu sitio legal mientras sacan.',
-        'Los botes ya no dejan marca en el suelo: lo que se discute se mira en el challenge.'
-      ]
-    },
-    {
-      v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
-      items: [
-        'El juego entra en beta abierta: gracias por probarlo y contarnos qué falla.'
-      ]
-    },
-    {
-      v: '1.5.5', d: '2026-11-17', t: 'Arreglos del online',
-      items: [
-        'Arreglado: con mando no había forma de salir del final de un partido online.',
-        'Arreglado: si los dos recargabais a la vez, el partido se quedaba en «Volviendo…».',
-        'Arreglado: la hoja final online no cuadraba tras un corte jugado contra la IA.',
-        '«Colocación dirigida» de Ajustes también vale en el online.'
-      ]
-    },
-    {
-      v: '1.5.4', d: '2026-11-17', t: 'Repeticiones online',
-      items: [
-        'Online: repetición y «Mejores jugadas» en la hoja final, cada cual desde su lado.',
-        'Si quien creó la sala recarga en mitad del partido, vuelve a él y se sigue jugando.',
-        '«Crear sala» nueva: ves cómo saldrá tu sala en la lista y eliges los puntos en pabellón.'
-      ]
-    },
-    {
-      v: '1.5.3', d: '2026-11-17', t: 'Árbitros',
-      items: [
-        'Los árbitros hacen las señas oficiales, en el orden del reglamento y a la vista.',
-        'El 2º árbitro se mueve al lado del equipo que defiende, como en un partido de verdad.'
-      ]
-    },
-    {
-      v: '1.5.2', d: '2026-11-17', t: 'Remates y planchas',
-      items: [
-        'En 6 contra 6 la CPU remata de verdad: se acabaron los ataques suaves que caían solos.',
-        'La plancha alcanza menos y el balón sale peor: salvar un balón tarde ya no es gratis.',
-        'Colocador: la rápida y el pipe que pides salen aunque la recepción no sea buena.',
-        'Colocador: tu timing se nota en el remate; la perfecta es más difícil de defender.',
-        'Colocador: la IA no te deja las recepciones y, si tocas tú primero, puedes pedir la bola.'
-      ]
-    },
-    {
-      v: '1.5.1', d: '2026-11-16', t: 'Lobby online',
-      items: [
-        'Lobby online nuevo: las salas salen como una cartelera, con la sede y el «VS» a la vista.',
-        'Con mando, el nombre y el código se escriben con un teclado en pantalla.',
-        'Si recargas la página en mitad de un partido online, vuelves a él como invitado.',
-        'El récord online solo cuenta partidos en los que las dos partidas cuadran al final.'
-      ]
-    },
-    {
-      v: '1.5.0', d: '2026-11-16', t: 'Online (beta)',
-      items: [
-        'Online (beta): juega 1 contra 1 con otra persona, cada una con su n.º 1 y la IA de pareja.',
-        'Lobby con las salas abiertas, o entra con el código que te pase tu rival.',
-        'Juegas con tus atributos de la Carrera, o en una sala «Igualado».',
-        'Entre sets hay 10 s de pausa; si los dos pulsáis «Continuar», se salta.',
-        'Tu rival solo ve tu nombre, con una flecha encima de su jugador.',
-        'Termina tu primer partido online y llévate la gorra «Online Beta Tester».'
-      ]
-    },
-    {
-      v: '1.4.0', d: '2026-11-16', t: 'Colocar con destino',
-      items: [
-        'Colocar: con la dirección eliges el destino, y lo ves en el suelo antes del toque.',
-        'Sin dirección, alta a la 4. Cerca de ti sale rápida; lejos, alta.',
-        'La calidad depende de tu timing y de tu Colocación.',
-        'Con ratón: clic para golpear, clic derecho para colocar y la rueda para saltar.'
-      ]
-    },
-    {
-      v: '1.3.3', d: '2026-11-16', t: 'Jueces de línea',
-      items: [
-        'Cuatro jueces de línea en las grandes competiciones y ninguno en las categorías de abajo.'
-      ]
-    },
-    {
-      v: '1.3.2', d: '2026-11-16', t: 'Reto del día al entrar',
-      items: [
-        'El reto del día te espera nada más abrir el juego (una vez al día).',
-        'Carrera: los partidos dan menos experiencia; con los entrenamientos se subía demasiado.'
-      ]
-    },
-    {
-      v: '1.3.1', d: '2026-11-15', t: 'Borrar carrera',
-      items: [
-        'Borra tu Carrera de playa o de pista desde Ajustes › Info.'
-      ]
-    },
-    {
-      v: '1.3.0', d: '2026-11-15', t: 'Tu carrera, tus partidos',
-      items: [
-        'Carrera con el retrato de tu jugador, escudos de los clubes y vitrina de trofeos.',
-        'La Carrera en la portada: sigue donde lo dejaste.',
-        'Previa y resumen de jornada como en la tele.',
-        'Repeticiones de los puntos de set y de partido, y las mejores jugadas al final.',
-        'Jefes del circuito y química de pareja en la Carrera de playa.',
-        'Retos de maestría y un reto del día nuevo cada día.',
-        'Nivel de perfil y álbum con todo lo que has conseguido.'
-      ]
-    },
-    {
-      v: '1.2.0', d: '2026-11-15', t: 'Sedes de club',
-      items: [
-        'Cada club de las 28 ligas tiene su pabellón y cada club de playa, su playa.',
-        'En la Carrera se juega en casa del local; las finales, en las grandes sedes.',
-        'Partido rápido: un pabellón distinto en cada partido, o el que elijas.'
-      ]
-    },
-    {
-      v: '1.1.2', d: '2026-11-15', t: 'Dificultad en la pista',
-      items: [
-        'La Carrera de pista ya tiene dificultad: Fácil, Normal, Difícil o Experto.',
-        'Elígela al crear la Carrera y cámbiala entre partidos en Palmarés › Opciones.',
-        'Cada título guarda la dificultad más fácil de su temporada.'
-      ]
-    },
-    {
-      v: '1.1.1', d: '2026-11-15', t: 'Cuentas con correo',
-      items: [
-        'Crea tu cuenta con tu correo y recupera la contraseña si la olvidas.',
-        'Entrar con Google (en cuanto esté activado).',
-        'Tu Vestuario también se guarda en tu cuenta.'
-      ]
-    },
-    {
-      v: '1.1.0', d: '2026-11-13', t: 'Vestuario',
-      items: [
-        'Nuevo Vestuario: peinados, gorras, gafas, manguitos, rodilleras y mucho más.',
-        'Cada jugador con su aspecto en pista y otro en playa.',
-        'Se gana en la Carrera, en el Entrenamiento y en la tienda.',
-        'Solo estética: nada cambia cómo juega tu atleta.'
-      ]
-    },
-    {
-      v: '1.0.1', d: '2026-11-12', t: 'Arreglos de línea y marcador',
-      items: [
-        'Arreglado: el challenge da dentro si cualquier parte del balón toca la línea.',
-        'Marcador más discreto mientras se juega el punto.',
-        'Playa: colocar de dedos a destiempo puede costar dobles.'
-      ]
-    },
-    {
-      v: '1.0.0', d: '2026-11-12', t: 'Juego completo',
-      items: [
-        'Entrenamiento: 5 ejercicios con medallas y peloteo libre.',
-        'Carrera de pista 6 contra 6 con ligas de 28 países.',
-        'Interfaz nueva con grafismo de tele deportiva.',
-        'Teclas y botones reasignables, y más ajustes de cámara e imagen.',
-        'Faro, tu mentor, y noticias y fichas de clubes en la Carrera.',
-        'Finta, golpe colocado y colocación dirigida para quien quiera más.',
-        'Fama, patrocinadores, decisiones y un rival personal en la Carrera.',
-        'Premios de temporada, 28 logros y el Salón de la Fama al retirarte.',
-        '6 contra 6: juega de receptor, colocador, opuesto o central.',
-        'Bloqueo activo: salta y pulsa GOLPEAR justo cuando remata el rival.',
-        'Vóley playa en Platja Llarga, con luz de día o de tarde.',
-        'Personajes y logotipo nuevos.',
-        'Cuentas: guarda tu progreso y sigue en otro dispositivo.'
+        'Playa 2 contra 2 en Platja Llarga y pista 6 contra 6 con ligas de 28 países.',
+        'Carrera con mentor, noticias, fichajes, fama y un rival que te tiene manía.',
+        'Entrenamiento con cinco ejercicios y medallas.',
+        'Cuentas para seguir la partida en otro aparato.'
       ]
     }
   ];
@@ -568,30 +159,33 @@
     'COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR ' +
     'OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.';
 
-  var OFL = 'Barlow y Barlow Condensed: Copyright 2017 The Barlow Project Authors (github.com/jpt/barlow).\n' +
-    'Titan One: Copyright 2011 Rodrigo Fuenzalida. Bowlby One: Copyright 2011 Vernon Adams. ' +
-    'Rubik: Copyright 2015 The Rubik Project Authors.\n\n' +
+  var OFL = 'Big Shoulders Display: Copyright 2019 The Big Shoulders Project Authors (github.com/xotypeco/big_shoulders).\n' +
+    'Chivo: Copyright 2019 The Chivo Project Authors (github.com/Omnibus-Type/Chivo).\n' +
+    'Doto: Copyright 2024 The Doto Project Authors (github.com/oliverlalan/Doto).\n' +
+    'Barlow Condensed: Copyright 2017 The Barlow Project Authors (github.com/jpt/barlow).\n' +
+    'Anton: Copyright 2020 The Anton Project Authors (github.com/googlefonts/AntonFont).\n' +
+    'Bungee: Copyright 2023 The Bungee Project Authors (github.com/djrrb/Bungee).\n\n' +
     'Se distribuyen con la SIL Open Font License, versión 1.1. Se pueden usar, estudiar, modificar y redistribuir ' +
     'libremente, también dentro de otro software, siempre que no se vendan solas y que las versiones modificadas no usen ' +
     'el nombre reservado de la fuente.\n\n' +
     'Texto completo de la licencia: openfontlicense.org';
 
-  /** Créditos. by: solo el nombre (sin apellidos ni correo). tools: líneas de «Hecho con». */
+  /** Créditos. by: solo el nombre (sin apellidos ni correo). tools: líneas de «Hecho con». thanks: lo escribe Ferran. */
   VB.CREDITS = {
     by: 'Ferran',
     tools: [
-      'three.js r149 (motor 3D, licencia MIT)',
-      'Sonido y gráficos generados por código, sin grabaciones',
-      'Guardado en la nube con Firebase'
+      'three.js r149 para el 3D (licencia MIT)',
+      'Firebase para las cuentas y las partidas en la nube'
     ],
-    fonts: 'Titan One (Rodrigo Fuenzalida), Bowlby One (Vernon Adams), Rubik (The Rubik Project Authors) y Barlow (The Barlow ' +
-      'Project Authors), todas con la SIL Open Font License 1.1. ' +
-      'El logotipo usa sus letras pasadas a trazos.',
+    fonts: 'Big Shoulders Display (Patric King), Chivo (Omnibus-Type) y Doto, con la SIL Open Font License 1.1. ' +
+      'El rótulo de carga usa Barlow Condensed (The Barlow Project Authors), y el logo, Anton (Vernon Adams) y Bungee ' +
+      '(David Jonathan Ross) pasadas a trazos, también con la Open Font License.',
     licenses: {
-      three: MIT_THREE,   // año comprobado en la cabecera de three.min.js 0.149.0 (cdnjs): «Copyright 2010-2023 Three.js Authors»
+      three: MIT_THREE,
       threeLine: 'three.js: Copyright © 2010-2023 Three.js Authors. Licencia MIT.',
       ofl: OFL
     },
-    note: 'Clubes, jugadores y patrocinadores son inventados. Cualquier parecido es casualidad.'
+    thanks: [],
+    note: 'Clubes, jugadores y patrocinadores son inventados. Si alguno te suena, es casualidad.'
   };
 })();

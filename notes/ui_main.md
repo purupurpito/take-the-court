@@ -1307,30 +1307,70 @@ Petición de Ferran: quitar los números del menú, dividirlo en submenús (móv
 - Capturas finales: `tools/out/menus/final/` (principal, jugar, preparacion, jugadores, jugadores-ataque, ajustes y cr-* a 1280×720,
   844×390 táctil y 2560×1440).
 
-## Textos: guía de estilo (10-nov-2026, pedido de Ferran: «los separadores con "·" cantan a texto generado»)
-Lo que cantaba no era abreviar, sino pegar TODO con el mismo « · ». Reglas para cualquier texto nuevo que vea el jugador:
-- **Etiquetas, HUD, marcador, fichas, tablas, pestañas y pastillas: cortas y con abreviaturas**, como en un juego deportivo de verdad
-  («Nv 1», «Media 50», «⇄ Saque», «N.º 1», «T1 J3», «1r toque» como título de paso). Nunca más largas que antes.
-- **El separador depende del contexto y de la jerarquía** (ui.js `sepHTML`/`setSep`, `VB.UI.sep`; career-ui.js `sp()`):
-  - barra vertical fina `'v'` para datos del HUD y líneas de datos («Set 1 | 24-10», «Entrenador | T1 J3», «S1 25-20 | S2 25-15»);
-    en `banner()`, un subtítulo con « | » se dibuja así («Set 1 | 25-20», «Cada 7 puntos | 21-18»);
-  - barra inclinada `'s'` para pares («21 / 15», «SET 3 / A 15», «Ana / Club»);
-  - raya larga « — » para enfrentamientos («Rocaverde — Castelnube», «CAS — PUE»);
-  - paréntesis para lo secundario («Atacante (Nv 1)», «Salou (prueba)», «Titular (entrenador: 55 de confianza)», «Mensajes (2 sin leer)»);
-  - rombo `'d'` solo en antetítulos y cabeceras con dato («Palau del Mar ◆ 2 contra 2», «Carrera ◆ Temporada 1 ◆ Liga Regional»,
-    «Fatiga ◆ 12 de 100»); se puede mezclar con la barra fina («Set 1 | 24-10 ◆ Normal», «Palau del Mar ◆ Nivel Normal | 3 sets»);
-  - pastillas `'c'` solo para metadatos sueltos (subtítulo de JUGAR, resumen de ¡A JUGAR!, «T1 J2» en la tarjeta Carrera, fichas);
-  - un «·» suelto puede quedar donde sea lo mejor, pero no como pegamento universal.
-- **Lo que es una frase disfrazada de lista pasa a frase corta** (con comas, «y», punto y seguido, dos puntos solo si introducen):
-  consejos del coach (la pastilla corta «Tu saque» / «2º toque» se queda como etiqueta y detrás UNA frase, sin más « · »), avisos y
-  banners («Al mejor de 3 sets a 25, sacas tú», «Set decisivo, a 15 puntos», «A 3,2 cm de la línea. Se mantiene, te quedan 2»),
-  ayudas de las opciones («Platja Llarga, vóley playa en pista de 16 × 8»), descripciones de entrenos e insignias
-  («Salto, velocidad y reacción (cansa). +60 por semana, fatiga +12»), arbitraje («Jueces de línea y challenge»), reglas de puntos.
-  En frases, ordinales con palabra («Un punto para ganar el primer set»: `ORD`); en etiquetas, «1r / 2º / 3r» se quedan. Nunca «1.er / 2.º / 3.er» (lo pidió Ferran el 11-nov-2026); en código, `ordn(n)` de career.js y career-ui.js.
-- **Rótulos grandes del pabellón** (arena.js `teamFor`/`teamOf`): «PUNTO PARA TI», «SET PARA LA CPU», «REVISIÓN» con «CHALLENGE TUYO /
-  DE LA CPU» debajo, «IN POR 3,2 cm», «A LOS 8 DEL SET DECISIVO»; en la demo, «EL LOCAL» / «LA VISITA».
-- Los textos del árbitro que vienen de la sim («Dobles», «Falta de saque: 8 segundos»…) no se tocan. Los consejos solo pueden
-  crecer si caben en 1280×720 y 844×390 (comprobado en `tools/out/textos/`).
+## Textos: voz y estilo (26-nov-2026; sustituye a «Textos: guía de estilo» del 10-nov)
+
+### Quién habla
+Habla una persona: Ferran, que juega y pita vóley en Cataluña. Escribe en castellano de pista, trata de tú al jugador y usa la primera persona del singular cuando habla el autor (Ajustes › Info, novedades, buzón, errores, instalar). Nunca «nosotros»: no hay estudio.
+
+### Reglas (pocas, y con excepciones a la vista)
+1. Lo llano manda. El 70% de los textos dice lo que hay y punto. Como mucho, un remate por pantalla y uno por versión de novedades. En los errores no hay humor.
+2. Una exclamación por pantalla como mucho. Los rótulos de jugada van secos («Remate», «Punto»). La exclamación se guarda para el ace y lo raro.
+3. Nada de subtítulos que repiten el título. Una línea bajo un botón solo si lleva un dato vivo (marcador a medias, rival, puntos sin gastar) o explica algo raro (Xaranga).
+4. Nada de tríadas. Si salen tres cosas, se quita una o se convierte en frase.
+5. Datos en frase con comas: «Palau del Mar, normal, sets a 25». La barra fina «|» solo en el marcador y en tablas. Prohibidos «·» (regla fija) y «◆». El marcador interno « · » de coachHTML/sepHTML puede seguir en el código si lo pinta como pastilla o raya; nunca debe llegar a pantalla por textContent.
+6. El rival es «ellos» en las frases («Sacan ellos», «Ganan ellos»). «CPU» solo en el marcador y en rótulos muy cortos.
+7. Vocabulario de pista y de reglamento: amonestación, penalización, capitán, pito, parcial, plancha, raya, recepción, colocación, «punto de set» (nunca «bola de set», decisión R2). Fuera: experiencia de usuario, personaliza, desbloquea, descubre, equipar, recomendado, «A por ello», «¿Te cuesta?», «Cuéntanos», «Dinos», «para el recuerdo», «Tú decides», «se paraliza», «peques».
+8. En la ficción de la Carrera no entra la mecánica: ni rutas de menú (Jugador › Estado), ni números de efecto (+2, x2, 300 seguidores), ni «la IA», ni personajes leyendo las opciones de los botones. Todo eso va en chips y botones.
+9. Cada remitente de la Carrera tiene su voz: entrenador seco y de frases cortas, sin elogios; compañero en minúscula inicial y sin punto final; madre con puntos suspensivos; padre telegráfico; agente con prisa («??»); fisio con jerga. No se inventan faltas de ortografía ni abreviaturas SMS, y como mucho una autocorrección tipo «Bueno, …» cada 10 textos.
+10. Nada de ★ ✓ ✗ 🔒 ni emojis en los textos. Si hace falta un icono, que sea el SVG de VB.Splat.ICONS.
+11. Género neutro del jugador sin rodeos: se le habla de tú y por el apellido. Prohibidos «persona», «Te damos la bienvenida» y «Tu gente». Los personajes no jugadores sí tienen género (la madre, el padre, la abuela).
+12. Los ordinales siguen como hasta ahora: «1r», «2º», «3r».
+13. La desigualdad está permitida: no todas las ayudas miden lo mismo ni acaban igual.
+
+### Glosario (un nombre por concepto)
+- La mecánica de la zona es «Racha». Con el medidor lleno, el rótulo es «TODO ENTRA».
+- Sanciones: amonestación, penalización, amonestación por retraso, penalización por retraso, expulsión, descalificación.
+- La gorra de la beta es «Estuve en la beta».
+- Retos que se renombran: «Aces», «Plancha», «Doble positiva», «No cae», «Parcial», «Cero regalos», «Finta», «En la raya», «De libro», «Todas las pistas». Se quedan Pegada, Pared, Escalera, Remontada, Al hueco, Set de hierro, Sin temblar y Equipo completo.
+- Insignias que se renombran: «Puntería», «Saque potente», «Flotante», «Plataforma», «Defensa», «Pulmón», «Capitán».
+- «Perfil» se queda con ese nombre. Los modos se quedan: Partido rápido, 6 contra 6, Entrenamiento, Online.
+
+### Referencias de tono (no tocar)
+«Partido a medias», «un pelín tarde», «Te han leído: te tapan la diagonal», «Cuaderno del árbitro», «Ataca y defiende a medio gas», «Mañana más», consignas.js («Saca a la zona 1», «Primera por el pipe»), las ayudas de gym.js y las reglas de playa del tutorial.
+
+### 20 ejemplos antes → después
+1. «¡Jugar ya!» / «Un set a 15 contra la CPU» → «Jugar ya» / «Un set a 15, sin menús»
+2. Jugar: «Partido rápido, 6 contra 6 y entrenamiento» → sin subtítulo
+3. Vestuario: «Aspecto de tus jugadores» → «Pelo, gorras y rodilleras»
+4. Ajustes › Info: «Cuéntanos qué te gustaría ver en el juego» → «Si echas algo en falta, dímelo»
+5. «¿Algo no funciona? Dinos qué ha pasado» → «Cuéntame qué hacías cuando se rompió»
+6. «¡Gracias! Enviado» → «Enviado. Gracias.»
+7. «Lo leeremos con calma.» → «Lo leo yo. No prometo hacerlo, pero lo leo.»
+8. «¡EN LA ZONA!» + «Lees antes, aciertas más y pegas más fuerte» → «TODO ENTRA» (sin subtítulo)
+9. «¡El rival está en racha!» → «A estos les entra todo»
+10. «Recepción perfecta» / «¡Remate perfecto!» → «Recepción a la mano» / «Al suelo»
+11. «¡Jugada perfecta!» + «Recepción | Colocación | Remate» → «De libro» (sin subtítulo)
+12. «Punto de set» + «Un punto para ganar el 1r set» → «Punto de set» (sin subtítulo)
+13. «Saca la CPU · Prepárate para la recepción» → «Sacan ellos · A recibir»
+14. «Regla de los 8 segundos: saca antes de que acabe la cuenta» → «8 segundos desde el pito» (5 en playa)
+15. «¿Te cuesta? Prueba el nivel Fácil» → «Prueba en Fácil un rato»
+16. «Tarjeta amarilla» / «Castigo por retraso» → «Amonestación» / «Penalización por retraso»
+17. «Entrenador · Voley X · Protesta» → «Entrenador de Voley X, por protesta»
+18. Faro: «Perder también se entrena. Mañana mira qué falló, no quién falló.» → «Ya está. Esta noche no mires el vídeo; mañana sí.»
+19. Megafonía: «¡Os damos la bienvenida a {venue}! ¡A disfrutar!» → «Buenas tardes, {venue}. Partido de liga: {home} contra {away}.»
+20. Novedades: «Móvil con aire: todo se lee entero y los menús se ven bien también en vertical.» → «En vertical ya se puede jugar sin dejarse los ojos.»
+
+### Anexo: etiquetas y separadores (lo que queda de la guía del 10-nov que no choca con lo de arriba)
+- Etiquetas, HUD, marcador, fichas, tablas, pestañas y pastillas: cortas y con abreviaturas, como en un juego deportivo de verdad
+  («Nv 1», «Media 50», «N.º 1», «T1 J3», «1r toque» como título de paso). Nunca más largas que antes.
+- Separadores (ui.js `sepHTML`/`setSep`, `VB.UI.sep`; career-ui.js `sp()`): barra fina `'v'` solo en el HUD, el marcador y las tablas
+  («Set 1 | 24-10»); barra inclinada `'s'` para pares («21 / 15»); raya larga « — » para enfrentamientos; paréntesis para lo
+  secundario («Atacante (Nv 1)», «Mensajes (2 sin leer)»); pastillas `'c'` solo para metadatos sueltos. El rombo `'d'` ya no se usa
+  en textos nuevos: lo que iba con rombo pasa a frase con comas.
+- En frases, ordinales con palabra («Un punto para ganar el primer set»: `ORD`); en etiquetas, «1r / 2º / 3r». Nunca «1.er / 2.º /
+  3.er»; en código, `ordn(n)` de career.js y career-ui.js.
+- Los textos del árbitro que vienen de la sim se escriben con el reglamento: «8 segundos desde el pito (5 en playa)». Los consejos
+  solo pueden crecer si caben en 1280×720 y 844×390.
 
 ## Sprint UI 11-nov-2026 (tanda de 5 agentes)
 - **Luz de playa** (Ajustes ◆ Imagen): fila «Luz de playa: Día / Tarde» (`OPT.beachLight`, ajuste `beachLight` 'dia' | 'tarde', validado en
@@ -2148,3 +2188,75 @@ Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fl
   que se queda en las filas 3-4 como antes; en PC la fila va a la izquierda, a su tamaño y 24 px más abajo).
 - **main.js**: el `touchend` que anula el doble toque deja en paz el `textarea`.
 - **Pruebas**: `node tools/feedbacktest.js`; filas `opiniones-sug`, `opiniones-bug` y `pausa-bug` de tools/mobaudit.js.
+
+## Historial de versiones (anexo; antes era la cabecera de js/version.js, copiada tal cual el 26-nov-2026)
+```
+/* TAKE THE COURT — js/version.js (owner: ui_main)
+ * Una sola fuente para el número de versión, las novedades y los créditos. Solo datos: sin DOM y sin red.
+ * Se carga el primero después de three.js (antes de account.js). Lo leen ui.js (panel «Acerca de», pestaña Info de Ajustes,
+ * #btnVer de la portada, aviso de novedades una vez por versión), main.js (ctx.bootInfo.version) y tools/build-pages.js (con vm:
+ * metadatos de Pages y guardas del build) y tools/abouttest.js.
+ * REGLA DE VERSIONADO: cada publicación con un cambio que se vea en el juego sube VERSION y añade su entrada ARRIBA de CHANGELOG
+ * (la más nueva primero). build-pages falla si CHANGELOG[0].v !== VERSION o si VERSION no es semver (x.y.z).
+ * Textos (notes/ui_main.md, «Textos: guía de estilo»): frases cortas, sin el punto medio como pegamento, ordinales «1r» «2º»,
+ * género neutro, sin nombres reales ni patrocinadores de verdad. Este fichero no lleva arrobas ni la palabra del programa de
+ * navegación web (tools/abouttest.js lo comprueba en todo el fichero, comentarios incluidos).
+ * 1.0.0 (12-nov-2026, decisión de Ferran): cierre del sprint 5. Sin créditos a herramientas de IA (Ferran, 12-nov-2026).
+ * 1.1.0 (13-nov-2026): Vestuario (personalización del aspecto, js/look.js). Solo estética.
+ * 1.2.0 (15-nov-2026): sedes generadas por club (js/venue-gen*.js) y pabellón al azar por partido.
+ * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
+ *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
+ * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
+ * 1.9.0 (17-nov-2026): Online V2, conexión Fluida (js/netfluid.js, notes/net.md «Online V2»).
+ * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
+ * 1.7.0 (17-nov-2026): Acta del partido (js/acta.js): los partidos 6v6 salen como acta de emPat (formato empat/acta). NO es público
+ *   (Ferran, 17-nov-2026): el botón solo sale con su cuenta (ui.js ACTA_ALLOW) y las novedades no lo anuncian.
+ * 1.8.0 (17-nov-2026): fusión de la rama pruebas-entrenos: pruebas con partidillo de petos (ampliadas: IA un nivel por encima,
+ *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
+ * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
+ * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
+ * 1.10.0 (17-nov-2026): consignas del entrenador en directo en la Carrera (js/consignas.js), idea de Ferran.
+ * 1.11.0 (18-nov-2026): árbitros como en la vida real (FIVB 2025-2028, Guidelines) y bandera roja de vóley, a petición de Ferran.
+ * 1.15.0 (19-nov-2026): IA con esfuerzo real (VB.EFFORT en sim.js): sin dado previo ni defensor «perdido» lento, a petición de Ferran.
+ * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
+ * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
+ * 1.12.1 (18-nov-2026): vuelve la cámara de juego de antes de 1.8.1 (Ferran: «la nueva es horrible») con la regla de no perder el
+ *   balón (js/camera.js ctUpdate: solo corrige cuando el balón se va del cuadro). El zoom de cámara se queda.
+ * 1.14.0 (18-nov-2026): menús pensados para el móvil apaisado (Ferran: «se ve todo muy cramped»): escala de letra y piezas .ph
+ *   de js/splat.js, cada pantalla con su versión de móvil (notes/splat.md §9, notes/ui_main.md «Móvil (v-next)»).
+ * 1.14.1 (18-nov-2026): challenge en la conexión Fluida (Ferran: «pon challenge en v2»): árbitro con errores de línea como en
+ *   Precisa; lo pide el que pierde el punto (ch), lo acepta la otra máquina (chok/chno) y la revisión corre en las dos
+ *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
+ * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
+ *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
+ * 1.19.0 (20-nov-2026): Carrera ampliada (notes/carrera.md, CONTRACT.md § extensiones): selección, lesiones, Estrellas y
+ *   concursos, cesiones, carrera por los premios, plan de desarrollo, la zona, saque de firma y prólogo juvenil.
+ * 1.18.0 (20-nov-2026): Vestuario renovado (notes/vestuario-plan.md, notes/players.md § Vestuario): casco de pelo nuevo con 32
+ *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
+ * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
+ *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
+ * 1.19.1 / 1.19.2 (21-nov-2026): icono nuevo de la app y logo «Red cruzada» (TAKE / THE en la cinta / COURT con balón como O).
+ * 1.20.0 (21-nov-2026): el juego pasa a llamarse Take the Court (decisión de Ferran, marca libre) y se muda a takethecourt.com.
+ *   Lo visible cambia; las claves internas (make-the-cut.*, proyecto de Firebase, gorraMTC) se quedan (notes/nombre.md). La
+ *   partida viaja sola desde la dirección antigua con el puente (bridge/, js/migrate.js, notes/dominio.md).
+ * 1.21.0 (21-nov-2026): sprint «único» (señas del
+ *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
+ *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
+ * 1.22.0 (22-nov-2026, rama investigacion, publicada): imprescindibles del informe de la revisión (Jugar ya, partidos cortos,
+ *   disposición táctil, marca e indicador de caída, IA variada, Retomar el partido). Versión nueva OBLIGATORIA: la IA variada cambia
+ *   lo que simula cada lado y el lobby online y el sello de Retomar separan por VB.VERSION (una 1.21.0 en caché no debe cruzarse).
+ * 1.23.0 (24-nov-2026): online de varios (sprint online-multi, notes/net.md «Online de varios»): 2 contra 2 con hasta 4 personas
+ *   (Precisa-N), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js; beta), salas con formato y sitios, y Carrera cooperativa
+ *   de playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas. La rama online-multi se numeró
+ *   1.22.0 sin publicar; la investigacion salió antes como 1.22.0, así que esta es 1.23.0: el online decide si dos versiones juegan
+ *   juntas SOLO por este número (salas: v = PROTO|VB.VERSION; sesiones: el saludo compara VB.VERSION).
+ *   Fusión de la rama playstore (24-nov-2026): jugar sin red (sw.js + js/sw-reg.js, solo en la web publicada; notes/offline.md),
+ *   privacidad y borrar la cuenta, app de Android (TWA, android/), nombre anónimo «Jugador NNNN» y filtro de nombres
+ *   (js/namefilter.js, también en salas de varios, coop y 6v6) y caducidad de los informes de red (exp, EXP_RULES = true).
+ * 1.24.0 (25-nov-2026, rama release-124): una sola versión con tres ramas sobre 1.23.0: decisiones (decisiones de Ferran del
+ *   24-nov: primera vez con ¡Jugar ya!/Tutorial, formato del Partido rápido en Jugar, jugada del día, «Te leen», repeticiones a
+ *   petición y en 6v6, salpis, cámara quieta en el saque, árbitros con aspecto, premios por nivel; notes/pendientes-ferran.md),
+ *   feedback (Sugerencia y Bug, js/feedback.js, notes/feedback.md; numerada 1.22.1 sin publicar, su entrada pasa aquí) y
+ *   movil-aire (móvil en horizontal html.ph y vertical html.pv, notes/movil-aire.md; el PC no cambia).
+ */
+```

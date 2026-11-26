@@ -577,15 +577,15 @@
       h += '<div class="cdv-list sp-rows-2" role="group" aria-label="Planes">' + PLAN_KEYS.map(function (k, i) {
         var P = PLANS[k], on = !!(d.plan && d.plan.k === k), r = rec.indexOf(k) >= 0;
         var sub = P.k.map(function (a) { return lab(a) + ' ' + (c.player.st[a] | 0); }).join(', ');
-        if (ph) {   // (móvil: atributos abreviados sin elipsis, «Recomendado» como estrella, la elegida con marco dorado y ✓)
-          var sb = P.k.map(function (a) { return abbr(lab(a)) + ' ' + (c.player.st[a] | 0); }).join(' · '), sel = pk === k;
-          return '<button class="cdv-row cdv-phr' + (sel ? ' cdv-pick' : '') + (on ? ' cdv-on' : '') + '" data-act="dv-plan-' + k + '" aria-pressed="' + (sel || (!pk && on)) + '" aria-label="' + esc(H, P.name + ': ' + sub + (r ? '. Recomendado para tu puesto' : '') + (on ? '. Es tu plan' : '') + (sel ? '. Elegido' : '')) + '">' +
-            '<span class="sp-rm"><span class="sp-t">' + (r ? '<i class="cdv-star" aria-hidden="true">★</i>' : '') + esc(H, P.name) + '</span><small class="sp-s">' + esc(H, sb) + '</small></span>' +
-            '<span class="sp-rt">' + (sel ? '<i class="cdv-ck" aria-hidden="true">✓</i>' : on ? '<span class="sp-chip cdv-chip">Tu plan</span>' : '') + '</span></button>';
+        if (ph) {   // (móvil: atributos abreviados sin elipsis, «Encaja» en la ficha y la elegida con marco dorado)
+          var sb = P.k.map(function (a) { return abbr(lab(a)) + ' ' + (c.player.st[a] | 0); }).join(', '), sel = pk === k;
+          return '<button class="cdv-row cdv-phr' + (sel ? ' cdv-pick' : '') + (on ? ' cdv-on' : '') + '" data-act="dv-plan-' + k + '" aria-pressed="' + (sel || (!pk && on)) + '" aria-label="' + esc(H, P.name + ': ' + sub + (r ? '. Encaja con tu puesto' : '') + (on ? '. Es tu plan' : '') + (sel ? '. Elegido' : '')) + '">' +
+            '<span class="sp-rm"><span class="sp-t">' + esc(H, P.name) + '</span><small class="sp-s">' + esc(H, sb) + '</small></span>' +
+            '<span class="sp-rt">' + (on ? '<span class="sp-chip cdv-chip">Tu plan</span>' : r ? '<span class="sp-chip cdv-chip">Encaja</span>' : '') + '</span></button>';
         }
-        return '<button class="cdv-row sp-btn sp-wide sp-calm sp-lrow ' + (on ? 'sp-gold' : i % 2 ? 'sp-alt' : 'sp-ink') + '" data-shape="' + i + '" data-act="dv-plan-' + k + '" aria-pressed="' + on + '" aria-label="' + esc(H, P.name + ': ' + sub + (r ? '. Recomendado para tu puesto' : '') + (on ? '. Es tu plan' : '')) + '">' +
+        return '<button class="cdv-row sp-btn sp-wide sp-calm sp-lrow ' + (on ? 'sp-gold' : i % 2 ? 'sp-alt' : 'sp-ink') + '" data-shape="' + i + '" data-act="dv-plan-' + k + '" aria-pressed="' + on + '" aria-label="' + esc(H, P.name + ': ' + sub + (r ? '. Encaja con tu puesto' : '') + (on ? '. Es tu plan' : '')) + '">' +
           '<span class="sp-rm"><span class="sp-t">' + esc(H, P.name) + '</span><small class="sp-s">' + esc(H, sub) + '</small></span>' +
-          '<span class="sp-rt">' + (on ? '<span class="sp-chip cdv-chip">Tu plan</span>' : r ? '<span class="sp-chip cdv-chip">Recomendado</span>' : '') + '</span></button>';
+          '<span class="sp-rt">' + (on ? '<span class="sp-chip cdv-chip">Tu plan</span>' : r ? '<span class="sp-chip cdv-chip">Encaja</span>' : '') + '</span></button>';
       }).join('') + '</div>';
       if (pk) h += dockHTML(H, 'dv-plan-go', 'Confirmar plan');
     }
@@ -596,7 +596,7 @@
     var ph = isPh(H), askL = ph && uiOpen === 'ask' && !w, pk = askL && pick && pick.where === 'ask' ? pick.k : '';
     var h = '<div class="card cdv-pos"><h3>' + spH(H, ['Puesto', esc(H, posName(c, cur))], 'd') + '</h3>' +
       expl(H, 'Puesto', 'El encaje mide cuánto pegan tus atributos con cada puesto. El entrenador te propondrá cambiar si encajas mejor en otro o si el equipo lo necesita. También puedes pedírselo tú: en pretemporada siempre dice que sí.' + (hall(c) ? '' : ' Si cambias, tu pareja pasa al otro papel y la química se mantiene.'));
-    if (askL) h += '<p class="cdv-now">Ahora: <b>' + esc(H, posName(c, cur)) + '</b> · encaje ' + fit(c, cur) + ' %</p>';   // (móvil, lista abierta: el encaje va en cada fila)
+    if (askL) h += '<p class="cdv-now">Ahora: <b>' + esc(H, posName(c, cur)) + '</b>, encaje ' + fit(c, cur) + ' %</p>';   // (móvil, lista abierta: el encaje va en cada fila)
     else h += '<div class="cdv-fits">' + (list.indexOf(cur) < 0 && prof(c, cur) ? bar(H, posName(c, cur), fit(c, cur), true) : '') + list.map(function (p) { return bar(H, posName(c, p), fit(c, p), p === cur); }).join('') + '</div>';
     if (d.pos.adapt) h += '<p class="cdv-cost">' + spH(H, ['Adaptación: ' + (d.pos.adapt.left === 1 ? '1 jornada más' : d.pos.adapt.left + ' jornadas más'), esc(H, adaptTxt(c, d.pos.adapt)) + ' en los partidos que juegas'], 'v') + '</p>';
     if (!others.length) return h + '<p class="muted">Por ahora en el 6 contra 6 solo se puede llevar este puesto.</p>' + flashHTML(H, 'state') + '</div>';
@@ -609,7 +609,7 @@
         var A = askChance(c, p), nm = posName(c, p) + (hall(c) || !c.mate ? '' : ' (y ' + String(c.mate.name).split(' ')[0] + ' ' + (p === 'cr' ? 'a la red' : 'atrás') + ')'), f = fit(c, p), sel = pk === p;
         return '<button class="cdv-row cdv-phr' + (sel ? ' cdv-pick' : '') + '" data-act="dv-ask-' + p + '" aria-pressed="' + sel + '" aria-label="' + esc(H, 'Pasar a ' + nm + '. Encaje ' + f + ' %. ' + A.lab + (sel ? '. Elegido' : '')) + '">' +
           '<span class="sp-rm"><span class="sp-t">' + esc(H, nm) + '</span><small class="sp-s cdv-fit"><i class="cdv-fb"><i style="width:' + clampI(f, 0, 100) + '%"></i></i>' + f + ' %</small></span>' +
-          '<span class="sp-rt">' + (sel ? '<i class="cdv-ck" aria-hidden="true">✓</i>' : '') + (same ? '' : '<span class="sp-chip cdv-chip cdv-' + (A.ch >= 0.6 ? 'hi' : A.ch >= 0.3 ? 'md' : 'lo') + '">' + esc(H, A.lab) + '</span>') + '</span></button>';
+          '<span class="sp-rt">' + (same ? '' : '<span class="sp-chip cdv-chip cdv-' + (A.ch >= 0.6 ? 'hi' : A.ch >= 0.3 ? 'md' : 'lo') + '">' + esc(H, A.lab) + '</span>') + '</span></button>';
       }).join('') + '</div>' + (same && labs.length ? '<p class="muted cdv-dif">Dificultad: ' + esc(H, labs[0].toLowerCase()) + '</p>' : '');
       if (pk) h += dockHTML(H, 'dv-ask-go', 'Pedir ' + posName(c, pk));
     } else if (uiOpen === 'ask' && !w) {

@@ -124,7 +124,7 @@ section('2. Avisos (S5): chips puros, de datos existentes y de los sistemas');
   ok(!BAD.test(txt(hx)) && !/undefined|NaN/.test(hx), 'sin «undefined», «NaN», «{» ni «·» (' + txt(hx).replace(/\s+/g, ' ').trim().slice(0, 120) + '…)');
   // sin nada
   const y = JSON.parse(j0); y.player.pts = 0; y.life = Object.assign({}, y.life, { ev: null, spOffers: [] }); y.window = ''; y.offers = []; if (y.story) y.story.feed = [];
-  ok(SU.chips(y).length === 0 && /Todo al día\. A jugar\./.test(SU.chipsHTML(y, {})), 'sin avisos: «Todo al día. A jugar.»');
+  ok(SU.chips(y).length === 0 && /Todo al día\./.test(SU.chipsHTML(y, {})), 'sin avisos: «Todo al día.»');
   // de los sistemas, y la bandeja genérica solo si ningún sistema avisa de ella
   sysChips = [{ p: 0, ic: '★', t: 'Candidatura a Figura del mes', x: 'Tu media 7,4', tab: 'honors', s: 'stats' }, { p: 9, t: '' }, null, { p: 5, t: 'x', ic: '?' }];
   const z = SU.chips(y);

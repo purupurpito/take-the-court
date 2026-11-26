@@ -195,14 +195,14 @@
    *  Online V2: un tercer chip «Fluida» solo en las salas Fluida (aria: «conexión fluida»). */
   function chips(r, aria) {
     var p = r.pts || 21;
-    var out = [r.bo === 3 ? 'Mejor de 3' + (p !== 21 ? ' a ' + p : '') : '1 set a ' + p, r.even ? 'Igualado' : 'Con sus atributos'];
+    var out = [r.bo === 3 ? '3 sets a ' + p : '1 set a ' + p, r.even ? 'Igualado' : 'Con sus atributos'];
     // (el chip visible va PRIMERO: .fx-chips corta lo que no cabe y en un móvil en vertical el último no se ve; en el aria, al final)
     if (roomModel(r) === 'fluida') { if (aria) out.push('conexión fluida'); else out.unshift('Fluida'); }
     if (r.multi) out.unshift(FMT_TXT[fmtOf(r)]);   // (online de varios: el formato, el primero)
     return out;
   }
   function chipsHTML(r) { return chips(r).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join(''); }
-  function sep(parts) { return parts.map(esc).join('<i class="ol-sep" aria-hidden="true"></i>'); }
+  function sep(parts) { return parts.map(esc).join(', '); }
 
   /* ---------------- estado ---------------- */
   var L = {
@@ -236,11 +236,11 @@
     if (c === 'auth') return 'Tu sesión ha caducado: vuelve a entrar en tu cuenta.';
     if (c === 'net') return 'No hay conexión con el servidor. Comprueba tu red y vuelve a probar.';
     if (c === 'full') return 'Esa sala ya está llena.';
-    if (c === 'kicked') return 'Quien creó la sala te ha sacado: no puedes volver a entrar en ella.';
+    if (c === 'kicked') return 'Te ha sacado el que ha creado la sala: ya no puedes volver a entrar.';
     if (c === 'gone') return 'Esa sala ya no existe.';
-    if (c === 'version') return VB.Update && VB.Update.outdated() ? 'Tienes una versión anterior del juego: reinicia para actualizarlo.' : 'Esa sala es de otra versión del juego: quien la creó tiene que reiniciar el juego.';
-    if (c === 'dup') return 'Hay más de una sala con ese código: entra desde la lista o pide el enlace a quien la creó.';
-    return what || 'Algo ha fallado. Vuelve a probar.';
+    if (c === 'version') return VB.Update && VB.Update.outdated() ? 'Tienes una versión anterior del juego: reinicia para actualizarlo.' : 'Esa sala es de otra versión del juego: el que la ha creado tiene que reiniciar el juego.';
+    if (c === 'dup') return 'Hay más de una sala con ese código: entra desde la lista o pídele el enlace al que la ha creado.';
+    return what || 'No ha salido. Prueba otra vez.';
   }
 
   /* ---------------- lista ---------------- */
@@ -436,7 +436,7 @@
     });
   }
   function noHost() {
-    var id = L.room && L.room.id, who = L.rival || 'Quien creó la sala';
+    var id = L.room && L.room.id, who = L.rival || 'El que ha creado la sala';
     abortConn(); stopAll(); L.role = ''; L.room = null; L.rival = ''; L.status = '';
     if (id) api().leave(id);
     L.msg = who + ' no responde: parece que ya no está en la sala. Prueba con otra.'; L.msgBad = true;
@@ -447,7 +447,7 @@
     if (L.role !== 'guest' || !L.room || L.started) return;
     api().get(L.room.id).then(function (r) {
       if (L.role !== 'guest' || L.started) return;
-      if (!r || (r.guest && r.guest !== api().uid()) || (!r.guest && r.state === 'open')) roomGone(L.fail || 'Quien creó la sala la ha cerrado.');
+      if (!r || (r.guest && r.guest !== api().uid()) || (!r.guest && r.state === 'open')) roomGone(L.fail || 'Han cerrado la sala.');
       else if (r.age > NR().LIVE_MS) roomGone('La sala se ha cerrado.');
       else { L.room = r; render(); }
     }, function () { });
@@ -896,7 +896,7 @@
     PP + '#mpOnline .ol-fx .fx-chips{gap:0;overflow:hidden;white-space:nowrap}',
     PP + '#mpOnline .ol-fx .fx-chips i{background:none;padding:0;border-radius:0;font-size:var(--ph-label);font-weight:600;line-height:1.2;color:inherit;opacity:.88}',
     PP + '#mpOnline .ol-fx .fx-chips i:nth-child(n+3){display:none}',
-    PP + '#mpOnline .ol-fx .fx-chips i+i::before{content:"·";margin:0 6px}',
+    PP + '#mpOnline .ol-fx .fx-chips i+i::before{content:",";margin:0 5px 0 0}',
     PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:11em}',
     PP + '#mpOnline .ol-fx .fx-go{min-height:44px;padding:0 10px 0 12px}',
     PP + '#mpOnline .ol-fx.fx-off{--sp-c:var(--sp-ink2);--sp-d:var(--sp-ink2);--sp-tc:var(--sp-cream);color:var(--sp-cream)}' + PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.55}',
@@ -1061,7 +1061,7 @@
     ['Sin pausa', 'No se puede parar el partido. Entre sets hay 10 s de descanso: si tu rival y tú pulsáis «Continuar», se sigue antes.'],
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis exactamente lo mismo, con algún tirón si hay mucho ping. Fluida (v2): tu equipo responde al instante y el rival se ve una pizca en diferido.'],
     ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
-    ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
+    ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Estuve en la beta» para el Vestuario.'],
     ['Privacidad', 'El juego solo enseña tu nombre (si no eliges uno, «Jugador» y un número), nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
   ];
   /** Pegatina redonda de la sede (sombrilla en la playa, pabellón en pista). */
@@ -1086,7 +1086,7 @@
         ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (beta ? '. Beta' : '') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : freeTxt)) + '"') +
       (o.isNew ? ' style="animation-delay:' + (o.delay | 0) + 'ms"' : '') + '><span class="sp-tk">' +
       '<span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true">' + VEN_IC[beach ? 'beach' : 'hall'] + '</span></span>' +
-      '<span class="sp-tk-main fx-main"><small class="sp-k fx-k">' + kind + (vn && vn !== kind ? '<i class="ol-sep" aria-hidden="true"></i>' + esc(vn) : '') + '</small>' +
+      '<span class="sp-tk-main fx-main"><small class="sp-k fx-k">' + kind + (vn && vn !== kind ? ', ' + esc(vn) : '') + '</small>' +
       '<span class="fx-line"><b class="fx-name" title="' + esc(r.name) + '">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
       (r.multi ? '<span class="fx-slot fx-cnt' + (full ? ' in' : '') + '" aria-hidden="true">' + nIn + '/' + (r.cap | 0) + '</span></span>'
         : '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>') +
@@ -1111,7 +1111,7 @@
     ['Salas', 'Crea una sala y espera a que alguien entre, o entra en una de la lista. También puedes pasar tu código.'],
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis lo mismo. Fluida (v2): tu equipo responde al instante.'],
     ['Si se corta', 'El partido espera a tu rival; a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
-    ['Récord', 'Abandonar cuenta como derrota. Sin experiencia ni insignias; tu primer partido da la gorra «Online Beta Tester».'],
+    ['Récord', 'Abandonar cuenta como derrota. Sin experiencia ni insignias; tu primer partido da la gorra «Estuve en la beta».'],
     ['Privacidad', 'Solo se ve tu nombre (o «Jugador» y un número), nunca tu correo. La conexión es directa: el aparato de tu rival conoce tu dirección de red.']
   ];
   var HP_PER = 2;   // (3 con ancho ≥ 800: html.ph-w)
@@ -1293,7 +1293,7 @@
       };
       var b2 = r2.venue === 'beach', vn2 = venueName(r2), k2 = b2 ? 'Playa' : 'Pabellón';
       h = '<div class="ol-match sp-panel ol-scroll ' + (b2 ? 'v-beach' : 'v-hall') + (riv ? ' has-riv' : '') + '">' +
-        '<div class="mt-top" data-nav><span class="sp-crest" aria-hidden="true">' + VEN_IC[b2 ? 'beach' : 'hall'] + '</span><span class="mt-ven"><b data-ph-ell>' + k2 + (vn2 && vn2 !== k2 ? ' · ' + esc(vn2) : '') + '</b>' +
+        '<div class="mt-top" data-nav><span class="sp-crest" aria-hidden="true">' + VEN_IC[b2 ? 'beach' : 'hall'] + '</span><span class="mt-ven"><b data-ph-ell>' + k2 + (vn2 && vn2 !== k2 ? ', ' + esc(vn2) : '') + '</b>' +
         (host ? '' : '<small class="mt-who">Sala de ' + esc(r2.name) + '</small>') + '</span>' +
         '<button class="ol-code sp-chip" type="button" data-a="copy" aria-label="' + esc('Código ' + r2.code.split('').join(' ') + '. Copiar') + '">' + esc(r2.code) + IC.copy + '</button></div>' +
         '<div class="ol-vs">' + pl(left, host ? 'Tú' : 'Rival', !host, 'mt-a') + '<span class="ol-mid">VS</span>' + pl(right, host ? 'Rival' : 'Tú', host && !!riv, 'mt-b') + '</div>' +
@@ -2112,13 +2112,13 @@
 
   /* ---- el lobby (#mpOnline) con una sala de varios ---- */
   function mxWhy(why, E) {
-    var who = (E && E.room && E.room.name) || 'Quien creó la sala';
+    var who = (E && E.room && E.room.name) || 'El que ha creado la sala';
     return {
       hostLeft: who + ' ha cerrado la sala.', hostLost: 'Se ha perdido la conexión con la sala de ' + who + '.', kick: who + ' te ha sacado de la sala.',
       noconn: 'No se ha podido conectar con la sala: vuestras redes no lo permiten. Probad otra vez o desde otra red.',
       noHost: who + ' no responde: parece que ya no está en la sala. Prueba con otra.', gone: 'Tu sala se ha cerrado.',
       nostart: 'La partida ha empezado sin ti (estabas de pie).', late: 'La partida ha empezado justo cuando entrabas: prueba con otra sala.', mismatch: 'La sala no coincide con lo anunciado: no hay partido.',
-      out: 'Ya no tienes sitio en esa sala.', error: 'Algo ha fallado. Vuelve a probar.'
+      out: 'Ya no tienes sitio en esa sala.', error: 'No ha salido. Prueba otra vez.'
     }[why] || 'La sala se ha cerrado.';
   }
   function mCreate(c) {
@@ -2229,12 +2229,12 @@
       var conn = E.ro.m.filter(function (m) { return !m.ok; }).map(function (m) { return m.n; }), cs = mxCanStart(E);
       if (!cs.n && !cs.wait.length) return conn.length ? 'Conectando con ' + conn.join(', ') + '…' : 'Esperando jugadores. Tu sala sale en la lista de Online.';
       if (cs.wait.length) return 'Faltan por estar listos: ' + mNames(cs.wait) + '.';
-      return conn.length ? '¡Listos! Aún conectando: ' + conn.join(', ') + '.' : '¡Todos listos! Pulsa «Empezar».';
+      return conn.length ? 'Casi: falta que conecte ' + conn.join(', ') + '.' : 'Estáis todos. Cuando quieras, «Empezar».';
     }
     if (E.status !== 'linked') return 'Conectando con la sala de ' + (E.room.name || '…') + '…';
     if (!me) return 'Entrando en la sala…';
     if (me.c < 0) return 'Toca un sitio libre para sentarte.';
-    return me.r ? 'Listo. Esperando a que ' + (E.room.name || 'quien creó la sala') + ' pulse «Empezar».' : 'Toca otro sitio para cambiarte o pulsa «Listo».';
+    return me.r ? 'Listo. Esperando a que ' + (E.room.name || 'el que la ha creado') + ' pulse «Empezar».' : 'Toca otro sitio para cambiarte o pulsa «Listo».';
   }
   /** «Ana, Luis» · «Ana, Luis y 3 más» (la barra del móvil tiene sitio para dos líneas). */
   function mNames(L2) { return L2.length <= 2 ? L2.join(', ') : L2.slice(0, 2).join(', ') + ' y ' + (L2.length - 2) + ' más'; }
@@ -2244,7 +2244,7 @@
     var can = !L.started && (host ? (!m || !m.h || !!L.pick) : E.status === 'linked' && !!me && (!m || mine));
     var cls = 'mx-chip' + (m ? '' : ' empty') + (mine ? ' me' : '') + (m && (m.r || m.h) ? ' rdy' : '') + (m && L.pick === m.u ? ' pick' : '') + (m && !m.ok ? ' conn' : '');
     var ping = m && !m.h && m.ok && m.p ? '<i class="mx-ping ' + (m.p < 90 ? 'g' : m.p < 170 ? 'y' : 'r') + '" aria-hidden="true"></i>' : '';   // (verde < 90 ms, amarillo < 170, rojo)
-    var tick = m && (m.r || m.h) ? '<i class="mx-ok" aria-hidden="true">✓</i>' : '';
+    var tick = m && (m.r || m.h) ? '<i class="mx-ok" aria-hidden="true"><svg viewBox="0 0 24 24" width="10" height="10"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i>' : '';
     var aria = 'Dorsal ' + num + ', ' + role + ': ' + (m ? m.n + (mine ? ' (tú)' : '') + (m.h ? ', anfitrión' : '') + (!m.ok ? ', conectando' : m.r || m.h ? ', listo' : ', no está listo') +
       (ping ? ', ping ' + m.p + ' ms' : '') : 'libre, lo lleva la IA');
     // (tu sitio dice «Tú» en vez de tu nombre; el nombre entero, en el aria y en el title)
@@ -2276,7 +2276,7 @@
       for (var i = 0; i < ps; i++) { chips += mChip(E, t * ps + i, me); if (mxAt(E, t * ps + i)) n++; }
       var mine = me && me.c >= 0 && chairOf(r, me.c).t === t;
       cols += '<div class="mx-team" style="--tk:' + hexCol(ko && ko[t], t ? '#ff7a45' : '#2bb3a3') + '"><b class="mx-th">' + (t ? 'Equipo B' : 'Equipo A') + ' <span>' + n + '/' + ps + '</span>' +
-        (mine ? ' <i>· el tuyo</i>' : '') + '</b><div class="mx-grid" data-nav>' + chips + '</div></div>';
+        (mine ? ' <i>(el tuyo)</i>' : '') + '</b><div class="mx-grid" data-nav>' + chips + '</div></div>';
     });
     var bench = E.ro.m.filter(function (m) { return m.c < 0; }), benchH = '';
     if (bench.length) benchH = '<div class="mx-bench" data-nav><small>De pie:</small>' + bench.map(function (m) {
@@ -2286,10 +2286,10 @@
     var st = mStatus(E), bad = false;
     // (L3, móvil: el formato, «cambiar de lado» y el código suben a la cabecera; la sede va abajo, con los chips del partido, y el
     //  estado, en la barra entre «Salir» y la principal: los 12 sitios del 6 contra 6 caben sin desplazar en 568×320)
-    var info = PH ? '<p class="mx-info"><b>' + esc(k2 + (vn2 && vn2 !== k2 ? ' · ' + vn2 : '')) + '</b>' + (host ? '' : '<span> · Sala de ' + esc(r.name) + '</span>') + '</p>' : '';
+    var info = PH ? '<p class="mx-info"><b>' + esc(k2 + (vn2 && vn2 !== k2 ? ', ' + vn2 : '')) + '</b>' + (host ? '' : '<span>, sala de ' + esc(r.name) + '</span>') + '</p>' : '';
     var h = '<div class="ol-match ol-mx sp-panel ol-scroll ' + (ps === 6 ? 'mx6 ' : '') + (b2 ? 'v-beach' : 'v-hall') + '">' + (PH ? '' :
-      '<div class="mt-top" data-nav><span class="sp-crest" aria-hidden="true">' + VEN_IC[b2 ? 'beach' : 'hall'] + '</span><span class="mt-ven"><b data-ph-ell>' + FMT_TXT[fmtOf(r)] + ' · ' + k2 +
-      (vn2 && vn2 !== k2 ? ' · ' + esc(vn2) : '') + '</b>' + (host ? '' : '<small class="mt-who">Sala de ' + esc(r.name) + '</small>') + '</span>' +
+      '<div class="mt-top" data-nav><span class="sp-crest" aria-hidden="true">' + VEN_IC[b2 ? 'beach' : 'hall'] + '</span><span class="mt-ven"><b data-ph-ell>' + FMT_TXT[fmtOf(r)] + ', ' + k2 +
+      (vn2 && vn2 !== k2 ? ', ' + esc(vn2) : '') + '</b>' + (host ? '' : '<small class="mt-who">Sala de ' + esc(r.name) + '</small>') + '</span>' +
       (host && r.mode !== 'coop' && !L.started ? '<button class="mx-swap" type="button" data-a="swap" aria-label="Cambiar los equipos de lado">' + IC.swap + '</button>' : '') +
       '<button class="ol-code sp-chip" type="button" data-a="copy" aria-label="' + esc('Código ' + r.code.split('').join(' ') + '. Copiar') + '">' + esc(r.code) + IC.copy + '</button></div>') +
       '<div class="mx-teams">' + cols + '</div>' + benchH + info +
@@ -2372,7 +2372,7 @@
       gone: 'La sala se ha cerrado.', hostLeft: 'Quien te invitó ha cerrado la sala.', hostLost: 'Se ha perdido la conexión.', noHost: 'Quien te invitó no responde.',
       noconn: 'No se ha podido conectar: vuestras redes no lo permiten. Probad otra vez o desde otra red.', mateLeft: 'Tu compañero ha salido.',
       kick: 'Te han sacado de la sala.', version: errText({ code: 'version' }), auth: errText({ code: 'auth' }), net: errText({ code: 'net' })
-    }[why] || 'Algo ha fallado. Vuelve a probar.';
+    }[why] || 'No ha salido. Prueba otra vez.';
   }
   function coopEl() {
     var d = document.getElementById('olCoop');
@@ -2839,7 +2839,7 @@
       if (!signedIn() || !C || C.state !== 'menu' || !C.actions || !C.actions.startOnline || !U || !U.menuIdle || !U.menuIdle() || L.room || L.mx || CO || BK) return;
       clearInterval(wait);
       var me = BK = { b: b, E: null, go: false, t0: Date.now() };
-      bkSheet('Buscando la sala de ' + (theirName(b.host) || 'quien la creó') + '…');
+      bkSheet('Buscando la sala de ' + (theirName(b.host) || 'el que la ha creado') + '…');
       api().get(b.id).then(function (r) {
         if (BK !== me) return;
         if (!r) { bkFail('gone'); return; }
@@ -2855,7 +2855,7 @@
     var E = Mx({ role: 'guest', room: r, coop: r.mode === 'coop', onChange: noop, onNote: noop, onEnd: function (why, E2) { if (BK && BK.E === E2) BK = null; } });
     E.started = true; E.back = b; E.backGo = false; E.gen = b.gen | 0; E.status = 'back'; E.tJoin = Date.now();
     me.E = E;
-    bkSheet('Reconectando con la sala de ' + (theirName(r.name, r.host) || theirName(b.host) || 'quien la creó') + '. Mientras, tu jugador lo lleva la IA.');
+    bkSheet('Reconectando con la sala de ' + (theirName(r.name, r.host) || theirName(b.host) || 'el que la ha creado') + '. Mientras, tu jugador lo lleva la IA.');
     mxGuestListen(E, E.gen);
     mxEvery(E, 'bkRoom', HOST_CHK_MS, function () {   // (la sala desaparece mientras esperas: quien la creó se ha ido)
       if (BK !== me || E.backGo) { mxStop(E, 'bkRoom'); return; }
@@ -2901,7 +2901,7 @@
     if (why === 'gone') {   // (quien creó la sala se fue: el partido no cuenta, tampoco para tu récord)
       try { var R = VB.NetRec; if (R && R.resume && R.resume()) { R.begin(me.b.host || 'Rival'); R.end(me.b.host || 'Rival', { why: 'hostGone', win: false }, false, null); } } catch (e) { }
     }
-    var who = theirName(me.b.host) || 'Quien creó la sala';
+    var who = theirName(me.b.host) || 'El que ha creado la sala';
     var txt = why === 'gone' ? who + ' ha cerrado la sala: el partido no cuenta.' : why === 'noconn' ? 'No se ha podido volver a conectar con la sala de ' + who + '.' :
       why === 'net' ? errText({ code: 'net' }) : 'Ya no se puede volver a esa partida.';
     coopSheet({ title: 'Volver a la partida', text: txt, bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] });

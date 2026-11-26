@@ -11,9 +11,9 @@
  *     cliente, leer/listar/cambiar solo admin (solo state y note), nadie borra; y netlogs sigue leyéndose solo con admin().
  *  3) Con navegador (tools/cdp.js; NOCDP=1 la salta). Firestore nunca se toca: un script inicial cambia window.fetch para las
  *     direcciones de firestore.googleapis.com (modo ok / 403 / sin red, y apunta lo que se manda). (a) Ajustes › Info › «Sugerir una
- *     mejora»: panel con el tipo puesto, las teclas van al cuadro (Q, E, F no llegan al juego), Tab sale del cuadro, enviar → «¡Gracias!
- *     Enviado», «Hecho» vuelve a Ajustes › Info; (b) pausa › «Bug»: tipo bug, «¿Dónde pasó?» con Partido, error de JS capturado en el
- *     contexto, 403 → «Guardado: se enviará en cuanto se pueda» y en la cola; otro envío antes de 30 s → «Espera»; sin red → cola;
+ *     mejora»: panel con el tipo puesto, las teclas van al cuadro (Q, E, F no llegan al juego), Tab sale del cuadro, enviar → «Enviado.
+ *     Gracias.», «Hecho» vuelve a Ajustes › Info; (b) pausa › «Bug»: tipo bug, «¿Dónde pasó?» con Partido, error de JS capturado en el
+ *     contexto, 403 → «Guardado. Se manda solo cuando haya conexión» y en la cola; otro envío antes de 30 s → «Espera»; sin red → cola;
  *     flush() con red → cola vacía; Esc en el cuadro cierra y la pausa sigue; (c) al arrancar con cosas en la cola, se mandan solas;
  *     (d) móvil 844×390 táctil: desde la pausa, el panel y sus botones dentro de la pantalla; (e) la fila del visor no sale sin la
  *     cuenta de Ferran; (f) mando: A en «Bug» de la pausa abre el panel, ↓ pasa por el cuadro y B vuelve.
@@ -70,7 +70,7 @@ async function nodeTests() {
   let f = mockFetch(200); FB._setFetch(f);
   let r = await FB.submit({ kind: 'sug', text: '  Que haya más sedes de playa  ', screen: 'menú > set:info' });
   const c0 = f.calls[0], w0 = c0 && c0.body && c0.body.writes && c0.body.writes[0];
-  check('sin sesión: enviado', r.status === 'sent' && r.msg === '¡Gracias! Enviado', r);
+  check('sin sesión: enviado', r.status === 'sent' && r.msg === 'Enviado. Gracias.', r);
   check('POST a documents:commit', c0 && c0.opt.method === 'POST' && c0.url === FS_BASE.replace(/\/$/, '') + ':commit', c0 && c0.url);
   check('sin Authorization sin sesión', c0 && !('Authorization' in c0.opt.headers), c0 && c0.opt.headers);
   check('documento feedback/{id de 20}', w0 && /^projects\/make-the-cut-vb\/databases\/\(default\)\/documents\/feedback\/[A-Za-z0-9]{20}$/.test(w0.update.name), w0 && w0.update.name);
@@ -92,7 +92,7 @@ async function nodeTests() {
   check('pasados 30 s se puede', FB.canSend().ok);
   const lk = JSON.parse(B.store['make-the-cut.feedbackl']); lk.n = 10; B.store['make-the-cut.feedbackl'] = JSON.stringify(lk);
   lim = FB.canSend(); r = await FB.submit({ kind: 'sug', text: 'La número once del día' });
-  check('límite: 10 al día', !lim.ok && lim.why === 'dia' && r.status === 'error' && /10 hoy/.test(r.msg), [lim, r]);
+  check('límite: 10 al día', !lim.ok && lim.why === 'dia' && r.status === 'error' && /ya van 10./.test(r.msg), [lim, r]);
   lk.d = '20000101'; B.store['make-the-cut.feedbackl'] = JSON.stringify(lk);
   check('el contador del día vuelve a 0 otro día', FB.canSend().ok);
   // con sesión
@@ -105,7 +105,7 @@ async function nodeTests() {
   // cola: 403 (reglas sin desplegar) y sin red
   B = boot({ account: { FS_BASE, user: () => null } }); FB = B.FB; f = mockFetch(403); FB._setFetch(f);
   r = await FB.submit({ kind: 'bug', text: 'No suena el silbato' });
-  check('403 → «Guardado: se enviará en cuanto se pueda» y a la cola', r.status === 'queued' && r.msg === 'Guardado: se enviará en cuanto se pueda' && FB.queue().length === 1, r);
+  check('403 → «Guardado. Se manda solo cuando haya conexión» y a la cola', r.status === 'queued' && r.msg === 'Guardado. Se manda solo cuando haya conexión' && FB.queue().length === 1, r);
   check('la cola vive en make-the-cut.feedbackq', JSON.parse(B.store['make-the-cut.feedbackq']).length === 1);
   B.store['make-the-cut.feedbackl'] = JSON.stringify({ d: JSON.parse(B.store['make-the-cut.feedbackl']).d, n: 1, last: 0 });
   f = mockFetch('net'); FB._setFetch(f);
@@ -335,7 +335,7 @@ async function browser() {
     await click(pg, '#fbSend'); await sleep(400);
     S = await st(pg);
     const calls = JSON.parse(await pg.evalJs('JSON.stringify(window.__fbCalls)'));
-    check('Enviar → «¡Gracias! Enviado»', S.done === '¡Gracias! Enviado', S);
+    check('Enviar → «Enviado. Gracias.»', S.done === 'Enviado. Gracias.', S);
     const w = calls[0] && calls[0].b && calls[0].b.writes[0];
     check('lo enviado: commit sin Authorization, kind sug, texto, uid \'\'', calls.length === 1 && /:commit$/.test(calls[0].u) && !calls[0].auth && w.update.fields.kind.stringValue === 'sug'
       && w.update.fields.text.stringValue === 'Hola qefi mas sedes' && w.update.fields.uid.stringValue === '', calls.length);
@@ -370,7 +370,7 @@ async function browser() {
     S = await st(pg);
     let c = JSON.parse(await pg.evalJs('JSON.stringify(window.__fbCalls)'));
     const wb = c[0] && c[0].b.writes[0].update.fields, cxb = wb && JSON.parse(wb.ctx.stringValue);
-    check('403 (reglas sin desplegar) → «Guardado: se enviará en cuanto se pueda» y 1 en la cola', S.done === 'Guardado: se enviará en cuanto se pueda' && S.q === 1, S);
+    check('403 (reglas sin desplegar) → «Guardado. Se manda solo cuando haya conexión» y 1 en la cola', S.done === 'Guardado. Se manda solo cuando haya conexión' && S.q === 1, S);
     check('bug: where online y el error de JS en el contexto', wb && wb.where.stringValue === 'online' && cxb.errs.some(e => /fallo de prueba feedbacktest/.test(e.m)), cxb && cxb.errs);
     await click(pg, '#fbDone'); await sleep(300);
     S = await st(pg);
@@ -385,7 +385,7 @@ async function browser() {
     await pg.evalJs("localStorage.setItem('fbtest.mode','net');var l=JSON.parse(localStorage.getItem('make-the-cut.feedbackl'));l.last=0;localStorage.setItem('make-the-cut.feedbackl',JSON.stringify(l));");
     await click(pg, '#fbSend'); await sleep(400);
     S = await st(pg);
-    check('sin red → guardado y 2 en la cola', S.done === 'Guardado: se enviará en cuanto se pueda' && S.q === 2, S);
+    check('sin red → guardado y 2 en la cola', S.done === 'Guardado. Se manda solo cuando haya conexión' && S.q === 2, S);
     await pg.evalJs("localStorage.setItem('fbtest.mode','ok')");
     const fr = JSON.parse(await pg.evalJs('VB.Feedback.flush().then(function(r){return JSON.stringify(r)})', true));
     check('con red otra vez, flush() las manda y la cola queda vacía', fr.sent === 2 && fr.left === 0 && (await pg.evalJs("localStorage.getItem('make-the-cut.feedbackq')")) === null, fr);
@@ -421,9 +421,9 @@ async function browser() {
     await sleep(400);
     const inView = sel => pg.evalJs(`(function(){var e=document.querySelector(${JSON.stringify(sel)});if(!e)return 'no';var r=e.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth+.5&&r.bottom<=innerHeight+.5&&r.width>=44&&r.height>=44?'ok':JSON.stringify([r.left,r.top,r.right,r.bottom]);})()`);
     check('html.ph en el móvil', await pg.evalJs("document.documentElement.classList.contains('ph')"));
-    // (movil-aire §5.7: en el móvil, Sugerencia y Bug son UN botón, «Opinar», que abre el panel con las dos pestañas; Bug no se ve)
+    // (movil-aire §5.7: en el móvil, Sugerencia y Bug son UN botón, «Escríbeme», que abre el panel con las dos pestañas; Bug no se ve)
     const a1 = await inView('#btnPSug'), a2 = await pg.evalJs("getComputedStyle(document.getElementById('btnPBug')).display"), a3 = await pg.evalJs("document.querySelector('#btnPSug .sp-t').textContent");
-    check('pausa (móvil): «Opinar» dentro de la pantalla y de ≥ 44 px; «Bug» oculto', a1 === 'ok' && a2 === 'none' && a3 === 'Opinar', [a1, a2, a3]);
+    check('pausa (móvil): «Escríbeme» dentro de la pantalla y de ≥ 44 px; «Bug» oculto', a1 === 'ok' && a2 === 'none' && a3 === 'Escríbeme', [a1, a2, a3]);
     await click(pg, '#btnPSug'); await sleep(450);
     // (movil-aire §5.1/§5.7: en el móvil sin «Cancelar»; la ‹ de la franja sale)
     const b1 = await inView('#fbSend'), b3 = await inView('#btnPanelBack'), b4 = await inView('#fbText');

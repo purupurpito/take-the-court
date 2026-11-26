@@ -463,7 +463,7 @@
   var SPLIT_DY = -0.297, FE_DX = 0.8, FE_DY0 = SPLIT_DY, FE_DY1 = 0.64, FM_DX = 0.84, FM_DY0 = -0.92, FM_DY1 = SPLIT_DY;
   // rasgos en metros de la cabeza de v1 (centro HEAD_C0): faceCell los escala ×FK alrededor del centro de la cabeza activa
   var EYE_X = 0.078, EYE_Y = HEAD_C0 + 0.005, EYE_RX = 0.046, EYE_RY = 0.06, BROW_Y = HEAD_C0 + 0.095, MOUTH_Y = HEAD_C0 - 0.1;
-  var NUM_FONT = '"Barlow Condensed","Arial Narrow","Arial Black",Impact,sans-serif';
+  var NUM_FONT = '"Big Shoulders Display","Arial Narrow","Arial Black",Impact,sans-serif';
 
   function canvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   function texOf(cv) { var t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; t.wrapS = THREE.RepeatWrapping; return t; }
@@ -558,9 +558,11 @@
     // dorsales: grande en la espalda (u 0,5), pequeño en el pecho dentro del tajo (oscuro); playa: grande también delante
     var s = String(numV == null ? 0 : numV);
     function num(cx, cy, h, sx, dark) {
-      g.save(); g.translate(cx, cy); g.scale(sx, 1); g.font = 'italic 900 ' + h + 'px ' + NUM_FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
-      if (dark) { g.fillStyle = hexCss(tc.dark); g.fillText(s, 0, 0); }
-      else { g.lineWidth = h * 0.12; g.strokeStyle = hexCss(pat === 'peto' ? bibEd : tc.dark); g.strokeText(s, 0, 0); g.fillStyle = tc.numFill || '#ffffff'; g.fillText(s, 0, 0); }
+      g.save(); g.translate(cx, cy); g.scale(sx, 1); g.font = '800 ' + h + 'px ' + NUM_FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+      // contorno de 2 px (trazo de 4: la mitad queda bajo el relleno) en el color de contraste de la equipación
+      g.lineWidth = 4;
+      if (dark) { g.strokeStyle = tc.numFill || '#ffffff'; g.strokeText(s, 0, 0); g.fillStyle = hexCss(tc.dark); g.fillText(s, 0, 0); }
+      else { g.strokeStyle = hexCss(pat === 'peto' ? bibEd : tc.dark); g.strokeText(s, 0, 0); g.fillStyle = tc.numFill || '#ffffff'; g.fillText(s, 0, 0); }
       g.restore();
     }
     if (pat === 'peto') {   // peto: dorsal grande detrás y mediano delante, los dos en el color del dorsal del peto
@@ -640,7 +642,7 @@
         draw(c, f0, f1, tr, len, function (xc, y0, y1, ax) {
           var H = y1 - y0, h = H * 0.96;
           g.save(); g.translate(xc, (y0 + y1) / 2 + H * 0.04); g.scale(c.flip ? -ax : ax, 1);   // (la columna izquierda va espejada)
-          g.font = 'italic 900 ' + h + 'px ' + NUM_FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+          g.font = '800 ' + h + 'px ' + NUM_FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
           g.lineWidth = h * 0.16; g.strokeStyle = hexCss(nk); g.strokeText(sN, 0, 0); g.fillStyle = hexCss(nf); g.fillText(sN, 0, 0);
           g.restore();
         });
@@ -1670,7 +1672,7 @@
           '#include <output_fragment>');
     };
     m.customProgramCacheKey = function () { return 'vbDollToon'; };
-    try { if (document.fonts && document.fonts.load) document.fonts.load('italic 900 100px "Barlow Condensed"').then(function () { var a = m.userData.paint; if (m.map === t && a) { paintAtlas(cv, a.tc, a.L, a.num, a.beach); t.needsUpdate = true; } }).catch(function () { }); } catch (e) { }
+    try { if (document.fonts && document.fonts.load) document.fonts.load('800 100px "Big Shoulders Display"').then(function () { var a = m.userData.paint; if (m.map === t && a) { paintAtlas(cv, a.tc, a.L, a.num, a.beach); t.needsUpdate = true; } }).catch(function () { }); } catch (e) { }
     return m;
   }
   // contorno de tinta de color: VB.TOON.outline de arena (grosor en píxeles, tope en metros, peso `ow` por vértice, color propio)

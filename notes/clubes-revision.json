@@ -3168,7 +3168,7 @@
        },
        "liberoEstimated": false,
        "ovr": 75,
-       "sponsor": "Gofio La Plancha",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre: ningún club con ese nombre; solo sale el monolito. Antes «Guagüeros Las Palmas» (GUA), cambiado porque guiñaba a Guaguas Municipales, patrocinador…"
@@ -3186,7 +3186,7 @@
        },
        "liberoEstimated": false,
        "ovr": 73,
-       "sponsor": "Torreznos El Remate",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3204,7 +3204,7 @@
        },
        "liberoEstimated": false,
        "ovr": 73,
-       "sponsor": "Formatges Es Mur",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): ca.wikipedia: ningún club con ese nombre (único resultado irrelevante «2019»). Contrastado solo con las listas oficiales de equipos…"
@@ -3222,7 +3222,7 @@
        },
        "liberoEstimated": false,
        "ovr": 72,
-       "sponsor": "Churrería El Saque",
+       "sponsor": "Reformas Hnos. Prieto",
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3258,7 +3258,7 @@
        },
        "liberoEstimated": false,
        "ovr": 70,
-       "sponsor": "Ensaïmades Es Bloqueig",
+       "sponsor": "Forn Can Toni",
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3276,7 +3276,7 @@
        },
        "liberoEstimated": false,
        "ovr": 70,
-       "sponsor": "Mojo Picón La Red",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3294,7 +3294,7 @@
        },
        "liberoEstimated": false,
        "ovr": 69,
-       "sponsor": "Talleres La Colocación",
+       "sponsor": "Talleres Suárez",
        "searched": true,
        "doubt": null,
        "note": "Libre: ningún club con ese nombre (solo sale La Vegueta, pueblo de Lanzarote). Antes «Heidelgrán Voley» (HDG), cambiado por indicación de Ferran (guiñaba al…"
@@ -3312,7 +3312,7 @@
        },
        "liberoEstimated": true,
        "ovr": 68,
-       "sponsor": "Bodegas La Diagonal",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: solo aparece Club Voleibol Haro (Haro Rioja Vóley); ninguno con «Jarrero». Contrastado solo con las listas oficiales de…"
@@ -3348,7 +3348,7 @@
        },
        "liberoEstimated": false,
        "ovr": 67,
-       "sponsor": "Chanclas Supersónicas",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: 0 resultados para \"Voley Turia\"/\"Voleibol Turia\". Aviso: Wikipedia no cubre clubes modestos; no se pudo descartar un «CV…"
@@ -3366,7 +3366,7 @@
        },
        "liberoEstimated": true,
        "ovr": 67,
-       "sponsor": "Forn de Pa La Recepció",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): ca.wikipedia: «Santcugatenc» solo redirige a Sant Cugat del Vallès como gentilicio; ningún club con ese nombre. Contrastado solo con…"
@@ -3410,7 +3410,7 @@
        },
        "liberoEstimated": true,
        "ovr": 64,
-       "sponsor": "Plátanos El Pipe",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3428,7 +3428,7 @@
        },
        "liberoEstimated": true,
        "ovr": 63,
-       "sponsor": "Tomates El Líbero",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3446,7 +3446,7 @@
        },
        "liberoEstimated": true,
        "ovr": 63,
-       "sponsor": "Sancocho El Flotante",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3464,7 +3464,7 @@
        },
        "liberoEstimated": true,
        "ovr": 62,
-       "sponsor": "Fotocopias La Finta",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: Club Voleibol Leganés y Leganés (gentilicio «pepinero»); ningún club con ese nombre. Contrastado solo con las listas…"
@@ -3482,7 +3482,7 @@
        },
        "liberoEstimated": true,
        "ovr": 62,
-       "sponsor": "Pulpería El Bloqueo",
+       "sponsor": "Óptica Miño",
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3500,7 +3500,7 @@
        },
        "liberoEstimated": false,
        "ovr": 61,
-       "sponsor": "Hamacas El Ace",
+       "sponsor": "Apartamentos Marisa",
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: 0 resultados relevantes. Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB dataproject…"
@@ -3518,7 +3518,7 @@
        },
        "liberoEstimated": true,
        "ovr": 60,
-       "sponsor": "Autoescuela La Rotación",
+       "sponsor": "Autoescuela Campo",
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: ningún club; lo más cercano es UD Sanroqueña (otro nombre y otra forma). Contrastado solo con las listas oficiales de…"
@@ -3536,7 +3536,7 @@
        },
        "liberoEstimated": true,
        "ovr": 60,
-       "sponsor": "Quesos El Contraataque",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: ningún club con ese nombre. Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB dataproject…"
@@ -3554,7 +3554,7 @@
        },
        "liberoEstimated": false,
        "ovr": 58,
-       "sponsor": "Romesco La Dejada",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3572,7 +3572,7 @@
        },
        "liberoEstimated": true,
        "ovr": 58,
-       "sponsor": "Barraquito El Toque",
+       "sponsor": "Bar Chicho",
        "searched": true,
        "doubt": null,
        "note": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB…"
@@ -3590,7 +3590,7 @@
        },
        "liberoEstimated": false,
        "ovr": 57,
-       "sponsor": "Colchones La Zambullida",
+       "sponsor": null,
        "searched": true,
        "doubt": null,
        "note": "Libre (solo Wikipedia): es.wikipedia: 0 resultados. Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB dataproject: Superliga…"

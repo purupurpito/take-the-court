@@ -113,8 +113,8 @@
 
   // ------------------------------------------------------------------ reparto único inventado
   var AGENT = 'Cris Montoya';
-  var COACH_N = ['Alex', 'Dani', 'Noa', 'Sam', 'Ariel', 'Eli', 'Nico', 'Robin'];
-  var MEDIA = { diario: 'Diario La Red', digital: 'El Bloqueo Digital', radio: 'Radio Arena FM', pod: 'La Pausa Técnica' };
+  var COACH_N = ['Ferrer', 'Garriga', 'Salvat', 'Roig', 'Ortega', 'Lozano', 'Vidal', 'Bermúdez'];
+  var MEDIA = { diario: 'El Comarcal', digital: 'Base y Pista', radio: 'Radio Litoral', pod: 'La Previa' };
 
   // ------------------------------------------------------------------ azar
   function hashOf(c, keys) { var C = B(); return C._hash.apply(null, [c && num(c.seed) ? c.seed : 0].concat(keys)); }
@@ -231,8 +231,8 @@
       agent: AGENT,
       coach: COACH_N[idx(c, ['st-coachN', k ? k.id : -1], COACH_N.length)],
       media: { diario: MEDIA.diario, digital: MEDIA.digital, radio: MEDIA.radio, pod: MEDIA.pod },
-      acc: { cronista: isH(c) ? '@CronistaDePabellón' : '@CronistaDeArena', rumor: '@ElOjoDeHalcón', pena: '@PeñaVoley' + (handle(city) || 'DelBarrio'), hater: '@NoMeConvence' },
-      fam: 'Tu gente', barrio: 'La peña del barrio'
+      acc: { cronista: isH(c) ? '@CronistaDePabellón' : '@CronistaDeArena', rumor: '@ElOjoDeHalcón', pena: '@GradaPoli' + (handle(city) || 'DelBarrio'), hater: '@NoMeConvence' },
+      fam: 'Familia', barrio: 'Los del infantil'
     };
   }
   function freq(c) { var s = St(c); return s ? s.freq : 1; }
@@ -316,7 +316,7 @@
     }
     return out;
   }
-  var REL_NAME = { ag: 'Agente', fam: 'Tu gente', heat: 'Pique con tu rival' };
+  var REL_NAME = { ag: 'Agente', fam: 'Familia', heat: 'Pique con tu rival' };
   function hint(c, e) {
     var h = []; if (!obj(e)) return h;
     var L = VB.CareerLife, core = {};

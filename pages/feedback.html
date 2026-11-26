@@ -5,11 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Buzón de opiniones</title>
-<!-- TAKE THE COURT — feedback.html (owner: ui_main). Visor de las sugerencias y los bugs que mandan los jugadores (js/feedback.js,
-     1.22.1, 23-nov-2026; notes/feedback.md). Como netlogs.html: usa la sesión de la cuenta guardada en ESTE navegador (la del juego,
-     mismo origen) y solo funciona con la cuenta de Ferran: las reglas de feedback/{id} solo dejan leer y cambiar a esa cuenta
-     (admin() en firebase/firestore.rules). Lista lo más nuevo primero, filtra por tipo y estado, cambia el estado y la nota (lo único
-     que las reglas dejan cambiar) y descarga todo en JSON para pasárselo a Claude. tools/build-pages.js la copia junto al juego. -->
+<!-- Buzón: lista, filtra y cambia el estado de lo que llega desde el juego. Solo con la cuenta de admin. -->
 <style>
 :root{--bg:#14102a;--card:#211b40;--ink:#f3eefc;--mut:#a59cc4;--line:#3a3166;--ok:#4fd1a5;--warn:#ffb238;--bad:#ff6a5c;--acc:#ff6a2e;--gold:#ffcb3d}
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f3fb;--card:#fff;--ink:#1b1534;--mut:#62597f;--line:#d9d2ea;--gold:#9a6b00}}
@@ -91,13 +87,13 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(1
     if (!c) return '';
     var e = c.env || {}, L = [];
     if (e.br || e.os) L.push(esc((e.br || '?') + ' en ' + (e.os || '?')) + (e.mob ? ' (móvil)' : ''));
-    if (e.win || e.scr) L.push('ventana ' + esc(e.win || '') + (e.scr ? ' · pantalla ' + esc(e.scr) : ''));
+    if (e.win || e.scr) L.push('ventana ' + esc(e.win || '') + (e.scr ? ', pantalla ' + esc(e.scr) : ''));
     if (c.q && (c.q.set || c.q.now)) L.push('calidad ' + esc(c.q.set || '') + (c.q.now ? ' (' + esc(c.q.now) + ')' : ''));
     if (c.lang) L.push(esc(c.lang));
     if (c.screen) L.push('en <code>' + esc(c.screen) + '</code>');
     if (c.mode) L.push('<code>' + esc(c.mode) + '</code>');
     if (errs && errs.length) L.push('<b class="bad">' + esc(String(errs.length)) + ' error' + (errs.length > 1 ? 'es' : '') + '</b>');
-    return L.join(' · ');
+    return L.join(', ');
   }
   function when(t) { return t ? new Date(t).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''; }
   function shown() {

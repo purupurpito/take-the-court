@@ -32,7 +32,7 @@
   // (VB.UI.tabs, como Jugadores y Ajustes; drawBar): Q/E y LB/RB cambian de apartado, RePág/AvPág y LT/RT de sub-pestaña, ←/→
   // con el foco en una pestaña, tocar y deslizar el dedo sobre el contenido. Sin ui.js (pruebas): botones sueltos (tabsBar).
   // «Fama» (career-life-ui.js): seguidores, patrocinio, rival, tienda, logros y legado
-  var TABS = [['match', 'Partido'], ['inbox', 'Mensajes'], ['player', 'Jugador'], ['club', 'Club'], ['life', 'Fama'], ['league', 'Liga'], ['honors', 'Palmarés']];
+  var TABS = [['match', 'Partido'], ['inbox', 'Mensajes'], ['player', 'Jugador'], ['club', 'Club'], ['life', 'Vida'], ['league', 'Liga'], ['honors', 'Palmarés']];
   var SUBS = {   // (Jugador: el mismo orden que Jugadores del menú, Físico · Defensa · Ataque, que sale de VB.Prog.GROUPS)
     player: [['phys', 'Físico'], ['def', 'Defensa'], ['atk', 'Ataque'], ['badges', 'Insignias'], ['train', 'Estado'], ['look', 'Vestuario']],   // (Vestuario: solo con js/look.js; «Estado» = Entreno + ánimo y forma de career-story; sin él, «Entreno»)
     club: [['info', 'Ficha'], ['mate', 'Compañero'], ['people', 'Gente'], ['contract', 'Contrato'], ['offers', 'Ofertas']],
@@ -247,13 +247,15 @@
   /** Separadores con diseño (ui.js VB.UI.sep; trozos YA escapados): 'd' rombo, 'v' raya fina, 's' barra, 'c' pastillas. */
   function sp(parts, kind) {
     parts = parts.filter(function (p) { return p !== '' && p != null; });
-    return VB.UI && VB.UI.sep ? VB.UI.sep(parts, kind, true) : parts.join(' · ');
+    return VB.UI && VB.UI.sep ? VB.UI.sep(parts, kind, true) : parts.join(', ');
   }
   var SV = '<span class="sep sep-v"><span class="sr">, </span></span>'; // raya fina suelta (entre trozos que ya son HTML)
   function hex(n) { return '#' + ('000000' + ((n >>> 0) & 0xffffff).toString(16)).slice(-6); }
   function dec(v) { return v == null ? '—' : (Math.round(v * 10) / 10).toFixed(1).replace('.', ','); }
   function snd(k) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(k || 'click'); } catch (e) { } }
   function diffName(k) { return (VB.DIFF && VB.DIFF[k] && VB.DIFF[k].name) || k; }
+  /** Nivel del rival en la ficha del partido, dicho como en la pista (nunca «IA»): Fácil → flojo, Normal → parejo, Difícil → duro. */
+  function rivLvl(nm) { nm = String(nm || '').replace(/ suave$/, ''); var m = { 'Fácil': 'flojo', 'Normal': 'parejo', 'Difícil': 'duro', 'Experto': 'muy duro' }[nm]; return m ? 'Rival ' + m : ''; }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
   // Dificultad de la Carrera (c.diff; CDIFF en career.js, notes/carrera.md §Dificultad). Sin CDIFF (career.js antiguo) no se pinta nada.
   function CD() { return (C() && C().CDIFF) || null; }
@@ -1191,6 +1193,9 @@
     PQ + ' td:not(.club):not(.l){font-variant-numeric:tabular-nums}',
     PQ + ' button.cw-tl-b{line-height:44px}',
     // selector de liga del móvil: ‹ nombre › (las flechas, pegatinas redondas de 44; el nombre, brochazo dorado que abre la hoja)
+    Q + ' .cr-lgp{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:10px;align-items:center;max-width:520px;margin:0 0 12px}',
+    Q + ' .cr-lgp button.cr-lgp-a{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;background:var(--sp-cream);color:var(--sp-ink);font:700 24px/1 var(--sp-ui);box-shadow:0 0 0 2.5px var(--sp-ink)}',
+    Q + ' .cr-lgp button.cr-lgp-v{min-height:44px;padding:0 14px;border-radius:22px;background:var(--sp-gold);color:var(--sp-ink);font:800 17px/1.15 var(--sp-ui);text-transform:none;letter-spacing:0;box-shadow:0 0 0 2.5px var(--sp-ink);transform:none}',
     PQ + ' .cr-lgp{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:10px;align-items:center;margin:0 0 12px}',
     PQ + ' .cr-lgp button.cr-lgp-a{width:44px;height:44px;min-height:44px;padding:0;border-radius:50% 46% 52% 48%/48% 52% 46% 50%;background:var(--sp-cream);color:var(--sp-ink);font:400 26px/1 var(--sp-pop)}',
     PQ + ' .cr-lgp button.cr-lgp-v{position:relative;isolation:isolate;min-height:44px;padding:0 12px;background:none;box-shadow:none;color:var(--sp-ink);font:400 var(--ph-btn)/1.1 var(--sp-pop);text-transform:none;white-space:normal;transform:rotate(-1deg)}',
@@ -2357,7 +2362,7 @@
       var play = nt.querySelector('[data-act="nt-play"]'), sim = nt.querySelector('[data-act="nt-sim"]'), vs = nt.querySelector('p b'), main = play || sim;
       acts = document.createElement('div'); acts.className = 'acts';
       if (play && sim) acts.appendChild(sim);
-      main.className = 'pri'; main.textContent = (play ? 'Jugar' : 'Simular') + (vs ? ' · ' + vs.textContent : '');
+      main.className = 'pri'; main.textContent = (play ? 'Jugar' : 'Simular') + (vs ? ' contra ' + vs.textContent : '');
       main.setAttribute('aria-label', (play ? 'Jugar con la selección' : 'Simular el partido de la selección') + (vs ? ': ' + vs.textContent : ''));
       acts.appendChild(main); nt.appendChild(acts);
     }
@@ -2472,7 +2477,7 @@
     var lbl = lk.label || (n && n.label) || '', rv = !lk.ext && n && n.rival ? n.rival.name : '';
     head.innerHTML = backBtn() + '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + (c.season | 0)], 'd') + '</small><b>Partido a medias</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
-    body.innerHTML = '<div class="card cr-lock"><h3>' + esc(lbl || 'Partido de Carrera') + '</h3>' + (rv ? '<p>Contra ' + esc(rv) + '</p>' : '') +
+    body.innerHTML = '<div class="card cr-lock"><h3>' + (lbl ? sp(esc(lbl).split(' · '), 'v') : 'Partido de Carrera') + '</h3>' + (rv ? '<p>Contra ' + esc(rv) + '</p>' : '') +
       '<p class="cr-lock-sc"><b>' + esc(lk.sub) + '</b></p>' +
       '<p class="muted">' + (lk.lost ? 'Cerraste con el punto en juego: ese punto es para el rival. ' : '') + 'Se guarda al acabar cada punto: la Carrera sigue cuando acabes este partido.</p>' +
       '<div class="acts"><button class="pri" data-act="lock-go">Seguir el partido</button></div></div>';
@@ -2503,11 +2508,11 @@
     if (!TABS.some(function (t) { return t[0] === tab; }) || (tab === 'life' && !LUI())) tab = 'match';   // (Fama: playa y pista, 12-nov-2026)
     // B2: retrato (44; 36 a ≤ 420 de alto) delante del título y escudo del club (40, oculto a ≤ 420) antes de «TU MEDIA»
     head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) +
-      '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + c.season, esc(L.name)], 'd') + '</small><b>' + sp([esc(c.player.name), esc(PH() ? shortClub(k) : k.name)], 's') + '</b></div>' +
+      '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + c.season, esc(L.name)], 'd') + '</small><b>' + sp([esc(c.player.name), esc(shortClub(k))], 's') + '</b></div>' +
       '<span class="cr-hcr sp-crest">' + crest(k, 40, c) + '</span>' + ovrStamp(C().playerOvr(c));
     // (ronda 2, carrera-marco-v) vertical: una fila [‹][retrato 40][escudo] … [sobre][sello] y debajo el nombre y «T1 · Liga · club corto»
     if (VERT()) head.innerHTML = backBtn() + ptHTML(c, 'me', 40, 'cr-pt', 'Retrato de ' + c.player.name) + '<span class="cr-hcr sp-crest">' + crest(k, 40, c) + '</span>' + ovrStamp(C().playerOvr(c)) +
-      '<div class="cr-title"><b>' + esc(c.player.name) + '</b><small>' + ['T' + c.season, esc(L.name), esc(shortClub(k))].join(' · ') + '</small></div>';
+      '<div class="cr-title"><b>' + esc(c.player.name) + '</b><small>' + esc(L.name) + ', ' + esc(shortClub(k)) + ' (T' + c.season + ')</small></div>';
     // bandeja: lo no leído se marca como leído ANTES de pintar (el contador ya no sigue en la pestaña mientras la miras); el
     // resaltado de lo nuevo se conserva en este pintado (freshIds)
     var freshIds = {};
@@ -2681,7 +2686,7 @@
       return '<button role="tab" data-' + attr + '="' + t[0] + '" aria-selected="' + (String(sel) === String(t[0])) + '">' + t[1] + (t[2] ? '<i class="dot" aria-hidden="true"></i>' : '') + '</button>';
     }).join('');
   }
-  function stars(n) { var s = ''; for (var i = 0; i < 5; i++) s += i < n ? '★' : '<span class="off">★</span>'; return '<span class="stars" aria-label="Prestigio ' + n + ' de 5">' + s + '</span>'; }
+  function stars(n) { return 'Prestigio ' + (n | 0) + '/5'; }
   function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (Math.round(+v || 0) === 1 ? ' salpi' : ' salpis'); }   // la moneda del juego (24-nov-2026): salpis, no euros
   function money(v) { return eur(v) + ' al mes'; }
   function fact(label, val) { return '<div><small>' + esc(label) + '</small><b>' + val + '</b></div>'; }
@@ -2721,7 +2726,7 @@
       '<p class="muted">' + sc + '</p>' + (ptLine ? '<p class="muted">' + ptLine + '</p>' : '') +
       '<p>' + plural(s.me.kills + s.me.aces + s.me.blocks, 'punto', 'puntos') + ' (' + s.me.kills + ' de ataque, ' + s.me.blocks + ' de bloqueo, ' + plural(s.me.aces, 'ace', 'aces') + ')' + SV +
       sp([plural(s.me.assists, 'asistencia', 'asistencias'), plural(s.me.errors, 'error', 'errores')], 'v') + '</p></div></div>' +
-      '<p><span class="tag y">+' + s.xp + ' XP</span>' + (s.lvlUp ? '<span class="tag g">¡Nivel ' + s.lvl + '! +' + s.ptsGained + ' puntos de mejora</span>' : '') + '</p>';
+      '<p><span class="tag y">+' + s.xp + ' XP</span>' + (s.lvlUp ? '<span class="tag g">Nivel ' + s.lvl + ' (+' + s.ptsGained + ' para repartir)</span>' : '') + '</p>';
     if (s.badges && s.badges.length && VB.Badges) h += '<p>' + s.badges.map(function (u) { return '<span class="tag y">' + esc(VB.Badges.label(u)) + '</span>'; }).join('') + '</p>';
     if (LUI()) h += LUI().lastExtra(c, s, HLP);   // reto, seguidores, dinero, duelo y logros
     if (s.scout != null && C().club(c, s.scout)) {   // pista: un ojeador de un club de una liga mejor ha venido a verte
@@ -2821,10 +2826,10 @@
     var h = '<div class="card cr-train" id="crTrain">' + head +
       // enfoque de la semana = plan del entrenador (también guía el entreno semanal de fondo, trainWeek)
       '<div class="pl-focus" role="group" aria-label="Enfoque de la semana">' + (K.TRAIN_KEYS || Object.keys(T)).map(function (k) {
-        return '<button data-act="train" data-t="' + k + '" aria-pressed="' + (c.train === k) + '"' + (inf.rec === k ? ' aria-label="' + esc(T[k].name) + ', recomendado"' : '') + '>' + esc(T[k].name) + (inf.rec === k ? '<small>Recomendado</small>' : '') + '</button>';
+        return '<button data-act="train" data-t="' + k + '" aria-pressed="' + (c.train === k) + '"' + (inf.rec === k ? ' aria-label="' + esc(T[k].name) + ', lo pide el entrenador"' : '') + '>' + esc(T[k].name) + (inf.rec === k ? '<small>Del míster</small>' : '') + '</button>';
       }).join('') + '</div>' +
       '<p class="muted">' + esc(T[c.train] ? T[c.train].hint : '') + '. ' + (c.train === 'atk' || c.train === 'def' ? 'Los ejercicios de ' + esc(GROUP_OF[c.train]).toLowerCase() + ' rinden un 20 % más. ' : '') +
-      'Jugar rinde más que el Rápido, que nunca pasa de tu récord ni llega al oro. Cada sesión cansa (+' + K.SESS_FAT.join(', +') + ').' + (inf.fatK < 1 ? ' Con tu fatiga (' + inf.fat + ') rindes menos.' : '') + '</p>';
+      'Hasta ' + inf.max + ' sesiones antes de cada partido. Jugar rinde más que el Rápido, que nunca pasa de tu récord ni llega al oro. Cada sesión cansa (+' + K.SESS_FAT.join(', +') + ').' + (inf.fatK < 1 ? ' Con tu fatiga (' + inf.fat + ') rindes menos.' : '') + '</p>';
     h += '<div class="pl-slots" role="list">';
     for (var s = 0; s < inf.max; s++) h += planSlot(c, inf, plan, s);
     h += '</div>';
@@ -2940,12 +2945,12 @@
       var bf = null; try { bf = LIFE() && LIFE().bossFor ? LIFE().bossFor(c, n.rival.id) : null; } catch (e) { bf = null; }   // S3 C3: el jefe del circuito juega en su club
       // SPLAT: entrada en brochazo turquesa (los dos escudos en pegatina), el parche «Jugar partido» y, en una hoja, los detalles
       var jefe = bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '';
-      var kick = PH() ? phKick(n.label, C().PTS, [lg ? ordn(pr) : '', 'IA ' + esc(String(n.diffName || diffName(n.diff)).replace(/ suave$/, ''))]) + jefe : sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + jefe;
+      var kick = PH() ? phKick(n.label, C().PTS, [lg ? ordn(pr) : '']) + jefe : sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + jefe;
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (en .cr-two: dos columnas en el móvil apaisado)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
-      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
-        PH() ? [] : [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
+      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(shortClub(n.rival)),
+        PH() ? [] : [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, esc(rivLvl(n.diffName || diffName(n.diff)))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
         n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '', PH() && !n.bench ? studyHTML(c) : '') +
         (n.bench
           // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
@@ -2986,7 +2991,7 @@
     }).join('') : '';
     var h = '<div class="card new cr-end"><h3>Fin de la temporada ' + r.season + '</h3>' +
       // SPLAT: el puesto final en un sello dorado (con «Campeón» en el aro si has ganado la liga)
-      '<span class="sp-stamp cr-pos" aria-hidden="true" data-ring="' + (r.champion ? 'CAMPEÓN ★ CAMPEÓN ★ CAMPEÓN ★ ' : 'TEMPORADA ' + r.season + ' ★ TEMPORADA ' + r.season + ' ★ ') + '"><span class="sp-sc"><b>' + ordn(r.pos) + '</b></span></span>' +
+      '<span class="sp-stamp cr-pos" aria-hidden="true" data-ring="' + (r.champion ? 'CAMPEONES|TEMPORADA ' + r.season : 'TEMPORADA ' + r.season + '|PUESTO ' + r.pos) + '"><span class="sp-sc"><b>' + ordn(r.pos) + '</b></span></span>' +
       '<p class="bigname">' + ordn(r.pos) + ' ' + esc(deL(L)) + '</p>' + (hall ? '<p class="muted" style="margin:0">' + esc(L.country) + '</p>' : '') + '<p>' +
       (r.champion ? '<span class="tag y">Campeón ' + esc(deL(L)) + '</span>' : '') + (!hall && r.cup ? '<span class="tag y">Campeón del ' + esc(L.cup) + '</span>' : '') + cupTags +
       (r.move > 0 ? '<span class="tag g">Ascenso</span>' : r.move < 0 ? '<span class="tag r">Descenso</span>' : '') +
@@ -3097,16 +3102,14 @@
   }
   function renderTable(c) {
     var k = C().myClub(c), lvl = tblLvl >= 0 ? tblLvl : k.lvl, L = C().league(lvl), t = C().table(c, lvl), top = lvl === C().LEAGUES.length - 1, low = lvl === 0;
-    var h = '<div class="card">' + (PH() ? lgPick(C().LEAGUES.map(function (x) { return { v: x.lvl, label: x.name, short: x.short }; }), lvl, 'lvl', 'Liga') : '<div class="lg-sw" role="group" aria-label="Liga">' + C().LEAGUES.map(function (x) {
-      return '<button data-act="lvl" data-l="' + x.lvl + '" aria-pressed="' + (x.lvl === lvl) + '">' + esc(x.short) + '</button>';
-    }).join('') + '</div>') + '<h3>' + sp([esc(L.name), c.phase === 'league' ? 'Jornada ' + Math.min(c.week, C().WEEKS) + ' de ' + C().WEEKS : 'Temporada regular acabada'], 'd') + '</h3>' +
+    var h = '<div class="card">' + lgPick(C().LEAGUES.map(function (x) { return { v: x.lvl, label: x.name, short: x.short }; }), lvl, 'lvl', 'Liga') + '<h3>' + (c.phase === 'league' ? 'Jornada ' + Math.min(c.week, C().WEEKS) + ' de ' + C().WEEKS : 'Temporada regular acabada') + '</h3>' +
       '<table><thead><tr><th class="l">#</th><th class="l">Club</th><th>PJ</th><th>G</th><th>P</th><th class="hide-s">Sets</th><th class="hide-s">Tantos</th><th>Pts</th></tr></thead><tbody>';
     t.forEach(function (r) {
       var cl = C().club(c, r.id), cls = [];
       if (r.id === c.myClub) cls.push('me');
       if (!top && r.pos <= 2) cls.push('up'); else if (r.pos <= 4) cls.push('cup');
       if (!low && r.pos >= 7) cls.push('down');
-      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + crest(cl, 22, c) + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(PH() ? shortClub(cl) : cl.name) + '</button>' : esc(PH() ? shortClub(cl) : cl.name)) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
+      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + crest(cl, 22, c) + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(shortClub(cl)) + '</button>' : esc(shortClub(cl))) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
     });
     h += '</tbody></table><p class="muted" style="margin-top:8px">' + (top ? '' : '<span class="tag g">1-2 ascienden</span>') + '<span class="tag y">1-4 juegan el Open</span>' + (low ? '' : '<span class="tag r">7-8 descienden</span>') +
       ' ' + PTS_LINE() + '</p></div>';
@@ -3125,7 +3128,7 @@
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = c.res[k.lvl][w] && c.res[k.lvl][w][i], res = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; res = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
       else res = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lvl } : null, '<span class="muted">' + (c.phase === 'league' && w === c.week ? 'Próximo' : PH() ? '' : 'Pendiente') + '</span>');
-      h += '<div class="cal-r' + (c.phase === 'league' && w === c.week ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(PH() ? shortClub(rv) : rv.name) + '</span>' + res + '</div>';
+      h += '<div class="cal-r' + (c.phase === 'league' && w === c.week ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(shortClub(rv)) + '</span>' + res + '</div>';
     });
     h += '</div>';
     if (c.cup) {
@@ -3146,7 +3149,7 @@
       '<p class="muted">' + sp([a.xp + ' / ' + need + ' XP para el nivel ' + (a.lvl + 1), 'Puntos de mejora: <b style="color:var(--gold)">' + a.pts + '</b>'], 'v') + '</p>';
     if (PH()) {   // móvil: la ficha en una línea (nombre · dorsal · nivel · XP y los puntos en su pastilla dorada) y la barra; los atributos, a la vista
       // (movil-aire §5.3: sin el nombre —lo dice el retrato de la cabecera—, «Nv 2 · 92/152 XP · [4 puntos]» en una línea y barra fina)
-      h = '<div class="card cr-pcard"><div class="cr-pid"><span class="muted"><b class="cr-plv">Nv ' + a.lvl + '</b> · ' + a.xp + '/' + need + ' XP</span>' +
+      h = '<div class="card cr-pcard"><div class="cr-pid"><span class="muted"><b class="cr-plv">Nv ' + a.lvl + '</b>, ' + a.xp + '/' + need + ' XP</span>' +
         '<span class="cr-pts' + (a.pts ? '' : ' off') + '"><b>' + a.pts + '</b> ' + (a.pts === 1 ? 'punto' : 'puntos') + '</span></div>' +
         '<div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="' + need + '" aria-valuenow="' + a.xp + '" aria-label="Experiencia"><i style="width:' + Math.round(100 * a.xp / need) + '%"></i></div>';
     }
@@ -3161,7 +3164,7 @@
       });
     });
     var tg = { atk: 'atk', def: 'def', phys: 'phys' }[s];
-    if (PH()) h += '<p class="muted cr-ptr">' + esc(C().TRAIN[c.train].name) + ' · ' + (c.tp && c.tp[tg] | 0) + '/' + C().TRAIN_NEED +
+    if (PH()) h += '<p class="muted cr-ptr">' + esc(C().TRAIN[c.train].name) + ', ' + (c.tp && c.tp[tg] | 0) + '/' + C().TRAIN_NEED +
       qBtn('Entreno de ' + GROUP_OF[s].toLowerCase(), 'Entreno: ' + C().TRAIN[c.train].name + '. Progreso de ' + GROUP_OF[s].toLowerCase() + ': ' + (c.tp && c.tp[tg] | 0) + ' de ' + C().TRAIN_NEED + '. Al llegar, +1 gratis en el atributo más bajo del grupo.') + '</p></div>';
     else h += '<p class="muted" style="margin-top:8px">Entreno: ' + esc(C().TRAIN[c.train].name) + SV + 'progreso de ' + esc(GROUP_OF[s]).toLowerCase() + ' ' + (c.tp && c.tp[tg] | 0) + ' / ' + C().TRAIN_NEED +
       ' (al llegar, +1 gratis en el más bajo del grupo)</p></div>';
@@ -3201,7 +3204,7 @@
           var kt = d.key === 'jump' ? 'Va en SALTAR' : d.key === 'both' ? 'GOLPEAR y SALTAR' : 'Va en GOLPEAR';
           return '<button type="button" class="cr-sgc' + (on ? ' on' : '') + (lock ? ' lock' : '') + '" data-act="sigsh-' + esc(id) + '" aria-pressed="' + on + '" aria-haspopup="dialog"' +
             ' aria-label="' + esc((d.name || id) + (on ? ', elegido' : '') + '. ' + (lock ? 'Bloqueado: pide saque ' + (d.need | 0) : kt) + '. Ver detalle') + '">' +
-            '<b>' + esc(d.name || id) + '</b><small>' + (lock ? '<i aria-hidden="true">🔒</i> Pide saque ' + (d.need | 0) : on ? '✓ ' + kt : kt) + '</small></button>';
+            '<b>' + esc(d.name || id) + '</b><small>' + (lock ? 'Pide saque ' + (d.need | 0) : kt) + '</small></button>';
         }).join('') + '</div>' +
         '<div class="cr-sgg"><label>Gesto antes de sacar</label><div class="seg" role="group" aria-label="Gesto antes de sacar">' + SIG_GEST_UI.map(function (g) {
           return '<button data-act="sgest-' + g[0] + '" aria-pressed="' + (g[0] === gest) + '">' + esc(g[1]) + '</button>';
@@ -3231,7 +3234,7 @@
       var c2 = C() && C().get(); if (!c2) return;
       C().setSig(c2, id, (c2.sig && c2.sig.gest) || 'normal'); snd('select'); render(); focusSel('[data-act="sigsh-' + id + '"]');
     } }];
-    SP.sheet({ title: (d.name || id) + (id === cur ? ' · elegido' : ''), html: html, cls: 'cr-sgsh', actions: acts });
+    SP.sheet({ title: (d.name || id) + (id === cur ? ' (elegido)' : ''), html: html, cls: 'cr-sgsh', actions: acts });
   }
   /** Nombre de un objeto o peinado del vestuario ('' si no hay). */
   function lookName(X, id) { if (!id || typeof id !== 'string') return ''; var n = ''; try { n = X.name ? X.name(id) : ''; } catch (e) { n = ''; } return String(n || id); }
@@ -3254,8 +3257,8 @@
     all.forEach(function (x) { try { if (X.owned(x.id)) have++; } catch (e) { } });
     try { nu = X.unseen ? (X.unseen() || []).length : 0; } catch (e) { nu = 0; }
     if (PH()) {   // móvil (movil-aire §5.3): una fila (colores · «67/155 · 2 nuevos» · «Vestuario ›») y las frases tras «?»
-      return '<div class="card cr-lookp"><div class="cr-lkr">' + (k ? kitSw(k.kit) : '') + '<p class="cr-lkn"><b>' + have + '/' + all.length + '</b>' + (nu ? ' · <span class="cr-lknu">' + plural(nu, 'nuevo', 'nuevos') + '</span>' : '') +
-        (fit ? ' <small>' + esc(hallC ? 'En pista' : 'En playa') + ' · ' + esc(lookName(X, fit.style) || '—') + '</small>' : '') + '</p>' +
+      return '<div class="card cr-lookp"><div class="cr-lkr">' + (k ? kitSw(k.kit) : '') + '<p class="cr-lkn"><b>' + have + '/' + all.length + '</b>' + (nu ? ', <span class="cr-lknu">' + plural(nu, 'nuevo', 'nuevos') + '</span>' : '') +
+        (fit ? ' <small>' + esc(hallC ? 'En pista' : 'En playa') + ': ' + esc(lookName(X, fit.style) || '—') + '</small>' : '') + '</p>' +
         qBtn('Vestuario', 'Con los colores de tu club. Solo estética: no cambia cómo juegas. ' + (mine ? '' : (hallC ? 'Tu jugador lleva su aspecto de siempre hasta que guardes uno en el vestuario. ' : 'Llevas el aspecto de tu n.º 1 de Partido rápido hasta que guardes uno propio en el vestuario. ')) +
           'Más objetos con la fama, los logros y los premios de la Carrera, o en Fama › Tienda. Lo que ganas vale también en Partido rápido.') +
         '<div class="acts"' + (VERT() ? ' data-ph-dock' : '') + '><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Vestuario ›</button></div></div></div>';   // (vertical: al dock)
@@ -3339,7 +3342,7 @@
   }
   function coachKv(c) {
     var coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71';
-    return '<div class="cr-coach"><p class="cr-coach-t"><b>Entrenador</b> · ' + esc(C().coachText(coach)) + ' · ' + coach + '</p>' + meter(coach, 'Confianza del entrenador', cc) +
+    return '<div class="cr-coach"><p class="cr-coach-t"><b>Entrenador</b>: ' + esc(C().coachText(coach)) + ', ' + coach + '</p>' + meter(coach, 'Confianza del entrenador', cc) +
       '<p class="muted">' + sp(['Nota media ' + dec(C().avgNota(c)), 'Forma ' + dec(C().form(c))], 'v') + '</p></div>';
   }
   function renderClub(c) {
@@ -3365,7 +3368,7 @@
       return '<div class="card cr-cinfo">' + phClubHead(c, k, [stars(f.stars), esc(L.short || L.name)],
         qBtn('Tu club', k.name + '. ' + L.name + ', ' + k.city + '. Estilo ' + f.style + (st0 ? ': entrenos +' + C().STYLE_PROG + ' por semana en ' + GROUP_OF[st0].toLowerCase() : '') + '. Compañero: ' + c.mate.name + ' (' + c.mate.role + ', media ' + mo0 + ', ' + vsClub(dd0) + '). Arbitraje: ' + ref.name + '.')) +
         '<div class="ph-kv">' + kv('Objetivo', esc(c.objective.text), 1) + kv('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + kv('Media', C().clubOvr(k)) +
-        kv('Estilo', esc(f.style)) + kv('Pareja', esc(c.mate.name.split(' ')[0]) + ' · ' + mo0) + kv('Sede', esc(f.beach || k.city)) + kv('Colores', dts) + kv('Arbitraje', esc(ref.name), 1) + '</div>' + coachKv(c) + '</div>';
+        kv('Estilo', esc(f.style)) + kv('Pareja', esc(c.mate.name.split(' ')[0]) + ', ' + mo0) + kv('Sede', esc(f.beach || k.city)) + kv('Colores', dts) + kv('Arbitraje', esc(ref.name), 1) + '</div>' + coachKv(c) + '</div>';
     }
     var h = '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(L.name), esc(k.city)], 'v') + '</p></div></div>' +
@@ -3395,7 +3398,7 @@
       h = '<div class="card cr-matep"><div class="row cr-mth">' + ptHTML(c, 'mate', 72, 'cr-pt48', 'Retrato de ' + m.name) +
         '<div class="grow" style="min-width:0"><p class="bigname cr-chn">' + sp([esc(m.name), 'n.º ' + m.num], 's') + '</p>' +
         '<p class="muted cr-mtc">' + sp([esc(m.role), 'Media ' + pr0.ovr, { h: esc(vsClub(d0)), c: tg0 ? 'dv ' + tg0 : 'dv' }, 'Forma: ' + esc(C().formText(mf))], 'c') + '</p></div></div>' +
-        '<div class="cr-ctl cr-chem"><p><b>Química</b> · ' + (ci ? esc(ci.name) + ' · ' : '') + ch + '/100</p>' + qBtn(m.name, why0) + '</div>' + meter(ch, 'Química con el compañero', '#4be0a0', ci ? CHEM_MK : null) + '</div>';
+        '<div class="cr-ctl cr-chem"><p><b>Química</b>: ' + (ci ? esc(ci.name) + ', ' : '') + ch + '/100</p>' + qBtn(m.name, why0) + '</div>' + meter(ch, 'Química con el compañero', '#4be0a0', ci ? CHEM_MK : null) + '</div>';
     } else h = '<div class="card"><h3>Tu compañero</h3><div class="row" style="align-items:flex-start;flex-wrap:nowrap">' + ptHTML(c, 'mate', 72, 'cr-pt72', 'Retrato de ' + m.name) +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(m.name), 'n.º ' + m.num], 's') + '</p>' + mateLine(m, co, true) + '</div></div>' +
       '<p class="muted">' + (mo - co <= -3 ? 'Con un compañero flojo tendrás más trabajo y más protagonismo: la IA se la jugará menos y tú llevarás el peso.' : mo - co >= 3 ? 'Con un compañero bueno tienes más ayuda: recibe, defiende y remata por encima del nivel del club.' : 'Un compañero al nivel del club: ni carga ni muleta.') +
@@ -3422,7 +3425,7 @@
         : ((c.stats.bench | 0) ? ' Esta temporada, ' + plural(c.stats.bench | 0, 'jornada', 'jornadas') + ' en el banquillo.' : '');
       var hint = C().ROLE_HINT ? C().ROLE_HINT[rl] : '';
       h = '<div class="card cr-ctp"><div class="ph-kv">' + kv('Rol', esc(ct.role || '—')) + kv(yl === 1 ? 'Queda' : 'Quedan', yl === 1 ? 'Esta' : yl + ' temp.') + kv('Sueldo', ct.salary ? eur(ct.salary) + '/mes' : '—') +
-        kv('Ahorros', '<i class="sp-salpi" aria-hidden="true"></i>' + eur(c.money || 0)) + (lo ? kv('Cesión', 'Hasta el final') : kv('Firmado', 'T' + (ct.since || 1) + ' · ' + (ct.years | 0) + ' temp.')) + '</div>' +
+        kv('Ahorros', '<i class="sp-salpi" aria-hidden="true"></i>' + eur(c.money || 0)) + (lo ? kv('Cesión', 'Hasta el final') : kv('Firmado', 'T' + (ct.since || 1) + ', ' + (ct.years | 0) + ' temp.')) + '</div>' +
         '<div class="cr-ctl"><p class="muted cr-ctr">' + (hint ? '<b>' + esc(ct.role || '') + ':</b> ' + esc((C().ROLE_SHORT && C().ROLE_SHORT[rl]) || hint) : 'Sueldo, ahorros y renovación') + '</p>' +
         qBtn('Contrato', (ct.role || '') + ': ' + hint + st6 + ' Cobras el sueldo cada jornada (la mitad del mensual) y lo ahorras: sirve para el fisio (Jugador › Estado).' +
           (lo ? '' : ' Al acabar la última temporada del contrato, el club te propone renovar (el rol depende de la confianza del entrenador) y eliges la duración.')) + '</div>' +
@@ -3453,7 +3456,7 @@
     return v || 'Club';
   }
   function msgHTML(m, fresh) {
-    return '<div class="msg' + (m.r && !(fresh && fresh[m.id]) ? '' : ' unread') + '"><small>' + sp([esc(msgK(m.k)), 'T' + m.s + (m.ph === 'pick' ? '' : ' J' + Math.min(m.w, C().WEEKS))], 'v') + '</small><b>' + esc(m.t) + '</b><p>' + esc(m.x) + '</p></div>';
+    return '<div class="msg' + (m.r && !(fresh && fresh[m.id]) ? '' : ' unread') + '"><small>' + sp([esc(msgK(m.k)), 'T' + m.s + (m.ph === 'pick' ? '' : ' J' + Math.min(m.w, C().WEEKS))], 'v') + '</small><b>' + esc(m.t) + '</b><p>' + esc(m.x) + '</p>' + (m.e ? '<p class="muted">' + esc(m.e) + '</p>' : '') + '</div>';
   }
   function renderInbox(c, fresh) {
     var l = (c.inbox || []).slice().reverse();
@@ -3602,9 +3605,9 @@
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (como en la playa)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
-      var k6 = PH() ? phKick(n.label, c.points, [same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short), 'IA ' + esc(String(n.diffName || '').replace(/ suave$/, ''))]) : sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v');
-      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, k6, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
-        PH() ? [] : [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
+      var k6 = PH() ? phKick(n.label, c.points, [same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short)]) : sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v');
+      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, k6, (n.atHome ? 'vs ' : 'en ') + esc(shortClub(n.rival)),
+        PH() ? [] : [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, esc(rivLvl(n.diffName)),
           alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
          sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(C().posOf(c, n.me.id)) : '', 'Equipo ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
         n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '', PH() && !n.bench ? studyHTML(c) : '') +
@@ -3723,15 +3726,15 @@
     // tu país primero y luego por continente y nivel; en el móvil, una sola fila que se desliza (cc-row)
     var ccs = []; sortCountries(C().hall.countries()).concat(c.leagues.map(function (x) { return { code: x.cc }; })).forEach(function (x) { if (ccs.indexOf(x.code) < 0 && (C().league(x.code + '1') || C().league(x.code + '2'))) ccs.push(x.code); });
     ccs = [k.cc].concat(ccs.filter(function (cc) { return cc !== k.cc; }));
-    if (PH()) {   // móvil: «‹ España · Hiperliga 2 ›» (todas las ligas de cada país, en orden)
+    {   // «‹ Hiperliga 2 (España) ›» en todos los tamaños (todas las ligas de cada país, en orden; el nombre abre la hoja con la lista)
       var opts = [];
-      ccs.forEach(function (cc) { [C().league(cc + '1'), C().league(cc + '2')].forEach(function (x) { if (x) opts.push({ v: x.id, label: x.country + ' · ' + x.name, short: x.name, group: x.country + (cc === k.cc ? ' ★' : '') }); }); });
+      ccs.forEach(function (cc) { [C().league(cc + '1'), C().league(cc + '2')].forEach(function (x) { if (x) opts.push({ v: x.id, label: x.name + ' (' + x.country + ')', short: x.name, group: x.country }); }); });
       return lgPick(opts, lid, 'lg6', 'Liga');
     }
     var L2 = C().league(L.cc + '2'), L1 = C().league(L.cc + '1');
     return '<div class="lg-sw cc-row" role="group" aria-label="País">' + ccs.map(function (cc) {
       var first = c.leagues.filter(function (x) { return x.cc === cc; })[0];
-      return '<button data-act="lg6" data-l="' + (cc === L.cc ? lid : first.id) + '" aria-pressed="' + (cc === L.cc) + '" title="' + esc(first.country) + '">' + esc(cc) + (cc === k.cc ? ' ★' : '') + '</button>';
+      return '<button data-act="lg6" data-l="' + (cc === L.cc ? lid : first.id) + '" aria-pressed="' + (cc === L.cc) + '" title="' + esc(first.country) + '">' + esc(cc) + '</button>';
     }).join('') + '</div>' + (L2 && L1 ? '<div class="lg-sw" role="group" aria-label="División">' + [L1, L2].map(function (x) {
       return '<button data-act="lg6" data-l="' + x.id + '" aria-pressed="' + (x.id === lid) + '">' + esc(x.short) + '</button>';
     }).join('') + '</div>' : '');
@@ -3742,14 +3745,14 @@
     var L2 = C().league(L.cc + '2'), L1 = C().league(L.cc + '1'), n1 = L1 ? C().leagueClubs(c, L1.id).length : 0, n2 = L2 ? C().leagueClubs(c, L2.id).length : 0, mv = L2 && n1 >= 6 && n2 >= 4 ? 2 : L2 ? 1 : 0;
     var comps = C().intlFor(c, L.cc), W = C().weeksOf(c, lid);
     var h = '<div class="card">' + lgSw6(c, lid) +
-      '<h3>' + sp([esc(L.name), esc(L.country), c.phase === 'league' ? 'Jornada ' + Math.min(c.week, W) + ' de ' + W : 'Liga regular acabada'], 'd') + '</h3>' +
+      '<h3>' + (c.phase === 'league' ? 'Jornada ' + Math.min(c.week, W) + ' de ' + W : 'Liga regular acabada') + '</h3>' +
       '<table><thead><tr><th class="l">#</th><th class="l">Club</th><th>PJ</th><th>G</th><th>P</th><th class="hide-s">Sets</th><th class="hide-s">Puntos</th><th>Pts</th></tr></thead><tbody>';
     t.forEach(function (r) {
       var cl = C().club(c, r.id), cls = [];
       if (r.id === c.myClub) cls.push('me');
       if (L.lvl === 2 && r.pos <= mv) cls.push('up'); else if (L.lvl === 1 && comps.some(function (cp) { return r.pos > cp.rank * 2 - 2 && r.pos <= cp.rank * 2; })) cls.push('cup');
       if (L.lvl === 1 && mv && r.pos > t.length - mv) cls.push('down');
-      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + crest(cl, 22, c) + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(PH() ? shortClub(cl) : cl.name) + '</button>' : esc(PH() ? shortClub(cl) : cl.name)) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
+      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + crest(cl, 22, c) + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(shortClub(cl)) + '</button>' : esc(shortClub(cl))) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
     });
     var tags = [];
     if (L.lvl === 2 && mv) tags.push('<span class="tag g">' + (mv === 2 ? '1-2 ascienden' : '1º asciende') + '</span>');
@@ -3769,7 +3772,7 @@
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = res[w] && res[w][i], out = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; out = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
       else out = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lid } : null, '<span class="muted">' + (nx ? 'Próximo' : w < c.week || c.phase !== 'league' ? '—' : PH() ? '' : 'Pendiente') + '</span>');
-      h += '<div class="cal-r' + (nx ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(PH() ? shortClub(rv) : rv.name) + '</span>' + out + '</div>';
+      h += '<div class="cal-r' + (nx ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(shortClub(rv)) + '</span>' + out + '</div>';
     });
     return h + '</div><p class="muted" style="margin-top:8px">Al acabar la liga: copas (Liga › Copas).</p></div>';
   }
@@ -3783,7 +3786,7 @@
         return '<div class="cr-cup"><span class="cr-cupi" aria-hidden="true">' + TAB_IC.league + '</span><span class="cr-cupm"><b>' + esc(name) + '</b><small>' + esc(need) + '</small></span>' +
           '<span class="cr-cups' + (ok ? ' ok' : '') + '">' + esc(st) + '</span></div>';
       };
-      var stOf = function (ok) { return pos ? (ok ? '✓ Dentro · ' : 'Fuera · ') + ordn(pos) : 'Por jugar'; };
+      var stOf = function (ok) { return pos ? (ok ? 'Dentro, ' : 'Fuera, ') + ordn(pos) : 'Por jugar'; };
       return '<div class="card cr-cupsph"><p class="cr-cupt">Al acabar la liga, a un partido:</p>' +
         rowC(cn ? cn.name : 'Copa Nacional', two ? '6 primeros de la 1ª y 2 de la 2ª' : '8 primeros de la 1ª', stOf(cupIn), pos && cupIn) +
         comps.map(function (cp) { var ok = L.lvl === 1 && pos >= cp.rank * 2 - 1 && pos <= cp.rank * 2; return rowC(cp.name, ordn(cp.rank * 2 - 1) + ' y ' + ordn(cp.rank * 2) + ' de cada 1ª (' + L.region + ')', L.lvl === 1 ? stOf(ok) : 'Solo 1ª', ok); }).join('') + '</div>';
@@ -4008,7 +4011,7 @@
     return '<div class="card tp-res new"><h3>' + sp(['Prueba', esc(nm)], 'd') + '</h3><div class="row"><div class="et-l l-' + lc + '" aria-label="Nota ' + esc(L) + '"><b>' + esc(L) + '</b><small>' +
       (r.forfeit ? '—' : r.nota != null ? dec(r.nota) : 'INFORME') + '</small></div><div class="grow" style="min-width:0"><p class="bigname">' + (r.pass && !r.forfeit ? '¡Te fichan!' : 'Esta vez no') + '</p><p>' + why + '</p></div></div>' +
       (gl.length ? '<div class="et-goals">' + gl.map(function (g) {
-        return '<span class="' + (g.ok ? 'ok' : 'no') + '"><i aria-hidden="true">' + (g.ok ? '✓' : '✗') + '</i>' + esc(g.txt) + (g.v != null ? ' (' + (g.v | 0) + ')' : '') + '<span class="sr">' + (g.ok ? ', cumplido' : ', no cumplido') + '</span></span>';
+        return '<span class="' + (g.ok ? 'ok' : 'no') + '"><i aria-hidden="true">' + (g.ok ? 'Hecho' : 'No') + '</i>' + esc(g.txt) + (g.v != null ? ' (' + (g.v | 0) + ')' : '') + '<span class="sr">' + (g.ok ? ', cumplido' : ', no cumplido') + '</span></span>';
       }).join('') + '</div>' : '') + '</div>';
   }
   /** Resultado de la prueba que toca enseñar (una sola vez). */
@@ -4082,7 +4085,7 @@
     if (!p) { p = document.createElement('p'); p.className = 'cf-cnt'; p.setAttribute('aria-live', 'polite'); dock.insertBefore(p, dock.firstChild); }
     var ok = !!String(form.name || '').trim();
     p.classList.toggle('ok', ok);
-    p.innerHTML = ok ? '<b>✓</b> Listo: ' + esc(String(form.name).trim()) : '<b>Falta:</b> tu nombre';
+    p.innerHTML = ok ? 'Listo: ' + esc(String(form.name).trim()) : '<b>Falta:</b> tu nombre';
   }
   /** Rótulo del botón de crear; en el móvil «Crear jugador» y el resto debajo, en pequeño (movil-aire §3.7). */
   function createTxt() {
@@ -4574,7 +4577,7 @@
     return '<button class="sp-back" data-shape="3" data-act="' + act + '" aria-label="' + aria + '"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>' + label + '</span></button>';
   }
   /** SPLAT: tu media en un sello dorado (no se pulsa; el aro dice «TU MEDIA»). */
-  function ovrStamp(v) { return '<div class="cr-ovr sp-stamp" role="img" aria-label="Tu media: ' + v + '" data-ring="TU MEDIA ★ TU MEDIA ★ TU MEDIA ★ "><span class="sp-sc"><b>' + v + '</b></span></div>'; }
+  function ovrStamp(v) { return '<div class="cr-ovr sp-stamp" role="img" aria-label="Tu media: ' + v + '" data-ring="TU MEDIA"><span class="sp-sc"><b>' + v + '</b></span></div>'; }
   /** Fondo del menú: el escenario de la Carrera abierta (main.js ctx.actions.menuBackdrop). */
   function backdrop(k) { try { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.menuBackdrop) VB.ctx.actions.menuBackdrop(k); } catch (e) { } }
   function show(v) {
@@ -4701,12 +4704,12 @@
     // carrera, una frase corta como la de Partido rápido
     var chip = '';
     var hl = isHall(c);
-    if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : PH() ? 'Playa o pista: crea tu jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';   // (móvil: una línea)
+    if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : 'De Regional para arriba, en playa o en pista';   // (móvil: una línea)
     else if (xTake(c) && xFn(xTake(c), 'hero')) { var xq = xTry(xTake(c), 'hero', [c], {}) || {}; chip = xq.chip || ''; t = xq.line || xq.title || ''; }
     else if (lockPeek()) { chip = 'Partido a medias'; t = lockPeek().sub; }
     else if (c.phase === 'pick') { chip = plural((c.offers || []).length, 'oferta', 'ofertas'); t = 'Elige club'; }
     else if (c.phase === 'off') { chip = 'T' + c.season; t = 'Fin de temporada, ofertas'; }
-    else { var n = C().next(c); chip = 'T' + c.season + (n ? (n.kind === 'league' ? ' J' + (n.week + 1) : (n.round === 0 ? ' Semifinal' : ' Final')) : ''); t = n ? C().myClub(c).short + ' — ' + n.rival.short : C().myClub(c).name; if (n && hl && n.kind === 'ko') chip = 'T' + c.season + ' ' + n.compName; }
+    else { var n = C().next(c); chip = 'T' + c.season + (n ? (n.kind === 'league' ? ' J' + (n.week + 1) : (n.round === 0 ? ' Semifinal' : ' Final')) : ''); t = n ? C().myClub(c).short + ' contra ' + n.rival.short : C().myClub(c).name; if (n && hl && n.kind === 'ko') chip = 'T' + c.season + ' ' + n.compName; }
     if (c) chip = (hl ? 'Pista ' : 'Playa ') + chip;
     var h = (chip ? sp([chip], 'c') : '') + esc(t); if (s._crH !== h) { s._crH = h; s.innerHTML = h; }
   }

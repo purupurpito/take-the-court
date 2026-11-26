@@ -127,7 +127,9 @@ const SITE = path.join(tmp, 'site');
 {
   const r = runBuild(ROOT, SITE);
   check(r.code === 0, 'build-pages (sin STRICT_POLICY) sale con 0', r.out.trim());
-  check(PAGES.every(f => fs.existsSync(path.join(SITE, f)) && fs.readFileSync(path.join(SITE, f), 'utf8') === rd(f)), '_site con privacidad.html y borrar-cuenta.html tal cual');
+  // (build-pages quita los <!-- --> al copiar: se compara con la misma regla)
+  const noCom = t => t.replace(/^[ \t]*<!--(?:(?!-->)[\s\S])*-->[ \t]*\r?\n/gm, '').replace(/<!--(?:(?!-->)[\s\S])*-->/g, '');
+  check(PAGES.every(f => fs.existsSync(path.join(SITE, f)) && fs.readFileSync(path.join(SITE, f), 'utf8') === noCom(rd(f))), '_site con privacidad.html y borrar-cuenta.html tal cual (sin comentarios)');
   const holes = PAGES.some(f => /\{\{[A-Z0-9_]+\}\}/.test(rd(f)));
   if (holes) {
     check(/aviso \(páginas legales\)/.test(r.out), 'sin STRICT_POLICY avisa de los huecos sin rellenar');

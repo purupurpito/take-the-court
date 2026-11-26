@@ -109,10 +109,15 @@
     } else if (c.contains('sp-patch')) {
       b.insertAdjacentHTML('afterbegin', PATCH);
     } else if (c.contains('sp-stamp')) {
-      var id = 'spRing' + (++ringN), t = b.getAttribute('data-ring') || 'RETO DEL DÍA ★ RETO DEL DÍA ★';
-      b.insertAdjacentHTML('afterbegin', '<svg class="sp-st" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><defs><path id="' + id + '" d="M50 50m-34.5 0a34.5 34.5 0 1 1 69 0a34.5 34.5 0 1 1-69 0"/></defs>' +
+      // data-ring = «ARRIBA|ABAJO»: lo de arriba va por el arco de arriba y lo de abajo (fecha, temporada) por el de abajo, al derecho; una
+      // sola vuelta, sin repetir. Sin «|», solo el arco de arriba. Los separadores viejos (« — », «★») se limpian.
+      var id = 'spRing' + (++ringN), raw = (b.getAttribute('data-ring') || 'RETO DEL DÍA').replace(/\s*★\s*/g, '|').replace(/\s+—\s*/g, '|'),
+        pr = raw.split('|').map(function (x) { return x.trim(); }).filter(Boolean), top = pr[0] || '', bot = pr.slice(1).join(' ');
+      b.insertAdjacentHTML('afterbegin', '<svg class="sp-st" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><defs><path id="' + id + 'a" d="M15.5 50a34.5 34.5 0 0 1 69 0"/><path id="' + id + 'b" d="M8 50a42 42 0 0 0 84 0"/></defs>' +
         '<circle class="st0" cx="50" cy="50" r="46"/><circle class="st1" cx="50" cy="50" r="41"/>' +
-        '<text class="st2"><textPath href="#' + id + '" textLength="214" lengthAdjust="spacing">' + esc(t) + '</textPath></text><circle class="st3" cx="50" cy="50" r="25"/></svg>');
+        '<text class="st2" text-anchor="middle"><textPath href="#' + id + 'a" startOffset="50%">' + esc(top) + '</textPath></text>' +
+        (bot ? '<text class="st2" text-anchor="middle"><textPath href="#' + id + 'b" startOffset="50%">' + esc(bot) + '</textPath></text>' : '') +
+        '<circle class="st3" cx="50" cy="50" r="25"/></svg>');
     } else {
       var s = seed(b);
       b.insertAdjacentHTML('afterbegin', blobSVG(fam(b), s));

@@ -545,7 +545,7 @@
     if (c === 'unavailable') return 'No hay conexión. Prueba otra vez en un momento.';
     if (c === 'partial') return 'No se ha podido borrar todo. La cuenta sigue: prueba otra vez.';
     if (c === 'too_big') return 'Tu Carrera es demasiado grande para la nube';
-    return 'No se ha podido completar. Prueba otra vez.';
+    return 'No ha salido. Prueba otra vez.';
   }
 
   // ---------------------------------------------------------------- estado y avisos
@@ -842,7 +842,7 @@
     var h = '';
     if (acc) {
       var cls = status === 'busy' ? ' busy' : status === 'error' ? ' err' : '';
-      var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Nube · ' + ago(lastSync);   // (móvil: corto y en una línea)
+      var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Nube: ' + ago(lastSync);   // (móvil: corto y en una línea)
       h ='<div class="ac-wrap ac-two"><div class="ac-sheet sp-panel"><div class="ac-c1"><h2 class="ac-sr" id="acTitle">Tu cuenta</h2>' +
         '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span>' +
         '</div>' +

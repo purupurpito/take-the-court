@@ -17,9 +17,9 @@ llamada a `VB.Splat.decorate()`), no se escriben botones nuevos a mano.
 2. **Cada cosa con su material.** Acción principal = parche cosido (`.sp-patch`); botones = manchas de pintura (`.sp-btn`); entrada de
    partido / Carrera = brochazo turquesa (`.sp-ticket`); reto y medallas = sello dorado (`.sp-stamp`); pestañas y elegidos = trazo de
    pincel (`.sp-tab`); etiquetas = pegatina pequeña (`.sp-chip`).
-3. **Nunca una rejilla de tarjetas iguales.** Las manchas cambian de silueta e inclinación solas (semilla), y los colores se reparten:
+3. **Nunca una rejilla de tarjetas iguales.** Las manchas cambian de silueta solas (semilla), sin torcerse, y los colores se reparten:
    equipación, contraste, tinta, oro, turquesa. Si hay 3+ botones del mismo tipo, mezcla colores y tamaños.
-4. **Textos en castellano** y con la guía de estilo de notes/ui_main.md («Textos: guía de estilo»: nada de «·» como pegamento, etc.).
+4. **Textos en castellano** y con la guía de notes/ui_main.md («Textos: voz y estilo»: nada de «·», ★ ni ✓, una exclamación por pantalla, etc.).
 5. **Toque ≥ 44 px** (los componentes ya lo cumplen: `min-height:44px`; las flechas de `.sp-select` son de 44×44).
 6. **Mando y teclado**: todo lo pulsable es `<button>` dentro de un `[data-nav]`; el foco (`.kf` / `:focus-visible`) ya lo pinta el
    sistema (aro dorado + rebote). Para filas de varios botones en horizontal, el contenedor lleva `data-sp-row` (ver §5).
@@ -38,11 +38,17 @@ llamada a `VB.Splat.decorate()`), no se escriben botones nuevos a mano.
 | `--sp-alt` | JS | contraste de la equipación: lima con cálidas, rosa chicle con verdes, naranja con azules (texto siempre en tinta) |
 | `--sp-line` / `--sp-sh` / `--sp-r` | `3px` / `3px 4px 0 tinta` / `clamp(10px,1.8vh,16px)` | grosor de contorno, sombra dura desplazada, radio del parche |
 | `--sp-h-lg` `--sp-h-md` `--sp-h-sm` | alto de botón por tamaño | |
-| `--sp-disp` / `--sp-pop` / `--sp-ui` | Bowlby One / Titan One / Rubik (con reservas del sistema) | acción principal / pegatinas y títulos / texto y cifras |
+| `--rotulo` | Big Shoulders Display (600-900, recta) | títulos en la cinta, parche JUGAR, rótulo del punto, cifras grandes, nombres del marcador del HUD, dorsales |
+| `--ficha` | Chivo (400-800, sin cursiva) | todo el texto de interfaz; cifras de tabla con `tabular-nums` |
+| `--marcador` | Doto (800) | solo el marcador 3D del pabellón (arena.js), LED ámbar `#ffb238`; nunca en el HUD |
+| `--trk-caps` | `.06em` | el único tracking, para las pocas mayúsculas que quedan |
+| `--sp-disp` / `--sp-pop` / `--sp-ui` | alias de `--rotulo` / `--rotulo` / `--ficha` | nombres viejos que siguen en el CSS |
+| `--sp-tilt` | `0` | todo recto (ver §6) |
 | `--sp-brush` | data URI | silueta de pincel (máscara) para pestañas y valores |
 | `--sp-pad` `--sp-colw` `--sp-gap` | en `#menu` | margen, ancho de la columna y separación de las páginas |
 
-Las fuentes vienen de Google Fonts (permitido por CONTRACT §2) en el mismo `<link>` que Barlow; el telón las espera como a las demás.
+Las fuentes van en `vendor/fonts` (sin red, notes/offline.md); el telón las espera como a las demás. Anton y Bungee solo existen como
+trazos del logo «Red cruzada», y «VB Marca» (Barlow Condensed en base64) solo en el rótulo del telón.
 
 ### Variables por componente (los retoques por pantalla se hacen con ELLAS, desde cualquier selector)
 `--sp-c` relleno · `--sp-tc` texto · `--sp-d` gotas sueltas · `--sp-icc` icono · `--sp-ts` sombra del texto · `--sp-cf/--sp-tcf/--sp-icf`
@@ -62,7 +68,7 @@ u `.opt` viejo gana a todas sus reglas antiguas (que llegan a 2 ids, p. ej. `#ap
 ## 3. Componentes (con ejemplo)
 
 ### `.sp-btn` — pegatina de pintura
-Mancha con contorno de tinta gordo, sombra dura, goterón y gotas sueltas; rótulo Titan One un poco torcido; brillo de pegatina.
+Mancha con contorno de tinta gordo, sombra dura, goterón y gotas sueltas; rótulo en `--rotulo`, recto y sin brillo.
 Al enfocar rebota (squash & stretch) con aro dorado; al pulsar se aplasta y salpica gotas de su color.
 ```html
 <button class="sp-btn sp-md sp-kit" id="btnX"><span class="sp-ic">…svg…</span><span class="sp-l"><span class="sp-t">Jugadores</span><small class="sp-s">Nv 3</small></span></button>
@@ -90,7 +96,7 @@ Alto con `--sp-ph` (por defecto `clamp(54px,12vh,104px)`), letra con `--sp-pt`. 
 ```html
 <div class="sp-pair" data-sp-row>
   <button class="sp-patch" id="btnPlay">…</button>
-  <button class="sp-stamp" id="btnReto" data-ring="RETO DEL DÍA ★ RETO DEL DÍA ★"><span class="sp-sc">…</span></button>
+  <button class="sp-stamp" id="btnReto" data-ring="RETO DEL DÍA, 26 NOV"><span class="sp-sc">…</span></button>
 </div>
 ```
 El sello se pega a la derecha, medio fuera; el parche deja hueco (`--sp-pr`). Lleva gotas de la equipación en la esquina (JS). El alto
@@ -98,9 +104,9 @@ del parche se pone en el `.sp-pair` (`--sp-ph`), el diámetro del sello también
 
 ### `.sp-stamp` — sello dorado
 ```html
-<button class="sp-stamp" data-ring="RETOS ★ RETO DEL DÍA ★" aria-label="Retos"><span class="sp-sc">…medalla o VB.Splat.BALL…<b>Hoy</b></span></button>
+<button class="sp-stamp" data-ring="RETOS, PALAU DEL MAR" aria-label="Retos"><span class="sp-sc">…medalla o VB.Splat.BALL…<b>Hoy</b></span></button>
 ```
-Texto del aro en `data-ring` (≈ 26-30 caracteres con las estrellas). Dentro, `.sp-sc` (centro oscuro con letra dorada;
+Texto del aro en `data-ring`: una sola vuelta con fecha o sede, sin repetir ni estrellas. Dentro, `.sp-sc` (centro oscuro con letra dorada;
 `.sc-med.t1|t2|t3` = disco de bronce, plata u oro). `.sp-dot` = punto de «nuevo». Diámetro `--sp-stamp`.
 
 ### `.sp-ticket` — brochazo turquesa (entrada de partido / Carrera)
@@ -123,7 +129,8 @@ Mancha de tinta pequeña (44 px), al enfocar dorada. En las páginas del menú v
 <div class="mp-head sp-head"><button class="mp-back sp-back">…</button>
   <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Partido rápido</h2></div></div>
 ```
-Titan One crema con contorno de tinta y sombra, torcido −3°. Tamaño `--sp-hs`. En vertical parte en dos líneas.
+Escrito en una tira de cinta de carrocero (`--rotulo`, sin las sombras apiladas), con un giro fijo elegido a mano para cada pantalla.
+Tamaño `--sp-hs`. En vertical parte en dos líneas.
 
 ### `.sp-tab`, `.sp-tabs`, `.sp-seg` — trazos de pincel
 - Barra de `VB.UI.tabs(host, …)`: añade `sp-tabs` al anfitrión (`host.classList.add('sp-tabs')`) y sus `.tab` salen como trazos.
@@ -201,9 +208,18 @@ El salpicón sale en cualquier clic (ratón, dedo, Intro o A) de `.sp-btn`, `.sp
 - ✔ Reparte colores y siluetas; un solo parche por pantalla; el sello para retos y medallas.
 - ✔ Comprueba el foco con teclado y con `?mjfocus=<id>` en las capturas (cualquier id, cualquier página del menú).
 - ✘ Tarjetas redondeadas iguales en rejilla, velos o paneles a pantalla completa, degradados oscuros detrás del menú.
-- ✘ Texto de lectura en Titan One (solo rótulos cortos); texto largo en Rubik (`.sp-s`, `var(--sp-ui)`).
+- ✘ Texto de lectura en `--rotulo` (solo rótulos cortos); texto largo en Chivo (`.sp-s`, `var(--ficha)`).
 - ✘ Animaciones en bucle salvo el empujón del triángulo del parche enfocado; nada por frame en JS.
 - ✘ Tocar los bloques SPLAT de otra pantalla: cada una tiene el suyo.
+- ✘ Mayúsculas fuera de 4 sitios: el parche principal (JUGAR, REVANCHA), el marcador, el rótulo del punto y las siglas. Lo demás en
+  frase normal y con letter-spacing 0; donde quedan mayúsculas, `--trk-caps`.
+- ✘ Cursiva: `font-synthesis-style:none` y ningún `font-style:italic` en los rótulos.
+- ✘ Giros: `--sp-tilt` a 0. Solo se tuercen el sello del reto (−12°), la cinta del título de cada pantalla (un valor fijo por pantalla)
+  y la chapa BETA.
+- ✘ Brillo de pegatina (`::before`), oros con degradado y la mosca «DIRECTO».
+- ✘ ★, ✓ y el rombo, en el CSS y en los textos. Si hace falta un icono, el SVG de `VB.Splat.ICONS`.
+- ✔ Los títulos de pantalla (`.sp-h`) van en la tira de cinta de carrocero, sin las 9 sombras. Las manchas y el parche cosido se quedan
+  como forma.
 
 ## 7. Cómo probar (capturas)
 Tamaños obligatorios: **568×320, 640×360, 844×390 y 360×640 con `TOUCH=1`**, y **1280×720 y 1920×1080** sin táctil.

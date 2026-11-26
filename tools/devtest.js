@@ -376,7 +376,7 @@ section('11. Pintores e interfaz');
     allText.push(st.replace(/<[^>]+>/g, ' '));
     ok(D._demo(c, 'planOpen'), mode + ': _demo planOpen');
     const sp = D.ui.state(c, HLP);
-    ok(['atk', 'rcv', 'blk', 'srv', 'set', 'fis'].every(k => sp.indexOf('data-act="dv-plan-' + k + '"') >= 0) && /Recomendado/.test(sp) && actsOk(sp), mode + ': lista de los 6 planes con «Recomendado»');
+    ok(['atk', 'rcv', 'blk', 'srv', 'set', 'fis'].every(k => sp.indexOf('data-act="dv-plan-' + k + '"') >= 0) && /Encaja/.test(sp) && actsOk(sp), mode + ': lista de los 6 planes con «Encaja»');
     ok(D._demo(c, 'askOpen'), mode + ': _demo askOpen');
     const sa = D.ui.state(c, HLP), others = D.posList(c).filter(p => p !== c.player.roleKey);
     ok(others.every(p => sa.indexOf('data-act="dv-ask-' + p + '"') >= 0) && /(Probable|Difícil|Muy difícil|Sin opciones)/.test(sa) && actsOk(sa), mode + ': lista de puestos para pedir con su probabilidad');

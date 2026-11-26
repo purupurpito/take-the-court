@@ -38,9 +38,9 @@
     boss: { t1: 'Jefe: {nick}', t2: '{style}' },
     duel: { t1: 'Duelo con tu rival', t2: '{name} | {w}-{l} en duelos' },
     // ambiente de Carrera (career.js ambCtx → g.career.amb.tags): derbi de la ciudad, revancha y partido en la cumbre
-    derby: { t1: 'DERBI', t2: '{city} se paraliza' },
-    revancha: { t1: 'REVANCHA', t2: 'La última vez ganó {rival}' },
-    cumbre: { t1: 'CUMBRE', t2: 'Los dos de arriba, cara a cara' },
+    derby: { t1: 'Derbi', t2: 'Contra {rival}, y con gente en la escalera', t2b: 'Con gente hasta en la escalera' },
+    revancha: { t1: 'Revancha', t2: 'La última vez ganaron ellos' },
+    cumbre: { t1: 'Primero contra segundo', t2: 'El que gane duerme líder' },
     first: { t1: 'Empieza la temporada {season}', t2: '{league}' }
   };
   var STAKE_ORDER = ['final', 'semi', 'boss', 'duel', 'derby', 'revancha', 'cumbre', 'first'];
@@ -166,8 +166,8 @@
       if (k === 'boss' && cs.boss && (cs.boss.nick || cs.boss.name)) return { k: k, t1: fill(S.t1, { nick: cs.boss.nick || cs.boss.name }), t2: cs.boss.styleName || cs.boss.style || cs.boss.hint || '' };
       if (k === 'duel' && cs.duel && rv && rv.name) return { k: k, t1: S.t1, t2: fill(S.t2, { name: rv.name, w: rv.w | 0, l: rv.l | 0 }) };
       var tg = cs.amb && Array.isArray(cs.amb.tags) ? cs.amb.tags : null;
-      if (k === 'derby' && tg && tg.indexOf('derbi') >= 0 && isHall(cs) && cs.amb.city) return { k: k, t1: S.t1, t2: fill(S.t2, { city: cs.amb.city }) };
-      if (k === 'revancha' && tg && tg.indexOf('revancha') >= 0) return { k: k, t1: S.t1, t2: contract(fill(S.t2, { rival: cs.rivalName || 'el rival' })) };
+      if (k === 'derby' && tg && tg.indexOf('derbi') >= 0 && isHall(cs) && cs.amb.city) return { k: k, t1: S.t1, t2: cs.rivalName ? contract(fill(S.t2, { rival: cs.rivalName })) : S.t2b };
+      if (k === 'revancha' && tg && tg.indexOf('revancha') >= 0) return { k: k, t1: S.t1, t2: S.t2 };
       if (k === 'cumbre' && tg && tg.indexOf('cumbre') >= 0) return { k: k, t1: S.t1, t2: S.t2 };
       if (k === 'first' && (cs.first != null ? cs.first : cs.phase === 'league' && cs.week === 0)) return { k: k, t1: fill(S.t1, { season: cs.season | 0 || 1 }), t2: cs.league || cs.leagueName || '' };
     }
@@ -283,7 +283,7 @@
     { k: 'closeBlock', v: ['¡{X} cierra el partido con un muro!', '{X} cierra el partido con un bloqueo'],
       test: function (d) { var c = d.close; return c && c.how === 'block' && c.who ? { X: whoName(c.who, d, false) } : null; } },
     // ambiente de Carrera: tarjeta roja (d.amb o g.career.ambSum = VB.Ambiente.sum)
-    { k: 'redCard', v: ['Roja a {X} y punto de castigo', 'Partido caliente: roja para {X}'],
+    { k: 'redCard', v: ['Penalización a {X}', 'Partido caliente: penalización a {X}'],
       test: function (d) {
         var a = d.amb || (d.career && d.career.ambSum); if (!a || !Array.isArray(a.cards)) return null;
         var r = null; for (var i = 0; i < a.cards.length; i++) { var c = a.cards[i]; if (c && (c.color === 'red' || c.color === 'delayR')) { r = c; break; } }
@@ -307,7 +307,7 @@
       test: function (d) { var p = bestBy(d.pl || [], 'aces', 3); return p ? { X: whoName(p, d, false), n: p.aces | 0, team: p.team | 0 } : null; } },
     { k: 'blocks', v: ['{X} levanta un muro: {n} puntos de bloqueo', '{X} manda en la red: {n} bloqueos'],
       test: function (d) { var p = bestBy(d.pl || [], 'blocks', 3); return p ? { X: whoName(p, d, false), n: p.blocks | 0, team: p.team | 0 } : null; } },
-    { k: 'rally', v: ['Jugada de {n} toques en el {o} set, y se la lleva {t}', 'Una jugada de {n} toques para el recuerdo'],
+    { k: 'rally', v: ['Jugada de {n} toques en el {o} set, y se la lleva {t}', '{n} toques en una jugada'],
       test: function (d, w) {
         var L = (d.moments || []).filter(function (m) { return m.k === 'rally' && (m.n | 0) >= 14; });
         if (!L.length && d.longest && typeof d.longest === 'object' && (d.longest.n | 0) >= 14) L = [{ k: 'rally', team: d.longest.team | 0, n: d.longest.n | 0, setNo: d.longest.setNo | 0 }];
@@ -325,7 +325,7 @@
         var s3 = ss[2]; if (!s3 || Math.abs((s3[0] | 0) - (s3[1] | 0)) !== 2) return null;
         return { s: scoreTxt(s3, w) };
       } },
-    { k: 'noChance', v: ['Sin dar opción: {s}', '{T} no da opción: {s}'],
+    { k: 'noChance', v: ['Sin historia: {s}', '{T}, sin historia: {s}'],
       test: function (d, w) {
         var ss = d.setScores || [], s = d.sets || [0, 0], to = d.to | 0 || 21, thr = Math.round(to * 12 / 21);
         if (ss.length !== 2 || Math.min(s[0] | 0, s[1] | 0) !== 0) return null;
@@ -401,7 +401,7 @@
     for (var j = a; j < Math.min(rows.length, a + 3); j++) {
       var r = rows[j], p = r.pos | 0 || j + 1, sh = r.short;
       if (!sh && typeof shortOf === 'function') { try { sh = shortOf(r.id); } catch (e) { sh = ''; } }
-      out.push({ pos: p, posT: ord(p), id: r.id, short: String(sh || r.id), pts: r.pts | 0, me: r.id === myId });
+      out.push({ pos: p, posT: p + 'º', id: r.id, short: String(sh || r.id), pts: r.pts | 0, me: r.id === myId });
     }
     var pos = rows[mi].pos | 0 || mi + 1;
     return { rows: out, move: move(pos0, pos), pos: pos };
@@ -469,7 +469,7 @@
   }
   /** La jugada del día en la hoja final → {title, lines[3], isBest, upLine} | null. «¡Salvada! 26-24» (empezabas por detrás o empatado),
    *  «¡Cerrada! 25-23» (por delante) o «Se escapó: 23-25». La 3ª línea es tu mejor de hoy; con la victoria que cumple la jugada de hoy
-   *  (x.up), la racha: «¡Cumplida! Racha: 3 días seguidos» (upLine = su índice, en dorado). */
+   *  (x.up), la racha: «Hecho. Racha: 3 días seguidos» (upLine = su índice, en dorado). */
   function sitModel(x) {
     if (!x || !x.start) return null;
     var a = x.a | 0, b = x.b | 0, s0 = x.start, ahead = (s0[0] | 0) > (s0[1] | 0);
@@ -479,7 +479,7 @@
     var lines = ['Empezaste ' + (s0[0] | 0) + '-' + (s0[1] | 0) + ' (' + noDot(String(x.label || '')) + ')',
       x.i ? 'Intento ' + (x.i | 0) + ' de ' + ((x.tries | 0) || 3) + ' de hoy' + (x.left > 0 ? '' : ': mañana, otra jugada') : (x.left > 0 ? 'Te quedan ' + plural(x.left, 'intento', 'intentos') + ' hoy' : 'Mañana, otra jugada'),
       // (el «¡Nuevo mejor!» en dorado solo con una ganada: una derrota que mejora otra derrota no se celebra)
-      up ? '¡Cumplida! Racha: ' + (sk === 1 ? '1 día' : sk + ' días seguidos') : bl ? (x.isBest && x.best.w ? '¡Nuevo mejor de hoy: ' + bl + '!' : 'Tu mejor de hoy: ' + bl) : ''].filter(Boolean);
+      up ? 'Hecho. Racha: ' + (sk === 1 ? '1 día' : sk + ' días seguidos') : bl ? (x.isBest && x.best.w ? 'Nuevo mejor de hoy: ' + bl : 'Tu mejor de hoy: ' + bl) : ''].filter(Boolean);
     return { title: title, lines: lines, isBest: !!(x.isBest && x.best && x.best.w) || up, upLine: up ? 2 : -1 };
   }
   function endModel(d) {
@@ -491,7 +491,7 @@
     else if (Array.isArray(d.kicker)) M.kicker = d.kicker.slice();
     else M.kicker = d.kicker ? String(d.kicker).split(' · ') : [];
     M.kicker = M.kicker.map(noDot);
-    M.title = d.title || (win ? '¡Victoria!' : cs && cs.rivalName ? contract('Gana el ' + cs.rivalName) : 'Gana ' + low1(d.cpu || 'la CPU'));
+    M.title = d.title || (win ? 'Victoria' : cs && cs.rivalName ? contract('Gana el ' + cs.rivalName) : d.cpu ? 'Gana ' + low1(d.cpu) : 'Ganan ellos');
     M.headline = noDot(headline(d, d.seed));
     M.score = { a: cs ? cs.me || 'TÚ' : 'TÚ', b: cs ? (typeof cs.rival === 'string' ? cs.rival : 'RIVAL') : 'CPU', sets: (d.sets || [0, 0]).slice(), setScores: (d.setScores || []).map(function (x) { return x.slice(); }) };
     // MVP (el de más puntos del partido): grande si es tuyo, pequeño si es del rival
@@ -511,10 +511,10 @@
     M.xp = [];
     if (cs && sum) {
       var bar = d.bar && d.bar.need > 0 ? Math.max(0, Math.min(1, (+d.bar.cur || 0) / d.bar.need)) : null;
-      M.xp.push({ name: cs.player || 'Tú', xp: sum.xp | 0, t: '+' + num(sum.xp | 0) + ' XP', lvlUp: !!sum.lvlUp, lvlT: sum.lvlUp ? '¡Nivel ' + (sum.lvl | 0) + '! +' + (sum.ptsGained | 0) + ' puntos' : '', bar: bar });
+      M.xp.push({ name: cs.player || 'Tú', xp: sum.xp | 0, t: '+' + num(sum.xp | 0) + ' XP', lvlUp: !!sum.lvlUp, lvlT: sum.lvlUp ? 'Nivel ' + (sum.lvl | 0) + ' (+' + (sum.ptsGained | 0) + ' para repartir)' : '', bar: bar });
     } else if (Array.isArray(d.aw)) d.aw.forEach(function (a) {
       if (!a) return;
-      M.xp.push({ name: a.name || 'N.º ' + (a.num | 0), xp: a.xp | 0, t: '+' + num(a.xp | 0) + ' XP', lvlUp: !!a.lvlUp, lvlT: a.lvlUp ? '¡Nivel ' + (a.lvl | 0) + '! +' + (a.pts | 0) + ' puntos' : '', bar: a.need > 0 ? Math.max(0, Math.min(1, (+a.cur || 0) / a.need)) : null });
+      M.xp.push({ name: a.name || 'N.º ' + (a.num | 0), xp: a.xp | 0, t: '+' + num(a.xp | 0) + ' XP', lvlUp: !!a.lvlUp, lvlT: a.lvlUp ? 'Nivel ' + (a.lvl | 0) + ' (+' + (a.pts | 0) + ' para repartir)' : '', bar: a.need > 0 ? Math.max(0, Math.min(1, (+a.cur || 0) / a.need)) : null });
     });
     M.badges = (d.badges || (sum && sum.badges) || []).slice();
     // desbloqueos (VB.Look, opcional): no se marcan como vistos
@@ -539,7 +539,7 @@
     // vida (máx. 3 líneas)
     M.life = [];
     if (life) {
-      if (life.ch) M.life.push((life.ch.ok ? '✓ Reto: ' : '✗ Reto: ') + life.ch.txt + (life.ch.prog ? ' (' + life.ch.prog + ')' : ''));
+      if (life.ch) M.life.push((life.ch.ok ? 'Reto cumplido: ' : 'Reto fallado: ') + life.ch.txt + (life.ch.prog ? ' (' + life.ch.prog + ')' : ''));
       if ((life.fans | 0) > 0) M.life.push('+' + num(life.fans) + ' seguidores');
       if (life.duel) M.life.push('Duelo con ' + life.duel.name + ': ' + (life.duel.win ? 'ganado' : 'perdido') + ' (' + (life.duel.w | 0) + '-' + (life.duel.l | 0) + ')');
       (life.ach || []).forEach(function (a) { M.life.push('Logro: ' + (a && a.name || a)); });
@@ -555,7 +555,7 @@
       var pills = (d.retos.pills || []).map(function (p) { return { name: p.name, lvl: p.lvl | 0, nw: !!p.nw, t: p.name + ': ' + (MEDAL[p.lvl | 0] || '') }; });
       M.retos = { pills: pills.slice(0, 3), more: Math.max(0, pills.length - 3), moreT: pills.length > 3 ? 'y ' + (pills.length - 3) + ' más' : '', xp: d.retos.xp | 0, xpT: d.retos.xp ? '+' + num(d.retos.xp) + ' de experiencia por retos' : '' };
     }
-    M.profile = d.profile && (d.profile.xp | 0) > 0 ? { xp: d.profile.xp | 0, t: 'Perfil: +' + num(d.profile.xp) + ' XP', up: d.profile.lvlUp ? '¡Perfil Nv ' + (d.profile.lvl | 0) + '!' + (d.profile.prize ? ' Premio: ' + d.profile.prize : '') : '' } : null;
+    M.profile = d.profile && (d.profile.xp | 0) > 0 ? { xp: d.profile.xp | 0, t: 'Perfil: +' + num(d.profile.xp) + ' XP', up: d.profile.lvlUp ? 'Perfil: nivel ' + (d.profile.lvl | 0) + (d.profile.prize ? '. Premio: ' + d.profile.prize : '') : '' } : null;
     M.inj = injModel(cs ? d.inj : null);
     // la situación de la semana (d.sit = {wn, label, start, a, b, win, i, tries, left, best, isBest}): título propio, sin titular (los
     // parciales de relleno del 3r set lo confundirían) y el bloque «Situación»
@@ -565,18 +565,18 @@
     M.part = pp.length ? { parts: pp, t: pp.join(' | ') } : null;
     // botones
     if (d.watch) M.buttons = null;
-    else if (cs) M.buttons = { primary: { id: 'next', label: nextLabel(d, sum) }, rest: [{ id: 'menu', label: 'Menú principal' }] };
+    else if (cs) M.buttons = { primary: { id: 'next', label: nextLabel(d, sum) }, rest: [{ id: 'menu', label: 'Menú' }] };
     else if (M.sit) {   // «Otro intento» si queda alguno hoy; si no, «Compartir» de principal. Sin «Revancha en…» ni «Cambiar opciones»
       var pr = d.sit.left > 0 ? { id: 'again', label: 'Otro intento' } : { id: 'share', label: 'Compartir' }, rs = [];
       if (pr.id !== 'share') rs.push({ id: 'share', label: 'Compartir' });
-      rs.push({ id: 'group', label: 'Ver el grupo' }, { id: 'menu', label: 'Menú principal' });
+      rs.push({ id: 'group', label: 'Ver el grupo' }, { id: 'menu', label: 'Menú' });
       M.buttons = { primary: pr, rest: rs };
     }
-    else if (d.reto) M.buttons = { primary: { id: 'again', label: 'Otra vez' }, rest: [{ id: 'retos', label: 'Retos' }, { id: 'menu', label: 'Menú principal' }] };
+    else if (d.reto) M.buttons = { primary: { id: 'again', label: 'Otra vez' }, rest: [{ id: 'retos', label: 'Retos' }, { id: 'menu', label: 'Menú' }] };
     else {
       var rest = [];
       if (d.altDiffName) rest.push({ id: 'againAlt', label: 'Revancha en ' + d.altDiffName });
-      rest.push({ id: 'opts', label: 'Cambiar opciones' }, { id: 'menu', label: 'Menú principal' });
+      rest.push({ id: 'opts', label: 'Opciones' }, { id: 'menu', label: 'Menú' });
       M.buttons = { primary: { id: 'again', label: 'Revancha' }, rest: rest };
     }
     // pestañas: «Jugadas (n)» solo con jugadas, fuera del Entrenamiento y del espectador (R10; el 6v6 también desde el 24-nov-2026)

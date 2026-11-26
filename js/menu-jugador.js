@@ -50,7 +50,10 @@
   var stamp = mk('button', 'sp-stamp');
   stamp.type = 'button'; stamp.id = 'btnMjReto';
   stamp.setAttribute('aria-label', SEM ? 'La jugada del día' : 'Reto del día');
-  stamp.setAttribute('data-ring', SEM ? 'LA JUGADA ★ DEL DÍA ★' : 'RETO DEL DÍA ★ RETO DEL DÍA ★');
+  var ringDay = '';
+  try { ringDay = SEM ? VB.Semana.dayLbl(VB.Semana.today()) : VB.Retos ? VB.Retos.dateLabel(VB.Retos.today()) : ''; } catch (e) { ringDay = ''; }
+  ringDay = ringDay ? '|' + String(ringDay).toUpperCase() : '';
+  stamp.setAttribute('data-ring', (SEM ? 'LA JUGADA DEL DÍA' : 'RETO DEL DÍA') + ringDay);
   if (SEM) stamp.classList.add('mj-sem');
   // (movil-aire §5.1: en el móvil, apaisado o vertical, el sello va de pegatina en la esquina de JUGAR —.ph-sticker— y no tapa el texto)
   stamp.classList.add('ph-sticker'); go.classList.add('ph-stk-host');
@@ -79,10 +82,10 @@
   if (bNow) {
     bNow.classList.remove('mi', 'primary'); cls(bNow, 'sp-ticket sp-gold');
     bNow.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.BALL + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
-      '<b class="sp-t">¡Jugar ya!</b><small class="sp-s">Un set a 15 contra la CPU</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
+      '<b class="sp-t">Jugar ya</b><small class="sp-s">Un set a 15, sin menús</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
     nav.appendChild(bNow);
   }
-  // Primera vez (24-nov-2026, Ferran): con #menu.first-run (ui.js syncHero) la portada solo enseña «¡Jugar ya!» y este billete turquesa
+  // Primera vez (24-nov-2026, Ferran): con #menu.first-run (ui.js syncHero) la portada solo enseña «Jugar ya» y este billete turquesa
   // «Tutorial» con la «?» de Cómo se juega en el talón (abre el mismo panel). Después, la portada de siempre
   var bST = $('btnStartTut');
   if (bST) {
@@ -102,8 +105,9 @@
   }
   if (bCont) { cls(bCont, 'sp-ticket'); bCont.appendChild(mk('span', 'sp-tk', '')); nav.appendChild(bCont); }
   nav.appendChild(go); nav.appendChild(tape); nav.appendChild(strip);
-  var sub = $('playMainSub'); if (sub) { sub.textContent = 'Partido rápido, 6 contra 6 y entrenamiento'; sub.setAttribute('data-ph-short', 'Rápido, 6 contra 6 y entreno'); }
-  var lsub = bLook && bLook.querySelector('.mi-s'); if (lsub) lsub.textContent = 'Tu aspecto';
+  // (sin línea bajo JUGAR: repetía los modos que hay dentro)
+  var sub = $('playMainSub'); if (sub && sub.parentNode) sub.parentNode.removeChild(sub);
+  var lsub = bLook && bLook.querySelector('.mi-s'); if (lsub) lsub.textContent = 'Pelo, gorras y rodilleras';
   S.decorate(menu);
 
   stamp.addEventListener('click', function () {
@@ -150,7 +154,7 @@
     if (!H) return;
     var rv = n && n.rival, away = n && n.kind === 'league' && n.atHome === false;
     var crests = me ? '<span class="sp-crest">' + crest(me, 40, c) + '</span>' + (rv ? '<i class="sp-vs">' + (away ? 'en' : 'vs') + '</i><span class="sp-crest">' + crest(rv, 40, c) + '</span>' : '') : '<span class="sp-crest">' + S.BALL + '</span>';
-    var k = rv ? 'Próximo partido' : 'Carrera · ' + H.kind, ttl = rv ? rv.name : H.title, ln = rv ? (H.chip ? H.chip + ' · ' : '') + ((S.mob ? S.mob() : S.phone()) ? 'Continuar' : 'Continuar carrera') : (H.chip ? H.chip + ' · ' : '') + (H.line || '');
+    var k = rv ? 'Próximo partido' : 'Carrera en ' + (H.kind === 'Playa' ? 'la playa' : 'pista'), ttl = rv ? rv.name : H.title, ln = rv ? (H.chip ? H.chip + ', ' : '') + ((S.mob ? S.mob() : S.phone()) ? 'Continuar' : 'Continuar carrera') : (H.chip ? H.chip + ', ' : '') + (H.line || '');
     var h = '<span class="sp-tk-stub">' + crests + '</span><span class="sp-tk-main"><small class="sp-k">' + esc(k) + '</small><b class="sp-t">' + esc(ttl) + '</b><small class="sp-s">' + esc(ln) + '</small></span>' +
       '<span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>';
     var cmp = h.replace(/n\d+"/g, '"').replace(/n\d+\)/g, ')');

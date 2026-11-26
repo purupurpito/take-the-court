@@ -10,7 +10,7 @@
  *    candidatura (una jornada antes del cierre) es puro. Premio: estrellas, mensaje y publicación (ni fama, ni XP, ni trofeos).
  *  - Estadísticas (Palmarés): por temporada (c.history, c.stats, c.career), gráfica SVG de la nota (c.notes; las de temporadas
  *    pasadas quedan en s.ns), récords de un partido (s.rec) e historial de figuras.
- *  - Camino de temporada: 20 niveles de 3★ que se reinician en 'newSeason' (lo anterior, en s.pathHist). Premios SOLO cosméticos:
+ *  - Camino de temporada: 20 niveles de 3 estrellas que se reinician en 'newSeason' (lo anterior, en s.pathHist). Premios SOLO cosméticos:
  *    títulos de perfil, fondos SPLAT para el ticket y prendas que ya existen en look.js (VB.Look.grant, solo ids del CATALOG que
  *    aún no tengas). Ni dinero, ni puntos, ni fama, ni c.trophies. Las estrellas de otros paquetes llegan por fx({star: n}).
  *
@@ -67,7 +67,7 @@
       t: ['Figura de la jornada', 'Eres la figura de la jornada', 'La jornada {w} lleva tu nombre', 'Figura de la jornada {w}', 'Nadie jugó mejor', 'Tu nombre, en portada'],
       x: ['{med} te elige figura de la jornada {w} con un {nota}. Detrás quedan {f1} ({v1}) y {f2} ({v2}).',
         'Nadie jugó mejor que tú en la jornada {w}: un {nota} de nota. {f1}, de {c1}, se queda a las puertas con {v1}.',
-        'La votación de {med} no deja dudas: figura de la jornada {w} con un {nota}. Tu gente ya ha hecho captura de pantalla.',
+        'La votación de {med} no deja dudas: figura de la jornada {w} con un {nota}. En casa ya han hecho captura de pantalla.',
         'Un {nota} en la jornada {w} y la figura es tuya. {f1} ({c1}) protesta con su {v1}, pero los números mandan.',
         'Figura de la jornada {w}: {nota}. {med} dice que fue «un partido para enseñar en las escuelas».',
         'Te llevas la figura de la jornada {w} con un {nota}. {f1} y {f2} tendrán que esperar a la próxima.'] },
@@ -81,7 +81,7 @@
       t: ['Figura del mes', 'Eres la figura del mes', 'El mes es tuyo', 'Figura del mes: tú', 'Mes de los buenos'],
       x: ['{med} te nombra figura del mes con {avg} de media en {n} partidos. {f1} ({c1}) se queda con {v1}.',
         'Media de {avg} en {n} partidos: la figura del mes es tuya. {f1} y {f2} aplauden, con la boca pequeña.',
-        'Ya es oficial: figura del mes con un {avg} de media. La peña del barrio ha pedido el trofeo de cartón para la vitrina.',
+        'Ya es oficial: figura del mes con un {avg} de media. Los del infantil han pedido el trofeo de cartón para la vitrina.',
         'Nadie fue más regular este mes: {avg} de media. {med} lo resume en una palabra: «imparable».',
         'Figura del mes con {avg}. {f1}, de {c1}, se queda a {gap} décimas.'] },
     seMoLose: { k: 'press',
@@ -91,9 +91,8 @@
         '{med} elige a {f1} como figura del mes ({v1}). Tú te quedas con {avg} y ganas de revancha.',
         'Por poco: {f1} firma un {v1} de media y se lleva el mes. Tu {avg} queda en el historial.'] },
     seLv: { k: 'fan',
-      t: ['Camino de temporada: nivel {lv}', 'Subes al nivel {lv} del Camino', 'Nivel {lv} del Camino', 'Camino: nivel {lv} desbloqueado'],
-      x: ['Premio del nivel {lv}: {prize}. {how}', 'Llevas {st} estrellas esta temporada. Te toca: {prize}. {how}',
-        'Nuevo premio en el Camino: {prize}. {how}', 'Nivel {lv} con {st} estrellas. Premio: {prize}. {how}'] }
+      t: ['Camino de temporada: nivel {lv}', 'Subes al nivel {lv} del Camino', 'Nivel {lv} del Camino'],
+      x: ['El club te da {prize} por lo que llevas de temporada.'] }
   };
 
   // ------------------------------------------------------------------ estado
@@ -359,7 +358,7 @@
   function chips(c) {
     var s = c && c.story, m = s && s.mt;
     if (!m || c.phase !== 'league' || m.s !== (c.season | 0) || (c.week | 0) !== m.to || m.n < 2 || !m.top.length) return [];
-    return [{ p: 6, ic: '★', t: 'Candidatura a Figura del mes: tu media ' + nt(m.sum / m.n) + '; ' + m.top[0].n + ' ' + nt(m.top[0].v), tab: 'honors', s: 'stats' }];
+    return [{ p: 6, ic: '#', t: 'Candidatura a Figura del mes: tu media ' + nt(m.sum / m.n) + '; ' + m.top[0].n + ' ' + nt(m.top[0].v), tab: 'honors', s: 'stats' }];
   }
 
   // ------------------------------------------------------------------ acciones
@@ -502,14 +501,14 @@
     return '<div class="sp-heros ss-heros' + (cls ? ' ' + cls : '') + '"' + (label ? ' role="group" aria-label="' + label + '"' : '') + '>' +
       items.map(function (x) { return '<span><b class="sp-hn">' + x[0] + '</b><small class="sp-hl">' + x[1] + '</small></span>'; }).join('') + '</div>';
   }
-  /** Fila de selectores en pegatinas de pintura: opts = [{act, label (HTML), on, ic (HTML)}]. La elegida, dorada y con ✓. */
+  /** Fila de selectores en pegatinas de pintura: opts = [{act, label (HTML), on, ic (HTML)}]. La elegida, dorada. */
   var PICK_C = ['sp-cream', 'sp-teal', 'sp-alt'];
   function pick(opts, label) {
     var k = 0;
     return '<div class="ss-pick" data-nav data-sp-row role="group" aria-label="' + label + '">' + opts.map(function (o, i) {
       var col = o.on ? 'sp-gold' : PICK_C[k++ % PICK_C.length];
       return '<button type="button" class="sp-btn sp-sm ' + col + (o.on ? ' on' : '') + '" data-shape="' + (i + 2) + '" data-act="' + o.act + '" aria-pressed="' + (o.on ? 'true' : 'false') + '">' +
-        (o.ic ? '<span class="sp-ic" aria-hidden="true">' + o.ic + '</span>' : '') + '<span class="sp-t">' + (o.on ? '<span class="ss-ok" aria-hidden="true">✓</span>' : '') + o.label + '</span></button>';
+        (o.ic ? '<span class="sp-ic" aria-hidden="true">' + o.ic + '</span>' : '') + '<span class="sp-t">' + o.label + '</span></button>';
     }).join('') + '</div>';
   }
   function prizeShort(lv) {
@@ -524,7 +523,7 @@
     var nextAt = Math.min(ST_MAX, (cur.lv + 1) * PER_LV), left = nextAt - cur.st, out = '';
     if (h.ph) {   // móvil (movil-aire §5.4): resumen en una línea + barra de 8 y el camino como tira que se desliza (tu nivel al centro)
       out += '<div class="card ss-pass ss-pph"><p class="ss-sum" aria-label="' + e('Camino de la temporada ' + (c.season | 0) + ': nivel ' + cur.lv + ' de ' + LV_MAX + ', ' + cur.st + ' de ' + ST_MAX + ' estrellas') + '">' +
-        '<span><b>Nivel ' + cur.lv + '</b>/' + LV_MAX + '</span><span>★ ' + cur.st + '/' + ST_MAX + '</span>' +
+        '<span><b>Nivel ' + cur.lv + '</b>/' + LV_MAX + '</span><span>' + cur.st + '/' + ST_MAX + ' estrellas</span>' +
         (cur.lv < LV_MAX ? '<span>' + (left === 1 ? 'falta 1' : 'faltan ' + left) + (PRIZES[cur.lv + 1] ? ' → ' + e(prizeShort(cur.lv + 1).toLowerCase()) : '') + '</span>' : '<span>Completo</span>') + '</p>' +
         bar(cur.lv < LV_MAX ? (cur.st - cur.lv * PER_LV) / PER_LV : 1) + '<ol class="ss-track ss-hz" data-ph-center aria-label="Niveles del Camino">';
       for (var lp = 1; lp <= LV_MAX; lp++) {
@@ -534,7 +533,7 @@
       out += '</ol></div>';
     } else {
     out += '<div class="card ss-pass"><h3>Camino de temporada ' + (c.season | 0) + '</h3>' +
-      heros([[cur.lv, 'nivel de ' + LV_MAX], [cur.st, 'estrellas de ' + ST_MAX], cur.lv < LV_MAX ? [left, left === 1 ? 'falta para el ' + (cur.lv + 1) : 'faltan para el ' + (cur.lv + 1)] : ['★', 'completo']],
+      heros([[cur.lv, 'nivel de ' + LV_MAX], [cur.st, 'estrellas de ' + ST_MAX], cur.lv < LV_MAX ? [left, left === 1 ? 'falta para el ' + (cur.lv + 1) : 'faltan para el ' + (cur.lv + 1)] : [0, 'faltan']],
         'sp-paper', 'Nivel ' + cur.lv + ' de ' + LV_MAX + ', ' + cur.st + ' de ' + ST_MAX + ' estrellas') +
       (cur.lv < LV_MAX ? bar((cur.st - cur.lv * PER_LV) / PER_LV) + '<p class="ss-goal">Siguiente nivel: <b>' + (left === 1 ? 'falta 1 estrella' : 'faltan ' + left + ' estrellas') + '</b>' + (PRIZES[cur.lv + 1] ? ' (premio: ' + prizeShort(cur.lv + 1).toLowerCase() + ')' : '') + '.</p>'
         : bar(1) + '<p class="ss-goal">Camino completo. Vuelve a empezar la temporada que viene.</p>') +
@@ -572,7 +571,7 @@
     var xs = function (i) { return list.length < 2 ? pl + (W - pl - pr) / 2 : pl + i * (W - pl - pr) / (list.length - 1); };
     var ys = function (v) { return pt + (hi - clamp(v, lo, hi)) * (Hh - pt - pb) / (hi - lo); };
     var g = '<svg class="ss-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="' + e(label) + '"><title>' + e(label) + '</title>';
-    [4, 6, 8, 10].forEach(function (v) { g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(v).toFixed(1) + '" y2="' + ys(v).toFixed(1) + '" stroke="rgba(255,244,220,.14)" stroke-width="1"/><text x="2" y="' + (ys(v) + 4).toFixed(1) + '" fill="rgba(255,244,220,.7)" font-size="12" font-weight="700" font-family="Rubik, sans-serif">' + v + '</text>'; });
+    [4, 6, 8, 10].forEach(function (v) { g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(v).toFixed(1) + '" y2="' + ys(v).toFixed(1) + '" stroke="rgba(255,244,220,.14)" stroke-width="1"/><text x="2" y="' + (ys(v) + 4).toFixed(1) + '" fill="rgba(255,244,220,.7)" font-size="12" font-weight="700" font-family="Chivo, sans-serif">' + v + '</text>'; });
     g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(IDEAL).toFixed(1) + '" y2="' + ys(IDEAL).toFixed(1) + '" stroke="#1bb5a5" stroke-dasharray="5 4" stroke-width="2"/>';
     g += '<polyline fill="none" stroke="#15102a" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" points="' + list.map(function (x, i) { return xs(i).toFixed(1) + ',' + ys(x.nota).toFixed(1); }).join(' ') + '"/>';
     g += '<polyline fill="none" stroke="#ffcb3d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" points="' + list.map(function (x, i) { return xs(i).toFixed(1) + ',' + ys(x.nota).toFixed(1); }).join(' ') + '"/>';

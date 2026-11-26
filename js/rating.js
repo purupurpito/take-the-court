@@ -287,7 +287,7 @@
     var d = SANCTION[color];
     if (!st || st.done || !d) return 0;
     st.raw += d; st.san = (st.san || 0) + d;
-    push(st, 'card', 'card_' + color, txt || (color === 'yellow' ? 'Tarjeta amarilla' : 'Tarjeta roja'), eff(st, d));
+    push(st, 'card', 'card_' + color, txt || (color === 'yellow' ? 'Amonestación' : 'Penalización'), eff(st, d));
     (st.sanLog || (st.sanLog = [])).push(st.log[st.log.length - 1]);
     return 1;
   }

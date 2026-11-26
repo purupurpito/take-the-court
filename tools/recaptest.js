@@ -206,11 +206,11 @@ const expect = {
   comeback: [/^Remontada de 6 puntos en el tercer set$/, /^Tu pareja remonta 6 puntos en el tercer set$/],
   aces: [/^Tu n\.º 2 firma 4 aces$/, /^Tu n\.º 2 hace daño con el saque: 4 aces$/],
   blocks: [/^Tu n\.º 1 levanta un muro: 3 puntos de bloqueo$/, /^Tu n\.º 1 manda en la red: 3 bloqueos$/],
-  rally: [/^Jugada de 22 toques en el primer set, y se la lleva tu pareja$/, /^Una jugada de 22 toques para el recuerdo$/],
-  rallyNum: [/^Una jugada de 20 toques para el recuerdo$/],
+  rally: [/^Jugada de 22 toques en el primer set, y se la lleva tu pareja$/, /^22 toques en una jugada$/],
+  rallyNum: [/^20 toques en una jugada$/],
   streak: [/^Tu pareja enlaza 7 puntos seguidos en el primer set$/, /^Racha de 7 puntos seguidos de tu pareja$/],
   tight: [/^Final apretado en el tercer set \(16-14\)$/, /^Se decide en el tercer set por la mínima: 16-14$/],
-  noChance: [/^Sin dar opción: 21-12 y 21-10$/, /^Tu pareja no da opción: 21-12 y 21-10$/]
+  noChance: [/^Sin historia: 21-12 y 21-10$/, /^Tu pareja, sin historia: 21-12 y 21-10$/]
 };
 for (const k in cases) {
   const vs = twoSeeds(cases[k]);
@@ -227,7 +227,7 @@ delete mix.close; ok(/remonta|primer set/.test(H(mix)), 'orden: remontada antes 
 ok(H(Object.assign({}, dull, { moments: [{ k: 'spSave', team: 0, n: 1, setNo: 1 }] })) === '', 'spSave con 1 → nada');
 ok(H(Object.assign({}, dull, { moments: [{ k: 'rally', team: 0, n: 13, setNo: 1 }] })) === '', 'jugada de 13 → nada');
 ok(H(Object.assign({}, dull, { moments: [{ k: 'streak', team: 0, n: 5, setNo: 1 }] })) === '', 'racha de 5 → nada');
-ok(H(Object.assign({}, cases.noChance, { setScores: [[21, 13], [21, 10]] })) === '', '2-0 con un set a 13 → no «sin dar opción»');
+ok(H(Object.assign({}, cases.noChance, { setScores: [[21, 13], [21, 10]] })) === '', '2-0 con un set a 13 → no «sin historia»');
 ok(H(Object.assign({}, dull, { watch: true, close: cases.closeAce.close })) === '', 'espectador 6v6 → sin titular');
 // el rival: su nombre en Partido rápido y en la Carrera
 const rivalAces = Object.assign({}, dull, { sets: [1, 2], setScores: [[18, 21], [21, 19], [11, 15]], pl: pl0.map((p, i) => i === 3 ? Object.assign({}, p, { aces: 5 }) : p) });
@@ -274,7 +274,7 @@ section('tableSlice');
 const rows = [1, 2, 3, 4, 5, 6, 7, 8].map((id, i) => ({ id, pts: 30 - i * 3, pos: i + 1 }));
 const shortOf = id => 'C' + id;
 let ts = R.tableSlice(rows, 3, 5, shortOf);
-ok(ts.rows.length === 3 && ts.rows.map(r => r.id).join() === '2,3,4' && ts.rows[1].me && ts.move.txt === '▲2' && ts.rows[1].posT === '3r' && ts.rows[0].short === 'C2', 'centro: 2º, 3r ▲2, 4º');
+ok(ts.rows.length === 3 && ts.rows.map(r => r.id).join() === '2,3,4' && ts.rows[1].me && ts.move.txt === '▲2' && ts.rows[1].posT === '3º' && ts.rows[0].short === 'C2', 'centro: 2º, 3r ▲2, 4º');
 ts = R.tableSlice(rows, 1, 1, shortOf); ok(ts.rows.map(r => r.id).join() === '1,2,3' && ts.move.txt === '=', 'primero: 1-3 y «=»');
 ts = R.tableSlice(rows, 8, 7, shortOf); ok(ts.rows.map(r => r.id).join() === '6,7,8' && ts.move.txt === '▼1', 'último: 6-8 y ▼1');
 ts = R.tableSlice(rows, 4, 0, shortOf); ok(ts.move.txt === '', '1ª jornada (pos0 0): sin flecha');
@@ -296,15 +296,15 @@ function labelsOk(M, what) {
 let M = R.endModel(Object.assign({}, cases.aces, { seed: 5, win: true, kicker: ['Platja Llarga', 'Nivel Normal | Sets a 21'], aw: [{ num: 1, xp: 184, lvl: 7, lvlUp: true, pts: 3, cur: 40, need: 360 }, { num: 2, xp: 150, lvl: 6, cur: 300, need: 320 }], badges: [{ id: 'canon', name: 'Cañón', lvl: 1 }], altDiffName: 'Difícil', plays: 0 }));
 labelsOk(M, 'rápido');
 ok(M.buttons.primary.id === 'again' && M.buttons.primary.label === 'Revancha', 'rápido: principal «Revancha»');
-ok(M.buttons.rest.map(b => b.label).join('|') === 'Revancha en Difícil|Cambiar opciones|Menú principal', 'rápido: secundarios');
-ok(M.title === '¡Victoria!' && M.score.a === 'TÚ' && M.score.b === 'CPU', 'título y marcador');
+ok(M.buttons.rest.map(b => b.label).join('|') === 'Revancha en Difícil|Opciones|Menú', 'rápido: secundarios');
+ok(M.title === 'Victoria' && M.score.a === 'TÚ' && M.score.b === 'CPU', 'título y marcador');
 ok(M.tabs.join() === 'sum,stats', 'sin jugadas: sin pestaña «plays»');
 ok(M.mvp && M.mvp.name === 'N.º 1' && M.mvp.ptsT === '8 puntos' && M.mvp.parts.join(' | ') === '6 de ataque | 1 de bloqueo | 1 ace', 'MVP rápido «N.º 1», 8 puntos (' + JSON.stringify(M.mvp) + ')');
-ok(M.xp.length === 2 && M.xp[0].t === '+184 XP' && M.xp[0].lvlT === '¡Nivel 7! +3 puntos' && Math.abs(M.xp[0].bar - 40 / 360) < 1e-9, 'XP por atleta con nivel y barra');
+ok(M.xp.length === 2 && M.xp[0].t === '+184 XP' && M.xp[0].lvlT === 'Nivel 7 (+3 para repartir)' && Math.abs(M.xp[0].bar - 40 / 360) < 1e-9, 'XP por atleta con nivel y barra');
 ok(M.headline && M.blocks[0] === 'headline' && M.blocks.indexOf('mvp') > 0 && M.blocks.indexOf('badges') > M.blocks.indexOf('xp'), 'bloques en orden (' + M.blocks.join() + ')');
 ok(M.table === null && M.cup === '' && M.life.length === 0, 'rápido: sin tabla, copa ni vida');
 M = R.endModel(Object.assign({}, dull, { sets: [0, 2], setScores: [[15, 21], [16, 21]], win: false, plays: 3, pl: pl0.map((p, i) => i === 2 ? Object.assign({}, p, { pts: 10 }) : p) }));
-ok(M.title === 'Gana la CPU' && M.mvp === null && M.mvpRival && M.mvpRival.t === 'MVP rival: N.º 1, 10 puntos', 'derrota: «Gana la CPU» y MVP rival en pequeño (' + (M.mvpRival && M.mvpRival.t) + ')');
+ok(M.title === 'Ganan ellos' && M.mvp === null && M.mvpRival && M.mvpRival.t === 'MVP rival: N.º 1, 10 puntos', 'derrota: «Ganan ellos» y MVP rival en pequeño (' + (M.mvpRival && M.mvpRival.t) + ')');
 ok(M.tabs.join() === 'sum,stats,plays' && M.tabLabels.plays === 'Jugadas (3)', 'con jugadas: pestaña «Jugadas (3)»');
 ok(R.endModel(Object.assign({}, dull, { plays: 3, size: 6 })).tabs.length === 3, '6v6: con pestaña de jugadas (repeticiones en el 6v6 desde el 24-nov-2026)');
 ok(R.endModel(Object.assign({}, dull, { plays: 3, drill: true })).tabs.length === 2, 'Entrenamiento: sin pestaña de jugadas');
@@ -319,7 +319,7 @@ const RL = load({ VB: { Look: { name: id => id === 'hb1' ? 'Cinta de rizo' : '' 
 ok(RL.endModel(Object.assign({}, dull, { unlocks: ['hb1'] })).unlocks.t === 'Nuevo en tu vestuario: Cinta de rizo', 'con VB.Look.name (guardado)');
 ok(R.endModel(Object.assign({}, dull, { unlocks: ['hb1'] })).unlocks.t === 'Nuevo en tu vestuario: hb1', 'sin VB.Look: el id, sin romper');
 M = R.endModel(Object.assign({}, dull, { profile: { xp: 45, lvl: 8, lvlUp: true, prize: 'Manguito de rayas' }, retos: { pills: [{ name: 'Pegada', lvl: 2 }, { name: 'Pared', lvl: 1, nw: true }, { name: 'Red', lvl: 3 }, { name: 'Saque', lvl: 1 }], xp: 30 } }));
-ok(M.profile.t === 'Perfil: +45 XP' && M.profile.up === '¡Perfil Nv 8! Premio: Manguito de rayas', 'perfil');
+ok(M.profile.t === 'Perfil: +45 XP' && M.profile.up === 'Perfil: nivel 8. Premio: Manguito de rayas', 'perfil');
 ok(M.retos.pills[0].t === 'Pegada: plata' && M.retos.moreT === 'y 1 más' && M.retos.xpT === '+30 de experiencia por retos', 'retos: pastillas, «y 1 más» y XP');
 labelsOk(M, 'rápido con perfil y retos');
 
@@ -330,13 +330,13 @@ const sumE = { season: 2, phase: 'league', label: 'Jornada 5', win: true, sets: 
   life: { fans: 1200, ch: { txt: 'Gana un set a cero', ok: true, prog: '2/2' }, duel: null, ach: [{ name: 'Pegada de oro' }, 'Muro'], chemUp: { lv: 2, name: 'Compenetrados', up: true } } };
 M = R.endModel({ seed: 9, career: csE, sum: sumE, sets: [2, 0], setScores: [[21, 15], [21, 18]], pl: plE, table: { rows, myId: 3, pos0: 5, shortOf }, bar: { cur: 50, need: 200 }, next: 'league', plays: 2 });
 labelsOk(M, 'Carrera');
-ok(M.buttons.primary.id === 'next' && M.buttons.primary.label === 'Siguiente jornada' && M.buttons.rest.length === 1 && M.buttons.rest[0].label === 'Menú principal', 'Carrera: «Siguiente jornada» + «Menú principal»');
+ok(M.buttons.primary.id === 'next' && M.buttons.primary.label === 'Siguiente jornada' && M.buttons.rest.length === 1 && M.buttons.rest[0].label === 'Menú', 'Carrera: «Siguiente jornada» + «Menú principal»');
 ok(!texts(M.buttons).some(s => /Revancha/.test(s)), 'Carrera: sin «Revancha»');
 ok(M.kicker.join(' | ') === 'Circuito Regional | Jornada 5', 'antetítulo en partes (sin «·»)');
 ok(M.mvp && M.mvp.name === 'Ares Belmonte' && M.mvp.nota === 'Nota 7,8' && M.nota === '7,8', 'MVP por nombre con nota 7,8');
-ok(M.xp[0].name === 'Ares Belmonte' && M.xp[0].t === '+210 XP' && M.xp[0].lvlT === '¡Nivel 9! +3 puntos' && M.xp[0].bar === 0.25, 'XP de la Carrera con barra');
+ok(M.xp[0].name === 'Ares Belmonte' && M.xp[0].t === '+210 XP' && M.xp[0].lvlT === 'Nivel 9 (+3 para repartir)' && M.xp[0].bar === 0.25, 'XP de la Carrera con barra');
 ok(M.table && M.table.move.txt === '▲2' && M.table.rows.length === 3, 'clasificación con ▲2');
-ok(M.life.length === 3 && M.life[0] === '✓ Reto: Gana un set a cero (2/2)' && M.life[1] === '+1.200 seguidores' && M.life[2] === 'Logro: Pegada de oro', 'vida en 3 líneas (' + M.life.join(' / ') + ')');
+ok(M.life.length === 3 && M.life[0] === 'Reto cumplido: Gana un set a cero (2/2)' && M.life[1] === '+1.200 seguidores' && M.life[2] === 'Logro: Pegada de oro', 'vida en 3 líneas (' + M.life.join(' / ') + ')');
 ok(M.chem && M.chem.t === '▲ Química: Compenetrados', 'química');
 ok(M.tabs.join() === 'sum,stats,plays', 'Carrera con jugadas');
 ok(!texts(M).some(s => /CPU/.test(s)), 'Carrera: ningún texto con «CPU»');

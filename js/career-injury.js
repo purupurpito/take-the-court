@@ -36,7 +36,7 @@
   var ID = 'inj', PRE = 'inj-';
 
   // ------------------------------------------------------------------ números
-  var P_SEASON = 0.80;    // lesiones esperadas por temporada con todos los multiplicadores a 1 (Ferran: sube o baja aquí)
+  var P_SEASON = 0.80;    // lesiones esperadas por temporada con todos los multiplicadores a 1 (se ajusta aquí)
   var P_MAX = 0.25;       // tope por partido
   var F_FAT = [[20, 0.55], [40, 0.7], [60, 1.0], [80, 1.6], [100, 2.4]];   // fatiga (antes del entreno semanal) ≤ x → factor (≤ 20: muy descansado)
   var F_RUN = [[5, 1.0], [9, 1.3], [99, 1.6]];                 // carga (partidos seguidos sin descansar) ≤ x → factor
@@ -226,8 +226,8 @@
       var line = o.line || LINES[C0.z][0];
       if (o.rl) msg(c, 'train', 'Recaída: ' + lc(C0.name), (C0.z === 'ded' ? 'Los dedos no estaban' : ZART[C0.z] + ' no estaba') + ' del todo. Esta vez son ' + plural(dur, 'partido', 'partidos') + '.');
       else msg(c, 'train', 'Lesión: ' + lc(C0.name), C0.s === 1 ? line + ' Nada serio, dice el fisio: te pierdes ' + plural(dur, 'partido', 'partidos') + '.'
-        : C0.s === 2 ? line + ' Toca parar ' + plural(dur, 'partido', 'partidos') + '. En Jugador › Estado puedes hablar con el fisio.'
-        : line + ' Es de las largas: unos ' + dur + ' partidos fuera. El club te cuida y volverás a tope.');
+        : C0.s === 2 ? line + ' Toca parar ' + plural(dur, 'partido', 'partidos') + '.'
+        : line + ' Unos ' + dur + ' partidos fuera. El fisio del club dice que ha visto cosas peores.');
     }
     return { id: id, name: C0.name, zone: C0.z, sev: C0.s, n: dur, rl: o.rl ? 1 : 0 };
   }
@@ -541,7 +541,7 @@
   var STORY = {
     id: 'inj',
     tpl: {
-      'inj-mate': { k: 'mate', t: ['¡Ánimo, {yo}!', 'Te esperamos, {yo}'], x: ['¡Ánimo, {yo}! Te guardamos el sitio. Vuelve pronto.', 'Cuídate, {yo}. Esto sin ti no es lo mismo. Vuelve pronto.'] },
+      'inj-mate': { k: 'mate', t: ['¡Ánimo, {yo}!', 'Te esperamos, {yo}'], x: ['Te guardamos la taquilla.', 'Cuídate, {yo}. Esto sin ti no es lo mismo. Vuelve pronto.'] },
       'inj-mate3': { k: 'mate', t: ['Esto lo sacamos juntos', 'Aquí estamos, {yo}'], x: ['Esto lo sacamos juntos. Te esperamos.', 'Paso a paso, {yo}. Te esperamos.'] },
       'inj-back': { k: 'mate', t: ['¡Por fin, {yo}!', 'De vuelta'], x: ['¡Por fin! Te echábamos de menos en la pista.', '¡Ya era hora! El equipo te echaba de menos.'] }
     },

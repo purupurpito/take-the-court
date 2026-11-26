@@ -4,7 +4,7 @@
  *
  *  - Dónde: Ajustes › Info («Sugerir una mejora» / «Avisar de un bug», desde la portada y desde la pausa) y una fila de dos manchas
  *    pequeñas en la pausa del partido (#btnPSug / #btnPBug). ui.js abre el panel 'fb' (#pnFb, sistema SPLAT) y llama a mount().
- *  - Formulario: tipo (Sugerencia | Bug, preseleccionado por el botón), texto (5-2000 caracteres) y, en los bugs, «¿Dónde pasó?»
+ *  - Formulario: tipo (Idea o Fallo, preseleccionado por el botón), texto (5-2000 caracteres) y, en los bugs, «¿Dónde pasó?»
  *    opcional (Partido, Carrera, Online, Menús, Otro). Enviar / Cancelar. Teclado, mando y táctil como el resto de paneles: todo
  *    es <button> dentro de [data-nav] (filas con data-sp-row) y el cuadro de texto lleva data-focus. Mientras se escribe, las teclas
  *    no llegan al juego (stopPropagation en el cuadro, como el lobby online): ni Q/E de pestañas, ni F de pantalla completa. Esc sale.
@@ -20,7 +20,7 @@
  *  - Cola: sin red, con 403/401, 429 o 5xx, en 'make-the-cut.feedbackq' (máx. 20; del aparato, nunca a DOCS) y se reintenta al
  *    arrancar (a los 4 s) y al volver la conexión. 400/413 se descartan; 409 (ya estaba) cuenta como enviado. Las reglas rechazan
  *    con 403 (igual que sin desplegar): lo que lleva 30 intentos y más de 14 días en la cola se tira (stale()). La cuenta (uid) se
- *    fija al mandarlo: al reintentar con otra sesión sale sin cuenta. Mensaje: «¡Gracias! Enviado» o «Guardado: se enviará en cuanto se pueda».
+ *    fija al mandarlo: al reintentar con otra sesión sale sin cuenta. Mensaje: «Enviado. Gracias.» o «Guardado. Se manda solo cuando haya conexión».
  *  - Anti-spam en el cliente: 1 envío cada 30 s y 10 al día ('make-the-cut.feedbackl' = {d:'AAAAMMDD', n, last}).
  *  - Visor para Ferran: pages/feedback.html (lo copia tools/build-pages.js); la fila «Buzón de opiniones» de Ajustes › Info solo
  *    sale con su cuenta (ui.js, la misma huella que el acta, ACTA_ALLOW). viewerUrl() da la dirección.
@@ -225,7 +225,7 @@
   function submit(o) {
     o = o || {};
     var bad = validate(o); if (bad) return Promise.resolve({ status: 'error', msg: bad });
-    var lim = canSend(); if (!lim.ok) return Promise.resolve({ status: 'error', msg: lim.why === 'dia' ? 'Ya has mandado ' + DAY_MAX + ' hoy. ¡Gracias! Mañana puedes mandar más.' : 'Espera ' + lim.wait + ' s antes de mandar otra.', limit: lim.why });
+    var lim = canSend(); if (!lim.ok) return Promise.resolve({ status: 'error', msg: lim.why === 'dia' ? 'Por hoy ya van ' + DAY_MAX + '. Mañana más.' : 'Espera ' + lim.wait + ' s antes de mandar otra.', limit: lim.why });
     var d = { kind: o.kind, text: norm(o.text), ver: String(VB.VERSION || ''), ctx: ctxJson(o.kind, { screen: o.screen, mode: o.mode }) };
     if (o.kind === 'bug' && o.where) d.where = o.where;
     var id = newId(), x = { id: id, d: d, at: Date.now(), tries: 1 };
@@ -238,9 +238,9 @@
       return write(id, d);
     }).then(function (r) {
       if (r === 'ok' || r === 'drop') drop();
-      if (r === 'ok') { flush(); return { status: 'sent', msg: '¡Gracias! Enviado', id: id }; }
+      if (r === 'ok') { flush(); return { status: 'sent', msg: 'Enviado. Gracias.', id: id }; }
       if (r === 'drop') return { status: 'error', msg: 'No se ha podido guardar. Prueba con otro texto.' };
-      return { status: 'queued', msg: 'Guardado: se enviará en cuanto se pueda', id: id };
+      return { status: 'queued', msg: 'Guardado. Se manda solo cuando haya conexión', id: id };
     });
   }
   // reintentos: al arrancar (sin estorbar la carga) y al volver la conexión
@@ -256,9 +256,9 @@
   // ------------------------------------------------------------------ formulario (lo monta ui.js dentro de #pnFb)
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var draft = { sug: '', bug: '' }, M = null;
-  var LBL = { sug: '¿Qué mejorarías o qué te gustaría ver en el juego?', bug: '¿Qué ha pasado? Cuenta qué hacías y qué esperabas que pasara.' };
+  var LBL = { sug: '¿Qué le falta? ¿Qué sobra?', bug: '¿Qué ha pasado? Lo que hacías justo antes me ayuda mucho a encontrarlo.' };
   // (móvil bajo, .ph-s: la pregunta en una línea para que el cuadro quepa en la hoja)
-  var LBL_S = { sug: '¿Qué mejorarías?', bug: '¿Qué ha pasado?' };
+  var LBL_S = { sug: '¿Qué le falta?', bug: '¿Qué ha pasado?' };
   var PH = { sug: 'Por ejemplo: que se pueda elegir el balón de la playa', bug: 'Por ejemplo: en la Carrera, al acabar la jornada, se queda la pantalla en negro' };
   var IC = {
     sug: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V17h6v-1c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5zM9 18.5h6V20a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>',
@@ -281,14 +281,14 @@
     if (d) {
       h.innerHTML = '<div class="fb sp-panel sp-scroll fb-done" id="fbBody" data-nav>' +
         '<p class="fb-ok' + (d.status === 'queued' ? ' fb-q' : '') + '" role="status">' + esc(d.msg) + '</p>' +
-        '<p class="fb-s">' + (d.status === 'queued' ? 'No hemos podido mandarlo ahora. Lo guardamos en este aparato y se manda solo más tarde.' : (k === 'bug' ? 'Lo miraremos para arreglarlo.' : 'Lo leeremos con calma.')) + '</p></div>' +
+        '<p class="fb-s">' + (d.status === 'queued' ? 'Ahora no hay conexión. Se queda guardado y se manda solo cuando vuelva.' : (k === 'bug' ? 'Lo miro en cuanto pueda.' : 'Lo leo yo. No prometo hacerlo, pero lo leo.')) + '</p></div>' +
         '<div class="fb-foot" data-nav data-sp-row>' + spb('close', 'Hecho', 'sp-kit', 2, ' id="fbDone"') + '</div>';
       deco(); return;
     }
     var n = norm(draft[k]).length;
     h.innerHTML =
       '<div class="fb-kind" data-nav data-sp-row data-kb-hide role="radiogroup" aria-label="Qué quieres mandar">' +
-        KINDS.map(function (x) { return '<button type="button" class="sp-tab" role="radio" data-fbk="' + x + '" aria-checked="' + (x === k) + '">' + IC[x] + '<span>' + (x === 'sug' ? 'Sugerencia' : 'Bug') + '</span></button>'; }).join('') +
+        KINDS.map(function (x) { return '<button type="button" class="sp-tab" role="radio" data-fbk="' + x + '" aria-checked="' + (x === k) + '">' + IC[x] + '<span>' + (x === 'sug' ? 'Idea' : 'Fallo') + '</span></button>'; }).join('') +
       '</div>' +
       '<div class="fb sp-panel sp-scroll" id="fbBody" data-nav>' +
         '<label class="fb-l" for="fbText"><span class="fb-lf">' + esc(LBL[k]) + '</span><span class="fb-ls" aria-hidden="true">' + esc(LBL_S[k]) + '</span></label>' +
@@ -341,7 +341,7 @@
     if (!M || M.busy) return;
     var o = { kind: M.kind, text: draft[M.kind], where: M.kind === 'bug' ? M.where : '', screen: M.o.screen, mode: M.o.mode };
     var bad = validate(o); if (bad) { say(bad, true); snd('error'); var ta = M.host.querySelector('#fbText'); if (ta && M.o.focus) M.o.focus(ta, true); return; }
-    var lim = canSend(); if (!lim.ok) { say(lim.why === 'dia' ? 'Ya has mandado ' + DAY_MAX + ' hoy. ¡Gracias! Mañana puedes mandar más.' : 'Espera ' + lim.wait + ' s antes de mandar otra.', true); snd('error'); return; }
+    var lim = canSend(); if (!lim.ok) { say(lim.why === 'dia' ? 'Por hoy ya van ' + DAY_MAX + '. Mañana más.' : 'Espera ' + lim.wait + ' s antes de mandar otra.', true); snd('error'); return; }
     M.busy = true; say('Enviando…');
     var sb = M.host.querySelector('#fbSend'); if (sb) sb.disabled = true;
     var mm = M;

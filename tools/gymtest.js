@@ -80,7 +80,7 @@ async function browser() {
   // experiencia acumulada de un atleta (niveles pasados + xp del nivel), para comparar sin depender de subidas de nivel
   const XPJS = `(function(){var n=VB.Prog.need,q=VB.Prog.squad();return q.slice(0,2).map(function(a){var s=a.xp;for(var l=0;l<a.lvl;l++)s+=n(l);return s;});})()`;
   const GYMJS = `(function(){try{return JSON.parse(localStorage.getItem('make-the-cut.gym')||'null')}catch(e){return null}})()`;
-  const NOINTRO = `(function(){try{localStorage.setItem('make-the-cut.guided','{"done":true}');localStorage.setItem('make-the-cut.install','1');if(!localStorage.getItem('make-the-cut.record'))localStorage.setItem('make-the-cut.record','{"played":0,"intro":1}')}catch(e){}})();`;   // (install: sin el aviso de instalar del móvil, que a veces se abría justo antes del toque en «Jugar»; record.intro: sin la portada de la primera vez, que solo enseña «¡Jugar ya!» y «Tutorial»)
+  const NOINTRO = `(function(){try{localStorage.setItem('make-the-cut.guided','{"done":true}');localStorage.setItem('make-the-cut.install','1');if(!localStorage.getItem('make-the-cut.record'))localStorage.setItem('make-the-cut.record','{"played":0,"intro":1}')}catch(e){}})();`;   // (install: sin el aviso de instalar del móvil, que a veces se abría justo antes del toque en «Jugar»; record.intro: sin la portada de la primera vez, que solo enseña «Jugar ya» y «Tutorial»)
   let pg;
   try {
     pg = await CDP.open({ size: '1280x720', init: [NOINTRO] });
@@ -160,7 +160,7 @@ async function navFlows(CDP, sleep, vis, waitFor, ready, NOINTRO) {
         if (touch) await tap(p.x, p.y); else if (mode === 'mando') await pad(0); else await key('Enter', 'Enter', 13);
         return true;
       };
-      if (!await act('button,.mode', '^\\s*Jugar', '«Jugar» en el menú')) continue;
+      if (!await act('button,.mode', '^\\s*Jugar(?! ya)', '«Jugar» en el menú')) continue;
       if (!await act('#btnGym,.m-gym', '', 'la tarjeta Entrenamiento')) continue;
       check(await waitFor(pg, vis('#mpGym'), 3000), mode + ': página Entrenamiento (#mpGym)');
       if (!await act('#mpGym .mi', '', 'la 1ª fila de ejercicio')) continue;

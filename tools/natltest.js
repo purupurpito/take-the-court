@@ -518,7 +518,7 @@ section('13. Correcciones: repesca, cuartos, sub-19, lesión, papel, hoja final'
     m = f ? X.setup({ w: w.id, i: f.i, mode }) : null;
     if (m) {
       const s2 = X.done({ sets: [2, 0], setScores: six ? [[25, 20], [25, 21]] : [[21, 18], [21, 17]], win: true }, { career: m.career, demo: false, autopilot: false });
-      ok(s2 && /^¡(Victoria|Oro|Bronce)!$/.test(s2.title) && typeof s2.cup === 'string' && !BAD.test(s2.cup), mode + ': victoria → «' + (s2 && s2.title) + '»' + (s2 && s2.cup ? ' | ' + s2.cup : ''));
+      ok(s2 && /^(Victoria|¡Oro!|¡Bronce!)$/.test(s2.title) && typeof s2.cup === 'string' && !BAD.test(s2.cup), mode + ': victoria → «' + (s2 && s2.title) + '»' + (s2 && s2.cup ? ' | ' + s2.cup : ''));
     }
     // hasta el final: la última hoja trae la línea de copa
     let last = null, g = 0;
@@ -531,7 +531,7 @@ section('13. Correcciones: repesca, cuartos, sub-19, lesión, papel, hoja final'
   }
   // hoja de muestra para mobaudit (carrera-natl-partido-hoja): los textos más largos, sin tocar ninguna Carrera
   const XD = N(bootN()), dq = XD._endDemo('q'), dl = XD._endDemo('loss');
-  ok(dq && dq.kind === 'natl' && /^¡Billete para el /.test(dq.cup) && dq.title === '¡Victoria!' && dq.back === 'Volver a la Carrera' && !BAD.test(dq.cup + dq.label), '_endDemo q: «' + (dq && dq.cup) + '»');
+  ok(dq && dq.kind === 'natl' && /^¡Billete para el /.test(dq.cup) && dq.title === 'Victoria' && dq.back === 'Volver a la Carrera' && !BAD.test(dq.cup + dq.label), '_endDemo q: «' + (dq && dq.cup) + '»');
   ok(dl && dl.win === false && dl.title === 'Gana República Dominicana' && dl.back === 'Siguiente: 3ª jornada' && !dl.cup && !BAD.test(dl.title + dl.back + dl.next), '_endDemo loss: «' + (dl && dl.title) + '» | ' + (dl && dl.back));
 }
 

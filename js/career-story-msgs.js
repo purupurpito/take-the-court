@@ -8,7 +8,7 @@
  *    (como mucho INFO_MAX[freq] por jornada). Un beat no se repite en SEEN_GAP (6) jornadas (s.seenB). Lo que no se contesta caduca
  *    a las 2 jornadas con su línea de cierre (tpl.c) y sin efecto (lo hace el núcleo).
  *  - Prensa: cada 3-4 jornadas en Normal (5 en Poca, 2-3 en Mucha; tirada 'st-press'), siempre tras una final o un derbi, duelo o jefe (con 2 jornadas de hueco),
- *    nunca si la decisión pendiente de career-life es pressWin o pressLoss, nunca tras el banquillo. 17 preguntas que no se repiten
+ *    nunca si la decisión pendiente de career-life es pressWin o pressLoss, nunca tras el banquillo. 20 preguntas que no se repiten
  *    entre las 8 últimas (s.pressQ). Tres respuestas apiladas: de equipo (química +5), humilde (Entrenador +3), chulería (fama ×0,04,
  *    Entrenador −4, pique +20). La respuesta deja s.flags.press = {mN, v:{t, rv, done}} y en el siguiente partido llega el eco (solo
  *    publicación en Redes y mensaje informativo: nunca efectos).
@@ -45,12 +45,12 @@
 
   // ================================================================== cierres al caducar (por remitente)
   var CL = {
-    agent: ['Cris: «Vale, lo hablamos otro día.»', 'Cris: «Me tomo el silencio como un ya veremos.»', 'Cris: «Sin prisa. Lo dejo apuntado.»', 'Cris: «Entendido, otro día será.»', 'Cris: «Te dejo respirar. Ya me dirás.»'],
+    agent: ['Cris: «??»', 'Cris: «Te llamo luego.»'],
     coach: ['{coach}: «No has contestado. Seguimos con lo de siempre.»', '{coach}: «Lo dejamos aquí. Ya hablaremos en el entreno.»', '{coach}: «Silencio. Lo apunto y seguimos.»', '{coach}: «Bueno, ya me lo dirás en la pista.»'],
-    mate: ['«Vale, ya lo hablamos en el entreno.»', '«Te lo dejo caer otro día.»', '«Sin respuesta. Lo pillo, hay mucho lío.»', '«Ok, otro día será.»'],
-    fam: ['Tu gente: «Bueno, ya nos llamarás cuando puedas.»', 'Tu gente: «Otro día nos cuentas. Come bien.»', 'Tu gente: «Ya veremos. Un beso enorme.»', 'Tu gente: «Nada, ya hablamos el domingo.»'],
-    barrio: ['La peña lo deja para otra ocasión.', 'La peña del barrio sigue esperando. Sin rencor.', 'Nadie contestó. La peña se fue a merendar.'],
-    press: ['La rueda de prensa acaba sin tu respuesta. Titular del día: «Silencio».', 'Te escapas por la puerta de atrás. La prensa tendrá que inventarse la frase.', 'Sin respuesta. Los micrófonos se apagan solos.'],
+    mate: ['ok', 'nada, da igual'],
+    fam: ['Mamá: «Vale...»', 'Papá: «Llama a tu madre.»'],
+    barrio: ['Los del infantil se han ido a merendar sin ti.'],
+    press: ['El de la radio se ha ido a por otro.'],
     rival: ['{rp} se queda sin respuesta. Quizá sea lo mejor.', 'No contestas a {rp}. El pique se enfría un poco.'],
     sponsor: ['{sponsor}: «Lo dejamos para la próxima campaña.»', '{sponsor}: «Sin problema, otra vez será.»'],
     physio: ['El fisio suspira y apunta tu nombre en la libreta.', 'El fisio: «Tú verás. Luego no vengas a llorar.»'],
@@ -78,13 +78,13 @@
       'Estoy por pedir que me pongan un cojín en el banquillo. Total, voy a vivir ahí.'],
     o: [op(['Animar', 'Tu momento llegará', 'Entrenar juntos'], { chem: 3, mood: -1 }, 'Animaste a quien no juega'), op(['Que se lo gane', 'Es cosa del banquillo', 'No meterte'], { coach: 1, chem: -2 }, 'No te metiste en lo de los minutos')], c: CL.peer };
   T.qMate = { k: 'peer', t: ['Una cosa entre nosotros', 'Tengo que decírtelo', 'Sin rodeos'],
-    x: ['Hoy me has dejado todas las cortas a mí. No pasa nada, pero la red es de las dos personas, ¿eh?',
-      'Te lo digo con cariño: cuando pido la bola, es que la quiero. Hoy me has robado tres.',
+    x: ['Hoy me has dejado todas las cortas a mí. Que no pasa nada, ¿eh? Pero a la red también llegas tú.',
+      'Cuando pido la bola, es que la quiero. Hoy me has robado tres.',
       'En el segundo set no sabía si ibas a bloquear o a defender. Yo tampoco, así que hemos hecho las dos cosas mal.',
       'Necesito que me hables más en la pista. Hoy parecíamos dos desconocidos compartiendo arena.',
       'Esa última bola era tuya y lo sabes. Nos ha costado el set. Ya está, ya lo he dicho.',
       'Me haces señas de bloqueo y luego no saltas. Me tienes en un sinvivir.'],
-    xh: ['{otro} no pasa una en recepción y aquí nadie dice nada. ¿Soy la única persona que lo ve?',
+    xh: ['{otro} no pasa una en recepción y aquí nadie dice nada. ¿Lo veo solo yo o qué?',
       'No puedo más con {otro}. Llega tarde a todos los entrenos y luego juega de inicio. Explícamelo.',
       '{otro} se pasa el partido protestando a todo el mundo. Así no hay quien se concentre.',
       'Que {otro} deje de pedir la bola si luego la manda a la grada. Lo digo y me quedo a gusto.',
@@ -95,12 +95,12 @@
     x: ['El entreno de hoy ha sido un castigo. Cien saltos y luego arena hasta las rodillas. ¿Se lo decimos a {coach}?',
       'Tres horas al sol y ni una pausa para beber. Una cosa es entrenar y otra sobrevivir.',
       'Si mañana repetimos los sprints en la arena blanda, me quedo a vivir en la ducha.',
-      'He contado los ejercicios: catorce. He contado mis fuerzas: ninguna. ¿Hablamos con el banquillo?'],
+      'Catorce ejercicios hoy. ¿Hablamos con el banquillo?'],
     xh: ['El entreno de hoy ha sido un castigo. Doscientos bloqueos y luego físico. ¿Se lo decimos a {coach}?',
       'Media plantilla está cojeando y mañana toca otra vez pesas. Alguien tiene que decir algo.',
-      'Hemos hecho el mismo ejercicio de recepción hora y media. Hasta el balón estaba aburrido.',
+      'Hemos hecho el mismo ejercicio de recepción hora y media.',
       '{coach} nos tiene a doble sesión toda la semana. Así llegamos al sábado sin piernas.',
-      'He soñado con la escalera de coordinación. No era un sueño bonito.'],
+      'He soñado con la escalera de coordinación.'],
     o: [op(['Pedir descanso', 'Hablar con {coach}', 'Bajar la carga'], { coach: -1, fatigue: -5 }, 'Pediste bajar la carga'), op(['Aguantar juntos', 'Sudar y callar', 'Es lo que toca'], { chem: 3, train: 10 }, 'Aguantasteis la sesión')], c: CL.peer };
   T.qMatch = { k: 'peer', t: ['Lo de hoy', 'Desahogo', 'Así no'],
     x: ['Hoy hemos jugado fatal y nadie lo dice. Empiezo yo: mi recepción daba pena.',
@@ -111,7 +111,7 @@
       'Contra {rival} no ha salido nada. Ni saque, ni bloqueo, ni ganas. Esto no es un equipo, es un grupo de gente.',
       'Me voy a casa con mal cuerpo. No por perder: por cómo hemos perdido.',
       'Quien diga que hoy hemos dado el máximo, miente. Y lo sabemos.',
-      'Hay gente que se ha rendido en el tercer set. No digo nombres, pero no digo nombres.'],
+      'Hay gente que se ha rendido en el tercer set.'],
     // (sin capitanía no convocas nada: escuchas o te lo comes y a entrenar)
     o: [op(['Escuchar', 'Dejar que se desahogue', 'Darle la razón en privado'], { chem: 3, mood: -2 }, 'Escuchaste el desahogo'), op(['Comértelo y a entrenar', 'Tragar y a currar', 'Callar y entrenar'], { train: 10, mood: -1 }, 'Te comiste la queja')], c: CL.peer };
   T.qRef = { k: 'peer', t: ['El árbitro', 'Esa bola', 'Lo de la línea'],
@@ -131,49 +131,47 @@
       'Otra vez el mismo sistema que no nos funciona. Llevamos tres partidos igual. Alguien tiene que decírselo a {coach}.',
       '{coach} ha cambiado la rotación a mitad de set sin explicarnos nada. Media pista no sabía dónde ponerse.',
       'En el tiempo muerto {coach} nos ha dicho «jugad mejor». Gracias, eso no se nos había ocurrido.',
-      'El vídeo táctico de hoy ha durado más que el partido. Y no me he enterado de nada.'],
+      'El vídeo táctico de hoy ha durado más que el partido.'],
     o: [op(['Defender a {coach}', 'Confiar en el plan', 'Hay que creer'], { coach: 2, chem: -2 }, 'Defendiste el plan del cuerpo técnico'), op(['Darle la razón', 'Algo hay que cambiar', 'Hablarlo con {coach}'], { chem: 2, coach: -2 }, 'Cuestionaste el plan')], c: CL.peer };
   T.qTravel = { k: 'peer', t: ['El viaje', 'Vaya hotel', 'Quejas varias'],
-    x: ['El hotel de la última jornada tenía una cama que parecía una tabla de surf. Y no en el buen sentido.',
-      'Seis horas de furgoneta para jugar dos sets. La próxima vez voy en bici, que llego antes.',
-      'Nos han dado bocadillos de nada para comer. De nada. Pan con pan.',
-      'El aire acondicionado del coche no funcionaba. He llegado al partido como una sopa. Literalmente.'],
+    x: ['El hotel de la última jornada tenía una cama que parecía una tabla de surf.',
+      'Seis horas de furgoneta para jugar dos sets.',
+      'Para comer, bocadillos de pan con pan.',
+      'El aire acondicionado del coche no funcionaba. He llegado al partido como una sopa.'],
     xh: ['El autobús de la última jornada no tenía calefacción. Hemos llegado al pabellón con los dedos azules.',
-      'El hotel tenía un gimnasio con una bici y una pesa. Una. La de dos kilos.',
+      'El hotel tenía un gimnasio con una bici y una pesa.',
       'Seis horas de autobús para jugar a las nueve de la mañana. ¿Quién hace estos calendarios?',
-      'La cena del hotel: pasta sin sal y una pera. Así no se gana una liga.'] };
+      'La cena del hotel: pasta sin sal y una pera.'] };
 
   // ------------------------------------------------------------------ eco y cadenas (prioridad 4)
   T.cParty = { k: 'agent', t: ['Una foto tuya circula por ahí', 'Tenemos una foto', 'Lo del chiringuito'], th: ['Una foto tuya circula por ahí', 'Tenemos una foto', 'Lo de la cena'],
     x: ['Circula una foto tuya bailando en el chiringuito. Tiene ya más compartidos que tu último bloqueo. ¿Qué hacemos?',
       'Alguien grabó tu coreografía en el chiringuito y está por todas partes. Hay que reconocerlo: tienes ritmo. ¿Lo aprovechamos o lo apagamos?',
       'La foto del chiringuito ha llegado hasta mi madre. Y mi madre no tiene redes. ¿Te ríes con ello o pido que la quiten?',
-      'Esa foto tuya con el flotador en la cabeza ya es meme. Hay quien la usa de fondo de pantalla. Tú decides el tono.',
+      'Esa foto tuya con el flotador en la cabeza ya es meme.',
       'Hay un vídeo tuyo bailando en el chiringuito con música de verbena. Sales con mucha dignidad, dentro de lo que cabe. ¿Qué hacemos?',
       'Me han mandado la foto del chiringuito seis personas distintas antes del desayuno. Necesito saber cómo lo llevamos.'],
     xh: ['Circula una foto tuya cantando en la cena de equipo con el micrófono del karaoke. Tiene más compartidos que tu último bloqueo. ¿Qué hacemos?',
       'Alguien grabó tu actuación en la cena de equipo y está por todas partes. Hay que reconocerlo: afinas. ¿Lo aprovechamos o lo apagamos?',
       'La foto de la cena ha llegado hasta mi madre. Y mi madre no tiene redes. ¿Te ríes con ello o pido que la quiten?',
-      'Esa foto tuya con la servilleta en la cabeza ya es meme. Medio vestuario la tiene de fondo de pantalla. Tú decides el tono.',
+      'Esa foto tuya con la servilleta en la cabeza ya es meme. Medio vestuario la tiene de fondo de pantalla.',
       'Hay un vídeo de la cena de equipo en el que diriges la conga. Sales con mucha dignidad, dentro de lo que cabe. ¿Qué hacemos?'],
     o: [op(['Reírte con ello', 'Subirla tú también', 'Hacerte el meme'], { fame: 0.03, fameMin: 15 }, 'La foto de la fiesta'), op(['Pedir que la borren', 'Que la quiten', 'Hacerla desaparecer'], { coach: 2 }, 'Discreción tras la fiesta')], c: CL.agent };
   T.cAnkle = { k: 'physio', t: ['Te dije que pararas', 'El tobillo otra vez', 'Aviso del fisio'],
-    x: ['Te dije que pararas. Ese tobillo vuelve a quejarse y tú sigues con la fatiga por las nubes.', 'El tobillo de la otra vez me está mandando señales de humo. ¿Me haces caso esta vez?',
-      'Llevas días apretando con el tobillo tocado. Te lo digo con cariño: un día se va a declarar en huelga.', 'Tu tobillo y yo hemos hablado. Dice que necesita vacaciones. Opino lo mismo.',
-      'He visto cómo caías en el último bloqueo. Con esa fatiga, el tobillo de la otra vez no aguanta mucho más.', 'O paramos un poco o el tobillo para por su cuenta. Prefiero lo primero.'],
+    x: ['Ese tobillo, vendaje funcional hasta nuevo aviso. Y hielo.', 'He visto cómo caías en el último bloqueo. Te dije que pararas.'],
     o: [op(['Hacer caso al fisio', 'Sesión de fisio', 'Parar un poco'], { fatigue: -10, money: -0.1 }, 'Hiciste caso al fisio'), op(['Seguir apretando', 'Ya paro luego', 'Aguantar'], { coach: 1 }, 'Aguantaste con molestias')], c: CL.physio };
   T.cViral = { k: 'mate', t: ['Te han parodiado', 'Mira lo que ha subido tu rival', 'La parodia'],
     x: ['{rp} ha subido una parodia de tu vídeo de la papelera. Falla los nueve intentos y acaba dentro de la papelera. Reconozco que me he reído.',
-      'Tu reto viral tiene parodia: {rp} intentándolo con una sandía. Ya lleva más visitas que el original.', 'Corre por ahí una versión de tu vídeo hecha por {rp}, con peluca incluida. Es mala, pero tiene gracia.',
-      '{rp} ha hecho su versión de tu reto. Acierta a la primera y lo celebra como una final. Qué manera de venirse arriba.',
-      'Te han copiado el reto: {rp}, a cámara lenta y con música épica. No sé si es homenaje o burla.', 'La parodia de {rp} va por su tercera versión. Esto ya es una saga.'] };
+      'Tu reto viral tiene parodia: {rp} intentándolo con una sandía. Ya lleva más visitas que el original.', 'Corre por ahí una versión de tu vídeo hecha por {rp}, con peluca incluida.',
+      '{rp} ha hecho su versión de tu reto. Acierta a la primera y lo celebra como una final.',
+      'Te han copiado el reto: {rp}, a cámara lenta y con música épica. No sé si es homenaje o burla.', 'La parodia de {rp} va por su tercera versión.'] };
   T.cPressWin = { k: 'mate', t: ['Tu frase, en el vestuario rival', 'Te han colgado en la pared', 'Han leído tus declaraciones'],
     x: ['Me cuentan que en el vestuario de {rival} han colgado tu frase de la rueda de prensa. Con chinchetas y subrayada en rojo.',
       'Tu titular de la otra noche está pegado en la puerta del vestuario de {rival}. Dicen que lo leen antes de cada entreno.',
-      'En {rival} han impreso tu frase en tamaño póster. Hay quien dice que les motiva. Hay quien dice que les hace gracia.',
+      'En {rival} han impreso tu frase en tamaño póster. Hay quien dice que les motiva.',
       'Alguien que juega en {rival} me ha mandado una foto: tu frase, enmarcada, encima de la pizarra táctica.',
       'Lo que dijiste a la prensa ha llegado a {rival}. Lo tienen en la pared junto a la máquina del café.',
-      'Tu frase de la rueda de prensa ya decora el vestuario de {rival}. Igual habría que cobrarles derechos.'],
+      'Tu frase de la rueda de prensa ya decora el vestuario de {rival}.'],
     o: [op(['Tomarlo con humor', 'Mandarles un saludo', 'Reírte'], { fame: 0.02, fameMin: 10 }, 'Tu frase en el vestuario rival'), op(['No entrar al trapo', 'Pasar del tema', 'Silencio'], { coach: 1 }, 'No entraste al trapo')], c: CL.mate };
   T.cRef = { k: 'coach', t: ['Lo de los árbitros', 'Tenemos que hablar', 'A los árbitros, ni mirarlos'],
     x: ['Me ha llamado gente del comité por lo que dijiste del arbitraje. A los árbitros, ni mirarlos. ¿Pedimos disculpas o lo dejamos estar?',
@@ -182,9 +180,9 @@
       'Los árbitros también leen la prensa. Sobre todo cuando salen en ella. ¿Qué hacemos?', 'Lo del arbitraje ya no es tema del partido: es tema tuyo. Decide cómo lo cierras.'],
     o: [op(['Pedir disculpas', 'Disculpas cortas', 'Rectificar'], { coach: 2 }, 'Pediste disculpas al arbitraje'), op(['Mantenerlo', 'Lo dicho, dicho', 'No rectificar'], { fame: 0.02, fameMin: 10, coach: -2 }, 'Mantuviste lo del árbitro')], c: CL.coach };
   T.cRivalTalk = { k: 'rival', t: ['{rp} contesta', 'Segundo asalto', 'El pique sigue'],
-    x: ['Me han contado lo que dijiste. Mucho valor desde el sofá. Nos vemos en la pista.', 'Lo tuyo tuvo gracia. Lo mío será un bloqueo en tu cara. Te aviso con tiempo.',
-      'He enmarcado tu respuesta. La voy a colgar junto a mis medallas. Hay sitio de sobra, tranquilidad.', 'Que sí, que muy bien. Pero las entrevistas no suman puntos.',
-      'Mi abuela ha leído lo que dijiste y dice que le caes bien. Yo no lo tengo tan claro.', 'Te contesto con calma: tú hablas, yo entreno. Ya veremos quién se ríe al final.'],
+    x: ['Me han contado lo que dijiste. Mucho valor desde el sofá. Nos vemos en la pista.', 'Lo tuyo tuvo gracia. Lo mío será un bloqueo en tu cara.',
+      'He enmarcado tu respuesta. La voy a colgar junto a mis medallas.', 'Que sí, que muy bien. Pero las entrevistas no suman puntos.',
+      'Mi abuela ha leído lo que dijiste y dice que le caes bien.', 'Te contesto con calma: tú hablas, yo entreno. Ya veremos quién se ríe al final.'],
     o: [op(['Zanjarlo', 'Paz y a jugar', 'Cerrar el tema'], { coach: 2, heat: -10 }, 'Zanjaste el pique'), op(['Seguir el pique', 'Contestar otra vez', 'Subir el tono'], { fame: 0.03, fameMin: 15, heat: 15 }, 'Seguiste el pique')], c: CL.rival };
   T.cMateOk = { k: 'mate', t: ['Gracias por lo del otro día', 'Te debo una', 'Ya estoy mejor'],
     x: ['Solo quería decirte que lo del otro día me vino genial. Ya duermo mejor y hasta me río en los entrenos.', 'Te debo una. Cuando peor estaba, apareciste. Eso no se olvida.',
@@ -198,44 +196,41 @@
   T.cTv = { k: 'agent', t: ['Te vieron en la tele', 'Ha sonado el teléfono', 'Después del plató'],
     x: ['Lo de la tele ha funcionado: me han escrito dos marcas esta mañana. ¿Escuchamos o seguimos a lo nuestro?', 'Desde que saliste en directo no paro de recibir llamadas. Una marca de zumos quiere una reunión.',
       'Estuviste muy natural en el plató. Tanto que ahora quieren que vuelvas, y con anuncio pagado.', 'La entrevista ha gustado. Hay una propuesta pequeña pero curiosa. ¿Te la cuento?',
-      'Me ha llamado gente que hace un mes no sabía quién eras. La tele hace milagros.', 'Tu paso por la tele nos ha abierto una puerta. Pequeña, pero puerta.'],
+      'Me ha llamado gente que hace un mes no sabía quién eras.', 'Tu paso por la tele nos ha abierto una puerta.'],
     o: [op(['Escuchar a las marcas', 'Cuéntamelo', 'Vamos a ver'], { money: 0.2, fatigue: 3 }, 'Propuesta tras la tele'), op(['Ahora no', 'Primero el vóley', 'Más adelante'], { coach: 1 }, 'Primero el vóley')], c: CL.agent };
   T.cShoot = { k: 'fam', t: ['Hemos visto el anuncio', 'Ese disfraz', 'Tu anuncio'],
-    x: ['La abuela ha visto el anuncio de {sponsor} cuatro veces seguidas. Dice que el disfraz te favorece.', 'Te hemos visto con el disfraz en la tele. Bueno, te hemos reconocido por la voz.',
-      'El anuncio ya sale hasta en el bar de la esquina. El dueño dice que ahora te pone tapa gratis.', 'La prima ha grabado el anuncio y lo pone en bucle en las comidas. No hay escapatoria.',
-      'En el barrio no se habla de otra cosa que del disfraz. Hay quien quiere uno igual para carnaval.', 'Vimos el anuncio. Nos hace sentir orgullo y nos morimos de risa. Las dos cosas.'] };
+    x: ['La abuela ha visto el anuncio de {sponsor} cuatro veces seguidas. Dice que el disfraz te favorece.', 'Te hemos visto con el disfraz en la tele.',
+      'El anuncio ya sale hasta en el bar de la esquina. El dueño dice que ahora te pone tapa gratis.', 'La prima ha grabado el anuncio y lo pone en bucle en las comidas.',
+      'En el barrio no se habla de otra cosa que del disfraz. Hay quien quiere uno igual para carnaval.', 'Tu padre ha grabado el anuncio con el móvil apuntando a la tele y lo ha mandado al grupo de la familia.'] };
   T.cFans = { k: 'barrio', t: ['La peña te invita', 'Merienda en la peña', 'Te esperamos en la peña'],
     x: ['Desde la foto de la pancarta, la peña ha crecido. Queremos invitarte a la merienda del sábado. Habrá tortilla.',
-      'La peña del barrio cumple años y nos falta alguien en la foto. ¿Te pasas un rato?', 'Hemos hecho otra pancarta, esta vez más favorecedora. ¿Vienes a verla en persona?',
-      'La merienda de la peña es sagrada y este mes tienes el sitio de honor. No hace falta que traigas nada. Bueno, una camiseta.',
-      'Los peques de la peña quieren enseñarte su grito de ánimo. Es largo y desafina, pero lo han ensayado mucho.', 'Si te pasas por la peña, prometemos no hacerte cantar. Casi seguro.'],
+      'La peña cumple años y nos falta alguien en la foto. ¿Te pasas un rato?', 'Hemos hecho otra pancarta, esta vez más favorecedora. ¿Vienes a verla en persona?',
+      'La merienda de la peña es sagrada y este mes tienes el sitio de honor. No hace falta que traigas nada.',
+      'Los del infantil quieren enseñarte su grito de ánimo. Es largo y desafina, pero lo han ensayado mucho.', '¿Te pasas por la peña el sábado?'],
     o: [op(['Pasarte por la peña', 'Ir a la merienda', 'Allí estaré'], { fame: 0.02, fameMin: 10, fatigue: 3 }, 'Visita a la peña'), op(['Mandar un audio', 'Un saludo grabado', 'Videollamada'], { fam: 3 }, 'Audio para la peña')], c: CL.barrio };
-  T.cClinic = { k: 'fam', t: ['Carta de la escuela', 'Un dibujo para ti', 'Te han escrito los peques'],
+  T.cClinic = { k: 'fam', t: ['Carta de la escuela', 'Un dibujo para ti', 'Te han escrito los del clínic'],
     x: ['Ha llegado una carta de la escuela del clínic. Dentro hay un dibujo tuyo rematando un balón del tamaño de un planeta.',
-      'Los peques del clínic te han mandado un dibujo: sales con capa y la red parece una valla. Te lo guardamos.',
-      'Un sobre lleno de purpurina: los peques del clínic te dan las gracias. En el dibujo tu cabeza asoma por encima de las gradas.',
+      'Los críos del clínic te han mandado un dibujo: sales con capa y la red parece una valla. Te lo guardamos.',
+      'Un sobre lleno de purpurina: los críos del clínic te dan las gracias. En el dibujo tu cabeza asoma por encima de las gradas.',
       'La escuela del clínic dice que desde tu visita todo el patio juega al vóley. Hasta en el recreo de los mayores.',
-      'Te han dibujado ganando una final contra un dragón. Ganas tú, por supuesto.', 'Llegó la carta del clínic. Firman veinte peques y alguien ha escrito «número uno del mundo» con unas faltas de ortografía preciosas.'],
+      'Te han dibujado ganando una final contra un dragón.', 'Llegó la carta del clínic. Firman veinte críos, y uno ha puesto «ERES EL NUMERO UNO DEL MUNDO ENTERO».'],
     o: [op(['Colgarlo en la nevera', 'Guardarlo', 'Ponerlo en la taquilla'], { fam: 5 }, 'El dibujo del clínic'), op(['Contestar con una foto firmada', 'Mandar una foto', 'Escribirles'], { mood: 4 }, 'Contestaste al clínic')], c: CL.fam };
   T.cScout = { k: 'agent', t: ['El ojeador tomó notas', 'Noticias del ojeador', 'Te vieron jugar'],
     x: ['El ojeador estuvo en la grada y se fue con la libreta llena. No sé qué puso, pero escribió mucho.', 'Me dicen que el ojeador preguntó tu nombre dos veces. Buena señal.',
       'El ojeador se quedó hasta el final. Eso no lo hace con todo el mundo.', 'Han visto tu partido desde arriba. Ahora toca esperar y seguir igual.',
-      'El ojeador me ha mandado un mensaje de dos palabras: «Seguimos hablando». Me vale.', 'La libreta del ojeador ya tiene una página con tu nombre. Literal.'] };
+      'El ojeador me ha mandado un mensaje de dos palabras: «Seguimos hablando». Me vale.', 'La libreta del ojeador ya tiene una página con tu nombre.'] };
   T.cSpeech = { k: 'mate', only: 'hall', t: ['Gracias por la charla', 'Lo del vestuario', 'Esa charla'],
     x: ['Lo que dijiste en el vestuario se nota. La gente entrena con otra cara.', 'Desde tu charla, el vestuario está más unido. No sé qué hiciste, pero sigue.',
-      'Tu discurso ya es leyenda en la plantilla. Hay quien lo repite antes de cada saque.', 'Alguien grabó tu charla con el móvil. La escuchamos en el autobús.'] };
+      'Hay quien repite tu charla antes de cada saque.', 'Alguien grabó tu charla con el móvil. La escuchamos en el autobús.'] };
   T.pEcoW = { k: 'agent', t: ['Lo dijo y lo cumplió', 'Me encanta', 'Prometido y hecho'],
-    x: ['Me encanta cuando haces mi trabajo. Dijiste que ganabas y ganaste. Hoy negocio con la sonrisa puesta.', 'Lo dijo y lo cumplió: así abren las crónicas. No se me ocurre mejor titular.',
-      'Fanfarronear y ganar: la combinación que más vende. Hoy me han llamado tres veces.', 'Lo de la rueda de prensa ha quedado de lujo. Ahora todo el mundo dice que tienes carácter.',
-      'Con lo que dijiste y lo que hiciste, hoy eres tendencia en el barrio y alrededores.', 'Me río a carcajadas. Hablaste, ganaste y el titular se escribió solo.'] };
+    x: ['Lo dijiste y lo hiciste. Ahora no lo vuelvas a decir.', 'Hablaste, ganaste y el titular se escribió solo. Hoy me han llamado tres veces.'] };
   T.pEcoL = { k: 'coach', t: ['A la prensa, lo justo', 'Sobre tus palabras', 'Lo de la rueda de prensa'],
     x: ['A la prensa, lo justo. Ya has visto lo que pasa cuando hablas antes de jugar.', 'Tus palabras se te han vuelto en contra. No pasa nada, pero que sirva.',
       'Las frases grandes pesan mucho cuando el marcador no acompaña. La próxima, más humildad delante del micrófono.', 'Hoy todos los titulares eran tuyos, y no por lo bueno. Aprende de esto.',
       'Se habla en la pista. Delante de la prensa, educación y poco más.', 'No te lo voy a repetir: menos frases y más bloqueos.'] };
   T.tagWin = { k: 'agent', t: ['Partido con sello', 'Así se ganan los grandes', 'Ese partido'],
-    x: ['Ganar un partido así vale el doble. Hoy hasta mi contestador te felicita.', 'Los partidos señalados son los que se recuerdan. Y este lo has ganado tú.',
-      'En los partidos con sello se ve quién está para cosas grandes. Hoy lo has dejado claro.', 'Ese partido lo vio todo el mundo. Y todo el mundo te vio ganar.',
-      'Victoria con foco encima. Así se construye una carrera.', 'Me escriben para felicitarte. Les he dicho que estás en la ducha, que no molesten.'] };
+    x: ['Me ha escrito gente que hace un mes no me cogía el teléfono.', 'Ese partido lo vio todo el mundo. Y todo el mundo te vio ganar.',
+      'Me escriben para felicitarte. Les he dicho que estás en la ducha.'] };
 
   // ------------------------------------------------------------------ partido marcado próximo (prioridad 3)
   T.preDerby = { k: 'barrio', t: ['Se viene el derbi', 'Semana de derbi', 'Derbi a la vista'],
@@ -248,14 +243,14 @@
       'Revancha a la vista. He visto el vídeo de la derrota tres veces. Ya sé dónde fallamos.', 'Esta semana se juega con memoria. La última vez se rieron demasiado.',
       'No es un partido más: es la revancha. Yo voy con todo.', 'La última vez nos ganaron. Esta vez, que lo intenten.'] };
   T.preTv = { k: 'agent', t: ['Partido televisado', 'Sales por la tele', 'Te van a ver'],
-    x: ['El próximo partido lo retransmiten Radio Arena FM y la tele local. ¿Algo especial para la cámara?', 'Partido televisado. Mi consejo: mira a cámara solo cuando ganes el punto.',
+    x: ['El próximo partido lo dan la radio y la tele local. ¿Algo especial para la cámara?', 'Partido televisado. Mi consejo: mira a cámara solo cuando ganes el punto.',
       'Te van a ver miles de personas. ¿Corte de pelo nuevo o lo de siempre?', 'Hay tele en el próximo partido. Las marcas mirarán. Yo también.',
       'Esta semana sales en directo. Piensa en una celebración que quede bien en pantalla.', 'Partido con cámaras. Lo importante es jugar bien; lo segundo, salir bien en la foto.'],
     o: [op(['Corte de pelo nuevo', 'Ponerse a punto', 'Estreno de look'], { fame: 0.03, fameMin: 15, money: -0.05 }, 'Look para la tele'), op(['Lo de siempre', 'Sin cambios', 'Tal cual'], { coach: 1 }, 'Lo de siempre')], c: CL.agent };
   T.preFinal = { k: 'fam', t: ['Vamos todos', 'Para el partido grande', 'Allí estaremos'],
     x: ['Para el partido grande vamos todos. Hasta el tío que dice que no le gusta el vóley.', 'Ya tenemos las entradas. Llevaremos la bandera vieja, la de la suerte.',
       'Pase lo que pase, estamos orgullosos. Pero que pase lo bueno, ¿eh?', 'La abuela ha pedido el día libre en el centro de día para verte.',
-      'Hemos hecho camisetas con tu número. Son horribles. Las llevaremos igual.', 'Te mandamos ánimos y un táper. Lo del táper no es negociable.'] };
+      'Hemos hecho camisetas con tu número. Son horribles. Las llevaremos igual.', 'Te mandamos ánimos y un táper.'] };
   T.preBoss = { k: 'coach', only: 'beach', t: ['Se viene un jefe', 'El próximo rival', 'Partido serio'],
     x: ['El próximo rival es de los que dan miedo. Vídeo, descanso y cabeza fría.', 'Toca medirse a los mejores. Quiero verte con ganas, no con nervios.',
       'Este partido es una prueba. Si sales con miedo, perdemos antes de empezar.', 'Rival de los gordos. Me alegra: así veremos dónde estamos.',
@@ -263,7 +258,7 @@
   T.preDuel = { k: 'rival', t: ['Nos vemos pronto', 'Duelo a la vista', 'Un aviso'],
     x: ['Nos vemos en el próximo partido. Ve calentando, que yo ya he empezado.', 'Me han dicho que nos toca. He comprado palomitas para ver tu cara.',
       'Duelo a la vista. Te dejaré ganar algún punto, por educación.', 'Esta semana nos vemos. Prometo simpatía. En la red, no.',
-      'Te escribo para avisarte: he entrenado el bloqueo pensando en ti.', 'Próximo partido: tú, yo y una red en medio. Qué romántico.'] };
+      'Te escribo para avisarte: he entrenado el bloqueo pensando en ti.', 'Próximo partido: tú, yo y una red en medio.'] };
 
   // ------------------------------------------------------------------ racha, bajón y llaves (prioridad 2)
   T.agStreak = { k: 'agent', t: ['Tres seguidas', 'La racha se nota', 'Me llaman'],
@@ -274,19 +269,18 @@
     o: [op(['Que esperen', 'Con calma', 'Seguir así'], { ag: 5 }, 'Confías en el plan de Cris'), op(['Sube el caché', 'A por todas', 'Cobrar más'], { money: 0.3, fam: -3 }, 'Subiste el caché')], c: CL.agent };
   T.famBad = { k: 'fam', t: ['Te vimos ayer', 'No pasa nada', 'Desde casa'],
     x: ['Te vimos ayer por la tele. No pasa nada, el domingo hay paella. ¿Vienes?', 'Un mal día lo tiene cualquiera. Aquí te esperamos con croquetas.',
-      'El abuelo dice que el arbitraje no vio nada. Nosotros solo queremos verte. ¿Comida el domingo?', 'Ayer no salió, pero te queremos igual. Más incluso, si cabe. ¿Te vienes a casa?',
-      'Hemos visto el partido. Tranquilidad: el perro también falla cuando le tiramos la pelota.', 'No leas las redes. Ven a comer y hablamos de otra cosa.',
+      'El abuelo dice que el arbitraje no vio nada. Nosotros solo queremos verte. ¿Comida el domingo?', 'Ayer no salió, pero te queremos igual. ¿Te vienes a casa?',
+      'Hemos visto el partido. Tranquilidad.', 'No leas las redes. Ven a comer y hablamos de otra cosa.',
       'Mamá ha hecho tu plato favorito por si acaso. ¿Vienes o te lo guardamos?', 'Que sepas que en casa nadie ha cambiado de canal. ¿Comida familiar este finde?'],
-    o: [op(['Voy', 'Allí estaré', 'Guardadme sitio'], { fam: 6, fatigue: 3 }, 'Comida con tu gente'), op(['Toca entrenar', 'Me quedo entrenando', 'Otro día'], { train: 15, fam: -4 }, 'Entrenar en vez de ir a casa')], c: CL.fam };
+    o: [op(['Voy', 'Allí estaré', 'Guardadme sitio'], { fam: 6, fatigue: 3 }, 'Comida en casa'), op(['Toca entrenar', 'Me quedo entrenando', 'Otro día'], { train: 15, fam: -4 }, 'Entrenar en vez de ir a casa')], c: CL.fam };
   T.coachBad = { k: 'coach', t: ['Mañana, vídeo', 'Así no', 'Tenemos trabajo'],
-    x: ['Mañana a primera hora, sesión de vídeo. Tú y yo. Trae café.', 'Partido flojo. No me preocupa uno; me preocuparía el segundo. ¿Te quedas a corregirlo?',
-      'Te noto fuera del partido. ¿Quieres hacer horas extra o prefieres despejarte?', 'Hoy no te he reconocido. Tengo un par de ejercicios para ti, si quieres.',
-      'No voy a mentirte: así no. Pero sé que puedes más. ¿Cómo lo arreglamos?', 'Un tropiezo se arregla trabajando. O descansando. Elige.',
-      'He apuntado cinco cosas del partido. Podemos verlas mañana o dejarlo reposar.', 'No te castigues. Pero tampoco lo olvides demasiado rápido. ¿Repasamos?'],
+    x: ['Mañana a las 9, vídeo. Si vienes, trae café.', 'Partido flojo. No me preocupa uno; me preocuparía el segundo.',
+      'Hoy no te he reconocido. Tengo un par de ejercicios para ti.', 'No voy a mentirte: así no.',
+      'He apuntado cinco cosas del partido.'],
     o: [op(['Allí estaré', 'Vamos al vídeo', 'Horas extra'], { coach: 2, fatigue: 3 }, 'Vídeo tras el partido flojo'), op(['Necesito descansar', 'Despejarme', 'Un día libre'], { fatigue: -5, coach: -1 }, 'Descanso tras el partido flojo')], c: CL.coach };
   T.coachGood = { k: 'coach', t: ['Así sí', 'Buen partido', 'Eso es lo que quiero'],
     x: ['Así sí. Un {nota} no se ve todas las semanas. Disfrútalo hoy, mañana a trabajar.', 'Partidazo. Me alegra cuando lo que entrenamos sale en la pista.',
-      'Con partidos así me lo pones fácil. Sigue por este camino.', 'Hoy has estado a otro nivel. No te lo creas mucho, pero sí un poco.',
+      'Con partidos así me lo pones fácil. Sigue por este camino.', 'Hoy has estado a otro nivel.',
       'Un {nota}. Esto es lo que te pido cada semana. Gracias.', 'Lo de hoy lo pongo en el vídeo de ejemplo para la cantera.'] };
   T.mateGood = { k: 'mate', t: ['Qué partido', 'Vaya nivel', 'Hoy sí'],
     x: ['Qué partido hemos hecho. Contigo así da gusto.', 'Hoy daba gusto jugar a tu lado. Lo repetimos el próximo, ¿vale?', 'Vaya nivel. Me has dejado sin excusas para no estar a la altura.',
@@ -294,16 +288,14 @@
     xh: ['Qué partido. El vestuario está encantado contigo.', 'Hoy daba gusto ponerte balones. Lo repetimos el próximo, ¿vale?', 'Vaya nivel. Has dejado al vestuario sin excusas.',
       'Hoy el equipo ha jugado de memoria. Y tú, de lujo.', 'Partidazo. La cena de los jueves la pagas tú, por estrella.', 'Así me gusta. Hoy has tirado del grupo.'] };
   T.lossRun = { k: 'mate', t: ['Esto hay que cortarlo', 'Mala racha', 'Hablemos'],
-    x: ['Tres derrotas seguidas. Hay que cortarlo ya. ¿Entrenamos juntos o desconectamos un día?', 'Llevamos una racha fea. Te propongo dos cosas y elegimos una.',
-      'No me gusta cómo estamos. ¿Horas extra o un día de playa sin balón?', 'Esto se arregla, pero no por arte de magia. ¿Qué hacemos?',
-      'Perder tanto cansa más que jugar. Te leo: ¿trabajo o desconexión?', 'Necesitamos un cambio. Lo que tú digas, voy contigo.'],
-    xh: ['Tres derrotas seguidas. Hay que cortarlo ya. ¿Entreno extra o desconectamos un día?', 'Llevamos una racha fea en el equipo. Te propongo dos cosas y elegimos una.',
-      'El vestuario está de bajón. ¿Horas extra o un día sin balón?', 'Esto se arregla, pero entre todos. ¿Qué hacemos?',
-      'Perder tanto cansa más que jugar. ¿Trabajo o desconexión?', 'Necesitamos un cambio. Lo que digas, el vestuario va contigo.'],
+    x: ['Tres seguidas. Mañana me quedo una hora más, por si te apetece.', 'Esto se arregla, pero no por arte de magia. ¿Qué hacemos?',
+      'Perder tanto cansa más que jugar.'],
+    xh: ['Tres seguidas. Mañana me quedo una hora más, por si te apetece.', 'El vestuario está de bajón. Esto se arregla, pero entre todos.',
+      'Perder tanto cansa más que jugar.'],
     o: [op(['Entrenar juntos', 'Horas extra', 'A trabajar'], { chem: 4, fatigue: 4 }, 'Entreno extra en la mala racha'), op(['Desconectar un día', 'Día libre', 'Despejarse'], { fatigue: -6, chem: -1 }, 'Desconexión en la mala racha')], c: CL.mate };
   T.benchRun = { k: 'mate', t: ['Tranquilidad', 'Tu momento llegará', 'Desde el banquillo'],
     x: ['Tranquilidad, tu momento llegará. Pero si quieres pedir minutos, yo te apoyo.', 'Una jornada mirando desde fuera ya escuece. Sé lo que es. ¿Hablas con el banquillo o esperas?',
-      'Te veo con ganas en los entrenos. Eso se nota. ¿Pides minutos o aguantas?', 'El banquillo enseña mucho, pero también quema. Tú decides cómo lo llevas.',
+      'Te veo con ganas en los entrenos. Eso se nota. ¿Pides minutos o aguantas?', 'El banquillo enseña mucho, pero también quema.',
       'No te vengas abajo. A veces hay que esperar; a veces hay que pedir. ¿Qué toca?', 'Estás para jugar. Si quieres, díselo. Si no, aprieta y que se note.'],
     xh: ['Tranquilidad, tu momento llegará. Pero si quieres pedir minutos, el vestuario te apoya.', 'Dos jornadas sin salir de inicio. Sé lo que es. ¿Hablas con el banquillo o esperas?',
       'Te veo con ganas en los entrenos. Eso se nota. ¿Pides minutos o aguantas?', 'El banquillo enseña mucho, pero también quema. {seat} no se va a apartar sin pelea.',
@@ -311,44 +303,41 @@
     o: [op(['Pedir minutos', 'Hablar con el banquillo', 'Reclamar el sitio'], { coach: -2, seat: 15 }, 'Pediste minutos'), op(['Esperar', 'Aguantar y entrenar', 'Paciencia'], { coach: 2 }, 'Esperaste tu momento')], c: CL.mate };
   T.startWon = { k: 'coach', only: 'hall', t: ['Te lo has ganado', 'De inicio', 'Sales de inicio'],
     x: ['Te lo has ganado: sales de inicio. Ahora toca no soltar el puesto.', 'Has vuelto al seis inicial. No es un regalo; es trabajo tuyo.',
-      'De inicio otra vez. Me has convencido en los entrenos.', 'El puesto es tuyo mientras lo defiendas así.', 'Bienvenida de vuelta al seis. Así se hace.', 'Has peleado el sitio y lo tienes. Que se note cada punto.'] };
+      'De inicio otra vez. Me has convencido en los entrenos.', 'El puesto es tuyo mientras lo defiendas así.', 'Otra vez en el seis. Así se hace.', 'Has peleado el sitio y lo tienes. Que se note cada punto.'] };
   T.sweep = { k: 'barrio', t: ['¡Qué paliza!', 'Sin despeinarse', 'Partido redondo'],
     x: ['¡Qué paliza! En la peña hemos tenido que pedir otra ronda de bocadillos para celebrarlo.', 'Ni un set para el rival. Eso es un mensaje para toda la liga.',
       'Partido redondo. En la carnicería dicen que ya sabían que ganabas fácil.', 'Sin despeinarse. Así da gusto ir a verte.',
       'En la peña hemos gritado tanto que hoy nadie tiene voz.', 'Victoria limpia. Hemos colgado tu foto junto a la de la boda del presidente.'] };
-  T.comeback = { k: 'mate', t: ['¡Qué remontada!', 'Desde abajo', 'No nos rendimos'],
-    x: ['¡Qué remontada! Perdiendo el primer set y míranos. Así se juega.', 'Cuando nos ganaron el primer set pensé que se nos iba. Tú no lo pensaste.',
-      'Remontar es lo más bonito que hay. Gracias por no bajar los brazos.', 'Ese partido lo habíamos perdido en mi cabeza. En la tuya no.',
-      'Desde abajo y a lo grande. Esta victoria vale doble.', 'Hoy he aprendido algo: contigo no hay partido perdido.'] };
+  T.comeback = { k: 'mate', t: ['Remontada', 'Desde abajo', 'No nos rendimos'],
+    x: ['0-1 abajo y yo ya estaba pensando en la cena.', 'Mi padre se ha ido a mitad del segundo set. Mañana se lo cuento y no se lo cree.',
+      'Cuando nos ganaron el primer set pensé que se nos iba. Tú no lo pensaste.', 'Ese partido lo habíamos perdido en mi cabeza. En la tuya no.'] };
   T.tightLoss = { k: 'mate', t: ['Por tan poco', 'Se escapó', 'Hasta el último set'],
-    x: ['Se nos escapó por nada. ¿Revisamos el vídeo juntos o pasamos página?', 'Perder en el último set duele más. ¿Lo analizamos o lo olvidamos?',
-      'Estuvimos ahí. Un par de puntos y era nuestro. ¿Qué hacemos con esto?', 'Partido de los que no dejan dormir. ¿Vídeo o desconexión?',
-      'Por tan poco. Yo tengo dos jugadas atravesadas. ¿Y tú?', 'Duele, pero se aprende. Tú decides cómo.'],
+    x: ['{fin}. Tengo metida en la cabeza la bola del final. ¿Tú duermes?', 'Estuvimos ahí. Un par de puntos y era nuestro.',
+      'Por tan poco. Yo tengo dos jugadas atravesadas. ¿Y tú?'],
     o: [op(['Revisar el vídeo juntos', 'Analizarlo', 'Vídeo'], { train: 10, chem: 2 }, 'Vídeo de la derrota ajustada'), op(['Pasar página', 'Olvidarlo', 'Mirar adelante'], { mood: 3 }, 'Pasaste página')], c: CL.mate };
-  T.aceShow = { k: 'barrio', t: ['¡Qué saques!', 'Lluvia de aces', 'Desde la línea'],
+  T.aceShow = { k: 'barrio', t: ['¡Qué saques!', 'Cuántos aces', 'Desde la línea'],
     x: ['¡{n} aces! En la peña hemos decidido cantar uno cada vez que saques.', 'Desde la línea de saque eres un peligro. {n} aces hoy, nada menos.',
       'Con {n} aces nos has dado el partido. La peña te debe una cena.', 'Lo de tus saques ya no es normal. ¿Qué desayunas?',
-      '{n} aces. El rival aún está buscando el balón.', 'Hoy sacabas y la grada se ponía de pie antes del golpe.'] };
+      '{n} aces.', 'Hoy sacabas y la grada se ponía de pie antes del golpe.'] };
   T.blockShow = { k: 'mate', t: ['Menudo muro', 'Bloqueos de cine', 'Ahí arriba'],
     x: ['{n} bloqueos punto. Hoy la red era tuya.', 'Menudo muro. El rival ya no sabía por dónde atacar.', 'Con {n} bloqueos así da gusto defender detrás.',
       'Hoy cada vez que subías al bloqueo se oía un «uy» en la grada.', 'Bloqueos de cine. Esto hay que repetirlo.', 'Ahí arriba no pasaba nada. {n} bloqueos, nada menos.'] };
   T.fatHigh = { k: 'physio', t: ['Vas con mucha carga', 'Ojo con la fatiga', 'Necesitas camilla'],
-    x: ['Tus piernas me han escrito una carta de queja. ¿Sesión de fisio o aguantamos?', 'Llevas mucha carga encima. Te recomiendo camilla antes del próximo partido.',
-      'Con esa fatiga te va a costar saltar. Tengo hueco mañana.', 'Te veo arrastrar los pies en el calentamiento. ¿Hacemos algo?',
-      'El cuerpo avisa antes de romperse. Esto es un aviso.', 'Tengo una camilla libre y muchas ganas de usarla contigo.'],
+    x: ['Tienes los gemelos como piedras. Mañana a las 10, camilla.', 'Con esta carga, o paras tú o para el tendón.',
+      'Te veo arrastrar los pies en el calentamiento. Tengo hueco mañana.'],
     o: [op(['Sesión de fisio', 'A la camilla', 'Recuperar'], { fatigue: -12, money: -0.1 }, 'Sesión de fisio'), op(['Aguantar', 'Puedo con ello', 'Más adelante'], { coach: 1 }, 'Aguantaste la carga')], c: CL.physio };
   T.duelWin = { k: 'rival', t: ['Hoy has ganado tú', 'Esta te la doy', 'Felicidades, supongo'],
     x: ['Hoy has ganado tú. Disfrútalo, que no se va a repetir.', 'Felicidades, supongo. Me ha costado escribir esto.', 'Vale, esta te la doy. La próxima no.',
-      'Buen partido. No le cuentes a nadie que te lo he dicho.', 'He perdido el duelo y la apuesta con mi pareja. Doble derrota.', 'Ganaste. Ya he apuntado tu nombre en la pizarra de pendientes.'] };
+      'Buen partido. No le cuentes a nadie que te lo he dicho.', 'He perdido el duelo y la apuesta con mi pareja.', 'Ganaste. Ya he apuntado tu nombre en la pizarra de pendientes.'] };
   T.duelLoss = { k: 'rival', t: ['Duelo para mí', '¿Revancha?', 'Gané yo'],
     x: ['Duelo para mí. Ha estado bien, pero no lo suficiente. ¿Revancha?', 'Gané yo. Si quieres te mando el vídeo para que estudies.',
-      'Gracias por el partido. Bueno, por la victoria. ¿Te apetece revancha?', 'Me lo he pasado genial. Seguro que tú también, en el fondo.',
-      'Duelo cerrado. Te he guardado un bocadillo de consolación.', 'No te enfades. Bueno, enfádate un poco, que me motiva.'],
+      'Gracias por el partido. Bueno, por la victoria. ¿Te apetece revancha?', 'Me lo he pasado genial.',
+      'Duelo cerrado. Te he guardado un bocadillo de consolación.', 'No te enfades.'],
     o: [op(['Felicitarle', 'Darle la mano', 'Reconocerlo'], { heat: -10, coach: 1 }, 'Felicitaste a tu rival'), op(['Pedir revancha', 'La próxima es mía', 'Retarle'], { heat: 10, fame: 0.02, fameMin: 10 }, 'Pediste revancha')], c: CL.rival };
-  T.arch = { k: 'rumor', t: ['Ya es oficial: archienemigo', 'Rivalidad del año', 'Pique histórico'],
+  T.arch = { k: 'rumor', t: ['Ya es oficial', 'Rivalidad del año', 'Pique histórico'],
     x: ['Lo vuestro con {rp} ya no es un pique: es una rivalidad. En las redes ya os llaman archienemigos.', 'La rivalidad con {rp} es el tema favorito de la liga. Archienemigo oficial.',
-      'Nadie se pierde un partido tuyo contra {rp}. Ya hay camisetas de los dos bandos.', 'Archienemigo desbloqueado: {rp}. Cada duelo valdrá el doble.',
-      'Tu pique con {rp} tiene ya hasta pódcast propio. Bueno, un episodio.', 'Se confirma: {rp} y tú sois la rivalidad de la temporada.'] };
+      'Nadie se pierde un partido tuyo contra {rp}. Ya hay camisetas de los dos bandos.', 'Ya hay gente que viene a la grada solo por verte con {rp}.',
+      'Tu pique con {rp} tiene ya hasta pódcast propio.', 'Se confirma: {rp} y tú sois la rivalidad de la temporada.'] };
   T.agGig = { k: 'agent', t: ['Te he conseguido un acto', 'Un bolo pagado', 'Propuesta jugosa'],
     x: ['Te he conseguido un acto pagado: inaugurar una tienda de deportes. Dos horas, sonrisa y fotos. ¿Vas?', 'Una empresa de toallas quiere que des el saque de honor en su torneo. Pagan bien. ¿Vamos?',
       'Gala benéfica con cena incluida y un sobre al final. ¿Te apuntas?', 'Te quieren en la presentación de un gimnasio nuevo. Hay que levantar una pesa y sonreír.',
@@ -357,7 +346,7 @@
   T.famCall = { k: 'fam', t: ['Llama a casa', 'Te echamos de menos', '¿Sigues por ahí?'],
     x: ['Hace mucho que no llamas. No pasa nada, pero te echamos de menos.', 'La abuela pregunta por ti cada día. Una llamadita y la haces feliz.',
       'Sabemos que estás a tope, pero cinco minutos al teléfono no hacen daño.', 'Por aquí todo bien. Bueno, menos que no llamas.',
-      'El perro te busca por la casa. Eso es todo.', 'Te hemos guardado el trozo de tarta del cumple. Ya está duro, pero es tuyo.'],
+      'El perro te busca por la casa. Eso es todo.', 'Te hemos guardado el trozo de tarta del cumple.'],
     o: [op(['Llamar ahora', 'Videollamada', 'Llamar a casa'], { fam: 10 }, 'Llamaste a casa'), op(['Otro día', 'Ahora no puedo', 'Más tarde'], { fam: -3, train: 10 }, 'Te quedaste entrenando')], c: CL.fam };
   T.contract = { k: 'agent', t: ['Último año de contrato', 'Hablemos de futuro', 'Tu contrato'],
     x: ['Te queda poco contrato. Antes de que llamen otros, necesito saber qué quieres.', 'Último año. El club no ha dicho nada aún. ¿Les apretamos o escuchamos fuera?',
@@ -372,21 +361,21 @@
       'Reviso tu agenda y me sobra tiempo libre. ¿Busco algo o lo dejamos así?', 'Te escribo entre reunión y reunión. ¿Seguimos el plan o lo cambiamos?'],
     o: [op(['Todo bien, gracias', 'Seguimos así', 'Bien, sin cambios'], { ag: 4 }, 'Charla con Cris'), op(['Búscame algo mejor', 'Mueve hilos', 'Quiero más'], { ag: 2, coach: -2 }, 'Pediste moverte')], c: CL.agent };
   T.famPhoto = { k: 'fam', t: ['Foto de casa', 'Mira esto', 'Desde casa'],
-    x: ['Te mandamos una foto del perro con tu camiseta. Le queda grande, pero la lleva con orgullo.', 'La abuela ha recortado tu foto del periódico y la ha pegado en la nevera.',
+    x: ['Te mandamos una foto del perro con tu camiseta.', 'La abuela ha recortado tu foto del periódico y la ha pegado en la nevera.',
       'El primo ha empezado a jugar al vóley. Dice que de mayor quiere jugar como tú.', 'Hemos visto el partido en el bar del pueblo. Han subido el volumen solo por ti.',
-      'Foto de la comida del domingo: tu silla vacía y un plato servido, por si llegabas.', 'Mamá ha aprendido a buscar tus partidos en el móvil. Ahora no hay quien la pare.'] };
+      'Foto de la comida del domingo: tu silla vacía y un plato servido, por si llegabas.', 'Mamá ha aprendido a buscar tus partidos en el móvil.'] };
   T.famVisit = { k: 'fam', t: ['¿Vamos a verte?', 'Queremos ir', 'Visita familiar'],
-    x: ['¿Te parece si vamos a verte al próximo partido? Prometemos no gritar mucho.', 'Estamos pensando en ir a verte. ¿Te viene bien o te pondremos de los nervios?',
+    x: ['¿Te parece si vamos a verte al próximo partido?', 'Estamos pensando en ir a verte. ¿Te viene bien o te pondremos de los nervios?',
       'La tía tiene coche nuevo y quiere estrenarlo yendo a tu partido. ¿Te vemos?', 'Si vamos a verte, ¿nos dejas sentarnos donde se te vea bien?',
       'Queremos hacer una excursión para verte jugar. ¿Te viene bien este o el siguiente?', 'Hemos encontrado entradas. Solo falta tu permiso para ir con pancarta.'],
-    o: [op(['Que vengan', 'Os espero', 'Al próximo'], { fam: 5, mood: 2 }, 'Visita de tu gente'), op(['Mejor otro día', 'El mes que viene', 'Más adelante'], { fam: -2, coach: 1 }, 'Visita aplazada')], c: CL.fam };
+    o: [op(['Que vengan', 'Os espero', 'Al próximo'], { fam: 5, mood: 2 }, 'Visita de la familia'), op(['Mejor otro día', 'El mes que viene', 'Más adelante'], { fam: -2, coach: 1 }, 'Visita aplazada')], c: CL.fam };
   T.barrioShirt = { k: 'barrio', t: ['Camisetas para la peña', 'Un favor', 'De parte de la peña'],
-    x: ['La peña del barrio quiere hacer un sorteo. ¿Nos firmas unas camisetas?', 'Para la rifa de fiestas nos vendría genial algo tuyo firmado. ¿Se puede?',
+    x: ['Queremos hacer un sorteo para el viaje del infantil. ¿Nos firmas unas camisetas?', 'Para la rifa de fiestas nos vendría genial algo tuyo firmado. ¿Se puede?',
       'Hay un chaval en la peña que no se pierde un partido. Si le firmas algo, lo haces feliz.', 'Estamos recaudando para el autobús de la peña. ¿Nos echas una mano?',
-      'Queremos subastar un balón firmado para el equipo infantil del barrio.', 'Un detalle para la peña: con una foto firmada nos conformamos. O con tres.'],
+      'Queremos subastar un balón firmado para el equipo infantil del barrio.', 'Un detalle para la peña: con una foto firmada nos conformamos.'],
     o: [op(['Firmar camisetas', 'Firmar lo que haga falta', 'Mandar material'], { fame: 0.02, fameMin: 10, fatigue: 2 }, 'Firmaste para la peña'), op(['Mandar una foto', 'Un saludo', 'Foto firmada'], { fam: 2 }, 'Foto para la peña')], c: CL.barrio };
   T.spPost = { k: 'sponsor', t: ['Una publicación', 'Campaña de esta semana', 'Te necesitamos'],
-    x: ['Esta semana lanzamos campaña. ¿Publicarías una foto con el producto?', 'Necesitamos una foto tuya sonriendo con nuestra botella. Solo una. Bueno, dos.',
+    x: ['Esta semana lanzamos campaña. ¿Publicarías una foto con el producto?', 'Necesitamos una foto con la botella antes del viernes. Que se vea la etiqueta.',
       'Tenemos un vídeo de diez segundos preparado para ti. Cero esfuerzo, mucha visibilidad.', 'Queremos que estrenes nuestro nuevo modelo en redes. Pagamos el detalle.',
       'Una foto con la etiqueta de la marca y listo. ¿Te parece?', 'Campaña rápida: tú, nuestro producto y tu mejor cara de deportista.'],
     o: [op(['Publicar la foto', 'Hecho', 'Subirla'], { money: 0.15 }, 'Publicación pagada'), op(['No me pega', 'Esta no', 'Paso'], { fam: 2 }, 'Rechazaste la publicación')], c: CL.sponsor };
@@ -397,36 +386,31 @@
       'Hace tiempo que no salimos con el grupo. ¿Unas pizzas?', 'Hoy hay cena en casa del líbero. ¿Te apuntas?', 'El vestuario necesita desconectar. ¿Cenamos todos?', 'Te debemos una cena desde hace semanas. ¿Hoy?'],
     o: [op(['Vamos', 'Me apunto', 'Hecho'], { chem: 4, money: -0.05 }, 'Cena juntos'), op(['Hoy no', 'Necesito dormir', 'Otro día'], { fatigue: -4 }, 'Noche de descanso')], c: CL.mate };
   T.coachTip = { k: 'coach', t: ['Un detalle', 'Para el próximo', 'Apunta esto'],
-    x: ['Un detalle para el próximo partido: después de recepción, mira antes de atacar. Te ahorrará bloqueos.', 'Te veo bien. Solo una cosa: el primer paso de bloqueo, más rápido.',
-      'Para el próximo, cuida el saque. No hace falta arriesgar en cada uno.', 'Apunta: cuando el partido se ponga feo, balón alto y paciencia.',
-      'He visto que te cuesta la diagonal corta. La trabajamos esta semana.', 'Una cosa que me gusta de ti: no te escondes. Sigue así.'] };
+    x: ['Primer paso de bloqueo. Más rápido. Mañana lo vemos.', 'Bien.', 'La diagonal corta te cuesta. El martes, media hora antes.'] };
   T.rumor = { k: 'rumor', t: ['Se dice por ahí', 'Rumor del día', 'Dicen que'],
-    x: ['Se dice que hay un club de arriba siguiendo de cerca a {yo}. Nosotros solo lo dejamos caer.', 'Dicen que {yo} come lo mismo antes de cada partido desde hace tres años. Confirmaremos.',
-      'Rumor del día: {yo} tiene una lista de canciones para calentar que no conoce nadie.', 'Hay quien asegura que {yo} se pone primero la zapatilla izquierda. Siempre.',
-      'Nos llega que en {club} están muy a gusto con {yo}. Lo normal, vaya.', 'Fuentes de toda confianza (un primo) dicen que {yo} odia perder al parchís.'] };
+    x: ['Se dice que hay un club de arriba siguiendo de cerca a {yo}. Nosotros solo lo dejamos caer.', 'Dicen que {yo} come lo mismo antes de cada partido desde hace tres años.',
+      'Rumor del día: {yo} tiene una lista de canciones para calentar que no conoce nadie.', 'Hay quien asegura que {yo} se pone primero la zapatilla izquierda.',
+      'Nos llega que en {club} están muy a gusto con {yo}.', 'Fuentes de toda confianza (un primo) dicen que {yo} odia perder al parchís.'] };
   T.hater = { k: 'hater', t: ['Te han mencionado', '@NoMeConvence ha hablado', 'Mención en redes'],
-    x: ['«{yo} ha jugado bien, vale. Pero yo también juego bien al futbolín y nadie me hace un reportaje.»', '«Que alguien me explique por qué {yo} celebra los puntos como si fueran finales. Me cae bien igual, eh.»',
-      '«Reconozco que {yo} remata fuerte. No reconozco nada más. De momento.»', '«Opinión impopular: {yo} saca bien. Ya está, ya lo he dicho, no me lo recordéis.»',
-      '«Hoy {yo} no me ha convencido. Ayer tampoco. Mañana igual sí. No prometo nada.»', '«{yo} tiene muchos fans. Yo llevo la contraria. Alguien tiene que hacerlo.»',
-      '«Voy a ver el próximo partido de {yo} solo para criticarlo. Bueno, y porque me gusta el vóley.»', '«Lo de {yo} es suerte. Mucha suerte. Sospechosamente mucha suerte, partido tras partido.»'] };
-  T.podcast = { k: 'press', t: ['Invitación al pódcast', 'La Pausa Técnica', 'Hablemos un rato'],
-    x: ['En La Pausa Técnica nos encantaría tenerte de invitado. Una hora, risas y algo de táctica.', 'Queremos grabar un episodio contigo. Prometemos no preguntarte por el arbitraje.',
-      'Hay hueco en el próximo programa. Nuestros oyentes llevan semanas pidiéndote.', 'Un episodio especial sobre tu temporada. ¿Te animas?',
+    x: ['{yo}, cuatro errores en el tercer set. Eso sí, la foto del calentamiento, preciosa.', '¿Quién le ha dicho a {yo} que sabe sacar en salto?', 'Pagar entrada para esto.'] };
+  T.podcast = { k: 'press', t: ['Invitación al pódcast', 'La Previa', 'Hablemos un rato'],
+    x: ['Nos gustaría tenerte de invitado. Una hora, algo de táctica y poco más.', 'Queremos grabar un episodio contigo. Prometemos no preguntarte por el arbitraje.',
+      'Hay hueco en el próximo programa. Los oyentes llevan semanas pidiéndote.', 'Un episodio sobre tu temporada. ¿Te animas?',
       'Te invitamos al pódcast. Hay galletas en el estudio.', 'Grabamos el jueves. Si vienes, prometemos editar tus silencios largos.'],
     o: [op(['Ir al pódcast', 'Me apunto', 'Grabamos'], { fame: 0.04, fameMin: 20, fatigue: 3 }, 'Invitado en el pódcast'), op(['Paso', 'Otro día', 'Prefiero entrenar'], { coach: 1 }, 'Rechazaste el pódcast')], c: CL.press };
-  T.radio = { k: 'press', t: ['Llamada de la radio', 'Radio Arena FM', 'En antena'],
-    x: ['Radio Arena FM te llama en directo para una pregunta rápida sobre la jornada.', 'Estamos en antena y queremos tu voz. Treinta segundos, ¿te va?',
+  T.radio = { k: 'press', t: ['Llamada de la radio', 'Radio Litoral', 'En antena'],
+    x: ['Te llamamos en directo para una pregunta rápida sobre la jornada.', 'Estamos en antena y queremos tu voz. Treinta segundos, ¿te va?',
       'Una pregunta para la radio: ¿cómo ves al equipo? Sales en directo ahora mismo.', 'Te ponemos en antena con los oyentes. Solo un saludo y una frase.',
-      'Radio Arena FM quiere abrir el programa contigo. ¿Te animas?', 'Llamada rápida de la radio. Te prometemos que no dura más que un tiempo muerto.'],
+      'Queremos abrir el programa contigo. ¿Te animas?', 'Llamada rápida de la radio. Te prometemos que no dura más que un tiempo muerto.'],
     o: [op(['Atender la llamada', 'Hablar en directo', 'Saludar'], { fame: 0.02, fameMin: 10 }, 'Hablaste en la radio'), op(['Colgar con educación', 'Ahora no', 'Otro día'], { mood: 2 }, 'Colgaste a la radio')], c: CL.press };
-  T.kidLetter = { k: 'fan', t: ['Carta de una peque fan', 'Te han escrito', 'Correo de la afición'],
+  T.kidLetter = { k: 'fan', t: ['Carta del infantil', 'Te han escrito', 'Correo de la afición'],
     x: ['«Hola, soy de tu equipo desde siempre (desde el martes). De mayor quiero jugar como tú, pero saltando todavía más.»', '«Me he hecho una camiseta con tu número y un rotulador. Se ha borrado un poco al lavarla.»',
       '«Mi profe dice que el vóley no es para mí. Le he dicho que tú también empezaste en algún sitio.»', '«Te he dibujado. Sales con alas porque saltas mucho.»',
       '«¿Cómo se hace un saque así? Llevo dos semanas practicando contra la puerta del garaje.»', '«Gracias por chocarme la mano en el último partido. No me la lavo hasta el domingo.»'] };
   T.diario = { k: 'press', t: ['Crónica de la jornada', 'Te nombran en la crónica', 'Hoy sales en el periódico'],
-    x: ['Diario La Red te dedica medio párrafo: «{yo} sigue creciendo en {club}». Medio párrafo es mucho.', 'El Bloqueo Digital cuenta que {yo} es de lo más regular de su equipo esta temporada.',
-      'La crónica del partido contra {rival} destaca tu trabajo en defensa. Por fin alguien lo ve.', 'En Diario La Red hablan de tu evolución. Han usado la palabra «prometedor» dos veces.',
-      'El Bloqueo Digital te pone en su lista de nombres a seguir. Ahora todo el mundo te seguirá.', 'Tu foto sale en la página de deportes, junto a un anuncio de sofás.'] };
+    x: ['Medio párrafo para ti en la crónica: «{yo} sigue creciendo en {club}». Medio párrafo es mucho.', 'Base y Pista cuenta que {yo} es de lo más regular de su equipo esta temporada.',
+      'La crónica del partido contra {rival} destaca tu trabajo en defensa. Por fin alguien lo ve.', 'Base y Pista te pone en su lista de nombres a seguir.',
+      'Tu foto sale en la página de deportes, junto a un anuncio de sofás.'] };
 
   // «Te tienen estudiado» (career.js studyClose, sum.study.broke): el rival te cerraba un carril y le hiciste daño por el otro.
   // Informativo (sin opciones). {cerrada} / {abierta} = 'diagonal' | 'línea'; {n} = tus puntos por la abierta; remitente: el medio ({m})
@@ -440,27 +424,25 @@
   T.refCard = { k: 'press', t: ['Tarjeta en titulares', 'El arbitraje, en portada', 'Hablan del 1r'],
     x: ['{m}: «{ref} no perdona: tarjeta para {yo} ante {rival}».', '{m}: «{ref}, {fama}, volvió a sacar el color».',
       '{m}: «Tarjeta para {yo}. {ref} no dejó pasar ni una».', '{m}: «{ref} tuvo trabajo: tarjeta para {yo} ante {rival}».'] };
-  T.refBrake = { k: 'coach', t: ['Bien frenado', 'Eso es liderazgo', 'Cabeza fría'],
-    x: ['Bien frenando a {quien}. {ref} lo vio; eso también cuenta.', 'Así se lleva un partido: calmar antes que protestar.',
-      'Frenar a {quien} a tiempo nos ha ahorrado un disgusto. Bien hecho.', 'Lo de calmar a {quien} con {ref} delante: eso es liderazgo.'] };
+  T.refBrake = { k: 'coach', t: ['Bien frenado', 'Bien parado', 'Cabeza fría'],
+    x: ['Bien parado lo de {quien}. Con {ref} no se juega.', 'Calmar antes que protestar.',
+      'Frenar a {quien} a tiempo nos ha ahorrado un disgusto.'] };
   T.refNext = { k: 'peer', t: ['Ojo con el próximo', 'Ya sabes quién pita', 'Aviso'],
     x: ['Ojo, que el próximo lo pita {ref}. Ya sabes cómo acabó la última vez.', 'Me han dicho que el próximo lo pita {ref}. Esta vez, tranquilidad.',
       'Pita {ref} el próximo partido. Mejor no darle motivos, ¿eh?', 'El próximo, con {ref}. Que no se repita lo de la otra vez.'] };
 
   // ------------------------------------------------------------------ temporada y fichaje (informativos, fuera del tope)
-  T.welcome = { k: 'mate', t: ['Bienvenida', 'Ya eres de la casa', 'Hola, fichaje'],
-    x: ['Bienvenida a {club}. Aquí se trabaja mucho y se ríe más. Ya te iré contando.', 'Ya eres de {club}. Primera norma: quien llega tarde paga los cafés.',
-      'Hola y bienvenida. En {club} somos una familia: rara, pero familia.', 'Te esperábamos. Tengo ganas de ver qué hacemos juntos.', 'Bienvenida a {ciudad}. Te paso los mejores sitios para comer.', 'Nuevo club, nueva vida. Aquí te ayudamos con todo.'],
-    th: ['Bienvenida al vestuario', 'Ya eres de la casa', 'Hola, fichaje'] };
+  T.welcome = { k: 'mate', t: ['El grupo', 'Ya eres de la casa', 'Hola, fichaje'],
+    x: ['Te he metido en el grupo del equipo. En los mensajes fijados están las cuotas y el horario de pista.', 'Primera norma: el que llega tarde paga los cafés.',
+      'En {ciudad} se cena tarde. Luego te paso el sitio de los bocatas.'],
+    th: ['El grupo del vestuario', 'Ya eres de la casa', 'Hola, fichaje'] };
   T.seasonNew = { k: 'agent', t: ['Temporada nueva', 'Arrancamos', 'Otra temporada'],
-    x: ['Temporada nueva, hoja en blanco. Este año vamos a por más.', 'Arrancamos. Te he preparado una lista de objetivos. Es corta: ganar.',
-      'Otra temporada. Respira, disfruta y déjame a mí el resto.', 'Empieza la temporada {season}. Tengo buenas sensaciones.', 'Primera semana del curso. Que no se te olvide estirar.', 'Ya está aquí la temporada. Te escribo cuando haya algo jugoso.'] };
+    x: ['Temporada nueva. Te he mandado el calendario.', 'Empieza la temporada {season}. Te escribo cuando haya algo.'],
+    xh: ['Pretemporada el 1 de septiembre. Te he mandado el calendario: los dos primeros findes jugamos fuera.'] };
   T.seasonEnd = { k: 'coach', t: ['Fin de temporada', 'Se acabó', 'Balance'],
-    x: ['Se acabó la temporada. Descansa, que el verano pasa volando.', 'Fin de curso. Hemos aprendido mucho. Ahora toca desconectar un poco.',
-      'Balance rápido: hay cosas que repetir y otras que olvidar. Lo hablamos en pretemporada.', 'Temporada cerrada. Gracias por el esfuerzo de cada semana.',
-      'Ya está. Recarga pilas y vuelve con hambre.', 'Último mensaje de la temporada: cuida el cuerpo este verano. Y come algo de verdura.'] };
+    x: ['Último entreno el jueves. Devolved los chándales de viaje.', 'Ya está. Descansa.'] };
 
-  // ------------------------------------------------------------------ prensa: 17 preguntas (r: 'w' tras victoria, 'l' tras derrota, 'a' siempre;
+  // ------------------------------------------------------------------ prensa: 20 preguntas (r: 'w' tras victoria, 'l' tras derrota, 'a' siempre;
   // q[2] 'ref': solo con 1r designado y tarjeta o protesta en el partido, refPress). Las nuevas, siempre al final (s.pressQ guarda índices)
   var PRESS = [
     ['a', '{m}: «¿Qué le falta a {club} para dar el salto?»'], ['a', '{m}: «¿Cómo te sientes en la pista ahora mismo?»'],
@@ -471,24 +453,25 @@
     ['w', '{m}: «Dicen que {rival} os subestimó. ¿Estás de acuerdo?»'], ['l', '{m}: «¿Qué ha fallado hoy contra {rival}?»'],
     ['l', '{m}: «¿Preocupa la situación del equipo?»'], ['l', '{m}: «¿Asumes parte de la culpa de la derrota?»'],
     ['l', '{m}: «¿Cómo se levanta un equipo después de un partido así?»'], ['l', '{m}: «¿Ha sido mejor el rival o habéis estado peor?»'],
-    ['a', '{m}: «¿Qué te ha parecido el arbitraje de {ref}?»', 'ref']
+    ['a', '{m}: «¿Qué te ha parecido el arbitraje de {ref}?»', 'ref'],
+    ['a', '{m}: «¿Cómo llevas compaginarlo con el trabajo?»'], ['a', '{m}: «¿Qué tal la rodilla?»'], ['a', '{m}: «¿Os veis para el ascenso?»']
   ];
   // las 3 respuestas (mismos efectos siempre), con frases que encajan con la pregunta: tras victoria, tras derrota o neutras
   var PRESS_E = [[{ chem: 5, star: 1 }, 'Respuesta de equipo en prensa'], [{ coach: 3, star: 1 }, 'Respuesta humilde en prensa'],
     [{ fame: 0.04, fameMin: 20, coach: -4, heat: 20, star: 1 }, 'Chulería en prensa']];
   var PRESS_TX = {
-    w: [['De equipo: «Esto lo saca el grupo»', 'De equipo: «Mérito de todo el vestuario»', 'De equipo: «Sin el grupo no soy nada»', 'De equipo: «Hoy ha ganado el equipo»'],
-      ['Humilde: «Queda mucho por mejorar»', 'Humilde: «Partido a partido»', 'Humilde: «Ni euforia ni nada: a seguir»', 'Humilde: «Hay que seguir trabajando»'],
-      ['Chulería: «¿Alguien lo dudaba?»', 'Chulería: «El siguiente también es mío»', 'Chulería: «Que se vayan acostumbrando»', 'Chulería: «Yo no fallo cuando importa»']],
-    l: [['De equipo: «Ganamos y perdemos juntos»', 'De equipo: «Esto se arregla en grupo»', 'De equipo: «Aquí no se esconde nadie»', 'De equipo: «La reacción saldrá del vestuario»'],
-      ['Humilde: «Hoy he aprendido mucho»', 'Humilde: «Tengo que dar más»', 'Humilde: «Toca mirarse al espejo»', 'Humilde: «Hay que seguir trabajando»'],
-      ['Chulería: «Un mal día y ya habláis»', 'Chulería: «La próxima la pagan ellos»', 'Chulería: «Hoy ha ganado la suerte»', 'Chulería: «Que no se acostumbren»']],
-    a: [['De equipo: «Esto lo saca el grupo»', 'De equipo: «Sin el grupo no soy nada»', 'De equipo: «Todo lo hacemos juntos»', 'De equipo: «Ganamos y perdemos juntos»'],
-      ['Humilde: «Partido a partido»', 'Humilde: «Queda mucho por mejorar»', 'Humilde: «Cada día aprendo algo»', 'Humilde: «Hay que seguir trabajando»'],
-      ['Chulería: «Que hablen; yo juego»', 'Chulería: «Mi mejor versión está por llegar»', 'Chulería: «Que se vayan acostumbrando»', 'Chulería: «Yo no fallo cuando importa»']]
+    w: [['«Esto lo saca el grupo»', '«Mérito de todo el vestuario»', '«Sin el grupo no soy nada»', '«Hoy ha ganado el equipo»'],
+      ['«Queda mucho por mejorar»', '«Partido a partido»', '«Ni euforia ni nada: a seguir»', '«Hay que seguir trabajando»'],
+      ['«¿Alguien lo dudaba?»', '«El siguiente también es mío»', '«Que se vayan acostumbrando»', '«Yo no fallo cuando importa»']],
+    l: [['«Ganamos y perdemos juntos»', '«Esto se arregla en grupo»', '«Aquí no se esconde nadie»', '«La reacción saldrá del vestuario»'],
+      ['«Hoy he aprendido mucho»', '«Tengo que dar más»', '«Toca mirarse al espejo»', '«Hay que seguir trabajando»'],
+      ['«Un mal día y ya habláis»', '«La próxima la pagan ellos»', '«Hoy ha ganado la suerte»', '«Que no se acostumbren»']],
+    a: [['«Esto lo saca el grupo»', '«Sin el grupo no soy nada»', '«Todo lo hacemos juntos»', '«Ganamos y perdemos juntos»'],
+      ['«Partido a partido»', '«Queda mucho por mejorar»', '«Cada día aprendo algo»', '«Hay que seguir trabajando»'],
+      ['«Que hablen; yo juego»', '«Mi mejor versión está por llegar»', '«Que se vayan acostumbrando»', '«Yo no fallo cuando importa»']]
   };
   function pressO(r) { var L = PRESS_TX[r] || PRESS_TX.a; return PRESS_E.map(function (x, i) { return op(L[i], x[0], x[1]); }); }
-  var PRESS_T = ['Rueda de prensa', 'Micrófonos delante', 'Sala de prensa', 'Atención a los medios'];
+  var PRESS_T = ['El de la radio, en el pasillo', 'Dos preguntas para El Comarcal', 'Sala de prensa', 'Te paran a la salida'];
   PRESS.forEach(function (q, i) { T['pq' + i] = { k: 'press', press: 1, r: q[0], t: PRESS_T, x: q[1], o: pressO(q[0]), c: CL.press }; });
 
   // ================================================================== BEATS (cuándo sale cada plantilla)
@@ -548,7 +531,8 @@
     { id: 'startWon', pri: 2, only: 'hall', when: function (c, sum, X) { return X.startAfterBench; } },
     { id: 'sweep', pri: 2, when: function (c, sum, X) { return X.real && !!sum.win && !!sum.sets && sum.sets[1] === 0; } },
     { id: 'comeback', pri: 2, when: function (c, sum, X) { var a = sum.setScores && sum.setScores[0]; return X.real && !!sum.win && !!a && a[0] < a[1]; } },
-    { id: 'tightLoss', pri: 2, when: function (c, sum, X) { return X.real && !sum.win && !!sum.sets && sum.sets[0] >= (X.H ? 2 : 1); } },
+    { id: 'tightLoss', pri: 2, when: function (c, sum, X) { return X.real && !sum.win && !!sum.sets && sum.sets[0] >= (X.H ? 2 : 1); },
+      v: function (c, sum) { var L = sum.setScores, a = L && L.length ? L[L.length - 1] : null, n = L ? L.length : 0; return { fin: a && num(a[0]) && num(a[1]) ? a[1] + '-' + a[0] + ' en el ' + (['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto'][n] || 'último') : 'Por nada' }; } },
     { id: 'aceShow', pri: 2, when: function (c, sum, X) { return X.real && !!sum.me && (sum.me.aces | 0) >= 3; } },
     { id: 'blockShow', pri: 2, when: function (c, sum, X) { return X.real && !!sum.me && (sum.me.blocks | 0) >= 3; } },
     { id: 'fatHigh', pri: 2, when: function (c) { return (c.fatigue | 0) >= 70; } },
@@ -675,7 +659,7 @@
     if (sum.bench) return false;
     var ev = c.life && c.life.ev; if (ev && (ev.key === 'pressWin' || ev.key === 'pressLoss')) return false;
     if (PRESS_TAG[X.tagPlayed] && X.mN - s.pressLast >= PRESS_MIN) return true;   // (tras un partido marcado fuerte o una final)
-    var pf = S.flagAt(c, 'pressForce');   // carta «Entrevista en Radio Arena FM» de P2: la prensa querrá hablar tras este partido
+    var pf = S.flagAt(c, 'pressForce');   // carta de entrevista en la radio de P2: la prensa querrá hablar tras este partido
     if (pf && pf.mN < X.mN) return true;
     return s.pressNext >= 0 && X.mN >= s.pressNext;
   }
@@ -703,7 +687,7 @@
     var h = s.chn[k]; delete s.chn[k];
     var acc = S.cast(c).acc;
     if (id === 'cParty') wall(c, acc.rumor, isH(c) ? 'Exclusiva: así acabó la cena de equipo de {club}. {yo}, micrófono en mano, no deja canción sin destrozar.' : 'Exclusiva: {yo} se marca un baile en el chiringuito que ya es historia del verano.', {});
-    if (id === 'cViral') wall(c, '@' + (String(X.rp).replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ]/g, '') || 'TuRival'), 'Intentando el reto de {yo}. Spoiler: gana la papelera.', {});
+    if (id === 'cViral') wall(c, '@' + (String(X.rp).replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ]/g, '') || 'TuRival'), 'Intentando el reto de {yo}.', {});
     if (id === 'cPressWin') wall(c, acc.rumor, 'En el vestuario de {rival} ya decoran con frases de {yo}.', { rival: (h && h.rv) || X.rival });
     if (id === 'cShoot') wall(c, acc.pena, 'Hemos visto el anuncio de {yo} con {sponsor}. Lo del disfraz merece un premio.', {});
   }
@@ -741,7 +725,7 @@
       pf.v.done = 1;
       if (pf.v.t === 2) {
         if (sum.win) { wall(c, acc.cronista, pickR(re, ['Lo dijo y lo cumplió. {yo} avisó en la rueda de prensa y hoy ha ganado a {rival}.', 'Hablar y ganar: {yo} lo ha vuelto a hacer. Lo dijo y lo cumplió.', '{yo} prometió victoria y la ha servido. Lo dijo y lo cumplió.']), { rival: X.rival }); postBeat(c, s, 'pEcoW', {}); }
-        else { wall(c, acc.hater, pickR(re, ['Las palabras de {yo} se le vuelven en contra. Lo comento con cariño, eh.', 'Mucho micrófono, poco marcador. Las palabras de {yo} se le vuelven en contra.', '{yo} habló de más y hoy ha perdido. Me guardo la captura, por si acaso.']), {}); postBeat(c, s, 'pEcoL', {}); }
+        else { wall(c, acc.hater, pickR(re, ['Las palabras de {yo} se le vuelven en contra.', 'Mucho micrófono, poco marcador. Las palabras de {yo} se le vuelven en contra.', '{yo} habló de más y hoy ha perdido. Me guardo la captura, por si acaso.']), {}); postBeat(c, s, 'pEcoL', {}); }
       } else if (sum.win) wall(c, acc.cronista, pickR(re, ['{yo} habló de equipo en la prensa y el equipo ha respondido. Victoria ante {rival}.', 'Palabras humildes, juego grande: {yo} y {club} ganan a {rival}.']), { rival: X.rival });
     }
     // --- candidatos
@@ -873,7 +857,9 @@
     if (k === 'peer' || k === 'press') return k + '|' + senderOf(c, x)[0];
     return k;
   }
-  function initials(n) { var w = String(n || '?').replace(/^@/, '').split(/\s+/).filter(Boolean); return ((w[0] || '?').charAt(0) + (w[1] ? w[1].charAt(0) : '')).toUpperCase(); }
+  // (la primera LETRA de cada palabra, con su tilde: «Íñigo Ocaña» → «ÍO»; normalizado a NFC para que la tilde no se separe)
+  function first(w) { w = String(w || '').normalize ? String(w || '').normalize('NFC') : String(w || ''); var m = /[A-Za-z0-9À-ɏ]/.exec(w); return m ? m[0] : ''; }
+  function initials(n) { var w = String(n || '?').replace(/^@/, '').split(/\s+/).filter(Boolean); var r = first(w[0]) + (w[1] ? first(w[1]) : ''); return (r || '?').toLocaleUpperCase('es'); }
   function avatar(esc, k, name) { return '<span class="st-av" style="background:' + (AV[k] || '#5c677d') + '" aria-hidden="true">' + esc(initials(name)) + '</span>'; }
   function whenOf(x) { return 'T' + (x.s | 0) + ((x.ph === 'league' || x.ph == null) && (x.w | 0) > 0 ? ' J' + (x.w | 0) : ''); }
   /** Todas las conversaciones: [{key, k, name, role, items:[{t:'f'|'m', x|m, s, w, n, i}], open, last}] (más reciente primero). */
@@ -908,7 +894,7 @@
   }
   function preview(c, it) { if (it.t === 'm') return it.m.x || it.m.t || ''; var tx = S.text(c, it.x); return bare(senderOf(c, it.x)[0], tx.x || tx.t || ''); }
   function phone(inner, bar) {
-    return '<div class="st-phone"><div class="st-pbar" aria-hidden="true"><span>9:41</span><i></i><span>▮▮▮ ▰</span></div>' + inner + '</div>';
+    return '<div class="st-phone">' + inner + '</div>';
   }
   function chatList(c, H) {
     var esc = escF(H), L = convs(c);
@@ -938,7 +924,7 @@
       log += '<div class="st-bub st-bin"><b class="st-who" style="color:' + (AV[x.k] || AV.club) + '">' + esc(senderOf(c, x)[0]) + '</b>' + esc(bare(senderOf(c, x)[0], tx.x || tx.t)) + '</div>';
       if (x.o && x.ans >= 0) {
         var t2 = S.text(c, { id: x.id, b: x.b, vars: x.vars, o: 1, ans: -1 });
-        log += '<div class="st-bub st-bout">' + esc(t2.o[x.ans] ? t2.o[x.ans].t : '') + '<small>✓✓</small></div>';
+        log += '<div class="st-bub st-bout">' + esc(t2.o[x.ans] ? t2.o[x.ans].t : '') + '</div>';
       } else if (x.o && (x.ans === -2 || s.mN > x.exp)) {
         var t3 = S.text(c, { id: x.id, b: x.b, vars: x.vars, o: 1, ans: -2 }).c;
         log += '<p class="st-day st-gone">' + esc(t3 || 'Se quedó sin respuesta') + '</p>';
@@ -1010,7 +996,7 @@
       '.st-sec{margin:8px 0 2px;font-weight:700;opacity:.8}.st-exp{display:block;margin-top:4px}.st-ans{margin:4px 0 0}' + CHAT_CSS;
   }
 
-  // chat: en el móvil, la app a todo el ancho; en PC (ancha y alta), dentro de un teléfono dibujado (marco, isla y barra de estado)
+  // chat: en el móvil, la app a todo el ancho; en PC, la misma app más ancha (hasta 760 px)
   var QC = ':root:not(#_):not(#_):not(#_):not(#_) #career';
   var CHAT_CSS = [
     QC + ' .st-chat{padding:6px;background:transparent;box-shadow:none;border:0}',
@@ -1052,12 +1038,11 @@
     QC + ' .st-replies .lf-up{color:#fff}' + QC + ' .st-replies .lf-dn{color:#ffe0e5}',
     QC + ' .st-replies .st-exp,' + QC + ' .st-ro small{font-size:12px;opacity:.65;text-align:center}',
     QC + ' .st-empty{padding:20px;text-align:center;opacity:.7}',
-    // PC: un teléfono de verdad (marco negro, esquinas grandes, isla y barra de estado)
+    // PC: la misma app, más ancha y alineada con el panel (sin teléfono dibujado ni barra de estado); la vista previa, en dos líneas
     '@media (min-width:900px) and (min-height:600px){' +
-      QC + ' .st-phone{width:380px;height:max(400px,min(680px,calc(100vh - 290px)));max-height:none;border-radius:44px;box-shadow:0 0 0 11px #1d1530,0 0 0 13px #4a3f66,6px 10px 0 13px rgba(29,21,48,.55)}' +
-      QC + ' .st-pbar{display:flex;align-items:center;justify-content:space-between;flex:none;height:30px;padding:0 26px;background:#1fb5a8;color:#fff;font-size:12px;font-weight:800}' +
-      QC + ' .st-pbar i{width:92px;height:22px;border-radius:12px;background:#1d1530}' +
-      QC + ' .st-chat{padding:14px 0 20px}}'
+      QC + ' .st-phone{width:min(760px,100%);height:max(400px,min(680px,calc(100vh - 290px)));max-height:none;margin:0}' +
+      QC + ' .st-cmid small{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}' +
+      QC + ' .st-chat{padding:8px 0 16px}}'
   ].join('');
 
   // ================================================================== registro

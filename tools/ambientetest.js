@@ -49,15 +49,17 @@ console.log('  árbitro: ' + (VB.Arbitro ? 'js/arbitro.js (P3)' : 'interno (ARB_
 section('Banco de frases');
 {
   const BAD = /\b(idiota|imb[eé]cil|tont[oa]s?|est[uú]pid|gilipoll|mierda|joder|co[nñ]o|puta|put[oa]|hostia|cabr[oó]n|capull|subnormal|inútil|matar|mat[oa]|muert|pegar|peg[ao]|golpe[as]? a|pelea|pu[nñ]etazo|odio|asco|basura|payas|maldit|imbécil)\b/i;
-  const VARS = { me: 'Ares Belmonte', mate: 'Iker Sanz', club: 'Rocaverde', rivalClub: 'Sorrasal', home: 'Rocaverde', away: 'Sorrasal', city: 'Rocaverde', venue: 'Cala Rocaverde', n: 4, set: 2, name: 'Noa Vidal', rival: 'Kai Morell' };
+  const VARS = { me: 'Ares Belmonte', mate: 'Iker Sanz', club: 'Rocaverde', rivalClub: 'Sorrasal', home: 'Rocaverde', away: 'Sorrasal', city: 'Rocaverde', venue: 'Cala Rocaverde', n: 4, set: 2, name: 'Noa Vidal', rival: 'Kai Morell', liga: 'Partido de liga: ', score: '3-1', d: 'Amonestación', benef: 'Sorrasal', who: 'Iker' };
   const st = A.create({ seed: 1, amb: { short: ['Rocaverde', 'Sorrasal'], city: 'Rocaverde', venue: 'Cala Rocaverde', home: 0 }, me: { name: VARS.me }, mate: { name: VARS.mate }, rivalP: { name: VARS.rival } });
   let n = 0, bad = [], few = [];
-  const MAIN = ['welcome', 'pre', 'streakUs', 'streakThem', 'myErr', 'myKill', 'theirBlock', 'protest', 'ref', 'refVerbal', 'endWin', 'endLoss', 'dropWrong', 'faro'];
+  // (megafonía, árbitro y previa son cortos a propósito: el 1r casi no habla; los principales piden al menos 3 variantes)
+  const MAIN = ['pre', 'streakUs', 'streakThem', 'myErr', 'myKill', 'theirBlock', 'protest', 'endWin', 'endLoss', 'dropWrong', 'faro'];
   for (const t in A.BANK) {
     ok(t in A.TRIG, 'disparador ' + t + ' con prioridad en TRIG');
     for (const w in A.BANK[t]) {
       const L = A.BANK[t][w].split('|');
-      if (MAIN.indexOf(t) >= 0 && L.length < 6) few.push(t + '/' + w + ' (' + L.length + ')');
+      if (MAIN.indexOf(t) >= 0 && L.length < 3) few.push(t + '/' + w + ' (' + L.length + ')');
+      if (L.length < 2) few.push(t + '/' + w + ' (' + L.length + ')');
       for (const s of L) {
         n++;
         const f = A._fill(st, s, VARS);
@@ -67,12 +69,14 @@ section('Banco de frases');
         if (/o\/a|@|\bos\/as\b/.test(s)) bad.push('género: ' + s);
         if (/\b1\.?er\b|\b3\.?er\b|\b1ª\b/.test(s)) bad.push('ordinal: ' + s);
         if (/[¡¿]\s*$/.test(s) || !s.trim()) bad.push('vacía: ' + s);
+        if (/[·★✓]|Lo siento|bienvenida|[Tt]arjeta|[Bb]ola de/.test(s)) bad.push('texto fuera de guía: ' + s);
+        if (w === 'speaker' && (s.match(/!/g) || []).length > 1) bad.push('megafonía con más de una exclamación: ' + s);
       }
     }
   }
   ok(!bad.length, 'filtro de textos (' + n + ' frases)' + (bad.length ? ': ' + bad.slice(0, 6).join(' | ') : ''));
-  ok(!few.length, 'al menos 6 variantes en los disparadores principales' + (few.length ? ': ' + few.join(', ') : ''));
-  ok(n >= 300, 'unas 300 frases o más (' + n + ')');
+  ok(!few.length, 'al menos 3 variantes en los disparadores principales y 2 en todos' + (few.length ? ': ' + few.join(', ') : ''));
+  ok(n >= 250, 'unas 250 frases o más (' + n + ')');
   console.log('  ' + n + ' frases en ' + Object.keys(A.BANK).length + ' disparadores');
 }
 
@@ -340,7 +344,7 @@ else {
     L.hook(c1, 'match', sum, { kind: 'league', week: 0 }); W.hook(c1, 'match', sum, { kind: 'league', week: 0 });
     const k = c1.life.cards, r = c1.world.riv && c1.world.riv[n.rival.id];
     ok(k && k.r === 1 && k.tot.r === 1 && k.n === 1, 'c.life.cards cuenta tu roja (temporada y carrera)');
-    ok((c1.inbox || []).length > inbox0 && c1.inbox.some(m => /roja/i.test(m.t)), 'mensaje del entrenador por la roja');
+    ok((c1.inbox || []).length > inbox0 && c1.inbox.some(m => /roja|penalizaci/i.test(m.t)), 'mensaje del entrenador por la roja');
     ok(c1.life.fame <= fame0, 'la roja no suma fama');
     ok(r && r.m === 1 && r.h >= 0.3 && r.last && r.last.r === 'L', 'c.world.riv: cruce, rivalidad (derbi, apretado, roja) y último resultado (' + JSON.stringify(r) + ')');
     // revancha en el próximo cruce con ese rival (el último de la temporada, en c.notes, perdido)
@@ -355,11 +359,11 @@ else {
     ok(c1.life.cards.r === kr, 'sin ambiente, las tarjetas no se tocan');
     // recap: derbi / revancha / cumbre y titular con roja
     const sk = Rc.stake({ career: { mode: 'hall', rivalName: 'Sorrasal', amb: { tags: ['derbi'], city: 'Rocaverde' } } });
-    ok(sk && sk.k === 'derby' && /Rocaverde/.test(sk.t2), 'recap: previa con DERBI (' + (sk && sk.t1 + ' / ' + sk.t2) + ')');
+    ok(sk && sk.k === 'derby' && /Sorrasal/.test(sk.t2), 'recap: previa con DERBI (' + (sk && sk.t1 + ' / ' + sk.t2) + ')');
     const sk2 = Rc.stake({ career: { rivalName: 'Voley Sorrasal', amb: { tags: ['revancha'] } } });
-    ok(sk2 && sk2.k === 'revancha' && /Voley Sorrasal/.test(sk2.t2), 'recap: previa con REVANCHA (' + (sk2 && sk2.t2) + ')');
+    ok(sk2 && sk2.k === 'revancha' && /ganaron ellos/.test(sk2.t2), 'recap: previa con REVANCHA (' + (sk2 && sk2.t2) + ')');
     const hd = Rc.headline({ sets: [2, 1], setScores: [[21, 19], [18, 21], [15, 12]], to: 21, career: { meName: 'Rocaverde', rivalName: 'Sorrasal', ambSum: { cards: [{ team: 1, color: 'red', who: 'player', name: 'Kai Morell' }] } }, pl: [] }, 7);
-    ok(/roja/i.test(hd) && /Morell/.test(hd), 'recap: titular con la roja (' + hd + ')');
+    ok(/penalizaci/i.test(hd) && /Morell/.test(hd), 'recap: titular con la roja (' + hd + ')');
   }
 }
 

@@ -82,7 +82,7 @@ async function runSize(size) {
     check(E.t && E.m && E.s === 'menu', 'detecta móvil táctil y arranca en el menú');
     check(E.w === W && E.h === H, 'viewport exacto ' + E.w + 'x' + E.h);
     await shot('menu');
-    // Primera vez (24-nov-2026): portada con solo «¡Jugar ya!» y «Tutorial»; tocar Tutorial lo abre y VOLVER da la portada de siempre
+    // Primera vez (24-nov-2026): portada con solo «Jugar ya» y «Tutorial»; tocar Tutorial lo abre y VOLVER da la portada de siempre
     if (await evalJs("document.getElementById('menu').classList.contains('first-run')")) {
       check(await evalJs("document.getElementById('btnPlay').offsetParent===null&&document.getElementById('btnStartTut').offsetParent!==null"), 'primera vez: sin JUGAR, con «Tutorial»');
       check(await evalJs("(function(){var b=document.getElementById('btnSettings');return !!b&&b.offsetParent!==null&&b.getAttribute('aria-label')==='Ajustes'&&document.getElementById('btnControls').offsetParent===null})()"), 'primera vez: el engranaje de Ajustes a la vista (sin Controles)');

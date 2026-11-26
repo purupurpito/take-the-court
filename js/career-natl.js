@@ -448,7 +448,7 @@
     var got = addFame(c, fb, 'Selección');
     if (car.caps === 1) {
       car.debut = w.s | 0; got += addFame(c, 300, 'Debut con la selección');
-      msg(c, 'Debut con ' + nat.name, 'Tu primer partido con la selección. 300 seguidores nuevos te siguen desde hoy.');
+      msg(c, 'Debut con ' + nat.name, 'Primer partido con ' + nat.name + '. Te han dado la camiseta con el apellido mal escrito; la buena llega para el siguiente.');
     }
     if (w.kind === 'q') { c.fatigue = clamp((c.fatigue | 0) + (played ? 6 : 3), 0, 100); injRoll(c, w); }
     return got;
@@ -748,7 +748,7 @@
     var nxt = nx ? 'Siguiente: ' + low1(roundLabel(w, nx)) + ' contra ' + natOf(nx.a === w.my ? nx.b : nx.a).name : '';
     var sum = { kind: 'natl', label: lbl, win: win, nota: nota, xp: xp, lvlUp: up.lvlUp > 0, lvl: up.lvl, ptsGained: up.pts | 0, next: nxt, medal: medal, ev: ei.name, life: { fans: fans } };
     // textos de la hoja final (recap.js los usa si vienen): título sin «el» delante del país, botón y línea de copa del torneo
-    sum.title = win ? (medal ? '¡' + medal + '!' : '¡Victoria!') : 'Gana ' + (cs.rivalName || natOf(f.a === w.my ? f.b : f.a).name);
+    sum.title = win ? (medal ? '¡' + medal + '!' : 'Victoria') : 'Gana ' + (cs.rivalName || natOf(f.a === w.my ? f.b : f.a).name);
     sum.back = nx ? 'Siguiente: ' + shortRound(nx) : w.stage === 'done' ? 'Volver a la Carrera' : 'Volver al torneo';
     sum.cup = sheetCup(c, w, ei, medal);
     if (rt) sum.rt = rt;
@@ -781,7 +781,7 @@
       life: { fans: loss ? 120 : 480 },
       rt: { nota: loss ? 6.4 : 7.6, best: [{ id: 'kill', txt: 'Remate ganado', n: 8, d: 0.26 }, { id: 'ace', txt: 'Ace', n: 2, d: 0.2 }, { id: 'block', txt: 'Bloqueo punto', n: 1, d: 0.1 }],
         worst: [{ id: 'srvErr', txt: 'Error de saque', n: 2, d: -0.17 }, { id: 'atkErr', txt: 'Remate fuera', n: 1, d: -0.08 }] } };
-    sum.title = loss ? 'Gana ' + rv.name : '¡Victoria!';
+    sum.title = loss ? 'Gana ' + rv.name : 'Victoria';
     sum.back = loss ? 'Siguiente: ' + shortRound({ r: 'g3' }) : 'Volver a la Carrera';
     sum.cup = loss ? '' : '¡Billete para ' + theEv(ei) + '!';
     if (loss) sum.next = 'Siguiente: grupo B, 3ª jornada contra ' + natOf('PR').name;
@@ -950,7 +950,7 @@
     if (!ph) h += '<p class="muted">' + Hh.sp(meta, 'v') + '</p>';
     if (w.nq) h += '<p>' + esc(nat.name + ' no se ha clasificado.') + '</p>';
     // tu próximo partido y los botones, arriba (en el móvil se ven sin desplazar)
-    if (pf && ph) h += '<p class="nt-big"><small>' + esc(roundLabel(w, pf)) + (plays(c, w, pf) ? '' : ' · No juegas') + '</small><b>' + esc(nat.ab + ' contra ' + natOf(pf.a === w.my ? pf.b : pf.a).ab) + '</b></p>';
+    if (pf && ph) h += '<p class="nt-big"><small>' + esc(roundLabel(w, pf)) + (plays(c, w, pf) ? '' : ', no juegas') + '</small><b>' + esc(nat.ab + ' contra ' + natOf(pf.a === w.my ? pf.b : pf.a).ab) + '</b></p>';
     else if (pf) h += '<p>' + Hh.sp([esc(roundLabel(w, pf)), '<b>' + esc((ph ? nat.ab : nat.name) + ' contra ' + (ph ? natOf(pf.a === w.my ? pf.b : pf.a).ab : natOf(pf.a === w.my ? pf.b : pf.a).name)) + '</b>', plays(c, w, pf) ? '' : 'No juegas'], 'v') + '</p>';
     h += actsHTML(c, w, 'main');
     if (w.kind === 'sum' && !w.nq) {

@@ -39,18 +39,18 @@
     { id: 'debut', name: 'Primer partido', how: 'Juega un partido', xp: 40 },
     { id: 'm25', name: 'Habitual', how: 'Juega 25 partidos', xp: 80 },
     { id: 'm100', name: 'Cien partidos', how: 'Juega 100 partidos', xp: 150 },
-    { id: 'm300', name: 'Toda una vida', how: 'Juega 300 partidos', xp: 250 },
+    { id: 'm300', name: 'Trescientos partidos', how: 'Juega 300 partidos', xp: 250 },
     { id: 'w10', name: 'Diez victorias', how: 'Gana 10 partidos', xp: 60 },
     { id: 'w100', name: 'Cien victorias', how: 'Gana 100 partidos', xp: 150 },
     { id: 'modos', name: 'De todo un poco', how: 'Juega Partido rápido, 6 contra 6, Carrera y Entrenamiento', xp: 100 },
     { id: 'gira', name: 'De gira', how: 'Juega en 3 sedes', xp: 60 },
     { id: 'sedes', name: 'Todas las sedes', how: 'Juega en todas las sedes', xp: 120 },
     { id: 'bd1', name: 'Primera insignia', how: 'Consigue una insignia', xp: 40 },
-    { id: 'bd12', name: 'Colección completa', how: 'Consigue las 12 insignias', xp: 200 },
-    { id: 'oro', name: 'Oro puro', how: 'Sube una insignia a oro', xp: 120 },
+    { id: 'bd12', name: 'Las doce', how: 'Consigue las 12 insignias', xp: 200 },
+    { id: 'oro', name: 'Primer oro', how: 'Sube una insignia a oro', xp: 120 },
     { id: 'gym5', name: 'Medallista', how: 'Gana 5 medallas en el Entrenamiento', xp: 60 },
     { id: 'gymoro', name: 'Cinco oros', how: 'Oro en los 5 ejercicios', xp: 200 },
-    { id: 'vida', name: 'Vida de deportista', how: 'Consigue 10 logros de Carrera', xp: 100 },
+    { id: 'vida', name: 'Diez logros de Carrera', how: 'Consigue 10 logros de Carrera', xp: 100 },
     { id: 'titulo', name: 'Primer título', how: 'Gana un título en la Carrera', xp: 100 }
   ];
   var HIT_BY = {}; HITOS.forEach(function (h) { HIT_BY[h.id] = h; });

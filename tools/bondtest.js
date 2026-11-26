@@ -114,7 +114,7 @@ section('Derbi de eliminatoria y roja en su casa (playa)');
   Lf.hook(c, 'match', sum({ phase: 'cup' }), { kind: 'cup', round: 0 });
   const b = Lf.bondOf(c, rv.id);
   ok(b && b.v === Lf.BOND_D.derbi && b.last === 'derbi', 'eliminar al club de tu rival personal en la copa: −30');
-  ok(msgs(c, n0).some(m => m.t === 'Derbi para el recuerdo' && txtOk(m.x)), 'mensaje «Derbi para el recuerdo»');
+  ok(msgs(c, n0).some(m => m.t === 'Derbi ganado' && txtOk(m.x)), 'mensaje «Derbi ganado»');
   delete l.bond.k[rv.id];
   const amb = (home) => ({ cards: [{ team: 0, color: 'red', mine: true, who: 'player' }], myY: 0, myR: 1, home: home, tags: [], heat: 0.5 });
   Lf.hook(c, 'match', sum({ sim: false, win: false, amb: amb(0) }), { kind: 'league', week: 2 });

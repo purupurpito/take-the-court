@@ -334,7 +334,7 @@ section('13. Interfaz (document falso)');
     ext.quit({ mode, extArg: pl.play.arg }); ok(B.C.get().pro.live === 0, mode + ': quit desde el registro');
     // done desde el registro con la partida falsa: sin estadísticas de ingest → nadie te ve
     const dr = ext.done({ sets: [1, 0], setScores: [[15, 12]], win: true }, { career: { mode, extArg: pl.play.arg }, autopilot: true });
-    ok(dr && dr.html && /pro-end/.test(dr.html) && dr.title === '¡Victoria!' && dr.back === 'Volver al juvenil', mode + ': hoja final del registro (' + (dr && dr.title) + ')');
+    ok(dr && dr.html && /pro-end/.test(dr.html) && dr.title === 'Victoria' && dr.back === 'Volver al juvenil', mode + ': hoja final del registro (' + (dr && dr.title) + ')');
     const dr2 = ext.done({ sets: [1, 0], setScores: [[15, 12]], win: true }, { career: { mode, extArg: pl.play.arg } }); ok(/ya estaba cerrado/.test(dr2.html), mode + ': un partido ya cerrado no se cuenta dos veces');
     ok(UI.act('pro-sim', btn()).render && /^Simulado: /.test(UI._note()) && B.C.get().pro.i === 2, mode + ': «Simular»');
     ok(UI.act('pro-tab-team', btn()).tab === 'team', mode + ': pestaña por acción');

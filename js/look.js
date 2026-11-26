@@ -119,14 +119,14 @@
     { id: 'alCero', name: 'Al cero', slot: 'style', fam: 'corto', g: 'm' },
     { id: 'degradado', name: 'Degradado', slot: 'style', fam: 'corto', g: 'm' },
     { id: 'cepillo', name: 'Cepillo', slot: 'style', fam: 'corto', g: 'm' },
-    { id: 'undercut', name: 'Undercut', slot: 'style', fam: 'corto', g: 'm', tris: [136, 223, 432] },
-    { id: 'crop', name: 'Crop', slot: 'style', fam: 'corto', g: 'm' },
+    { id: 'undercut', name: 'Rapado por los lados', slot: 'style', fam: 'corto', g: 'm', tris: [136, 223, 432] },
+    { id: 'crop', name: 'Flequillo corto', slot: 'style', fam: 'corto', g: 'm' },
     { id: 'pinchos', name: 'Pinchos', slot: 'style', fam: 'corto', rarity: 1, unlock: [shop(3000), { fame: 1 }], g: 'm', pl: 1 },
     { id: 'rizosCortos', name: 'Rizos cortos', slot: 'style', fam: 'textura', g: 'm', pl: 1, tris: [100, 382, 848] },
     { id: 'afroCorto', name: 'Afro corto', slot: 'style', fam: 'textura', g: 'm' },
     { id: 'frohawk', name: 'Cresta afro', slot: 'style', fam: 'textura', rarity: 1, unlock: [shop(3500), { ach: 'w50' }], g: 'f', tris: [20, 30, 80] },
     { id: 'raices', name: 'Trenzas de raíz', slot: 'style', fam: 'textura', g: 'f', pl: 1, tris: [32, 118, 318] },
-    { id: 'twists', name: 'Twists', slot: 'style', fam: 'textura', g: 'm', pl: 1, tris: [160, 454, 1076] },
+    { id: 'twists', name: 'Retorcidos', slot: 'style', fam: 'textura', g: 'm', pl: 1, tris: [160, 454, 1076] },
     { id: 'rastas', name: 'Rastas', slot: 'style', fam: 'textura', rarity: 1, unlock: [shop(4000), { fame: 2 }], g: 'f', pl: 1, tris: [86, 148, 438] },
     { id: 'despeinado', name: 'Despeinado', slot: 'style', fam: 'medio', g: 'm', tris: [14, 115, 273] },
     { id: 'cortina', name: 'Flequillo cortina', slot: 'style', fam: 'medio', g: 'm', tris: [114, 116, 178] },
@@ -149,7 +149,7 @@
     { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [164, 164, 248] },
     // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «TTC» (Take the Court; hasta la 1.19, «MTC») en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
-    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «TTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [224, 237, 432] },
+    { id: 'gorraMTC', name: 'Estuve en la beta', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «TTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [224, 237, 432] },
     // 1.18 (WP7): objetos de cabeza que se leen de espaldas y desde arriba (diadema por la coronilla, pinzas detrás de la oreja, pompón, damero…)
     { id: 'diadema', name: 'Diadema', slot: 'head', vc: 'A', g: 'f', tris: [114, 132, 168] },
     { id: 'pinzas', name: 'Pinzas de pelo', slot: 'head', vc: 'A', g: 'f', pl: 1, tris: [84, 84, 84] },
@@ -163,10 +163,10 @@
     { id: 'oscuras', name: 'Gafas oscuras', slot: 'eyes', venue: 'Y', unlock: [shop(1000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
     { id: 'deporte', name: 'Gafas deportivas', slot: 'eyes', rarity: 1, unlock: [{ fame: 2 }, gym('recv', 1), reto('r_recv', 2)], vc: 'GA', g: 'f', pl: 1, tris: [72, 72, 96] },
     { id: 'espejo', name: 'Gafas de espejo', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [{ fame: 4 }, shop(15000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
-    // 1.18 (WP7): redondas y de aviador (pintadas, con patillas) y la máscara de ventisca, con la correa ancha por detrás (se ve de espaldas)
+    // 1.18 (WP7): redondas y de aviador (pintadas, con patillas) y las gafas de esquí, con la correa ancha por detrás (se ve de espaldas)
     { id: 'gafasRedondas', name: 'Gafas redondas', slot: 'eyes', unlock: [shop(1200), lv(24)], vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
     { id: 'aviador', name: 'Gafas de aviador', slot: 'eyes', venue: 'Y', rarity: 1, unlock: [shop(3500), { fame: 2 }], vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
-    { id: 'gafasVentisca', name: 'Máscara de ventisca', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [reto('r_rally', 3), shop(16000)], vc: 'GA', g: 'f', hint: 'Con la correa por detrás', tris: [80, 100, 160] },
+    { id: 'gafasVentisca', name: 'Gafas de esquí', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [reto('r_rally', 3), shop(16000)], vc: 'GA', g: 'f', hint: 'Con la correa por detrás', tris: [80, 100, 160] },
     // cara (pintada en el atlas: 0 triángulos)
     { id: 'zinc', name: 'Crema de zinc', slot: 'paint', venue: 'Y', g: 'f' },
     { id: 'rayas', name: 'Rayas bajo los ojos', slot: 'paint', g: 'f', pl: 1 },
@@ -721,8 +721,9 @@
     return String(id);
   }
   function rarityOf(id) { var it = item(id); return it ? it.rarity : (own(PAL_BY, id) && PAL_BY[id].unlock ? 2 : 0); }
-  /** Rareza en estrellas: '★☆☆☆' (común) … '★★★★' (de lujo). '' si no es un objeto del catálogo. */
-  function stars(id) { if (!item(id)) return ''; var r = rarityOf(id); return '★★★★'.slice(0, r + 1) + '☆☆☆☆'.slice(0, 3 - r); }
+  /** Rareza en palabras (el nombre «stars» se queda por compatibilidad): 'de mercadillo' (común) … 'de lujo'. '' si no es un objeto del catálogo. */
+  var RAREZA = ['de mercadillo', 'normal', 'de tienda buena', 'de lujo'];
+  function stars(id) { if (!item(id)) return ''; return RAREZA[rarityOf(id)] || ''; }
   /** Para aria-label: «Rareza: 2 de 4». */
   function rarityLabel(id) { return item(id) ? 'Rareza: ' + (rarityOf(id) + 1) + ' de 4' : ''; }
   function unlockOf(id) { var it = item(id); return it ? it.unlock : own(PAL_BY, id) ? (PAL_BY[id].unlock || S) : S; }
@@ -791,7 +792,7 @@
   var BOSS_NAME = { saque: 'Cañón', muro: 'Muro', remate: 'Martillo', defensa: 'Pulpo' };
   var MEDAL = ['medalla', 'bronce', 'plata', 'oro'];
   // nombres de los retos que salen en el catálogo, por si VB.Retos no está cargado (node)
-  var RETO_NAMES = { r_aces: 'Lluvia de aces', r_recv: 'Pase al dedo', r_streak: 'Rodillo' };
+  var RETO_NAMES = { r_aces: 'Aces', r_recv: 'Doble positiva', r_streak: 'Parcial' };
   function retoLabel(id) {
     var B = VB.Retos && VB.Retos.BY, r = B && B[id];
     return r && typeof r.name === 'string' && r.name ? r.name : RETO_NAMES[id] || id;

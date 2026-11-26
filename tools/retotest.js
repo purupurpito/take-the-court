@@ -110,7 +110,7 @@ console.log('1) Catálogo y medidas');
   const lv = id => R.level(id);
   ok('endMatch: aces bronce (3), Escalera plata (Difícil), Set de hierro bronce (10), Remontada plata (6)',
     lv('r_aces') === 1 && lv('r_win') === 2 && lv('r_iron') === 1 && lv('r_comeback') === 2, R.IDS.map(i => lv(i)).join(''));
-  ok('Pillo/Al hueco/Al filo sin nivel aún (1 de 3); Jugada perfecta bronce; Trotamundos 1 de 6; Juego limpio bronce (2 errores)',
+  ok('Finta/Al hueco/En la raya sin nivel aún (1 de 3); De libro bronce; Todas las pistas 1 de 6; Cero regalos bronce (2 errores)',
     lv('r_feint') === 0 && lv('r_chain') === 1 && R.load().m.r_venues.v === 1 && lv('r_tidy') === 2, 'tidy ' + lv('r_tidy'));
   const expXP = res.up.reduce((s, u) => { let x = 0; for (let k = u.prev + 1; k <= u.lvl; k++) x += R.XP[k - 1]; return s + x; }, 0);
   ok('XP = suma de niveles nuevos, a los dos atletas', res.xp === expXP && res.xp > 0, res.xp + ' XP, ' + res.up.length + ' novedades');
@@ -128,8 +128,8 @@ console.log('1) Catálogo y medidas');
   const g2 = mkGame(), F2 = feeder(R2, g2); F2.start(); for (let i = 0; i < 6; i++) { F2.serve(P.a, 0); F2.pt(0, 'ace'); }
   const r2 = R2.endMatch(g2, { win: false });
   const exp2 = r2.up.filter(u => u.id !== 'r_aces').reduce((s, u) => { let x = 0; for (let k = u.prev + 1; k <= u.lvl; k++) x += R2.XP[k - 1]; return s + x; }, 0) + 80;
-  ok('nivel ya cobrado en otro aparato: de Lluvia de aces solo se paga el oro', r2.xp === exp2 && R2.level('r_aces') === 3, r2.xp + ' XP');
-  ok('derrota: Escalera, Juego limpio y Trotamundos no cuentan', R2.level('r_win') === 0 && R2.level('r_tidy') === 0 && !R2.load().m.r_venues);
+  ok('nivel ya cobrado en otro aparato: de Aces solo se paga el oro', r2.xp === exp2 && R2.level('r_aces') === 3, r2.xp + ' XP');
+  ok('derrota: Escalera, Cero regalos y Todas las pistas no cuentan', R2.level('r_win') === 0 && R2.level('r_tidy') === 0 && !R2.load().m.r_venues);
 
   // dry: calcula sin guardar
   const st3 = fakeStorage(), VB3 = load(st3), R3 = VB3.Retos;
@@ -308,7 +308,7 @@ console.log('3) clean y mergeRaw');
   ok('album: pestaña «Retos» con 18 huecos y forma de D2', al.id === 'retos' && al.label === 'Retos' && al.total === 18 && al.have === 6 && al.items.length === 18 &&
     al.items.every(it => it.aid && it.name && /^<svg/.test(it.icon) && 'have' in it && 'tier' in it && 't' in it && it.src === 'retos' && it.how && 'isNew' in it));
   const pr = R3.progress('r_aces'), pi = R3.progress('r_iron'), pw = R3.progress('r_win'), pv = R3.progress('r_venues'), pr0 = R3.progress('r_rally');
-  ok('progress: textos de la página Maestría', pr.txt === 'Aces en un partido: récord 5, oro con 6' && pi.txt === 'Set de hierro: mejor 11, plata con 8 o menos' &&
+  ok('progress: textos de la página Técnica', pr.txt === 'Aces en un partido: récord 5, oro con 6' && pi.txt === 'Set de hierro: mejor 11, plata con 8 o menos' &&
     pw.txt === 'Bronce: gana en Normal' && pv.txt === 'Sedes: 3 de 6, plata con 4' && pr0.txt === 'Jugada más larga de un partido: récord 0 toques, bronce con 12',
     [pr.txt, pi.txt, pw.txt, pv.txt, pr0.txt].join(' | '));
   const ld = R3.lookData();
