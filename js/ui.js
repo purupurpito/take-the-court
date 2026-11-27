@@ -209,7 +209,7 @@
   // (una cortinilla de verdad en marcha —JUGAR en el tiempo 1 del relevo— no se toca)
   function gymWipe(cls) { if (ctx.params.gymwipe === '0' || wp.ph) return; el.wipe.className = cls; el.wpBand.style.transform = 'translate3d(' + Math.round(-(ctx.width || 1280) * 0.75) + 'px,0,0) skewX(-14deg)'; }
   function gymStamp(cls, hint) {
-    el.stampT.textContent = /pf/.test(cls) ? 'Perfecto' : 'Bien'; el.stampS.textContent = hint; el.stampS.hidden = !hint;
+    el.stampT.textContent = /pf/.test(cls) ? 'Perfecto' : 'Bien'; el.stampS.textContent = hint; el.stampS.hidden = !hint; if (el.stampM) el.stampM.hidden = true;
     el.stamp.className = cls; el.stamp.style.transform = 'translate3d(' + Math.round(ctx.width * 0.3) + 'px,' + Math.round(ctx.height * 0.5) + 'px,0)'; el.stampIn.style.opacity = '1';
   }
   function gymIntro() {
@@ -482,7 +482,7 @@
     el.off = $('offArrow'); el.offNum = $('offNum'); el.offRot = el.off.firstChild;
     el.menuCol = document.querySelector('#menu .menu-col');
     el.pnCtl = $('pnCtl'); el.pKick = document.querySelector('#pause .sh-k');
-    el.stamp = $('stamp'); el.stampIn = el.stamp.firstChild; el.stampT = $('stampT'); el.stampS = $('stampS'); el.sr = $('srLive');
+    el.stamp = $('stamp'); el.stampIn = el.stamp.firstChild; el.stampT = $('stampT'); el.stampS = $('stampS'); el.stampM = $('stampM'); el.sr = $('srLive');
     el.ambCh = $('ambChoice'); el.ambChS = $('ambChoiceS'); el.ambChR = $('ambChoiceR'); el.ambChBar = $('ambChoiceBar');
     el.ambCard = $('ambCard'); el.ambCard1 = $('ambCard1'); el.ambCard2 = $('ambCard2');
     if (el.ambChR) el.ambChR.addEventListener('pointerdown', ambTap);
@@ -1745,18 +1745,43 @@
   var WHY_TXT = { early: '¡Pronto!', late: '¡Tarde!', far: 'Lejos', weak: 'Pase flojo', dive: 'En plancha', fast: 'Balón muy rápido' };
   function hitWhyOf(e) { try { return VB.Sim && VB.Sim.hitWhy ? VB.Sim.hitWhy(e) || '' : ''; } catch (er) { return ''; } }
   function whyText(e, why) { return why === 'weak' && e.touch === 3 ? 'Colocación floja' : WHY_TXT[why] || ''; }
+  /* MEDIDOR DEL GOLPE (27-nov-2026, Ferran: «un indicador como en el NBA 2K» para remate, colocación y recepción/defensa).
+   * Bajo el rótulo del sello: dónde pulsaste frente al momento justo, con las zonas que dan «Perfecto» y «Bien». Los diseños
+   * están en js/hitmeter.js (registro, zonas desde VB.Sim.timingQ y la Barra de serie) y js/hm-<id>.js. Ajustes › Juego ›
+   * «Medidor del golpe» (hitMeter: id del diseño u 'off'). El rótulo dice la nota de verdad y debajo va la acción. */
+  function hmId() { var v = ctx.settings && ctx.settings.hitMeter; return v === 'off' || !VB.HitMeter ? '' : VB.HitMeter.get(v) ? v : VB.HitMeter.DEFAULT; }
+  function hmOn(e) { return !!hmId() && typeof e.timing === 'number' && isFinite(e.timing) && e.shot !== 'body' && !!el.stampM; }
+  /** Vista previa del diseño elegido en la fila de Ajustes (un golpe de muestra: bueno, algo pronto). */
+  function hmPreview() {
+    var P = document.getElementById('hmPrev'); if (!P || !VB.HitMeter) return;
+    var id = hmId(); P.hidden = !id; if (!id) return;
+    var M = P.firstChild || P.appendChild(document.createElement('div'));
+    VB.HitMeter.render(M, id, VB.HitMeter.data(-0.07, { grade: 'good', act: 'Recepción', hint: 'pronto' }));
+  }
+  /** La acción del toque, para la línea de debajo del medidor. */
+  function actOf(e) {
+    if (e.kind === 'serve') return 'Saque';
+    if (e.jset) return 'Colocación en salto';
+    if (e.recv) return 'Recepción';
+    if (e.shot === 'tip') return e.pokey ? 'Pokey' : 'Dejada';
+    if (e.kind === 'spike') return 'Remate';
+    if (e.kind === 'set') return 'Colocación';
+    if (e.kind === 'free') return 'Balón libre';
+    return e.touch === 1 || e.dig ? 'Defensa' : 'Pase';
+  }
   function stampHit(e, g) {
     if (e.team !== 0) return;
-    // golpe flojo: el motivo, si lo hay (y no encima del «¡Pronto!/¡Tarde!/No llegas» del golpe al aire de hace un momento)
-    var why = e.grade === 'poor' ? hitWhyOf(e) : '';
-    if (e.grade !== 'perfect' && e.grade !== 'good' && (!why || performance.now() - missT < 700)) return;
+    // golpe flojo: el motivo, si lo hay (y no encima del «¡Pronto!/¡Tarde!/No llegas» del golpe al aire de hace un momento).
+    // Con el medidor, también sin motivo claro («Flojo»): siempre se ve cómo te ha salido
+    var why = e.grade === 'poor' ? hitWhyOf(e) : '', meter = hmOn(e);
+    if (e.grade !== 'perfect' && e.grade !== 'good' && ((!why && !meter) || performance.now() - missT < 700)) return;
     if (!ctx.camera || !VB.toThree || !ctx.THREE || !el.stamp) return;
     // árbitro de capas (UI-02): con banner y tarjeta guiada a la vez no hay sitio para otra capa
     if (((banT > 0 && el.banner.classList.contains('show')) || bugT > 0) && guideT > 0) return;
     if (!_sv) _sv = new ctx.THREE.Vector3();
     ctx.camera.updateMatrixWorld();
     var pf = e.grade === 'perfect', hint = '';
-    if (!pf && typeof e.timing === 'number' && Math.abs(e.timing) > 0.03) hint = e.timing < 0 ? 'un pelín pronto' : 'un pelín tarde';
+    if (!pf && typeof e.timing === 'number' && Math.abs(e.timing) > 0.03) hint = meter ? (e.timing < 0 ? 'pronto' : 'tarde') : e.timing < 0 ? 'un pelín pronto' : 'un pelín tarde';
     // E1: Ajustes · Juego · Golpe al milisegundo (msTiming): los milisegundos (siempre, también en el perfecto)
     if (ctx.settings && ctx.settings.msTiming && typeof e.timing === 'number') { var ms = Math.round(Math.abs(e.timing) * 1000); hint = ms < 5 ? 'justo a tiempo' : ms + ' ms ' + (e.timing < 0 ? 'pronto' : 'tarde'); }
     // E1 (M7): remate perfecto que cierra 3 toques perfectos seguidos de tu equipo: «De libro» (debajo, solo la colocación en salto)
@@ -1765,9 +1790,13 @@
     var C = sproj(e.x, e.y, e.z, _sp); if (!C.ok) return;
     var cx = C.x, cy = C.y;
     // tamaño aproximado del sello (px CSS; sin medir el DOM)
-    var wt = why ? whyText(e, why) : '';
+    var wt = why ? whyText(e, why) : e.grade === 'poor' ? 'Flojo' : '';
     if (why) hint = '';
+    if (chainOk) meter = false;   // «¡Jugada perfecta!» ya lleva la cadena debajo
+    var act = meter ? actOf(e) : '';
     var k = hudScale * (ctx.isTouch ? 0.82 : 1), bw = (wt ? 22 + 14 * wt.length : chainOk ? 250 : pf ? 160 : hint ? 132 : 84) * k, bh = (pf ? (chainOk ? 56 : 42) : hint ? 52 : 30) * k;
+    var hmS = meter ? (VB.HitMeter.get(hmId()).size || { w: 132, h: 20 }) : null;
+    if (meter) { bw = Math.max(bw, Math.max(24 + 8.5 * (act.length + (hint ? hint.length + 2 : 0)), hmS.w) * k); bh = ((wt ? 30 : pf ? 42 : 30) + 20 + hmS.h) * k; }
     // vuelo del balón en los próximos 0,1/0,2/0,3 s, en pantalla (tras el golpe ya lleva su velocidad nueva)
     var b = g.ball, Gv = (VB.C && VB.C.G) || 9.81, BP = _bp3;
     for (var i = 0; i < 3; i++) { var t = (i + 1) * 0.1, q = sproj(b.x + b.vx * t, b.y + b.vy * t, Math.max(0.1, b.z + b.vz * t - 0.5 * Gv * t * t), _sq); BP[i * 3] = q.x; BP[i * 3 + 1] = q.y; BP[i * 3 + 2] = q.ok ? 1 : 0; }
@@ -1790,7 +1819,7 @@
       if (c < bc - 0.01) { bc = c; best = d; }
     }
     stp.ox = STAMP_DIRS[best][0] * STAMP_R; stp.oy = STAMP_DIRS[best][1] * STAMP_R * 0.8;
-    stp.pl = null; stp.wx = e.x; stp.wy = e.y; stp.wz = e.z; stp.t = 0.62; stp.born = performance.now(); stp.cost = bc; stp.dir = best;
+    stp.pl = null; stp.wx = e.x; stp.wy = e.y; stp.wz = e.z; stp.t = meter ? 0.92 : 0.62; stp.born = performance.now(); stp.cost = bc; stp.dir = best;
     // salto con impulso (v1.12.0): pipe o remate con impulso (e.mom ≥ 0,5) en el rótulo y la nota debajo. Orden: jugada perfecta, finta,
     // pipe, con impulso (el al filo va en el rótulo del punto)
     var djT = !chainOk && !e.feint && e.kind === 'spike' && e.shot !== 'tip' ? (e.pipe ? '¡Pipe!' : (+e.mom || 0) >= 0.5 ? '¡Con impulso!' : '') : '';
@@ -1799,10 +1828,17 @@
     else if (djT) { el.stampS.textContent = (pf ? 'Perfecto' : 'Bien') + (hint ? ', ' + hint : ''); el.stampS.hidden = false; srSay(djT.replace(/¡|!/g, '')); }
     else if (chainOk) { el.stampS.textContent = lastSetJ ? 'Colocación en salto y al suelo' : ''; el.stampS.hidden = !lastSetJ; srSay('De libro'); }
     else { el.stampS.textContent = hint; el.stampS.hidden = !hint; }
+    // medidor: la barra y, debajo, la acción (con pronto/tarde en palabra: no solo la posición de la marca)
+    if (el.stampM) el.stampM.hidden = !meter;
+    if (meter) {
+      VB.HitMeter.render(el.stampM, hmId(), VB.HitMeter.data(e.timing, { grade: e.grade, act: act, hint: hint }));
+      if (!djT) { el.stampS.textContent = act + (hint ? ', ' + hint : ''); el.stampS.hidden = false; }
+      if (!why && !djT) srSay((pf ? 'Perfecto' : e.grade === 'poor' ? 'Flojo' : 'Bien') + ', ' + act.toLowerCase());
+    }
     el.stamp.className = 'on ' + (wt ? 'ms' : pf ? 'pf' : 'gd');
     stampPlace();
     stampKF();
-    try { if (el.stampIn.animate) el.stampIn.animate(rm() ? STAMP_KF_RM : STAMP_KF, { duration: 600, easing: 'linear', fill: 'both' }); } catch (er) { }
+    try { if (el.stampIn.animate) el.stampIn.animate(rm() ? STAMP_KF_RM : STAMP_KF, { duration: meter ? 900 : 600, easing: 'linear', fill: 'both' }); } catch (er) { }
   }
   /** 6v6 «¡Pídela!» (sim evento 'ask'): el mismo sello, sobre la cabeza del humano. Aceptado: «¡Aquí!» (el colocador te busca);
    *  fuera de su ventana (sim askOk): «Ahora no» y por qué (zaguero, colocación ya hecha o saque). */
@@ -6794,6 +6830,7 @@
     // Salto con impulso (v1.12.0): colocación en salto con diana (sim opts.jsetAim; por defecto No). jsetNote (aviso de colocador) no
     // tiene fila: «Restablecer este apartado» lo vuelve a encender
     jsetAim: { vals: [true, false], labels: ['Sí', 'No'] },
+    hitMeter: (function () { var L = VB.HitMeter ? VB.HitMeter.list() : ['bar']; return { vals: L.concat('off'), labels: L.map(function (id) { return VB.HitMeter ? VB.HitMeter.get(id).name : 'Barra'; }).concat('No') }; })(),
     msTiming: { vals: [true, false], labels: ['Sí', 'No'] },
     // 6v6: cambios de tu equipo (main.js ctx.settings.subs6 → coach[0].auto): el entrenador CPU también cambia (nunca a ti) o solo los que pidas
     subs6: { vals: ['auto', 'manual'], labels: ['Automáticos', 'Solo los míos'] },
@@ -6837,7 +6874,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol', 'toonSfx', 'onoma'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest', 'hideNames', 'netReport'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle', 'ctrlMark', 'ctrlMarkCol', 'landAid'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'hitMeter', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest', 'hideNames', 'netReport'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle', 'ctrlMark', 'ctrlMarkCol', 'landAid'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -7178,6 +7215,7 @@
     var snd = document.querySelector('.opt-snd');
     if (snd) { snd.classList.toggle('muted', !!ctx.settings.muted); var mb = snd.querySelector('[data-mute]'); if (mb) mb.setAttribute('aria-checked', ctx.settings.muted ? 'true' : 'false'); }
     var q = ctx.quality && ctx.quality.level, qn = { high: 'alta', medium: 'media', low: 'baja' }[q] || '';
+    hmPreview();
     el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto se ajusta sola a tu aparato' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
     if (VB.Splat && VB.Splat.phone && VB.Splat.phone()) phNow();   // (móvil: el «ahora» bajo el valor)
     // menú: dificultad

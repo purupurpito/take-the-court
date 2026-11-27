@@ -413,6 +413,11 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 #stamp.gd .st-in b{font-size:25px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.55),0 0 2px #000,0 3px 10px rgba(0,0,0,.6)}
 .st-in span{margin-top:4px;padding:2px 9px 3px;border-radius:7px;background:rgba(8,13,24,.78);box-shadow:0 0 0 1px rgba(255,255,255,.14);font:700 14px/1 var(--display);letter-spacing:.05em;color:#e8eef6}
 .is-touch .st-in b{font-size:25px}.is-touch #stamp.gd .st-in b{font-size:21px}.is-touch .st-in span{font-size:12.5px}
+/* Medidor del golpe (27-nov-2026): los diseños traen su CSS (js/hitmeter.js, js/hm-*.js). Aquí, el hueco bajo el rótulo
+   y la vista previa de Ajustes (el medidor de muestra, sin pulsar) */
+.st-in .hm{margin-top:6px}
+.hm-prev{display:flex;justify-content:flex-start;margin-top:8px;pointer-events:none}
+.hm-prev .hm{margin-top:0}
 
 /* Indicador de borde (UI-10): el jugador controlado está fuera de cuadro (cabeza fuera o pies a < 40 px del borde).
    Insignia del color del equipo con su dorsal y una flecha que le apunta; ui.js la pone en el borde, en la recta
@@ -9026,7 +9031,7 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
 
     <div id="coach" class="off"></div>
     <div id="offArrow" aria-hidden="true"><i class="oa-rot"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></i><b id="offNum">1</b></div>
-    <div id="stamp" aria-hidden="true"><div class="st-in"><b id="stampT">Perfecto</b><span id="stampS" hidden></span></div></div>
+    <div id="stamp" aria-hidden="true"><div class="st-in"><b id="stampT">Perfecto</b><div id="stampM" class="hm" hidden></div><span id="stampS" hidden></span></div></div>
     <div id="prompt" class="off"><div class="pr-in"><span class="pr-kw"><svg class="pr-ring" id="promptRing" aria-hidden="true"><rect class="tr" pathLength="100"/><rect class="fi" pathLength="100"/></svg><span class="key" id="promptKey">J</span></span><span class="pr-hg" aria-hidden="true"><svg viewBox="0 0 24 24"><path class="sand" d="M8.6 5.2h6.8c0 2.2-1.6 3.6-3.4 5-1.8-1.4-3.4-2.8-3.4-5zM12 15.6c1.4.9 3 2 3.2 3.4H8.8c.2-1.4 1.8-2.5 3.2-3.4z"/><path d="M6.5 3h11M6.5 21h11M8 3.2c0 4.2 4 6 4 8.8S8 16.6 8 20.8M16 3.2c0 4.2-4 6-4 8.8s4 4.6 4 8.8"/></svg></span><span id="promptText">¡Golpea!</span><i class="pr-bar"><b id="promptBar"></b><u class="pr-notch"></u></i></div></div>
 
     <div class="hud-btns">
@@ -9420,6 +9425,7 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
             <button class="opt" data-opt="ambient"><span><span class="ot">Ambiente</span><small>Grada, árbitro, tarjetas y diálogos en los partidos de Carrera</small></span><span class="seg sp-seg" data-seg="ambient"></span></button>
             <button class="opt" data-opt="aimSet" data-need="Sim"><span>Colocación dirigida<small>Sí: eliges el destino con la dirección (sin dirección, alta a la 4). No: siempre a tu compañero</small></span><span class="seg sp-seg" data-seg="aimSet"></span></button>
             <button class="opt" data-opt="jsetAim" data-need="Sim"><span><span class="ot">Diana en el salto</span><small>Sí: en salto, mueves la diana y la colocación va donde la pongas. No: como siempre</small></span><span class="seg sp-seg" data-seg="jsetAim"></span></button>
+            <button class="opt" data-opt="hitMeter"><span>Medidor del golpe<small>En cada toque, cuándo pulsaste frente al momento justo</small><span id="hmPrev" class="hm-prev" aria-hidden="true"></span></span><span class="seg sp-seg" data-seg="hitMeter"></span></button>
             <button class="opt" data-opt="msTiming"><span>Golpe al milisegundo<small>El sello dice cuántos ms llegas pronto o tarde</small></span><span class="seg sp-seg" data-seg="msTiming"></span></button>
             <button class="opt" data-opt="replays"><span>Repeticiones<small>Con botón: tras los puntos grandes, unos segundos para pedirla. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
             <button class="opt" data-opt="hideNames"><span><span data-ph-short="Nombres de otros">Nombres de otros jugadores</span><small>Ocultar: en el online ves «Jugador» y un número en vez de sus nombres</small></span><span class="seg sp-seg" data-seg="hideNames"></span></button>
@@ -9636,6 +9642,12 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
 <script src="js/matchstats.js"></script>
 <script src="js/acta.js"></script>
 <script src="js/semana-ui.js"></script>
+<script src="js/hitmeter.js"></script>
+<script src="js/hm-arc.js"></script>
+<script src="js/hm-vbar.js"></script>
+<script src="js/hm-splat.js"></script>
+<script src="js/hm-dots.js"></script>
+<script src="js/hm-ring.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/ambiente-ui.js"></script>
 <script src="js/menu-jugador.js"></script>

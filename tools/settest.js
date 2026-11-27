@@ -56,7 +56,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       const tabs = await J(`[].map.call(document.querySelectorAll('#setTabs .tab'), function (b) { return b.getAttribute('data-tab'); })`);
       check('7 pestañas en orden (audio, image, cam, game, a11y, kit, info)', tabs.join() === 'audio,image,cam,game,a11y,kit,info', tabs);
       const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol', 'toonSfx', 'onoma'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-        game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'msTiming'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'], kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'] };
+        game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'hitMeter', 'msTiming'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'], kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'] };
       for (const t of Object.keys(rows)) {
         await tab(t);
         const seen = await J(`[].filter.call(document.querySelectorAll('#optList .opt-g[data-tab="${t}"] .opt[data-opt]'), function (b) { return !b.closest('[hidden]') && b.offsetParent; }).map(function (b) { return b.getAttribute('data-opt'); })`);
