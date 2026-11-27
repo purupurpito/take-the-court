@@ -59,7 +59,7 @@ ok(c.ctrl === 'one', 'Carrera: siempre control «uno» aunque se pida «both»')
 ok(c.points === 21 && C.PTS === 21 && C.PTS3 === 15 && C.VENUE === 'beach', 'vóley playa: sets a 21, el 3.º a 15, aunque se pidan 15 (' + c.points + ')');
 ok(C.LEAGUES.every(L => /Circuito|Hiperliga/.test(L.name) && L.art && L.cup) && C.LEAGUES[0].name === 'Circuito Regional', 'circuitos de playa: ' + C.LEAGUES.map(L => L.name).join(', '));
 ok(C.lname(C.LEAGUES[0]) === 'el Circuito Regional' && C.lname(C.LEAGUES[2]) === 'la Hiperliga de Playa' && C.toL(C.LEAGUES[1]) === 'al Circuito Nacional', 'artículos de los circuitos');
-ok(c.clubs.every(k => /^(CV Platja|Arena|Platja|Club Platja|Vóley Playa|Beach Vòlei|Sorra|Dunes|Litoral|Costa) /.test(k.name) && typeof k.beach === 'string' && k.beach.indexOf(k.city) >= 0), 'clubes de vóley playa con sede en una playa (' + c.clubs[0].name + ', ' + c.clubs[0].beach + ')');
+ok(c.clubs.every(k => /^(CV Platja|Arena|Platja|Club Platja|Vóley Playa|Beach Vòlei|Salitre|Dunes|Litoral|Costa) /.test(k.name) && typeof k.beach === 'string' && k.beach.indexOf(k.city) >= 0), 'clubes de vóley playa con sede en una playa (' + c.clubs[0].name + ', ' + c.clubs[0].beach + ')');
 ok(C.ROLES.atk.name === 'Bloqueador' && C.ROLES.cr.name === 'Defensor' && c.player.role === 'Defensor', 'roles de playa: bloqueador y defensor (' + c.player.role + ')');
 ok(c.clubs.length === 40, '40 clubes (' + c.clubs.length + ')');
 
@@ -660,7 +660,7 @@ section('Migración de un guardado v2 (pabellón, sets a 15, clubes de pabellón
   const m = C.get();
   ok(m && m.v === 3 && m.points === 21, 'guardado v2 cargado y pasado a v3 (puntos ' + m.points + ')');
   ok(m.clubs.every((k, i) => k.id === v2.clubs[i].id && k.lvl === v2.clubs[i].lvl && k.q === v2.clubs[i].q && JSON.stringify(k.kit) === JSON.stringify(v2.clubs[i].kit)), 'clubes: id, nivel, q y equipación intactos');
-  ok(m.clubs.every(k => /^(CV Platja|Arena|Platja|Club Platja|Vóley Playa|Beach Vòlei|Sorra|Dunes|Litoral|Costa) /.test(k.name) && k.beach), 'clubes renombrados a vóley playa (' + C.myClub(m).name + ', ' + C.myClub(m).beach + ')');
+  ok(m.clubs.every(k => /^(CV Platja|Arena|Platja|Club Platja|Vóley Playa|Beach Vòlei|Salitre|Dunes|Litoral|Costa) /.test(k.name) && k.beach), 'clubes renombrados a vóley playa (' + C.myClub(m).name + ', ' + C.myClub(m).beach + ')');
   ok(new Set(m.clubs.map(k => k.name)).size === 40 && new Set(m.clubs.map(k => k.short)).size === 40, 'nombres y abreviaturas únicos tras renombrar');
   ok(m.myClub === v2.myClub && m.season === v2.season && m.week === v2.week && m.phase === v2.phase, 'sigue en su club, temporada y jornada');
   ok(JSON.stringify(m.res) === JSON.stringify(v2.res) && JSON.stringify(m.notes) === JSON.stringify(v2.notes) && m.career.played === v2.career.played && JSON.stringify(m.sched) === JSON.stringify(v2.sched), 'resultados, notas, totales y calendario intactos (los partidos a 15 ya jugados se quedan)');
@@ -673,6 +673,28 @@ section('Migración de un guardado v2 (pabellón, sets a 15, clubes de pabellón
   ok(msB && msB.venue === 'beach' && msB.points === 21, 'a partir de ahora se juega en la playa');
   C.save(); C._reset(); const m2 = C.get();
   ok(m2.inbox.filter(x => x.k !== 'natl' && /playa/i.test(x.t)).length === 1 && m2.clubs[0].name === m.clubs[0].name, 'migrar dos veces no renombra ni duplica');
+}
+
+// ------------------------------------------------------------------ prefijo «Sorra» → «Salitre» (25-nov-2026) en guardados de playa
+section('Migración: clubes de playa «Sorra X» de antes pasan a «Salitre X»');
+{
+  C.abandon(); c = C.create({ name: 'Salitre', num: 9, role: 'atk', seed: 4321, autoClub: true });
+  for (let i = 0; i < 16; i++) C.simulateNext(c);
+  const o = JSON.parse(JSON.stringify(c)), mine = o.clubs.find(k => k.id === o.myClub), other = o.clubs.find(k => k.id !== o.myClub);
+  ok(o.clubs.every(k => !/^Sorra /.test(k.name)), 'los clubes nuevos ya no salen con «Sorra»');
+  const strip = n => n.replace(/^(CV Platja|Club Platja|Vóley Playa|Beach Vòlei|Arena|Platja|Salitre|Dunes|Litoral|Costa) /, '');
+  const was = {}; [mine, other].forEach(k => { const a = k.name; k.name = 'Sorra ' + strip(a); was[k.id] = a; });
+  const oldMine = mine.name, oldOther = other.name, newMine = 'Salitre ' + strip(was[mine.id]), newOther = 'Salitre ' + strip(was[other.id]);
+  o.history.forEach(h => { if (h.club === mine.id) h.clubName = oldMine; });
+  o.trophies.push({ season: 1, kind: 'copa', name: 'Open Regional', club: oldMine });
+  o.inbox.push({ id: 9996, t: 'El ' + oldOther + ' te quiere', b: 'Juegas en el Moll de la Sorra con el ' + oldMine + '.', read: false });
+  mem['make-the-cut.career'] = JSON.stringify(o); C._reset();
+  const m = C.get(), r = JSON.stringify(m), msg = m.inbox.find(x => x.id === 9996) || {};
+  ok(C.myClub(m).name === newMine && C.club(m, other.id).name === newOther && !/"Sorra /.test(r) && m.trophies.some(t => t.club === newMine),
+    'clubes, palmarés e historial con «Salitre» (' + newMine + ', ' + newOther + ')');
+  ok(msg.t === 'El ' + newOther + ' te quiere' && msg.b === 'Juegas en el Moll de la Sorra con el ' + newMine + '.', 'buzón cambiado sin tocar la sede «Moll de la Sorra» (' + msg.t + ' / ' + msg.b + ')');
+  C.save(); C._reset();
+  ok(JSON.stringify(C.get()) === JSON.stringify(C.get()) && C.myClub(C.get()).name === newMine && !/Salitre Salitre/.test(JSON.stringify(C.get())), 'cargar dos veces no cambia nada');
 }
 
 // ------------------------------------------------------------------ compañeros de distinto nivel
@@ -1288,7 +1310,7 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
     ok(cupCC.every(cc => cupOf(cc)), 'copa nacional propia en ' + cupCC.length + ' países: ' + cupCC.map(cc => cc + ' ' + cupOf(cc)).join(', '));
     ok(cupOf('IT') === 'Coppa Tricolore' && cupOf('PL') === 'Puchar Orła' && cupOf('TR') === 'Hilal Kupası' && cupOf('RU') === 'Kubok Volgi', 'las copas de Italia, Polonia, Turquía y Rusia ya no son la genérica');
     const inm = cc => H.intlFor(c6, cc).map(x => x.name + ' (' + x.rank + ')').join(' + ');
-    ok(inm('ES') === 'Copa de Campeones VEC (1) + Copa VEC (2)' && inm('BE') === inm('ES') && inm('BR') === 'Copa del Sur de Clubes (1)' && inm('US') === 'Copa Norte de Campeones (1)' && inm('JP') === 'Copa de Campeones Asia (1)',
+    ok(inm('ES') === 'Copa de Campeones VEC (1) + Copa VEC (2)' && inm('BE') === inm('ES') && inm('BR') === 'Copa del Sur de Clubes (1)' && inm('US') === 'Copa Norte de Campeones (1)' && inm('JP') === 'Copa de Campeones CVA (1)',
       'copas internacionales unificadas: Europa ' + inm('ES') + '; BR ' + inm('BR') + '; US ' + inm('US') + '; JP ' + inm('JP'));
     const allComp = []; regs.forEach(rg => rg.competitions.forEach(x => allComp.push(x.name)));
     ok(!allComp.some(n => /^(Champions Cup|World Club Cup|Mundial VBC de Clubes|Challenge Trophy)$/.test(n)) && allComp.filter(n => n === 'Mundial de Clubes VBF').length === 3, 'un solo nombre por competición (Champions Cup VEC; Mundial de Clubes VBF en los tres continentes)');
@@ -1304,7 +1326,7 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
       o.inbox.push({ id: 9999, t: 'Juegas la Champions Cup VEC', b: 'y la Champions Cup Asia', read: false });
       mem['make-the-cut.career6'] = JSON.stringify(o).replace(/Copa de Campeones (VEC|Asia)/g, 'Champions Cup $1'); C._reset();
       const r = JSON.stringify(H.get() || {});
-      ok(r.length > 1000 && !/Champions Cup (VEC|Asia)/.test(r) && /Copa de Campeones VEC/.test(r) && /Copa de Campeones Asia/.test(r), 'guardado viejo: «Champions Cup VEC/Asia» pasa a «Copa de Campeones VEC/Asia» al cargar');
+      ok(r.length > 1000 && !/Champions Cup (VEC|Asia)/.test(r) && /Copa de Campeones VEC/.test(r) && /Copa de Campeones CVA/.test(r) && !/Copa de Campeones Asia/.test(r), 'guardado viejo: «Champions Cup VEC/Asia» pasa a «Copa de Campeones VEC/CVA» al cargar');
       mem['make-the-cut.career6'] = raw0; C._reset();
     }
     // guardado viejo con los clubes y la liga polaca de antes del 25-nov-2026 (riesgo de marca): al cargar, nombres y siglas nuevos en
@@ -1334,6 +1356,32 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
       mem[lk] = JSON.stringify([{ name: 'Vieja', num: 7, score: 10, club: 'Seguros Tie-Break Dinamika Kazan', mode: 'hall', date: 1 }]);
       ok(VB.CareerLife.legends()[0].club === 'Seguros Tie-Break Kaban Kazan', 'Salón de la Fama: el club de una ficha vieja se enseña con el nombre nuevo');
       if (lg0 === undefined) delete mem[lk]; else mem[lk] = lg0;
+      mem['make-the-cut.career6'] = raw0; C._reset();
+    }
+    // guardado viejo con nombres de club, liga y copa cambiados el 25-nov-2026 (clubes, ligas, buzón): al cargar salen los nuevos,
+    // sin tocar los nombres que contienen al viejo («Vòlei Manacorí») ni aunque se cargue dos veces
+    {
+      const raw0 = mem['make-the-cut.career6'], o = JSON.parse(raw0);
+      const REN = [['Voley Perugia', 'Perusia Volley'], ['Vòlei Manacor', 'Vòlei Manacorí'], ['Efsaneler Ligi', 'Sultanefe Ligi'], ['Eredivisión', 'Hiperdivisie'], ['Copa de Campeones Asia', 'Copa de Campeones CVA'],
+        ['Wirtshaus Zum Ass', 'Wirtshaus Zum Netz'], ['Faqiu Mahua', 'Kouqiu Mahua']];
+      ok(REN.every(([, b]) => raw0.indexOf('"' + b + '"') >= 0), 'el guardado lleva los nombres nuevos (' + REN.map(x => x[1]).join(', ') + ')');
+      o.inbox.push({ id: 9998, t: 'Oferta del Ensaïmades Es Bloqueig Vòlei Manacor', b: 'Voley Perugia gana la Efsaneler Ligi? No: la Copa de Campeones Asia.', read: false });
+      // segunda tanda (doble sentido)
+      o.inbox.push({ id: 9997, t: 'Carta del Wirtshaus Zum Ass', b: 'Te llama el Wirtshaus Zum Ass Voley Ried; el Faqiu Mahua Paiqiu Tianjin, no.', read: false });
+      let old = JSON.stringify(o); REN.forEach(([a, b]) => { old = old.split('"' + b + '"').join('"' + a + '"'); });
+      ok(old.indexOf('"Voley Perugia"') >= 0 && old.indexOf('"Vòlei Manacor"') >= 0, 'guardado viejo preparado con «Voley Perugia» y «Vòlei Manacor»');
+      mem['make-the-cut.career6'] = old; C._reset();
+      const r = JSON.stringify(H.get() || {});
+      const gone = REN.every(([a, b]) => r.indexOf('"' + b + '"') >= 0 && r.indexOf('"' + a + '"') < 0);
+      const msg = (H.get().inbox || []).find(m => m.id === 9998) || {};
+      ok(gone && msg.t === 'Oferta del Ensaïmades Es Bloqueig Vòlei Manacorí' && msg.b === 'Perusia Volley gana la Sultanefe Ligi? No: la Copa de Campeones CVA.',
+        'guardado viejo: los clubes, ligas y copas renombrados (Voley Perugia, Vòlei Manacor, Efsaneler Ligi...) cargan con el nombre nuevo, buzón incluido (' + msg.t + ' / ' + msg.b + ')');
+      mem['make-the-cut.career6'] = r; C._reset();
+      const r2 = JSON.stringify(H.get() || {});
+      ok(r2 === r && !/Manacoríí/.test(r2), 'cargar dos veces no vuelve a cambiar nada («Vòlei Manacorí» se queda igual)');
+      const m2 = (H.get().inbox || []).find(m => m.id === 9997) || {};
+      ok(m2.t === 'Carta del Wirtshaus Zum Netz' && m2.b === 'Te llama el Wirtshaus Zum Netz Voley Ried; el Kouqiu Mahua Paiqiu Tianjin, no.' && !/Zum Ass|Faqiu/.test(r2),
+        'guardado viejo: «Wirtshaus Zum Ass» y «Faqiu Mahua» (también delante del club) cargan con el nombre nuevo (' + m2.t + ' / ' + m2.b + ')');
       mem['make-the-cut.career6'] = raw0; C._reset();
     }
     // empezar en cada país: ofertas de su 2ª (o de su 1ª si no tiene)

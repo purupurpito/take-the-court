@@ -205,7 +205,7 @@
             {
               "real": "Volero Le Cannet",
               "official": "Volero Le Cannet",
-              "name": "Voley Le Cannet",
+              "name": "Volley Cannettan",
               "realSponsor": false,
               "short": "VLR",
               "city": "Le Cannet",
@@ -217,7 +217,7 @@
               },
               "liberoEstimated": false,
               "ovr": 77,
-              "check": "Decisión de Claude (12-nov): regla de Ferran «Voley [Ciudad]» con la grafía española, que no coincide con ningún nombre oficial. Nombre anterior: «Volaro Le Cannet». Nota anterior: […] entre comillas (oleada final 12-nov): «Volaro Le Cannet» no existe como club oficial. Método: WebSearch \"Volaro Le Cannet\". Resultado: Cero resultados con «Volaro». El club real es Volero Le Cannet: cambia una sola letra de una palabra inventada y se lee como guiño, no como el mismo nombre. Nota anterior: Oleadas 11-nov: dudoso. Método: Cupo de WebSearch agotado; WebFetch de la búsqueda de fr.wikipedia (volleybox dio 403). Resultado: No hay ningún resultado para «Volaro». Pero solo cambia una letra respecto al nombre real, Volero Le Cannet: no es solo una tilde, aunque queda casi igual. Propuesta: «Volantes Le Cannet» o «Riviera Le Cannet Volley» (sin buscar). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (LNV vía Eurosport y the-sports.org; FFvolley): no coincide con ninguno. Una letra cambiada de «Volero». Líbero: beige (2025-26, buscado 12-nov-2026: fotos de plantilla CEV Champions League 2026)."
+              "check": "Decisión de Claude (12-nov): regla de Ferran «Voley [Ciudad]» con la grafía española, que no coincide con ningún nombre oficial. Nombre anterior: «Volaro Le Cannet». Nota anterior: […] entre comillas (oleada final 12-nov): «Volaro Le Cannet» no existe como club oficial. Método: WebSearch \"Volaro Le Cannet\". Resultado: Cero resultados con «Volaro». El club real es Volero Le Cannet: cambia una sola letra de una palabra inventada y se lee como guiño, no como el mismo nombre. Nota anterior: Oleadas 11-nov: dudoso. Método: Cupo de WebSearch agotado; WebFetch de la búsqueda de fr.wikipedia (volleybox dio 403). Resultado: No hay ningún resultado para «Volaro». Pero solo cambia una letra respecto al nombre real, Volero Le Cannet: no es solo una tilde, aunque queda casi igual. Propuesta: «Volantes Le Cannet» o «Riviera Le Cannet Volley» (sin buscar). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (LNV vía Eurosport y the-sports.org; FFvolley): no coincide con ninguno. Una letra cambiada de «Volero». Líbero: beige (2025-26, buscado 12-nov-2026: fotos de plantilla CEV Champions League 2026). Cambiado el 25-nov-2026: coincidía con «Le Cannet Volley», como llama la prensa al Volero Le Cannet. Nombre anterior: «Voley Le Cannet»."
             }
           ]
         },
@@ -921,7 +921,7 @@
             {
               "real": "Conectabalear CV Manacor",
               "official": "Club Voleibol Manacor",
-              "name": "Vòlei Manacor",
+              "name": "Vòlei Manacorí",
               "realSponsor": true,
               "sponsor": "Forn Can Toni",
               "sponsorCheck": "WebSearch del nombre exacto entre comillas (patrocinadores 11-nov): no existe ninguna empresa ni marca conocida con ese nombre. Método: WebSearch \"Ensaïmades Es Bloqueig\". Juego: bloqueig = bloqueo (catalán balear). Sustituye a Conectabalear.",
@@ -935,7 +935,7 @@
               },
               "liberoEstimated": false,
               "ovr": 70,
-              "check": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB dataproject: Superliga, Liga Iberdrola, Superliga 2 M y F): no coincide con ninguno. Se quita el patrocinador Conectabalear. Es el ejemplo de Ferran. Ojo: su web es voleimanacor.club, así que el club usa «Volei Manacor» de forma informal. [Integrador, búsqueda web 11-nov-2026: «\"Vòlei Manacor\"»: solo sale el club real, CV Manacor (Club Voleibol Manacor). No es su nombre oficial, pero es casi igual: ⚠ decide Ferran (es su ejemplo).] Líbero: morado con rayas blancas (2025-26, buscado 12-nov-2026: foto de campeones de Copa en rtvc.es)."
+              "check": "No comprobado por búsqueda web (se agotó el cupo de búsquedas de la sesión). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (RFEVB dataproject: Superliga, Liga Iberdrola, Superliga 2 M y F): no coincide con ninguno. Se quita el patrocinador Conectabalear. Es el ejemplo de Ferran. Ojo: su web es voleimanacor.club, así que el club usa «Volei Manacor» de forma informal. [Integrador, búsqueda web 11-nov-2026: «\"Vòlei Manacor\"»: solo sale el club real, CV Manacor (Club Voleibol Manacor). No es su nombre oficial, pero es casi igual: ⚠ decide Ferran (es su ejemplo).] Líbero: morado con rayas blancas (2025-26, buscado 12-nov-2026: foto de campeones de Copa en rtvc.es). Cambiado el 25-nov-2026: coincidía con el Club Voleibol Manacor / «Club Volei Manacor» (web voleimanacor.club). Nombre anterior: «Vòlei Manacor»."
             },
             {
               "real": "Cisneros La Laguna",
@@ -1318,9 +1318,9 @@
   "competitions": [
     {
       "real": "Copa del Rey + Copa de la Reina (España)",
-      "name": "Copa del Trono",
+      "name": "Copa del Cetro",
       "short": "CDT",
-      "note": "Copa nacional única y mixta de España. No coincide con ningún trofeo oficial que yo sepa; sin comprobar por búsqueda web. [Integrador, búsqueda «\"Copa del Trono\" voleibol» 11-nov-2026: sin coincidencias.]",
+      "note": "Copa nacional única y mixta de España. No coincide con ningún trofeo oficial que yo sepa; sin comprobar por búsqueda web. [Integrador, búsqueda «\"Copa del Trono\" voleibol» 11-nov-2026: sin coincidencias.] Cambiado el 25-nov-2026: coincidía con la Copa del Trono / Coupe du Trône, la copa nacional de fútbol de Marruecos. Nombre anterior: «Copa del Trono».",
       "kind": "cup",
       "country": "ES"
     },

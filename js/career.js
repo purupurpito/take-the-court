@@ -147,7 +147,8 @@
   ];
   // clubes de vóley playa: «CV Platja Rocaverde», «Arena Puertoluz Sud», «Dunes Brisamar»… y su sede, una playa inventada
   // («Cala Rocaverde», «Platja de Puertoluz»). abbr() quita los prefijos (y los de los nombres de antes, por el historial)
-  var PREFIX = ['CV Platja', 'Arena', 'Platja', 'Club Platja', 'Vóley Playa', 'Beach Vòlei', 'Sorra', 'Dunes', 'Litoral', 'Costa'];
+  // («Sorra», arena en catalán, pasó a «Salitre» el 25-nov-2026: con seseo suena a «zorra». renameBeach() cambia los guardados viejos)
+  var PREFIX = ['CV Platja', 'Arena', 'Platja', 'Club Platja', 'Vóley Playa', 'Beach Vòlei', 'Salitre', 'Dunes', 'Litoral', 'Costa'];
   var SUFFIX = ['', '', '', ' Sud', ' Nord', ' Marina', ' Beach', ' Sand', ' 1998', ' Dunes'];
   var BEACHES = ['Cala {c}', 'Platja de {c}', 'Playa de {c}', 'Arenal de {c}', 'Platja Gran de {c}', 'Dunas de {c}', 'Cala Fonda de {c}', 'Playa Larga de {c}', 'Platja dels Pins de {c}', 'Caló de {c}'];
   var FIRST = ['Álex', 'Nico', 'Dani', 'Iker', 'Marc', 'Pablo', 'Leo', 'Hugo', 'Unai', 'Bruno', 'Raúl', 'Joel', 'Sergi', 'Ander', 'Rubén', 'Teo',
@@ -274,7 +275,21 @@
     o.player.roleKey = ROLES[o.player.roleKey] ? o.player.roleKey : 'uni'; o.player.role = ROLES[o.player.roleKey].name;   // (v3: «Bloqueador» / «Defensor»)
     o.points = PTS;   // vóley playa: sets a 21 (los guardados v1/v2 elegían 11-25)
     o.ctrl = 'one';   // en la Carrera solo se controla a tu jugador (los guardados con 'both' se migran)
-    try { o = saneDeep(o); return o ? migrate(o) : null; } catch (e) { return null; }
+    try { o = saneDeep(o); return o ? migrate(renameBeach(o)) : null; } catch (e) { return null; }
+  }
+  /** Clubes de playa «Sorra X» de los guardados de antes del 25-nov-2026 → «Salitre X» (con seseo, «Sorra» suena a «zorra»). Solo los
+   *  nombres enteros de los clubes del guardado (así «Moll de la Sorra», la sede, no se toca), en todo el guardado: clubes, historial,
+   *  palmarés y buzón; nunca dentro de otra palabra. Idempotente: un guardado sin clubes «Sorra» sale igual. */
+  function renameBeach(o) {
+    var olds = (Array.isArray(o.clubs) ? o.clubs : []).map(function (k) { return k && typeof k.name === 'string' ? k.name : ''; })
+      .filter(function (n) { return /^Sorra /.test(n); });
+    if (!olds.length) return o;
+    var L = 'A-Za-z0-9\\u00C0-\\u024F', t = JSON.stringify(o);
+    olds.sort(function (a, b) { return b.length - a.length; }).forEach(function (n) {
+      var q = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      t = t.replace(new RegExp('(^|[^' + L + '])' + q + '(?![' + L + '])', 'g'), '$1Salitre ' + n.slice(6));
+    });
+    return JSON.parse(t);
   }
   /** v1 → v2 y huecos de la gestión: contrato, plantilla, química, entrenamiento, fatiga, bandeja. No toca el progreso (un jugador
    *  que ya estaba en un club sigue en él: no se le obliga a elegir de nuevo). Idempotente (se aplica también a guardados v2). */
@@ -417,7 +432,7 @@
   function myClub(c) { return club(c, c.myClub); }
   function clubsOf(c, lvl) { return c.clubs.filter(function (k) { return k.lvl === lvl; }); }
   function abbr(name) {
-    var w = name.replace(/^(CV Platja|Club Platja|Vóley Playa|Beach Vòlei|Arena|Platja|Sorra|Dunes|Litoral|Costa|CV|AD|Club Vóley|Real Club|Unión|Atlético|Deportivo|Vóley|Sporting|Olímpico)\s+/, '').split(/\s+/)[0];
+    var w = name.replace(/^(CV Platja|Club Platja|Vóley Playa|Beach Vòlei|Arena|Platja|Salitre|Sorra|Dunes|Litoral|Costa|CV|AD|Club Vóley|Real Club|Unión|Atlético|Deportivo|Vóley|Sporting|Olímpico)\s+/, '').split(/\s+/)[0];
     return w.normalize ? w.normalize('NFD').replace(/[̀-ͯ]/g, '').slice(0, 3).toUpperCase() : w.slice(0, 3).toUpperCase();
   }
   /** Nombre de club de vóley playa con la ciudad (único dentro de `used`). */
@@ -2559,7 +2574,28 @@
   }
   /** Competiciones renombradas (25-nov-2026): «Champions Cup» es marca de otras competiciones. Los guardados viejos las llevan en
    *  copas en curso, palmarés y buzón; se cambian todas las apariciones (texto incluido). */
-  var COMP_REN6 = [[/Champions Cup VEC/g, 'Copa de Campeones VEC'], [/Champions Cup Asia/g, 'Copa de Campeones Asia']];
+  var COMP_REN6 = [[/Champions Cup VEC/g, 'Copa de Campeones VEC'], [/Champions Cup Asia/g, 'Copa de Campeones CVA']];
+  /** Clubes, ligas y copas renombrados (25-nov-2026) porque coincidían (o casi) con nombres reales o marcas: [viejo, nuevo]. Los que también
+   *  renombró la auditoría legal (CLUB_REN, publicada en la 1.23.0) se quedan con el nombre de CLUB_REN y no salen aquí.
+   *  El guardado lleva su copia de clubes, ligas y copas, más el palmarés y el buzón con esos nombres en el texto. Se cambia el
+   *  nombre entero: entre comillas JSON ("viejo" → "nuevo") y suelto en el texto, pero nunca dentro de otra palabra (ni letra
+   *  delante ni detrás), así «Vòlei Manacor» no vuelve a tocar «Vòlei Manacorí» cada vez que se carga. Se comprobó que ningún
+   *  otro nombre del juego contiene uno de los viejos como palabras enteras. */
+  var NAME_REN6 = [
+    ['Voley Perugia', 'Perusia Volley'], ['Voley Verona', 'Voley Adige'], ['Volley Scandicci', 'Voley Vingone'],
+    ['Voley Chieri', 'Voley Maddalene'], ['Volley Padova', 'Patavium Volley'], ['Voley Cuneo', 'Voley Stura'],
+    ['Volley Macerata', 'Voley Sferisterio'], ['Siatkówka Wrocław', 'Krasnale Wrocław'], ['Efsaneler Ligi', 'Sultanefe Ligi'],
+    ['Efsaneler 1. Lig', 'Sultanefe 1. Lig'], ['Ligue Volley Belga', 'Liga Belvolley'], ['Eredivisión', 'Hiperdivisie'],
+    ['Copa BeNeVol', 'Copa Deltavol'], ['Voley Waldviertel', 'Voley Zwettl'], ['Voley Zalău', 'Voley Meseș'],
+    ['Voley Le Cannet', 'Volley Cannettan'], ['Vòlei Manacor', 'Vòlei Manacorí'], ['Copa del Trono', 'Copa del Cetro'],
+    ['Shinshu Brilliant Rams', 'Shinshu Shining Rams'], ['Omid Tehran', 'Arezoo Tehran'], ['Copa de Campeones Asia', 'Copa de Campeones CVA'],
+    ['Wirtshaus Zum Ass', 'Wirtshaus Zum Netz'], ['Faqiu Mahua', 'Kouqiu Mahua']
+  ];
+  var LET6 = 'A-Za-z0-9\\u00C0-\\u024F';   // letras (latinas con tildes y extendidas: ł, ș, ă...) y cifras: lo que no puede pegarse al nombre
+  NAME_REN6.forEach(function (r) {
+    var q = r[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    COMP_REN6.push([new RegExp('(^|[^' + LET6 + '])' + q + '(?![' + LET6 + '])', 'g'), '$1' + r[1]]);
+  });
   function renameComps6(o) {
     if (!o || typeof o !== 'object') return o;
     var t = JSON.stringify(o), u = t;

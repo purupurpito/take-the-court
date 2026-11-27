@@ -24,30 +24,30 @@
     { region: "Europa", countries: [
       { country: "Italia", code: "IT", tier: 1, divisions: [
         { lvl: 1, name: "IperLega", short: "IPL", strength: 90, clubs: [
-            {"name":"Voley Perugia","sponsor":"Salumificio Il Bagher","short":"PER","city":"Perugia","gender":"M","colors":{"shirt":"#111111","shirt2":"#d6001c","libero":"#ffffff"},"liberoEstimated":false,"ovr":93},
+            {"name":"Perusia Volley","sponsor":"Salumificio Il Bagher","short":"PER","city":"Perugia","gender":"M","colors":{"shirt":"#111111","shirt2":"#d6001c","libero":"#ffffff"},"liberoEstimated":false,"ovr":93},
             {"name":"Adige Trento","sponsor":"Speck Primo Tempo","short":"ADI","city":"Trento","gender":"M","colors":{"shirt":"#ffffff","shirt2":"#13294b","libero":"#d21f2b"},"liberoEstimated":false,"ovr":91},
             {"name":"Volley Civitanova","sponsor":"Materassi Pallonetto","short":"CIV","city":"Civitanova Marche","gender":"M","colors":{"shirt":"#d50032","shirt2":"#ffffff","libero":"#c6d93a"},"liberoEstimated":false,"ovr":89},
-            {"name":"Voley Verona","sponsor":"Pandoro Ace","short":"VER","city":"Verona","gender":"M","colors":{"shirt":"#003da5","shirt2":"#ffd100","libero":"#5ec4e6"},"liberoEstimated":false,"ovr":88},
+            {"name":"Voley Adige","sponsor":"Pandoro Ace","short":"VER","city":"Verona","gender":"M","colors":{"shirt":"#003da5","shirt2":"#ffd100","libero":"#5ec4e6"},"liberoEstimated":false,"ovr":88},
             {"name":"Placentia Volley","sponsor":"Idraulica La Rete","short":"PIA","city":"Piacenza","gender":"M","colors":{"shirt":"#e30613","shirt2":"#ffffff","libero":"#1f5fb0"},"liberoEstimated":false,"ovr":86},
             {"name":"Mutina Volley","sponsor":"Acetaia Diagonale","short":"MOD","city":"Modena","gender":"M","colors":{"shirt":"#ffd100","shirt2":"#002855","libero":"#92c6e6"},"liberoEstimated":false,"ovr":84},
             {"name":"Volley Conegliano","sponsor":"Chanclas Supersónicas","short":"CON","city":"Conegliano","gender":"W","colors":{"shirt":"#1f3c88","shirt2":"#ffd100","libero":"#1d4fa6"},"liberoEstimated":false,"ovr":95},
             {"name":"Volley Brianza","sponsor":"Mobilificio Muro Alto","short":"BRI","city":"Monza","gender":"MW","colors":{"shirt":"#d6177a","shirt2":"#14213d","libero":"#e6337b"},"liberoEstimated":false,"ovr":90},
-            {"name":"Volley Scandicci","sponsor":"Pelletteria Alzata","short":"SCA","city":"Scandicci","gender":"W","colors":{"shirt":"#1b3f8b","shirt2":"#ffffff","libero":"#f4f4f8"},"liberoEstimated":false,"ovr":90},
+            {"name":"Voley Vingone","sponsor":"Pelletteria Alzata","short":"SCA","city":"Scandicci","gender":"W","colors":{"shirt":"#1b3f8b","shirt2":"#ffffff","libero":"#f4f4f8"},"liberoEstimated":false,"ovr":90},
             {"name":"Volley Novara","sponsor":"Riseria Ricezione","short":"NOV","city":"Novara","gender":"W","colors":{"shirt":"#1e3a8a","shirt2":"#ffffff","libero":"#4a4f55"},"liberoEstimated":false,"ovr":87},
-            {"name":"Voley Chieri","sponsor":"Grissini Fuori Tutto","short":"CHI","city":"Chieri","gender":"W","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#f5f5f5"},"liberoEstimated":false,"ovr":84},
+            {"name":"Voley Maddalene","sponsor":"Grissini Fuori Tutto","short":"CHI","city":"Chieri","gender":"W","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#f5f5f5"},"liberoEstimated":false,"ovr":84},
             {"name":"Volley Vallefoglia","sponsor":"Rodilleras Rodríguez","short":"VAL","city":"Vallefoglia","gender":"W","colors":{"shirt":"#f28c28","shirt2":"#1d1d1b","libero":"#9a2fa6"},"liberoEstimated":false,"ovr":81}
         ] },
         { lvl: 2, name: "IperLega Due", short: "IP2", strength: 76, clubs: [
             {"name":"Navigli Milano","sponsor":"Panettoneria Set Point","short":"NAV","city":"Milán","gender":"M","colors":{"shirt":"#0b3d91","shirt2":"#ffffff","libero":"#f07a1e"},"liberoEstimated":false,"ovr":82},
-            {"name":"Volley Padova","sponsor":"Ferramenta Doppio Tocco","short":"PAD","city":"Padua","gender":"M","colors":{"shirt":"#ffffff","shirt2":"#c8102e","libero":"#a98be0"},"liberoEstimated":false,"ovr":77},
+            {"name":"Patavium Volley","sponsor":"Ferramenta Doppio Tocco","short":"PAD","city":"Padua","gender":"M","colors":{"shirt":"#ffffff","shirt2":"#c8102e","libero":"#a98be0"},"liberoEstimated":false,"ovr":77},
             {"name":"Cisterna Pontina","short":"PON","city":"Cisterna di Latina","gender":"M","colors":{"shirt":"#00205b","shirt2":"#f6eb14","libero":"#8e1f33"},"liberoEstimated":false,"ovr":75},
-            {"name":"Voley Cuneo","sponsor":"Marroni Invasione","short":"CUN","city":"Cuneo","gender":"M","colors":{"shirt":"#1f3f9a","shirt2":"#6ec1e4","libero":"#f0782a"},"liberoEstimated":false,"ovr":76},
+            {"name":"Voley Stura","sponsor":"Marroni Invasione","short":"CUN","city":"Cuneo","gender":"M","colors":{"shirt":"#1f3f9a","shirt2":"#6ec1e4","libero":"#f0782a"},"liberoEstimated":false,"ovr":76},
             {"name":"Volley Grottazzolina","sponsor":"Olive all'Ace","short":"GRO","city":"Grottazzolina","gender":"M","colors":{"shirt":"#e30613","shirt2":"#ffffff","libero":"#f27a22"},"liberoEstimated":false,"ovr":73},
             {"name":"Volley Prata Friuli","sponsor":"Gelateria Fallo di Rete","short":"PRA","city":"Prata di Pordenone","gender":"M","colors":{"shirt":"#ffd100","shirt2":"#003da5","libero":"#f5d21e"},"liberoEstimated":false,"ovr":73},
             {"name":"Bergomum Volley","short":"BER","city":"Bergamo","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#002d72","libero":"#d7263d"},"liberoEstimated":false,"ovr":78},
             {"name":"Volley Firenze","sponsor":"Trippaio La Schiacciata","short":"FIR","city":"Florencia","gender":"W","colors":{"shirt":"#4fa3e0","shirt2":"#ffffff","libero":"#f2f3f8"},"liberoEstimated":false,"ovr":76},
             {"name":"Farfalle Busto","sponsor":"Tintoria Rotazione","short":"BUS","city":"Busto Arsizio","gender":"W","colors":{"shirt":"#e2001a","shirt2":"#ffffff","libero":"#e99a2c"},"liberoEstimated":false,"ovr":77},
-            {"name":"Volley Macerata","sponsor":"Ciauscolo Cambio Palla","short":"MAC","city":"Macerata","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#111111","libero":"#7db4da"},"liberoEstimated":false,"ovr":75},
+            {"name":"Voley Sferisterio","sponsor":"Ciauscolo Cambio Palla","short":"MAC","city":"Macerata","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#111111","libero":"#7db4da"},"liberoEstimated":false,"ovr":75},
             {"name":"Volley Marignano","sponsor":"Piadineria La Veloce","short":"MAR","city":"San Giovanni in Marignano","gender":"W","colors":{"shirt":"#003da5","shirt2":"#ffffff","libero":"#2a2a2d"},"liberoEstimated":true,"ovr":72},
             {"name":"Volley Brescia","sponsor":"Casoncelli Seconda Linea","short":"BRE","city":"Brescia","gender":"W","colors":{"shirt":"#00539f","shirt2":"#ffffff","libero":"#a61e36"},"liberoEstimated":false,"ovr":72}
         ] }
@@ -76,14 +76,14 @@
             {"name":"Volley Częstochowa","sponsor":"Obwarzanki Krótka","short":"CZE","city":"Częstochowa","gender":"M","colors":{"shirt":"#ffffff","shirt2":"#005bac","libero":"#e4002b"},"liberoEstimated":true,"ovr":69},
             {"name":"Alchemik Police","sponsor":"Wędzarnia Czapa","short":"ALC","city":"Police","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#003da5","libero":"#e4002b"},"liberoEstimated":true,"ovr":76},
             {"name":"Volley Radom","sponsor":"Lody Ścięcie","short":"RAD","city":"Radom","gender":"W","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#ffd100"},"liberoEstimated":true,"ovr":74},
-            {"name":"Siatkówka Wrocław","sponsor":"Kwiaciarnia Rotacja","short":"WRO","city":"Wrocław","gender":"W","colors":{"shirt":"#f47b20","shirt2":"#111111","libero":"#00a3e0"},"liberoEstimated":true,"ovr":73},
+            {"name":"Krasnale Wrocław","sponsor":"Kwiaciarnia Rotacja","short":"WRO","city":"Wrocław","gender":"W","colors":{"shirt":"#f47b20","shirt2":"#111111","libero":"#00a3e0"},"liberoEstimated":true,"ovr":73},
             {"name":"Volley Bydgoszcz","short":"BYD","city":"Bydgoszcz","gender":"W","colors":{"shirt":"#003da5","shirt2":"#ffffff","libero":"#ffd100"},"liberoEstimated":true,"ovr":70},
             {"name":"Volley Mielec","sponsor":"Pizzeria Pod Antenką","short":"MIE","city":"Mielec","gender":"W","colors":{"shirt":"#005bac","shirt2":"#ffffff","libero":"#ffd100"},"liberoEstimated":true,"ovr":70},
             {"name":"Volley Mogilno","sponsor":"Chanclas Supersónicas","short":"MOG","city":"Mogilno","gender":"W","colors":{"shirt":"#ffffff","shirt2":"#e30613","libero":"#111111"},"liberoEstimated":true,"ovr":69}
         ] }
       ] },
       { country: "Turquía", code: "TR", tier: 1, divisions: [
-        { lvl: 1, name: "Efsaneler Ligi", short: "EFS", strength: 87, clubs: [
+        { lvl: 1, name: "Sultanefe Ligi", short: "EFS", strength: 87, clubs: [
             {"name":"Üsküdar Arıları","sponsor":"Simitçi Ace","short":"ARI","city":"Estambul (Üsküdar)","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#111111","libero":"#111111"},"liberoEstimated":true,"ovr":95},
             {"name":"Turuncu Voleybol","sponsor":"Baklavacı Manşet","short":"TUR","city":"Estambul","gender":"W","colors":{"shirt":"#f47b20","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":true,"ovr":91},
             {"name":"Bahariye Kadıköy","sponsor":"Lokumcu Servis Atışı","short":"BAH","city":"Estambul (Kadıköy)","gender":"MW","colors":{"shirt":"#ffed00","shirt2":"#002d72","libero":"#ffffff"},"liberoEstimated":false,"ovr":93},
@@ -97,7 +97,7 @@
             {"name":"Genç İstanbul","short":"GEN","city":"Estambul","gender":"M","colors":{"shirt":"#e30613","shirt2":"#111111","libero":"#e30613"},"liberoEstimated":true,"ovr":80},
             {"name":"Bursa Voleybol","short":"BUR","city":"Bursa","gender":"M","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#1e9e4a"},"liberoEstimated":true,"ovr":79}
         ] },
-        { lvl: 2, name: "Efsaneler 1. Lig", short: "EF1", strength: 72, clubs: [
+        { lvl: 2, name: "Sultanefe 1. Lig", short: "EF1", strength: 72, clubs: [
             {"name":"Çırağan Voleybol","short":"CIR","city":"Estambul (Beşiktaş)","gender":"W","colors":{"shirt":"#111111","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":true,"ovr":73},
             {"name":"Aksaray Voleybol","sponsor":"Pide Çift Vuruş","short":"AKS","city":"Aksaray","gender":"W","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#111111"},"liberoEstimated":true,"ovr":74},
             {"name":"Yeşilköy Voleybol","sponsor":"Çaycı Libero","short":"YES","city":"Estambul (Yeşilköy)","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":true,"ovr":76},
@@ -155,7 +155,7 @@
             {"name":"Stanislas Volley Nancy","short":"STN","city":"Nancy","gender":"W","colors":{"shirt":"#e5007e","shirt2":"#111111","libero":"#f5f5f5"},"liberoEstimated":false,"ovr":80},
             {"name":"Mariannes de Seine","short":"MDS","city":"Levallois-Perret","gender":"W","colors":{"shirt":"#1f3a93","shirt2":"#e8559a","libero":"#e6336f"},"liberoEstimated":false,"ovr":80},
             {"name":"Racing Croisette","short":"RCR","city":"Cannes","gender":"W","colors":{"shirt":"#ffd100","shirt2":"#003da5","libero":"#e4002b"},"liberoEstimated":true,"ovr":78},
-            {"name":"Voley Le Cannet","short":"VLR","city":"Le Cannet","gender":"W","colors":{"shirt":"#5b2c83","shirt2":"#ffffff","libero":"#eed9b8"},"liberoEstimated":false,"ovr":77}
+            {"name":"Volley Cannettan","short":"VLR","city":"Le Cannet","gender":"W","colors":{"shirt":"#5b2c83","shirt2":"#ffffff","libero":"#eed9b8"},"liberoEstimated":false,"ovr":77}
         ] },
         { lvl: 2, name: "Ligue Smash 2", short: "LS2", strength: 70, clubs: [
             {"name":"Baie des Anges Volley","short":"BDA","city":"Niza","gender":"M","colors":{"shirt":"#0057b8","shirt2":"#ffd200","libero":"#d22b2b"},"liberoEstimated":false,"ovr":74},
@@ -205,7 +205,7 @@
             {"name":"Voley Roque Nublo","short":"RNB","city":"Las Palmas de Gran Canaria","gender":"M","colors":{"shirt":"#ffe900","shirt2":"#002fa7","libero":"#ffffff"},"liberoEstimated":false,"ovr":75},
             {"name":"Voley Numantia Soria","short":"NUM","city":"Soria","gender":"M","colors":{"shirt":"#7a1e48","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":73},
             {"name":"Vóley Rusadir","short":"RUS","city":"Melilla","gender":"M","colors":{"shirt":"#2e64fe","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":true,"ovr":71},
-            {"name":"Vòlei Manacor","sponsor":"Forn Can Toni","short":"MAN","city":"Manacor","gender":"M","colors":{"shirt":"#e60026","shirt2":"#000000","libero":"#8e5cc8"},"liberoEstimated":false,"ovr":70},
+            {"name":"Vòlei Manacorí","sponsor":"Forn Can Toni","short":"MAN","city":"Manacor","gender":"M","colors":{"shirt":"#e60026","shirt2":"#000000","libero":"#8e5cc8"},"liberoEstimated":false,"ovr":70},
             {"name":"Voley Lagunero","short":"LAG","city":"San Cristóbal de La Laguna","gender":"M","colors":{"shirt":"#1f4e9e","shirt2":"#ffffff","libero":"#4fa8e0"},"liberoEstimated":true,"ovr":67},
             {"name":"Voley Turia","short":"TUA","city":"Teruel","gender":"M","colors":{"shirt":"#e55206","shirt2":"#1a1a1a","libero":"#ffffff"},"liberoEstimated":false,"ovr":67},
             {"name":"Vòlei Ciutadellenc","short":"CIU","city":"Ciutadella de Menorca","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#1b2a4a"},"liberoEstimated":false,"ovr":73},
@@ -231,7 +231,7 @@
         ] }
       ] },
       { country: "Bélgica", code: "BE", tier: 3, divisions: [
-        { lvl: 1, name: "Ligue Volley Belga", short: "LVB", strength: 64, clubs: [
+        { lvl: 1, name: "Liga Belvolley", short: "LVB", strength: 64, clubs: [
             {"name":"Voley Maaseik","sponsor":"Bakkerij Den Ace","short":"MAA","city":"Maaseik","gender":"M","colors":{"shirt":"#e2001a","shirt2":"#ffffff","libero":"#1e8b4c"},"liberoEstimated":false,"ovr":68},
             {"name":"Voley Mandel","sponsor":"Rodilleras Rodríguez","short":"MDL","city":"Roeselare","gender":"M","colors":{"shirt":"#151b54","shirt2":"#ffffff","libero":"#f2f6fa"},"liberoEstimated":false,"ovr":68},
             {"name":"Menen Vauban","sponsor":"Mosselhuis De Muur","short":"MEN","city":"Menen","gender":"M","colors":{"shirt":"#6bc048","shirt2":"#000000","libero":"#ffffff"},"liberoEstimated":false,"ovr":64},
@@ -244,7 +244,7 @@
         ] }
       ] },
       { country: "Países Bajos", code: "NL", tier: 4, divisions: [
-        { lvl: 1, name: "Eredivisión", short: "ERD", strength: 59, clubs: [
+        { lvl: 1, name: "Hiperdivisie", short: "ERD", strength: 59, clubs: [
             {"name":"Sirius Doetinchem","short":"SIR","city":"Doetinchem","gender":"M","colors":{"shirt":"#00843d","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":true,"ovr":63},
             {"name":"Wetgevers Groningen","sponsor":"Bakkerij Bovenhands","short":"WTG","city":"Groninga","gender":"M","colors":{"shirt":"#0d57ff","shirt2":"#ffffff","libero":"#ffffff"},"liberoEstimated":true,"ovr":62},
             {"name":"Magneto Apeldoorn","sponsor":"Matrassen Duikbal","short":"MAG","city":"Apeldoorn","gender":"M","colors":{"shirt":"#f5c400","shirt2":"#000000","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":60},
@@ -300,8 +300,8 @@
         { lvl: 1, name: "Liga Austrovolley", short: "LAV", strength: 54, clubs: [
             {"name":"Voley Hartberg","short":"HAR","city":"Hartberg","gender":"M","colors":{"shirt":"#0033a0","shirt2":"#ff6600","libero":"#f0f0f0"},"liberoEstimated":false,"ovr":61},
             {"name":"Voley Aich-Dob","sponsor":"Bäckerei Aufschlag","short":"AID","city":"Bleiburg","gender":"M","colors":{"shirt":"#0057b8","shirt2":"#ffd200","libero":"#e2231a"},"liberoEstimated":false,"ovr":58},
-            {"name":"Voley Waldviertel","sponsor":"Erdäpfel Netzroller","short":"WAL","city":"Zwettl","gender":"M","colors":{"shirt":"#e30613","shirt2":"#000000","libero":"#e32b2b"},"liberoEstimated":false,"ovr":56},
-            {"name":"Voley Ried","sponsor":"Wirtshaus Zum Ass","short":"RIE","city":"Ried im Innkreis","gender":"M","colors":{"shirt":"#00843d","shirt2":"#000000","libero":"#e6e6e6"},"liberoEstimated":true,"ovr":55},
+            {"name":"Voley Zwettl","sponsor":"Erdäpfel Netzroller","short":"WAL","city":"Zwettl","gender":"M","colors":{"shirt":"#e30613","shirt2":"#000000","libero":"#e32b2b"},"liberoEstimated":false,"ovr":56},
+            {"name":"Voley Ried","sponsor":"Wirtshaus Zum Netz","short":"RIE","city":"Ried im Innkreis","gender":"M","colors":{"shirt":"#00843d","shirt2":"#000000","libero":"#e6e6e6"},"liberoEstimated":true,"ovr":55},
             {"name":"Voley Linz","short":"LIN","city":"Linz","gender":"W","colors":{"shirt":"#ffd200","shirt2":"#000000","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":57},
             {"name":"Voley Prater","short":"PRT","city":"Viena","gender":"MW","colors":{"shirt":"#0033a0","shirt2":"#ffd200","libero":"#f5c800"},"liberoEstimated":true,"ovr":56},
             {"name":"Voley Erzberg","short":"ERZ","city":"Trofaiach","gender":"W","colors":{"shirt":"#7a1f2b","shirt2":"#ffffff","libero":"#1e2a4a"},"liberoEstimated":false,"ovr":55},
@@ -350,7 +350,7 @@
         { lvl: 1, name: "Divizia Alfa", short: "DAL", strength: 60, clubs: [
             {"name":"Voley Galați","short":"GLT","city":"Galați","gender":"M","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#f2c200"},"liberoEstimated":true,"ovr":61},
             {"name":"Cotroceni Bucarest","short":"COT","city":"Bucarest","gender":"M","colors":{"shirt":"#d2001f","shirt2":"#0033a0","libero":"#ffd200"},"liberoEstimated":true,"ovr":59},
-            {"name":"Voley Zalău","short":"ZAL","city":"Zalău","gender":"M","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#e30613"},"liberoEstimated":true,"ovr":58},
+            {"name":"Voley Meseș","short":"ZAL","city":"Zalău","gender":"M","colors":{"shirt":"#0057b8","shirt2":"#ffffff","libero":"#e30613"},"liberoEstimated":true,"ovr":58},
             {"name":"Voley Dej","short":"DEJ","city":"Dej","gender":"M","colors":{"shirt":"#e30613","shirt2":"#ffffff","libero":"#1e3a8a"},"liberoEstimated":true,"ovr":57},
             {"name":"Voley Blaj","short":"BLA","city":"Blaj","gender":"W","colors":{"shirt":"#ffffff","shirt2":"#ff0000","libero":"#1a1a1a"},"liberoEstimated":true,"ovr":63},
             {"name":"Voley Voluntari","short":"VOL","city":"Voluntari","gender":"W","colors":{"shirt":"#0057b8","shirt2":"#f2c200","libero":"#ffffff"},"liberoEstimated":true,"ovr":62},
@@ -372,14 +372,14 @@
       {"name":"Puchar Orła","short":"PUO","kind":"cup","country":"PL"},
       {"name":"Hilal Kupası","short":"HLK","kind":"cup","country":"TR"},
       {"name":"Kubok Volgi","short":"KVG","kind":"cup","country":"RU"},
-      {"name":"Copa del Trono","short":"CDT","kind":"cup","country":"ES"},
+      {"name":"Copa del Cetro","short":"CDT","kind":"cup","country":"ES"},
       {"name":"Hipercopa","short":"HPC","kind":"skip"},
       {"name":"Copa Delfín","short":"CDF","kind":"skip"},
       {"name":"Coupe Hexagone","short":"CHX","kind":"cup","country":"FR"},
       {"name":"Supercoupe Smash","short":"SCS","kind":"skip"},
       {"name":"Netzpokal","short":"BPV","kind":"cup","country":"DE"},
       {"name":"Hyper-Cup","short":"HYC","kind":"skip"},
-      {"name":"Copa BeNeVol","short":"BNV","kind":"skip"},
+      {"name":"Copa Deltavol","short":"BNV","kind":"skip"},
       {"name":"Liga Alpes-Panonia","short":"LAP","kind":"skip"},
       {"name":"Copa Belvolley","short":"CBV","kind":"cup","country":"BE"},
       {"name":"Copa Tulipán","short":"CTU","kind":"cup","country":"NL"},
@@ -516,7 +516,7 @@
             {"name":"Ise Mie","short":"ISE","city":"Yokkaichi (Mie)","gender":"M","colors":{"shirt":"#f08300","shirt2":"#ffffff","libero":"#003d7c"},"liberoEstimated":true,"ovr":65},
             {"name":"Sakurajima Kagoshima","short":"SKR","city":"Kagoshima","gender":"M","colors":{"shirt":"#1e88e5","shirt2":"#2e7d32","libero":"#e53950"},"liberoEstimated":true,"ovr":64},
             {"name":"Akaoni Kawasaki","sponsor":"Seguros Tie-Break","short":"AKO","city":"Kawasaki","gender":"M","colors":{"shirt":"#e60012","shirt2":"#ffffff","libero":"#222222"},"liberoEstimated":true,"ovr":63},
-            {"name":"Shinshu Brilliant Rams","short":"SBR","city":"Nagano","gender":"W","colors":{"shirt":"#e8679a","shirt2":"#1f2a5c","libero":"#ffffff"},"liberoEstimated":true,"ovr":64},
+            {"name":"Shinshu Shining Rams","short":"SBR","city":"Nagano","gender":"W","colors":{"shirt":"#e8679a","shirt2":"#1f2a5c","libero":"#ffffff"},"liberoEstimated":true,"ovr":64},
             {"name":"Nagara Gifu","sponsor":"Sento Blocking-yu","short":"NAG","city":"Gifu","gender":"W","colors":{"shirt":"#00a0e9","shirt2":"#ffffff","libero":"#f4a300"},"liberoEstimated":true,"ovr":62},
             {"name":"Laulani Fukuoka","sponsor":"Gyoza Pipe Kitchen","short":"LAF","city":"Fukuoka","gender":"W","colors":{"shirt":"#111111","shirt2":"#00a48e","libero":"#30d5c8"},"liberoEstimated":false,"ovr":61},
             {"name":"Green Leaves Kumamoto","short":"GLK","city":"Uki (Kumamoto)","gender":"W","colors":{"shirt":"#111111","shirt2":"#d0021b","libero":"#ffffff"},"liberoEstimated":true,"ovr":60},
@@ -542,7 +542,7 @@
         { lvl: 1, name: "CV Hyper League", short: "CVH", strength: 68, clubs: [
             {"name":"Paiqiu Shanghai","sponsor":"Kouqiu Baozi","short":"SHA","city":"Shanghái","gender":"W","colors":{"shirt":"#0050b5","shirt2":"#ffffff","libero":"#1a1a1a"},"liberoEstimated":false,"ovr":74},
             {"name":"Paiqiu Jiangsu","sponsor":"Lanwang Jiaozi","short":"JSU","city":"Nankín","gender":"W","colors":{"shirt":"#c8102e","shirt2":"#ffffff","libero":"#f2c400"},"liberoEstimated":true,"ovr":73},
-            {"name":"Paiqiu Tianjin","sponsor":"Faqiu Mahua","short":"TIA","city":"Tianjin","gender":"M","colors":{"shirt":"#00a3e0","shirt2":"#ffffff","libero":"#e4002b"},"liberoEstimated":true,"ovr":72},
+            {"name":"Paiqiu Tianjin","sponsor":"Kouqiu Mahua","short":"TIA","city":"Tianjin","gender":"M","colors":{"shirt":"#00a3e0","shirt2":"#ffffff","libero":"#e4002b"},"liberoEstimated":true,"ovr":72},
             {"name":"Paiqiu Beijing","sponsor":"Chanclas Supersónicas","short":"BEI","city":"Pekín","gender":"W","colors":{"shirt":"#0b5394","shirt2":"#ffffff","libero":"#f6b26b"},"liberoEstimated":true,"ovr":70},
             {"name":"Paiqiu Liaoning","sponsor":"Erchuan Huoguo","short":"LIA","city":"Liaoning","gender":"W","colors":{"shirt":"#1f4e9c","shirt2":"#ffffff","libero":"#f39800"},"liberoEstimated":true,"ovr":67},
             {"name":"Paiqiu Shandong","short":"SDG","city":"Jinan","gender":"W","colors":{"shirt":"#f39800","shirt2":"#ffffff","libero":"#1f4e9c"},"liberoEstimated":true,"ovr":67},
@@ -560,7 +560,7 @@
             {"name":"Valibal Ardakan","sponsor":"Pesteh Pass","short":"ARD","city":"Ardakan","gender":"M","colors":{"shirt":"#d32f2f","shirt2":"#ffffff","libero":"#1565c0"},"liberoEstimated":true,"ovr":67},
             {"name":"Spadana Isfahan","short":"SPD","city":"Isfahán","gender":"M","colors":{"shirt":"#ffd200","shirt2":"#0047ab","libero":"#e53935"},"liberoEstimated":true,"ovr":66},
             {"name":"Valibal Gorgan","short":"GRG","city":"Gorgan","gender":"M","colors":{"shirt":"#2e7d32","shirt2":"#ffffff","libero":"#f57c00"},"liberoEstimated":true,"ovr":63},
-            {"name":"Omid Tehran","short":"OMI","city":"Teherán","gender":"M","colors":{"shirt":"#6a1b9a","shirt2":"#ffffff","libero":"#fdd835"},"liberoEstimated":true,"ovr":62},
+            {"name":"Arezoo Tehran","short":"OMI","city":"Teherán","gender":"M","colors":{"shirt":"#6a1b9a","shirt2":"#ffffff","libero":"#fdd835"},"liberoEstimated":true,"ovr":62},
             {"name":"Darband Tehran","sponsor":"Sangak Spike","short":"DAR","city":"Teherán","gender":"M","colors":{"shirt":"#ff4f00","shirt2":"#ffffff","libero":"#003a70"},"liberoEstimated":true,"ovr":63},
             {"name":"Tochal Tehran","sponsor":"Ash Reshteh Ace","short":"TOC","city":"Teherán","gender":"M","colors":{"shirt":"#ffffff","shirt2":"#7cb9e8","libero":"#e53935"},"liberoEstimated":true,"ovr":61}
         ] }
@@ -599,7 +599,7 @@
       {"name":"Persian Hyper League","short":"PHL","kind":"skip"},
       {"name":"Doha Volley League","short":"DVL","kind":"skip"},
       {"name":"Archipelago Volleyball League","short":"AVL","kind":"skip"},
-      {"name":"Copa de Campeones Asia","short":"CCA","kind":"intl","rank":1},
+      {"name":"Copa de Campeones CVA","short":"CCA","kind":"intl","rank":1},
       {"name":"Chrysanthemum Cup","short":"CHR","kind":"cup","country":"JP"},
       {"name":"VKL Cup","short":"VKC","kind":"cup","country":"KR"},
       {"name":"Mundial de Clubes VBF","short":"MCV","kind":"skip"},

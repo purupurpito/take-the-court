@@ -231,7 +231,7 @@
   /** El equipo t en una frase: «tu pareja» / «tu equipo» / «la CPU» / «el Voley Gandia». */
   function teamName(t, d, start) {
     var cs = d.career, s;
-    if (cs) { s = t === 0 ? cs.meName || 'equipo' : cs.rivalName || 'rival'; if (CLUB_ART.test(s)) s = 'el ' + s; }   // «el Voley Gandia», pero «Sorra Brisamar Dunes»
+    if (cs) { s = t === 0 ? cs.meName || 'equipo' : cs.rivalName || 'rival'; if (CLUB_ART.test(s)) s = 'el ' + s; }   // «el Voley Gandia», pero «Salitre Brisamar Dunes»
     else s = t === 0 ? ((d.size | 0) === 6 ? 'tu equipo' : 'tu pareja') : low1(d.cpu || 'la CPU');
     return start ? cap(s) : s;
   }
