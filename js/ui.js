@@ -2248,6 +2248,7 @@
   function guidedLoad() { if (guidedN < 0) { guidedN = 0; try { guidedN = Math.max(0, +localStorage.getItem('make-the-cut.guided') | 0); } catch (e) { } } return guidedN; }
   function guidedBump() { guidedLoad(); guidedN++; try { localStorage.setItem('make-the-cut.guided', String(guidedN)); } catch (e) { } }
   function guideOn(g) {
+    return false;                                              // (27-nov-2026, Ferran: «me parecen feas las ayudas de Ponte debajo del balón y pulsa GOLPEAR». Fuera las tarjetas del toque)
     if (g.drill) return false;                                 // E6: los ejercicios ya dicen qué hacer (tarjeta y consejo del fallo)
     if (g.demo || (g.autopilot && ctx.params.guide !== '1') || ctx.settings.showHelp === false) return false;
     if (ctx.params.guide === '1') return true;                 // (pruebas y capturas: siempre)
