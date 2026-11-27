@@ -76,7 +76,7 @@
   // un móvil no hereda los 30 fps ni el 50 % de resolución del PC. keys/padKeys guardan SOLO las diferencias con las teclas y
   // botones de fábrica (input.js las sanea). aimSet / msTiming: E1 (colocación dirigida; timing en ms en el sello, solo UI).
   function DEFAULTS() {
-    return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, coachCalls: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
+    return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, coachCalls: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: Q.debug ? 'both' : 'one', ctrlV: 1, ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
@@ -173,7 +173,11 @@
     s.laSeen = s.laSeen === true;   // (ya se le ha avisado una vez de que con «Auto» el aro de caída sale solo al final: ui.js onGameStart)   // Partido rápido: duración (informe 4.5): completo | un set | final apretado
     // equipación: solo colores de las paletas de ui.js (OPT.kit*) y diseños conocidos
     if (['diag', 'liso', 'franjas', 'rayas'].indexOf(s.kitPattern) < 0) s.kitPattern = 'diag';   // Partido rápido: puntos por set (sim: VB.Sim.SET_POINTS)
-    if (s.ctrlMode !== 'one') s.ctrlMode = 'both';                      // control: los dos jugadores o solo uno (sim: g.ctrlMode)
+    if (s.ctrlMode !== 'one' && s.ctrlMode !== 'both') s.ctrlMode = 'one'; // control: los dos jugadores o solo uno (sim: g.ctrlMode)
+    // migración ctrlV 1 (27-nov-2026, una sola vez, decisión de Ferran): el control por defecto pasa a «Un jugador» también para
+    // quien ya tenía ajustes guardados (casi todos guardaban 'both' sin haberlo elegido). Luego se respeta lo que se elija.
+    if (o && !(o.ctrlV >= 1) && !Q.debug) s.ctrlMode = 'one';
+    s.ctrlV = 1;
     if (s.format !== '6v6') s.format = '2v2';                           // Partido rápido: 2 contra 2 o 6 contra 6 (sprint 3 del 6v6; fila «Formato»)
     if (s.cam6 !== 'tv') s.cam6 = '3p';                                 // cámara del 6v6: en 3ª persona (por defecto) o de televisión (camera.js; ?cam6= manda)
     s.ctrlPlayer = 0;                                                    // modo Uno: llevas siempre al n.º 1 (teams[0][0]); el ajuste antiguo (1 = el otro) se ignora
@@ -2417,7 +2421,7 @@
   ctx.actions.resetSettings = function (keys) {
     var d = DEFAULTS(), list = Array.isArray(keys) ? keys : Object.keys(d);
     for (var i = 0; i < list.length; i++) {
-      var k = list[i]; if (!(k in d) || k === 'difficulty' || k === 'arena' || k === 'arenaV' || k === 'mapV') continue;
+      var k = list[i]; if (!(k in d) || k === 'difficulty' || k === 'arena' || k === 'arenaV' || k === 'mapV' || k === 'ctrlV') continue;
       var v = d[k];
       if (v && typeof v === 'object') { if (JSON.stringify(ctx.settings[k]) === JSON.stringify(v)) continue; v = JSON.parse(JSON.stringify(v)); }
       ctx.actions.setSetting(k, v);

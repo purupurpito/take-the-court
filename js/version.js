@@ -23,6 +23,12 @@
       ]
     },
     {
+      v: '1.23.1', d: '2026-11-27', t: 'Un jugador',
+      items: [
+        'Ahora llevas a un solo jugador y la IA, a tu compañero. Cámbialo en «Controlar».'
+      ]
+    },
+    {
       v: '1.23.0', d: '2026-11-24', t: 'Online para más de dos',
       items: [
         'Online 2 contra 2 con hasta cuatro personas. Si falta alguien, juega la CPU.',
