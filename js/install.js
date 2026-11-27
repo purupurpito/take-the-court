@@ -446,12 +446,16 @@
     P + '#inappHelp .ia-go .sp-btn{--sp-h:44px;--sp-fs:14px}' + P + '#inappHelp .ia-go .ia-open{--sp-h:50px;--sp-fs:15px}' + P + '#inappHelp .ia-acts .sp-btn{--sp-h:44px;--sp-fs:15px}}',
     P + '#inappHelp .ia-go .ia-open .sp-t{white-space:nowrap}',
     // ayuda dentro de «Gira el móvil» (#rotate), a los ~4 s
-    '#rotate .rot-help{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px;max-width:min(88vw,360px)}',
-    '#rotate .rot-help[hidden]{display:none}',
-    '#rotate .rot-help .rh-t{margin:0;font:700 16px/1.3 var(--sp-ui,system-ui);color:var(--sp-gold,#ffd23f);text-shadow:0 1px 0 #15102a,0 0 6px #15102a}',
-    '#rotate .rot-help .rh-s{margin:0;font:500 14px/1.4 var(--sp-ui,system-ui);color:rgba(255,244,220,.95);text-shadow:0 1px 0 #15102a,0 0 6px #15102a}',
-    '#rotate .rot-help .rh-s strong{color:#fff;font-weight:800}',   // (no <b>: #rotate b es el rótulo grande)
-    P + '#rotate .rot-help .sp-btn{--sp-h:54px;--sp-fs:16px;--sp-px:22px;pointer-events:auto}',
+    ':is(#rotate,#rotPv) .rot-help{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px;max-width:min(88vw,360px)}',
+    ':is(#rotate,#rotPv) .rot-help[hidden]{display:none}',
+    // (1.24.0) previa del partido en vertical: la misma ayuda en una placa de tinta, sobre la tarjeta y encima del chip de girar
+    '#rotPv{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:20;display:flex;justify-content:center;pointer-events:none}',
+    '#rotPv[hidden]{display:none}',
+    '#rotPv .rot-help{margin:0 16px;padding:14px 16px 16px;border-radius:16px 20px 15px 19px/18px 15px 20px 16px;background:rgba(21,16,42,.94);box-shadow:0 0 0 2.5px #15102a,3px 4px 0 2.5px #15102a;text-align:center}',
+    ':is(#rotate,#rotPv) .rot-help .rh-t{margin:0;font:700 16px/1.3 var(--sp-ui,system-ui);color:var(--sp-gold,#ffd23f);text-shadow:0 1px 0 #15102a,0 0 6px #15102a}',
+    ':is(#rotate,#rotPv) .rot-help .rh-s{margin:0;font:500 14px/1.4 var(--sp-ui,system-ui);color:rgba(255,244,220,.95);text-shadow:0 1px 0 #15102a,0 0 6px #15102a}',
+    ':is(#rotate,#rotPv) .rot-help .rh-s strong{color:#fff;font-weight:800}',   // (no <b>: #rotate b es el rótulo grande)
+    P + ':is(#rotate,#rotPv) .rot-help .sp-btn{--sp-h:54px;--sp-fs:16px;--sp-px:22px;pointer-events:auto}',
     '@keyframes inPulse{50%{transform:scale(1.18);opacity:.55}}@keyframes inTap{50%{transform:translateY(4px)}}',
     '.rm #inappHelp .ix-pulse,.rm #inappHelp .ix-tap,.rm #inappHelp.ia-hl .ia-steps li{animation:none}',
     '@media (prefers-reduced-motion:reduce){#inappHelp .ix-pulse,#inappHelp .ix-tap,#inappHelp.ia-hl .ia-steps li{animation:none}}'
@@ -614,6 +618,17 @@
     new MutationObserver(upd).observe(rot, { attributes: true, attributeFilter: ['hidden'] });
     window.addEventListener('orientationchange', function () { var h = rot.querySelector('.rot-help'); if (h) h.hidden = true; upd(); });
     upd();
+    // (1.24.0) en vertical el partido ya no tapa todo con #rotate: la previa espera con el chip «Gira el móvil para empezar»
+    // (main.js ctx.pvIntro). Si se queda así ~4 s, la misma ayuda en #rotPv (al lado de #rotate); al girar o salir, se va.
+    var pvSince = 0, pv = null;
+    setInterval(function () {
+      var c = VB.ctx, on = !!(c && c.pvIntro && c.state === 'playing' && !document.hidden);
+      if (!on) { pvSince = 0; if (pv && !pv.hidden) { pv.hidden = true; var h0 = pv.querySelector('.rot-help'); if (h0) h0.hidden = true; } return; }
+      if (!pvSince) pvSince = Date.now();
+      if (Date.now() - pvSince < ROT_MS || (pv && !pv.hidden)) return;
+      if (!pv) { pv = document.createElement('div'); pv.id = 'rotPv'; pv.hidden = true; (rot.parentNode || document.body).appendChild(pv); }
+      rotHelp(pv).hidden = false; pv.hidden = false;
+    }, 300);
   }
   function escBoot() { escAuto(); rotWatch(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', escBoot); else escBoot();

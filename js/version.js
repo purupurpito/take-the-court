@@ -19,6 +19,7 @@
         'Nuevos premios por nivel.',
         'Nuevos controles.',
         '¡Nuevo cursor! Ahora es personalizado.',
+        '¡Medidores de precisión! Decide cuál quieres en Ajustes.',
         'Pequeño rediseño de los personajes en playa.'
       ]
     },

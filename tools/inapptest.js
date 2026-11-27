@@ -11,7 +11,7 @@
  *   3) Android Instagram/Facebook: intent automático una sola vez (window.__vbNavSpy lo recoge en vez de navegar); TikTok solo al tocar;
  *      la marca ttc_ia=nochrome (sin Chrome) pasa al intent sin package, sin automático, y se quita de la dirección;
  *   4) «Seguir aquí igualmente» se recuerda (al recargar no sale);
- *   5) «Gira el móvil» en partido (debug=rally): a los ~4 s (no antes) sale la ayuda: en app, «Abrir en el navegador» pulsable que
+ *   5) «Gira el móvil» en partido (en vertical, la previa quieta de la 1.24.0 o el partido en juego): a los ~4 s (no antes) sale la ayuda: en app, «Abrir en el navegador» pulsable que
  *      abre la hoja e intenta; en Chrome/Safari, «Quita el bloqueo de rotación» con el texto de su sistema; al girar se va.
  * Capturas en tools/out/inapp/. Uso: node tools/inapptest.js     Sale con 1 si falla algo.
  */
@@ -127,29 +127,35 @@ async function rotateCase(key, exp) {
     const vis = sel => p.evalJs(`(function(e){if(!e)return false;var cs=getComputedStyle(e);return !e.closest('[hidden]')&&cs.display!=='none'&&e.getBoundingClientRect().width>0})(document.querySelector(${JSON.stringify(sel)}))`);
     check(!(await p.evalJs('VB.Install.escIsOpen()')), 'con «Seguir aquí» guardado no sale la hoja al arrancar');
     await p.evalJs('VB.ctx.actions.startMatch({})');
-    let t = Date.now(); while (Date.now() - t < 8000 && !(await p.evalJs('VB.ctx.portraitBlock'))) await sleep(100);
-    const ok0 = await p.evalJs('VB.ctx.portraitBlock') && await vis('#rotate');
-    check(ok0, '«Gira el móvil» a la vista en vertical');
+    // (1.24.0) en vertical el partido arranca en la previa, quieta con «Gira el móvil para empezar» (ctx.pvIntro): la ayuda sale en
+    // #rotPv; con el partido ya en juego, en #rotate (ctx.portraitBlock)
+    let t = Date.now(); while (Date.now() - t < 8000 && !(await p.evalJs('VB.ctx.portraitBlock || VB.ctx.pvIntro'))) await sleep(100);
+    const pvi = await p.evalJs('!!VB.ctx.pvIntro'), BOX = pvi ? '#rotPv' : '#rotate';
+    const ok0 = pvi ? await vis('#intro') : (await p.evalJs('VB.ctx.portraitBlock') && await vis('#rotate'));
+    check(ok0, '«Gira el móvil» a la vista en vertical (' + (pvi ? 'previa del partido' : 'en juego') + ')');
     await sleep(1500);
-    check(!(await vis('#rotate .rot-help')), 'antes de los 4 s, sin ayuda');
+    check(!(await vis(BOX + ' .rot-help')), 'antes de los 4 s, sin ayuda');
     await sleep(3200);
-    check(await vis('#rotate .rot-help'), 'a los ~4 s sale la ayuda');
-    const txt = await p.evalJs("(document.querySelector('#rotate .rot-help')||{}).textContent||''");
+    check(await vis(BOX + ' .rot-help'), 'a los ~4 s sale la ayuda');
+    const txt = await p.evalJs("(document.querySelector('" + BOX + " .rot-help')||{}).textContent||''");
     check(exp.re.test(txt), 'texto: ' + exp.re, txt);
     await p.shot(path.join(OUT, key + '-girar.png'));
     if (exp.btn) {
-      const hit = await p.evalJs(`(function(){var b=document.querySelector('#rotate [data-rh="open"]');if(!b)return 'sin botón';var r=b.getBoundingClientRect(),e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return (r.height>=44&&e&&b.contains(e))?'ok':'tapado por '+(e&&(e.id||e.className))})()`);
+      const hit = await p.evalJs(`(function(){var b=document.querySelector('${BOX} [data-rh="open"]');if(!b)return 'sin botón';var r=b.getBoundingClientRect(),e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return (r.height>=44&&e&&b.contains(e))?'ok':'tapado por '+(e&&(e.id||e.className))})()`);
       check(hit === 'ok', 'el botón «Abrir en el navegador» se puede tocar (>= 44 px, sin nada encima)', hit);
-      await click(p, '#rotate [data-rh="open"]'); await sleep(300);
+      await click(p, BOX + ' [data-rh="open"]'); await sleep(300);
       const s = await state(p);
       check(s.open && s.navs.length === 1 && s.navs[0][0] === (exp.btn === 'intent' ? s.L.intent : s.L.ig), 'abre la hoja e intenta con ese toque', s.navs);
       await p.shot(path.join(OUT, key + '-girar-hoja.png'));
       await click(p, '#inappHelp [data-ia="stay"]'); await sleep(200);
     }
+    const anyHelp = async () => (await vis('#rotate .rot-help')) || (await vis('#rotPv .rot-help'));
     await p.setSize('844x390', true); await sleep(900);
-    check(!(await vis('#rotate')) && !(await vis('#rotate .rot-help')), 'al girar a horizontal se va');
+    check(!(await vis('#rotate')) && !(await anyHelp()), 'al girar a horizontal se va');
     await p.setSize('390x844', true); await sleep(1200);
-    check(!(await vis('#rotate .rot-help')), 'al volver a vertical, la ayuda espera otra vez');
+    check(!(await anyHelp()), 'al volver a vertical, la ayuda espera otra vez');
+    await sleep(3600);
+    check(await anyHelp(), 'y a los ~4 s vuelve a salir');
   } finally { await p.close(); }
 }
 
