@@ -92,7 +92,7 @@ ok(new Set(beachQ.map(s => s.id)).size === 390, 'ids de playa únicos');
   let same = 0;
   raw.forEach(r => { const s = G.spec({ name: r.k.name, city: r.k.city, cc: r.cc, short: r.k.short, colors: r.k.colors, ovr: r.k.ovr, strength: r.strength }, 'hall'); if (hall.some(h => h.id === s.id && J(h) === J(s))) same++; });
   ok(same === 390, 'club en bruto de leagues.js = ficha de la Carrera (' + same + '/390)');
-  const sp1 = G.spec({ name: 'Salumificio Il Bagher Voley Perugia', city: 'Perugia', cc: 'IT', short: 'PE1' }, 'hall'), sp2 = G.spec({ name: 'Voley Perugia', city: 'Perugia', cc: 'IT' }, 'hall');
+  const sp1 = G.spec({ name: 'Salumificio Il Bagher Perusia Volley', city: 'Perugia', cc: 'IT', short: 'PE1' }, 'hall'), sp2 = G.spec({ name: 'Perusia Volley', city: 'Perugia', cc: 'IT' }, 'hall');
   ok(J(sp1) === J(sp2) && sp1.id === 'g-IT-PER-h', 'el patrocinador y las siglas cambiadas no cambian la sede (' + sp1.id + ')');
 }
 
@@ -501,7 +501,7 @@ section('(g) Tiempo');
   // de todos los anteriores). Tope: 150 ms en PC (el diseño admite 100-500 ms de tirón al montar en móvil).
   const { execFileSync } = require('child_process');
   const last = VB.Leagues.regions[VB.Leagues.regions.length - 1], lc = last.countries[last.countries.length - 1], lk = lc.divisions[0].clubs[0];
-  const CASES = [['IT hall', { name: 'Voley Perugia', city: 'Perugia', cc: 'IT' }, 'hall'], [lc.code + ' beach (último país)', { name: lk.name, city: lk.city, cc: lc.code }, 'beach']];
+  const CASES = [['IT hall', { name: 'Perusia Volley', city: 'Perugia', cc: 'IT' }, 'hall'], [lc.code + ' beach (último país)', { name: lk.name, city: lk.city, cc: lc.code }, 'beach']];
   const CAP = 150, child = `
     const fs = require('fs'), vm = require('vm'), path = require('path'), R = process.argv[1];
     for (const f of ['js/leagues.js', 'js/venue-gen.js']) vm.runInThisContext(fs.readFileSync(path.join(R, f), 'utf8'), { filename: f });

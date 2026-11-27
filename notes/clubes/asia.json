@@ -345,7 +345,7 @@
             {
               "real": "Shinshu Brilliant Aries",
               "official": "Shinshu Brilliant Aries (信州ブリリアントアリーズ)",
-              "name": "Shinshu Brilliant Rams",
+              "name": "Shinshu Shining Rams",
               "realSponsor": false,
               "short": "SBR",
               "city": "Nagano",
@@ -713,7 +713,7 @@
               "real": "Tianjin Food Group / Tianjin Bohai Bank",
               "official": "Tianjin Food Group (M) y Tianjin Bohai Bank (W) (天津; cuenta una sola vez)",
               "name": "Paiqiu Tianjin",
-              "sponsor": "Faqiu Mahua",
+              "sponsor": "Kouqiu Mahua",
               "realSponsor": true,
               "sponsorCheck": "búsqueda web (11-nov-2026) con el nombre exacto entre comillas: sin ninguna empresa ni marca real con ese nombre; fāqiú 发球 = saque; mahua, dulce típico de Tianjin.",
               "short": "TIA",
@@ -978,9 +978,9 @@
               "check": "Búsqueda web del nombre exacto entre comillas (+ \"volleyball\"): sin ningún club real con ese nombre; forma local de «Voley Gorgan». [Integrador: abreviatura GOR → GRG, para que no se repita con otro club del juego.] Líbero: no encontrado en internet (12-nov-2026)."
             },
             {
-              "real": "Sanatgaran Omid Tehran",
-              "official": "Sanatgaran Omid Tehran (صنعتگران امید تهران)",
-              "name": "Omid Tehran",
+              "real": "Sanatgaran Arezoo Tehran",
+              "official": "Sanatgaran Arezoo Tehran (صنعتگران امید تهران)",
+              "name": "Arezoo Tehran",
               "realSponsor": false,
               "short": "OMI",
               "city": "Teherán",
@@ -1447,9 +1447,9 @@
     },
     {
       "real": "AVC Champions League (antes Asian Club Championship)",
-      "name": "Copa de Campeones Asia",
+      "name": "Copa de Campeones CVA",
       "short": "CCA",
-      "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones Asia\" volleyball» 11-nov-2026: sin coincidencias.]",
+      "note": "Copa continental de clubes de Asia. Comprobado: sin coincidencias. [Integrador, búsqueda «\"Copa de Campeones CVA\" volleyball» 11-nov-2026: sin coincidencias.]",
       "kind": "intl",
       "rank": 1
     },

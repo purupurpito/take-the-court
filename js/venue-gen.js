@@ -685,7 +685,12 @@
     'Raijin Hiroshima': 'Thundra Hiroshima', 'Izumi Saga': 'Sprinx Saga', 'Dotonbori Osaka': 'Marvelia Osaka',
     'Kinugawa Tochigi': 'Rêveurs Tochigi', 'Ise Mie': 'Vierzehn Mie', 'Québec Flambeaux': 'Québec Rouge-Doré',
     'Langley Cedros': 'Langley Espartanos', 'Winnipeg Pradera': 'Winnipeg Bisontes', 'Voley Vyšehrad': 'Leones de Praga',
-    'Voley Špilberk': 'Fieras Brno', 'Voley Prater': 'Falke Wien'
+    'Voley Špilberk': 'Fieras Brno', 'Voley Prater': 'Falke Wien',
+    // rama ficcion (25-nov-2026, js/career.js NAME_REN6): los que la auditoría legal no había renombrado
+    'Perusia Volley': 'Voley Perugia', 'Voley Adige': 'Voley Verona', 'Voley Vingone': 'Volley Scandicci', 'Voley Maddalene': 'Voley Chieri',
+    'Patavium Volley': 'Volley Padova', 'Voley Stura': 'Voley Cuneo', 'Voley Sferisterio': 'Volley Macerata', 'Krasnale Wrocław': 'Siatkówka Wrocław',
+    'Voley Zwettl': 'Voley Waldviertel', 'Voley Meseș': 'Voley Zalău', 'Volley Cannettan': 'Voley Le Cannet', 'Vòlei Manacorí': 'Vòlei Manacor',
+    'Shinshu Shining Rams': 'Shinshu Brilliant Rams', 'Arezoo Tehran': 'Omid Tehran'
   };
   function seedOf(kind, cc, name, city, salt) { return fnv('v' + V + '|' + kind + '|' + cc + '|' + norm(name) + '|' + norm(city) + (salt ? '|' + salt : '')); }
 

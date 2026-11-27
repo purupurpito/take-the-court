@@ -185,7 +185,7 @@ Reparto: 6 de la liga de hombres y 6 de la de mujeres.
 | Real | Nuestro nombre | Corto | Nota |
 |---|---|---|---|
 | Copa del Rey + Copa de la Reina (España) | **Copa del Cetro** | CDT | Copa nacional única y mixta de España. No coincide con ningún trofeo oficial que yo sepa; sin comprobar por búsqueda web. |
-| Supercopa de España (las dos) | **Hipercopa** | HPC | Campeón de la Hiperliga contra el de la Copa del Trono. |
+| Supercopa de España (las dos) | **Hipercopa** | HPC | Campeón de la Hiperliga contra el de la Copa del Cetro. |
 | Copa Príncipe + Copa Princesa (copas de Superliga 2) | **Copa Delfín** | CDF | Copa de la 2ª española. Opcional. |
 | Coupe de France (las dos) | **Coupe Hexagone** | CHX | Copa nacional única de Francia. |
 | Supercoupe de France / Super Coupe LNV | **Supercoupe Smash** | SCS | Antes «Super Smash», que es el nombre oficial de la liga T20 de críquet de Nueva Zelanda: cambiado. Sin búsqueda web del nombre nuevo. |
@@ -199,7 +199,7 @@ Ligas: Marmara SpikeLigue / Saforelle Power 6 → **Ligue Smash**; Ligue B / Él
 
 ## Datos dudosos
 
-- **Nombres sin buscar en la web** (todos): cupo de búsquedas agotado. Riesgo mayor en los que llevan nombre de ciudad o gentilicio: Vòlei Manacor (su web es voleimanacor.club), Voley Turia, Vòlei Ciutadellenc, Vòlei Santcugatenc, Voley Benidormí, Voley Alcobendense, Voley Socuellamino, Voley Sanroqueño, Volley Tourquennois, Volley Nazairien, Elbflorenz Volley, Ammersee Wellenbrecher.
+- **Nombres sin buscar en la web** (todos): cupo de búsquedas agotado. Riesgo mayor en los que llevan nombre de ciudad o gentilicio: Vòlei Manacorí (su web es voleimanacor.club), Voley Turia, Vòlei Ciutadellenc, Vòlei Santcugatenc, Voley Benidormí, Voley Alcobendense, Voley Socuellamino, Voley Sanroqueño, Volley Tourquennois, Volley Nazairien, Elbflorenz Volley, Ammersee Wellenbrecher.
 - **Colores estimados** en casi toda la 2ª alemana, varios de la 1ª alemana (Lüneburg; Dresde ya confirmado, ver «Verificación») y casi toda España salvo Guaguas, Melilla, Manacor, Teruel, Almería y Emevé.
 - **Nombres oficiales por confirmar** en España (marcados «por confirmar»): Soria, Cisneros, Cajasol, Gran Canaria, Heidelberg, Conqueridor, San Roque, Sayre, Socuéllamos, Santa Cruz.
 - **Francia, 2ª:** solo 11 clubes. Ajaccio usa los colores del Gazélec omnideportivo. No metí clubes de la Élite real de mujeres (no encontré su lista completa ni sus colores); salen de la zona baja de la Saforelle Power 6.
@@ -269,8 +269,8 @@ Repaso adversarial del 11-nov-2026. **Aviso:** el cupo de búsquedas web de la s
    - Los españoles de forma «Voley + topónimo»: Voley Isleta, Voley Nivaria, Voley Aguere, Voley Tamarán, Voley Indalo, Voley Hispalis, Voley Lucus, Vòlei Tàrraco, Voley Chicharrero y Voley Numantia Soria.
    - Los de gentilicio: Ciutadellenc, Santcugatenc, Benidormí, Alcobendense, Socuellamino, Sanroqueño, Tourquennois y Nazairien.
    - Baie des Anges Volley, Stanislas Volley Nancy, Aiacciu Volley, Elbflorenz Volley y Ammersee Wellenbrecher.
-   - Vòlei Manacor: es el ejemplo de Ferran, pero puede ser la marca del club real (voleimanacor.club).
-   - Competiciones sin buscar: Copa del Trono, Hipercopa, Copa Delfín, Coupe Hexagone, Supercoupe Smash, Bundespokal Volley y Hyper-Cup.
+   - Vòlei Manacorí: es el ejemplo de Ferran, pero puede ser la marca del club real (voleimanacor.club).
+   - Competiciones sin buscar: Copa del Cetro, Hipercopa, Copa Delfín, Coupe Hexagone, Supercoupe Smash, Bundespokal Volley y Hyper-Cup.
 2. **Cajasol:** dataproject lo llama «Fundación Cajasol Andalucía» y es.wikipedia da como campeona a «F. Unicaja Andalucía VB» (Dos Hermanas). Hay que confirmar el nombre y la ciudad (Sevilla o Dos Hermanas).
 3. **Francia:**
    - El GFC Ajaccio no está en la Ligue A de hombres 2025-26. Si se queda, es como club de Ligue B. Royan, que sube para 2026-27, podría sustituirlo.

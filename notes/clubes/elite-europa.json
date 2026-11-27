@@ -16,7 +16,7 @@
             {
               "real": "Sir Safety Perugia",
               "official": "Sir Susa Scai Perugia (club: Sir Safety Umbria Volley Perugia)",
-              "name": "Voley Perugia",
+              "name": "Perusia Volley",
               "sponsor": "Salumificio Il Bagher",
               "realSponsor": true,
               "short": "PER",
@@ -73,7 +73,7 @@
             {
               "real": "Rana Verona",
               "official": "Rana Verona (club: Verona Volley)",
-              "name": "Voley Verona",
+              "name": "Voley Adige",
               "sponsor": "Pandoro Ace",
               "realSponsor": true,
               "short": "VER",
@@ -168,7 +168,7 @@
             {
               "real": "Savino Del Bene Scandicci",
               "official": "Savino Del Bene Scandicci (club: Pallavolo Scandicci Savino Del Bene)",
-              "name": "Volley Scandicci",
+              "name": "Voley Vingone",
               "sponsor": "Pelletteria Alzata",
               "realSponsor": true,
               "short": "SCA",
@@ -206,7 +206,7 @@
             {
               "real": "Reale Mutua Fenera Chieri '76",
               "official": "Reale Mutua Fenera Chieri '76 (club: Chieri '76 Volleyball)",
-              "name": "Voley Chieri",
+              "name": "Voley Maddalene",
               "sponsor": "Grissini Fuori Tutto",
               "realSponsor": true,
               "short": "CHI",
@@ -272,7 +272,7 @@
             {
               "real": "Sonepar Padova",
               "official": "Sonepar Padova (club: Pallavolo Padova)",
-              "name": "Volley Padova",
+              "name": "Patavium Volley",
               "sponsor": "Ferramenta Doppio Tocco",
               "realSponsor": true,
               "short": "PAD",
@@ -309,7 +309,7 @@
             {
               "real": "MA Acqua San Bernardo Cuneo",
               "official": "MA Acqua San Bernardo Cuneo (club: Cuneo Volley)",
-              "name": "Voley Cuneo",
+              "name": "Voley Stura",
               "sponsor": "Marroni Invasione",
               "realSponsor": true,
               "short": "CUN",
@@ -421,8 +421,8 @@
             },
             {
               "real": "CBF Balducci HR Macerata",
-              "official": "CBF Balducci HR Macerata (club: Helvia Recina Volley Macerata)",
-              "name": "Volley Macerata",
+              "official": "CBF Balducci HR Macerata (club: Helvia Recina Voley Sferisterio)",
+              "name": "Voley Sferisterio",
               "sponsor": "Ciauscolo Cambio Palla",
               "realSponsor": true,
               "short": "MAC",
@@ -883,7 +883,7 @@
             {
               "real": "#VolleyWrocław",
               "official": "KGHM #VolleyWrocław",
-              "name": "Siatkówka Wrocław",
+              "name": "Krasnale Wrocław",
               "sponsor": "Kwiaciarnia Rotacja",
               "realSponsor": true,
               "short": "WRO",
@@ -896,7 +896,7 @@
               },
               "liberoEstimated": true,
               "ovr": 73,
-              "check": "«Volley Wrocław» ES el nombre oficial del club, así que uso la palabra polaca. Búsqueda web del nombre exacto entre comillas «Siatkówka Wrocław»: nada. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "«Volley Wrocław» ES el nombre oficial del club, así que uso la palabra polaca. Búsqueda web del nombre exacto entre comillas «Krasnale Wrocław»: nada. Líbero: no encontrado en internet (12-nov-2026).",
               "sponsorCheck": "Juego de palabras: rotacja (rotación); floristería. WebSearch (frase exacta entre comillas, en tanda con otros nombres inventados, 11-nov-2026): sin coincidencias con ninguna empresa real."
             },
             {
@@ -967,7 +967,7 @@
         {
           "lvl": 1,
           "real": "Sultanlar Ligi + Efeler Ligi 2025-26 (mezcla; se inclina a Sultanlar, la más fuerte del mundo)",
-          "name": "Efsaneler Ligi",
+          "name": "Sultanefe Ligi",
           "short": "EFS",
           "strength": 87,
           "clubs": [
@@ -1200,7 +1200,7 @@
         {
           "lvl": 2,
           "real": "Parte baja de Sultanlar Ligi y Efeler Ligi 2025-26 (mezcla)",
-          "name": "Efsaneler 1. Lig",
+          "name": "Sultanefe 1. Lig",
           "short": "EF1",
           "strength": 72,
           "clubs": [
