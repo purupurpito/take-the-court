@@ -4,12 +4,12 @@
   var VB = window.VB = window.VB || {};
 
   VB.VERSION = '1.24.0';
-  VB.VERSION_DATE = '2026-11-25';
+  VB.VERSION_DATE = '2026-11-27';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.24.0', d: '2026-11-25', t: 'Un final al día',
+      v: '1.24.0', d: '2026-11-27', t: 'Un final al día',
       items: [
         'Cada día, un final apretado. El mismo para todos. Si lo pierdes, mañana hay otro.',
         'Botones de Sugerencia y Bug en la pausa y en Ajustes. Los leo todos.',
@@ -17,7 +17,11 @@
         'La repetición ya no sale sola: si el punto lo merece, la pides tú. También en 6 contra 6.',
         'Cuando sacas, la cámara se está quieta.',
         'Si rematas siempre por el mismo lado, el bloqueo rival se acaba enterando.',
-        'Premios nuevos del nivel 40 al 99. El del 99 es un pelo arcoíris.'
+        'Premios nuevos del nivel 40 al 99. El del 99 es un pelo arcoíris.',
+        'En PC se juega con teclado y ratón: el ratón apunta. Solo teclado sigue en Ajustes.',
+        'El cursor es una flecha con un balón, para no perderlo de vista.',
+        'Letras nuevas en todo el juego, más fáciles de leer.',
+        'Algunos clubes y copas cambian de nombre. Tu Carrera se pone al día sola.'
       ]
     },
     {
