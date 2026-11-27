@@ -1447,7 +1447,7 @@
     else { try { introFill(g, plan); } catch (e) { console.error('[VB][ERROR] UI.introFill: ' + e); } }
     // la situación de la semana: antetítulo propio y el marcador de arranque en lugar de «Al mejor de 3 sets»
     if (g && g.sit && !g.demo && !dr) {
-      if (it && it.nodeType === 3) it.nodeValue = 'La jugada del día';
+      if (it && it.nodeType === 3) it.nodeValue = 'Una oportunidad';
       if (el.introFmt) el.introFmt.textContent = (g.bo1 ? 'Set único a ' + setT(g) : SET_ORD[(g.setNo | 0) - 1] + ' set a ' + setT(g)) + ': ' + g.score[0] + '-' + g.score[1];
       if (el.introSrv) el.introSrv.textContent = cpuTxt(g.serving === 1 ? 'Saca el rival' : six ? 'Sacáis vosotros' : 'Sacas tú');
     }
@@ -3894,7 +3894,7 @@
     el.end.classList.toggle('crs', !!cs);   // (movil-aire, carrera-flujo: hoja de un partido de Carrera; solo la usa el CSS de html.ph)
     if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); crKick(M.kicker); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
     else if (d.sit) {   // «La jugada del día ◆ 24 nov | Set único a 25»
-      setSep(el.endKicker, [{ h: nw('La jugada del día') }, { h: nw(escT(d.sit.dayLbl || '')) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
+      setSep(el.endKicker, [{ h: nw('Una oportunidad') }, { h: nw(escT(d.sit.dayLbl || '')) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
       // (movil-aire §5.7, móvil: «¡SALVADA!» sin el resultado, que ya está en el marcador y en los sets)
       var stt = phMob() ? String(M.title).replace(/\s+\d+\s*[-–]\s*\d+\s*$/, '') : M.title;
       el.endTitle.textContent = stt; el.endTitle.classList.toggle('long', String(stt).length > 11);
@@ -4509,7 +4509,7 @@
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
-        case 'sit': blk('rc-sit', H.sit || 'Jugada del día', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + (phMob() ? escT(t).replace(/(\d+-\d+)/g, '<span style="white-space:nowrap">$1</span>') : escT(t)) + '</span>'; }).join('')); break;   // (el resultado «17-15» no se parte)
+        case 'sit': blk('rc-sit', H.sit || 'Una oportunidad', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + (phMob() ? escT(t).replace(/(\d+-\d+)/g, '<span style="white-space:nowrap">$1</span>') : escT(t)) + '</span>'; }).join('')); break;   // (el resultado «17-15» no se parte)
       }
     });
     return h;
@@ -7771,7 +7771,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Jugada' }] : []).concat([{ id: 'hoy', label: 'Reto' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Oportunidad' }] : []).concat([{ id: 'hoy', label: 'Reto' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
@@ -7783,7 +7783,7 @@
     if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
     else if (rtTab === 'semana') {   // la situación de la semana (js/semana-ui.js pinta; aquí solo se monta)
       try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap, semVw) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
-      if (!h) h = '<p class="rt-none">La jugada del día no está disponible.</p>';
+      if (!h) h = '<p class="rt-none">«Una oportunidad» no está disponible.</p>';
     } else if (rtTab === 'maestria') {
       var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
       h = '';
@@ -7933,7 +7933,7 @@
     if (!P) return false;
     semPopSt = 'shown'; try { sessionStorage.setItem(SEMPOP_KEY, '1'); } catch (e) { }
     uiSound('click');
-    semPopApi = VB.Splat.sheet({ title: 'La jugada del día', html: P.html, cls: 'semp-sh',
+    semPopApi = VB.Splat.sheet({ title: 'Una oportunidad', html: P.html, cls: 'semp-sh',
       actions: [{ label: 'Ahora no', cls: 'sp-cream', id: 'btnSemPopNo', fn: function () { uiSound('back'); } },
         { label: 'Vamos', cls: 'sp-kit', primary: true, id: 'btnSemPopGo', fn: function () { uiSound('start'); setTimeout(function () { goSemana(false); }, 0); } }],
       onClose: function () { semPopApi = null; } });

@@ -397,7 +397,7 @@
   }
 
   VB.Semana = {
-    KEY: KEY, VER: VER, TRIES: TRIES, MAXG: MAXG, NAME: 'La jugada del día', TYPES: TYPES,
+    KEY: KEY, VER: VER, TRIES: TRIES, MAXG: MAXG, NAME: 'Una oportunidad', TYPES: TYPES,
     situation: situation, state: state, peek: peek, left: left, begin: begin, finish: finish, abandon: abandon, better: better,
     streak: streak, popWanted: popWanted, streakTxt: streakTxt,
     link: link, readLink: readLink, mergeLink: mergeLink, shareText: shareText, myName: myName, resLbl: resLbl, week: week,

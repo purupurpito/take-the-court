@@ -11,13 +11,15 @@
     {
       v: '1.24.0', d: '2026-11-27', t: 'Un final al día',
       items: [
-        'Cada día, un final apretado. El mismo para todos. Si lo pierdes, mañana hay otro.',
-        'Botones de Sugerencia y Bug en la pausa y en Ajustes. Los leo todos.',
-        'En vertical ya se puede jugar sin dejarse los ojos. En horizontal también se lee mejor.',
-        'La repetición ya no sale sola: si el punto lo merece, la pides tú. También en 6 contra 6.',
-        'Cuando sacas, la cámara se está quieta.',
-        'Si rematas siempre por el mismo lado, el bloqueo rival se acaba enterando.',
-        'Premios nuevos del nivel 40 al 99. El del 99 es un pelo arcoíris.'
+        '¡Nuevo modo! Situaciones difíciles, solo aptas para quien sepa jugar bajo presión.',
+        'Botones de sugerencia y bugs.',
+        'Rediseño de menús, que ahora también se ven mejor en el móvil.',
+        'Mejoras de cámara.',
+        'La CPU mejora si eres repetitivo. ¡Hay que ser versátil para ganar!',
+        'Nuevos premios por nivel.',
+        'Nuevos controles.',
+        '¡Nuevo cursor! Ahora es personalizado.',
+        'Pequeño rediseño de los personajes en playa.'
       ]
     },
     {

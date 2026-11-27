@@ -80,7 +80,7 @@
   }
   function flame(n) { return '<span class="sem-fl" aria-hidden="true"><b>' + (n | 0) + '</b></span>'; }
   function tabHTML(mode, vw) {
-    var M = S(); if (!M) return '<p class="rt-none">La jugada del día no está disponible.</p>';
+    var M = S(); if (!M) return '<p class="rt-none">«Una oportunidad» no está disponible.</p>';
     mode = mode === 'A' ? 'A' : 'S';
     var st = M.state(), sit = st.sit, a = sit.score[0], b = sit.score[1];
     var ball = VB.Splat && VB.Splat.BALL ? VB.Splat.BALL : '';
@@ -90,10 +90,10 @@
     // (el tipo de jugada va en .sem-ty con su separador: con ≤ 380 de alto se esconde, como «Atributos parejos»; está en aria-label)
     var sub = [sit.famLbl, sit.srvLbl].concat(sit.six ? ['6 contra 6', sit.rotLbl] : []);
     [sit.mapName, sit.diffName, 'Atributos parejos'].forEach(function (c) { chips += '<i class="sp-chip ' + (c === 'Atributos parejos' ? 'sp-cream sem-cx' : 'sp-ink') + '">' + esc(c) + '</i>'; });
-    var aria = 'La jugada del día, ' + sit.dayLbl + ': ' + sit.title + '. ' + sit.goal + '. ' + sit.label + '. ' + sit.chips.slice(2).join(', ');
+    var aria = 'Una oportunidad, ' + sit.dayLbl + ': ' + sit.title + '. ' + sit.goal + '. ' + sit.label + '. ' + sit.chips.slice(2).join(', ');
     var h = '<div class="sem-l"><div class="sem-tk sp-ticket sp-noshine" data-shape="3" role="group" aria-label="' + esc(aria) + '">' +
-      '<span class="sp-stamp sem-stamp" aria-hidden="true" data-ring="LA JUGADA DEL DÍA|' + esc(sit.dayLbl.toUpperCase()) + '"><span class="sp-sc">' + ball + '<b>' + (st.day % 100) + '</b></span></span>' +
-      '<div class="sem-tm" aria-hidden="true"><p class="sem-k">La jugada del día</p><p class="sem-sc">' + a + '<i>-</i>' + b + '</p><p class="sem-sub"><span class="sem-ty">' + esc(sit.title) + '<span class="sep sep-v"><span class="sr">, </span></span></span>' + sep(sub) + '</p><p class="sem-ch">' + chips + '</p></div></div>';
+      '<span class="sp-stamp sem-stamp" aria-hidden="true" data-ring="UNA OPORTUNIDAD|' + esc(sit.dayLbl.toUpperCase()) + '"><span class="sp-sc">' + ball + '<b>' + (st.day % 100) + '</b></span></span>' +
+      '<div class="sem-tm" aria-hidden="true"><p class="sem-k">Una oportunidad</p><p class="sem-sc">' + a + '<i>-</i>' + b + '</p><p class="sem-sub"><span class="sem-ty">' + esc(sit.title) + '<span class="sep sep-v"><span class="sr">, </span></span></span>' + sep(sub) + '</p><p class="sem-ch">' + chips + '</p></div></div>';
     // intentos de hoy: llena = gastado, dorada = ganado; el que está abierto (a medias) cuenta como gastado
     var dots = '';
     for (var i = 0; i < M.TRIES; i++) { var t = st.today[i], used = i < st.n; dots += '<i class="sem-dot' + (used ? ' used' : '') + (t && t.w ? ' won' : '') + '"></i>'; }

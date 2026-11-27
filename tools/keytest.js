@@ -34,6 +34,8 @@ const KEYS = {
     await page.navigate('debug=serve&live=1&autoplay=0&seed=7');
     await wait(3000);
     check('arranca en partido', (await E('VB.ctx.state')) === 'playing');
+    // (controles PC, 25-nov-2026: de fábrica es teclado y ratón; esta prueba es la de reasignar teclas del esquema Solo teclado)
+    await E("(VB.ctx.actions.setSetting('ctrlPC', 'kb'), 1)"); await wait(200);
     check('VB.Input expone OPTS, bindings, rebind, captureNext, keyName, padName',
       await E(`!!(VB.Input.OPTS && VB.Input.bindings && VB.Input.rebind && VB.Input.captureNext && VB.Input.keyName && VB.Input.padName)`));
     await setKeys({});

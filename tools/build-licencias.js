@@ -3,7 +3,7 @@
  * Genera pages/licencias.html (https://takethecourt.com/licencias.html) con los textos COMPLETOS de las licencias de terceros, tal
  * cual están en el repo:
  *   - three.js (MIT): vendor/three/LICENSE
- *   - tipografías del juego (SIL OFL 1.1): vendor/fonts/OFL-*.txt (Barlow, Barlow Condensed, Bowlby One, Rubik, Titan One)
+ *   - tipografías del juego (SIL OFL 1.1): vendor/fonts/OFL-*.txt (Big Shoulders Display, Chivo, Doto y Barlow Condensed)
  *   - letras del logotipo, pasadas a trazos (SIL OFL 1.1): vendor/licenses/OFL-anton.txt y OFL-bungee.txt (de github.com/google/fonts)
  *   - Apache 2.0 (app de Android: Android Browser Helper, AndroidX, plantilla de Bubblewrap, Gradle wrapper; Firebase JS SDK):
  *     vendor/licenses/Apache-2.0.txt (de apache.org)
@@ -20,11 +20,10 @@ const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&
 /** Licencias que salen en la página (id del ancla, título, para qué se usa en es y en, archivo). */
 const LIC = [
   { id: 'three', t: 'three.js', es: 'Motor 3D del juego. Licencia MIT.', en: 'The game\'s 3D engine. MIT licence.', f: 'vendor/three/LICENSE' },
-  { id: 'titanone', t: 'Titan One', es: 'Tipografía de los títulos (Rodrigo Fuenzalida). SIL Open Font License 1.1.', en: 'Title font (Rodrigo Fuenzalida). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-titanone.txt' },
-  { id: 'bowlbyone', t: 'Bowlby One', es: 'Tipografía de respaldo de los títulos (Vernon Adams). SIL Open Font License 1.1.', en: 'Fallback title font (Vernon Adams). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-bowlbyone.txt' },
-  { id: 'rubik', t: 'Rubik', es: 'Tipografía de los textos (The Rubik Project Authors). SIL Open Font License 1.1.', en: 'Body text font (The Rubik Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-rubik.txt' },
-  { id: 'barlow', t: 'Barlow', es: 'Tipografía del marcador (The Barlow Project Authors). SIL Open Font License 1.1.', en: 'Scoreboard font (The Barlow Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-barlow.txt' },
-  { id: 'barlowcondensed', t: 'Barlow Condensed', es: 'Tipografía del marcador (The Barlow Project Authors). SIL Open Font License 1.1.', en: 'Scoreboard font (The Barlow Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-barlowcondensed.txt' },
+  { id: 'bigshoulders', t: 'Big Shoulders Display', es: 'Tipografía de los títulos y rótulos (The Big Shoulders Project Authors). SIL Open Font License 1.1.', en: 'Title and sign font (The Big Shoulders Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-bigshoulders.txt' },
+  { id: 'chivo', t: 'Chivo', es: 'Tipografía de los textos (The Chivo Project Authors). SIL Open Font License 1.1.', en: 'Body text font (The Chivo Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-chivo.txt' },
+  { id: 'doto', t: 'Doto', es: 'Tipografía de puntos del marcador del pabellón (The Doto Project Authors). SIL Open Font License 1.1.', en: 'Dot-matrix font of the arena scoreboard (The Doto Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-doto.txt' },
+  { id: 'barlowcondensed', t: 'Barlow Condensed', es: 'Tipografía del rótulo de carga (The Barlow Project Authors). SIL Open Font License 1.1.', en: 'Loading sign font (The Barlow Project Authors). SIL Open Font License 1.1.', f: 'vendor/fonts/OFL-barlowcondensed.txt' },
   { id: 'anton', t: 'Anton', es: 'Letras del logotipo, pasadas a trazos (Vernon Adams). SIL Open Font License 1.1.', en: 'Logo lettering, converted to outlines (Vernon Adams). SIL Open Font License 1.1.', f: 'vendor/licenses/OFL-anton.txt' },
   { id: 'bungee', t: 'Bungee', es: 'Letras del logotipo, pasadas a trazos (David Jonathan Ross). SIL Open Font License 1.1.', en: 'Logo lettering, converted to outlines (David Jonathan Ross). SIL Open Font License 1.1.', f: 'vendor/licenses/OFL-bungee.txt' },
   { id: 'apache', t: 'Apache License 2.0', es: 'App de Android: Android Browser Helper (© Google LLC), AndroidX (© The Android Open Source Project), la plantilla de Bubblewrap (© Google Inc.) y el Gradle wrapper (© los autores de Gradle). También el Firebase JS SDK (© Google LLC), que el juego carga de Google para la cuenta.', en: 'Android app: Android Browser Helper (© Google LLC), AndroidX (© The Android Open Source Project), the Bubblewrap template (© Google Inc.) and the Gradle wrapper (© the Gradle authors). Also the Firebase JS SDK (© Google LLC), which the game loads from Google for accounts.', f: 'vendor/licenses/Apache-2.0.txt' }
@@ -44,7 +43,7 @@ function page() {
 <meta name="theme-color" content="#15102a">
 <meta name="description" content="Licencias de las librerías y tipografías de terceros que usa Take the Court.">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>Licencias · Take the Court</title>
+<title>Licencias — Take the Court</title>
 <!-- TAKE THE COURT — pages/licencias.html. GENERADA por tools/build-licencias.js: no la edites a mano (cambia el script o los textos
      de vendor/ y vuelve a generarla). Textos completos de las licencias de terceros; tools/policytest.js comprueba que están al día. -->
 <style>
@@ -90,7 +89,7 @@ ${texts}
   <p><a class="back" href="./">Volver al juego</a></p>
 </section>
 
-<p class="foot"><a href="privacidad.html">Privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="condiciones.html">Condiciones</a> · <a href="#es">Español</a> · <a href="#en">English</a></p>
+<p class="foot"><a href="privacidad.html">Privacidad</a>&emsp;<a href="aviso-legal.html">Aviso legal</a>&emsp;<a href="condiciones.html">Condiciones</a>&emsp;<a href="#es">Español</a>&emsp;<a href="#en">English</a></p>
 </main>
 </body>
 </html>

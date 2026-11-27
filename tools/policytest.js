@@ -428,7 +428,7 @@ async function browser() {
     const t0 = Date.now(); while (Date.now() - t0 < 20000 && !(await G('!!(window.VB&&VB.ctx&&VB.ctx.state&&VB.UI)').catch(() => false))) await sleep(150);
     await sleep(1200);
     const rows = await G(`JSON.stringify([].map.call(document.querySelectorAll('.opt-g[data-tab="info"] [data-go]'), function(b){return b.getAttribute('data-go');}))`);
-    check(JSON.parse(rows).join() === 'news,credits,priv,legal,terms,lic,mig', 'Info: Novedades, Créditos, Privacidad, Aviso legal, Condiciones, Licencias, Traer tu partida', rows);
+    check(JSON.parse(rows).join() === 'news,credits,priv,legal,terms,lic,mig,fbsug,fbbug,fbview', 'Info: Novedades, Créditos, Privacidad, Aviso legal, Condiciones, Licencias, Traer tu partida y opiniones (1.22.1)', rows);
     for (const [g, f, re] of [['legal', 'aviso-legal.html', /^Aviso legal/], ['terms', 'condiciones.html', /^Condiciones/], ['lic', 'licencias.html', /^Licencias/]]) {
       const lb = await G(`(document.querySelector('[data-go="${g}"]')||{}).textContent||''`);
       await G(`window.__opened=[]; window.open=function(u,t,f){window.__opened.push([u,t,f]);return null;}; document.querySelector('[data-go="${g}"]').click(); 1`);

@@ -49,11 +49,11 @@
   var SEM = !!(VB.Semana && VB.Semana.peek && VB.SemanaUI && VB.UI && VB.UI.openRetos);
   var stamp = mk('button', 'sp-stamp');
   stamp.type = 'button'; stamp.id = 'btnMjReto';
-  stamp.setAttribute('aria-label', SEM ? 'La jugada del día' : 'Reto del día');
+  stamp.setAttribute('aria-label', SEM ? 'Una oportunidad' : 'Reto del día');
   var ringDay = '';
   try { ringDay = SEM ? VB.Semana.dayLbl(VB.Semana.today()) : VB.Retos ? VB.Retos.dateLabel(VB.Retos.today()) : ''; } catch (e) { ringDay = ''; }
   ringDay = ringDay ? '|' + String(ringDay).toUpperCase() : '';
-  stamp.setAttribute('data-ring', (SEM ? 'LA JUGADA DEL DÍA' : 'RETO DEL DÍA') + ringDay);
+  stamp.setAttribute('data-ring', (SEM ? 'UNA OPORTUNIDAD' : 'RETO DEL DÍA') + ringDay);
   if (SEM) stamp.classList.add('mj-sem');
   // (movil-aire §5.1: en el móvil, apaisado o vertical, el sello va de pegatina en la esquina de JUGAR —.ph-sticker— y no tapa el texto)
   stamp.classList.add('ph-sticker'); go.classList.add('ph-stk-host');
@@ -175,7 +175,7 @@
     else if (rb) rb.parentNode.removeChild(rb);
     stamp.classList.remove('sp-dot');
     stamp.classList.toggle('mj-semdone', !!st.done);
-    stamp.setAttribute('aria-label', 'La jugada del día: ' + a + '-' + b + ', ' + (st.done ? 'cumplida hoy' : lf ? (lf === 1 ? 'queda 1 intento hoy' : 'quedan ' + lf + ' intentos hoy') : 'mañana, otra jugada') +
+    stamp.setAttribute('aria-label', 'Una oportunidad: ' + a + '-' + b + ', ' + (st.done ? 'cumplida hoy' : lf ? (lf === 1 ? 'queda 1 intento hoy' : 'quedan ' + lf + ' intentos hoy') : 'mañana, otra jugada') +
       (sk ? '. Racha: ' + VB.Semana.streakTxt(sk) : '') + (st.best && !st.done ? '. Tu mejor de hoy: ' + VB.Semana.resLbl(st.best).toLowerCase() : ''));
   }
   function stampSync() {
