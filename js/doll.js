@@ -2100,7 +2100,8 @@
       G.owk = 0.4; G.add(torus(sr + 0.005, 0.0095, 5, 14), pa, 0, yA + ANKLET_H - 0.004, 0, PI / 2 + 0.14, 0, 0); G.vc = null; G.owk = 1;
     }
   }
-  /** Playa: pie DESCALZO de muñeco (empeine redondo de piel, planta con arena, dedo gordo insinuado); escarpines = pie de cSock. Las
+  /** Playa: pie DESCALZO de muñeco (empeine redondo de piel y planta con arena; 27-nov-2026: sin dedo gordo, pie redondo y abombado
+   *  de dibujo animado, porque un jugador pidió que no se notaran los dedos); escarpines = pie de cSock. Las
    *  tobilleras (tela, pulsera, pulpo) van en la espinilla (shinGeo). La planta queda en -ANKLE como la suela del zapatón.
    *  s: 1 izquierdo, -1 derecho (el dedo gordo, hacia dentro). */
   var SAND_HEX = 0xe8cf9a;
@@ -2112,12 +2113,10 @@
     var sk = esc ? colSock(X, tc) : neo ? NEO : X.skin, tp = ankleTape(X.skin);
     G.add(sph(0.05 * K, 12, 8), tap ? tp : sk, 0, -0.045, -0.012, 0, 0, 0, 1, 1.0, 1.1);                                    // tobillo y talón
     if (tap) G.vc = function (px, py, pz) { return pz < 0.25 ? tp : null; };
-    G.add(sph(1, 16, 10, 0, PI * 2, 0, PI * 0.5), sk, 0, Y, 0.045 * K, 0, 0, 0, 0.078 * K, 0.07 * Math.sqrt(K), 0.14 * K);     // empeine (media esfera)
+    G.add(sph(1, 16, 10, 0, PI * 2, 0, PI * 0.5), sk, 0, Y, 0.05 * K, 0, 0, 0, 0.088 * K, 0.082 * Math.sqrt(K), 0.135 * K);     // empeine (media esfera, alta y redonda)
     G.vc = null;
-    G.add(sph(1, 16, 6, 0, PI * 2, PI * 0.5, PI * 0.5), neo ? pick(colA(X, tc), NEO, tc) : mixHex(sk, SAND_HEX, esc ? 0.3 : 0.4), 0, Y, 0.045 * K, 0, 0, 0, 0.08 * K, 0.062, 0.142 * K); // planta con arena
-    // (con los escarpines de neopreno, sin dedo gordo: era una bola oscura que asomaba en la puntera; ronda 1 de WP7)
-    if (!neo) { G.owk = 0.5; G.add(sph(0.03 * K, 10, 7), sk, -s * 0.034 * K, Y + 0.004, 0.045 * K + 0.125 * K, 0, 0, 0, 1, 0.8, 1.1); }   // dedo gordo
-    G.owk = 1;
+    G.add(sph(1, 16, 6, 0, PI * 2, PI * 0.5, PI * 0.5), neo ? pick(colA(X, tc), NEO, tc) : mixHex(sk, SAND_HEX, esc ? 0.3 : 0.4), 0, Y, 0.05 * K, 0, 0, 0, 0.09 * K, 0.062, 0.137 * K); // planta con arena
+    // (sin dedo gordo desde el 27-nov-2026: la bola de la puntera se leía como dedos)
   }
   /** Zapatón redondeado grande: empeine (media esfera con el polo delante) + suela (media esfera aplastada) + cuello y ribete; la planta
    *  queda en -ANKLE. WP4: cada modelo con su FORMA (lo de lado se distingue) y sus dibujos por color de vértice: puntera, franja lateral,
