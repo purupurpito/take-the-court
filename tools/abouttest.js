@@ -49,7 +49,7 @@ check((CR.tools || []).some(t => /three\.js r149.*MIT/.test(t)), 'créditos con 
 check(/Copyright © 2010-2023 Three\.js Authors/.test((CR.licenses || {}).three || '') && /MIT License/.test(CR.licenses.three) &&
   /WITHOUT WARRANTY OF ANY KIND/.test(CR.licenses.three), 'licencia MIT de three.js completa, 2010-2023 (cabecera de three.min.js 0.149.0)');
 check(/Open Font License/.test(CR.fonts || '') && /Open Font License/.test((CR.licenses || {}).ofl || ''), 'tipografía y resumen de la OFL');
-check(/inventados/.test(CR.note || ''), 'aviso de clubes y jugadores inventados');
+check(/ficticios/.test(CR.note || '') && /competiciones/.test(CR.note || '') && /coincidencia/.test(CR.note || ''), 'aviso de ficción: clubes, jugadores y competiciones ficticios');
 
 console.log('== build-pages ==');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vbabout-'));

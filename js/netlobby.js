@@ -92,6 +92,7 @@
         if (mc) { mine.multi = true; mine.mode = mc.mode; mine.cap = mc.cap; mine.fmt = mc.fmt; mine.venue = mc.venue; mine.seats = {}; mine.nseat = 0; mine.free = mc.cap - 1; mine.cnt = 0; }
         return P(mine);
       },
+      unguest: function () { if (mine) { mine.guest = ''; mine.gname = ''; mine.state = 'open'; } return P(mine); },
       kick: function () { return P(mine); }, joinMulti: function (id) { return this.join(id); }, leaveMulti: function () { return P(); },
       beat: function (f) { if (mine && f) for (var k in f) mine[k] = f[k]; return P(mine); },
       get: function (id) { return P(find(id)); }, byCode: function (c) { return P(R.filter(function (r) { return r.code === c; })[0] || null); },
@@ -134,6 +135,57 @@
    *  (tu apodo o «Jugador NNNN»). */
   function ownName(n) { var c = n ? NR().cleanName(n) : '', F = VB.NameFilter; return c && !(F && F.bad(c)) ? c : myName(); }
   function rivalUid() { var r = L.room; return r ? (L.role === 'host' ? r.guest : r.host) || '' : ''; }
+  /* «Denunciar nombre» y «Bloquear» (js/report.js; auditoría legal, 25-nov-2026). Los bloqueados (solo en este aparato) no salen en la
+   * lista, no se puede entrar por código en sus salas y, si entran en la tuya, se les saca. */
+  function isBlocked(u) { var R = VB.Report; return !!(u && R && R.blocked && R.blocked(u)); }
+  function roomHost(r) { return (r && (r.host || r.id)) || ''; }
+  function roomBlocked(r) { if (!r) return false; if (isBlocked(roomHost(r))) return true; if (r.guest && isBlocked(r.guest)) return true; for (var u in (r.seats || {})) if (isBlocked(u)) return true; return false; }
+  /** Los demás de la sala en la que estás (1v1 o de varios): [{u, n, raw}] (sin ti). */
+  function others() {
+    var out = [], me = accKey(), E = L.mx;
+    if (E && E.room) {
+      var seats = E.room.seats || {};
+      if (E.room.host && E.room.host !== E.myU) out.push({ u: E.room.host, n: theirName(E.room.name0 || E.room.name, E.room.host) || 'Anfitrión', raw: E.room.name0 || E.room.name });
+      (E.ro && E.ro.m || []).forEach(function (m) { if (m.u && m.u !== E.myU && m.u !== E.room.host) out.push({ u: m.u, n: m.n, raw: seats[m.u] && (seats[m.u].n0 || seats[m.u].n) || m.n }); });
+      for (var u in seats) if (u !== E.myU && !out.some(function (x) { return x.u === u; })) out.push({ u: u, n: seats[u].n || 'Jugador', raw: seats[u].n0 || seats[u].n });
+    } else if (L.room) {
+      var ru = rivalUid(), r = L.room;
+      if (ru && ru !== me) out.push({ u: ru, n: L.rival || 'Rival', raw: L.role === 'host' ? (r.gname0 || r.gname) : (r.name0 || r.name) });
+    }
+    return out;
+  }
+  /** Los de la lista de salas: anfitriones y sentados (como mucho 12). */
+  function listPeople() {
+    var out = [], seen = {};
+    var add = function (u, n, raw) { if (u && !seen[u] && u !== accKey() && out.length < 12) { seen[u] = 1; out.push({ u: u, n: n || 'Jugador', raw: raw || n }); } };
+    L.rooms.forEach(function (r) {
+      add(roomHost(r), r.name, r.name0);
+      if (r.guest) add(r.guest, r.gname, r.gname0);
+      for (var u in (r.seats || {})) add(u, r.seats[u].n, r.seats[u].n0);
+    });
+    return out;
+  }
+  function reportOpen(people, code) {
+    var R = VB.Report; if (!R || !R.sheet) return;
+    R.sheet(people, { room: code || '', onBlock: function (x, on) {
+      if (!on) return;
+      if (L.view === 'list') { L.rooms = L.rooms.filter(function (r) { return !roomBlocked(r); }); render(true); return; }
+      blockedIn();
+    } });
+  }
+  /** Alguien bloqueado está en tu sala: anfitrión, se le saca; invitado en la sala de un bloqueado, sales tú. */
+  function blockedIn() {
+    var E = L.mx;
+    if (E && E.room) {
+      if (E.role === 'host') { (E.ro && E.ro.m || []).slice().forEach(function (m) { if (m.u !== E.myU && isBlocked(m.u) && !E.started) mxRelease(E, m.u, 'kick'); }); render(); }
+      else if (isBlocked(E.room.host) && !L.started) { leaveRoom(); L.msg = 'Has salido de la sala de un jugador bloqueado.'; L.msgBad = false; setView('list'); refreshList(true); }
+      return;
+    }
+    if (!L.room || L.started) return;
+    var ru = rivalUid(); if (!isBlocked(ru)) return;
+    if (L.role === 'host') { abortConn(); api().delSig(L.room.id).catch(function () { }); if (api().unguest) api().unguest().catch(function () { }); L.rival = ''; L.status = 'wait'; render(); }
+    else { leaveRoom(); L.msg = 'Has salido de la sala de un jugador bloqueado.'; L.msgBad = false; setView('list'); refreshList(true); }
+  }
   function sanAttrs(st) {
     if (!st || typeof st !== 'object') return null;
     var K = VB.ATTR_KEYS || ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'], o = {}, any = false;
@@ -249,7 +301,7 @@
     if (!signedIn()) { setView('noacc'); return; }
     L.loading = true; if (manual) render();
     api().list().then(function (rs) {
-      L.loading = false; L.rooms = rs; L.listAt = Date.now(); L.listErr = ''; verNote(rs);
+      L.loading = false; L.rooms = rs.filter(function (r) { return !roomBlocked(r); }); L.listAt = Date.now(); L.listErr = ''; verNote(rs);
       if (L.view === 'off') setView('list');
       render();
     }, function (e) {
@@ -303,6 +355,7 @@
       if (L.role !== 'host' || L.started) return;
       if (!r) { roomGone('Tu sala se ha cerrado.'); return; }
       L.room = r;
+      if (r.guest && isBlocked(r.guest)) { if (L.conn) abortConn(); if (api().unguest) api().unguest().catch(function () { }); L.rival = ''; L.status = 'wait'; render(); return; }   // (js/report.js: bloqueado)
       if (r.guest && r.state === 'full' && (!L.conn || L.conn.guest !== r.guest)) hostConnect(r);
       else if (!r.guest && L.conn) { abortConn(); api().delSig(L.room.id).catch(function () { }); L.rival = ''; L.status = 'wait'; L.fail = (L.fail || ''); render(); }
       else render();
@@ -415,6 +468,7 @@
     api().byCode(code).then(function (r) {
       L.busy = false;
       if (!r) { L.msg = 'No hay ninguna sala abierta con el código ' + code + '.'; L.msgBad = true; render(); return; }
+      if (isBlocked(roomHost(r))) { L.msg = 'Has bloqueado a quien creó esta sala.'; L.msgBad = true; render(); return; }
       if (r.mode === 'coop') { coopLink(code); return; }   // (código de una Carrera cooperativa: VB.CareerCoop o la hoja de unirse)
       joinRoom(r.id);
     }, function (e) { L.busy = false; if (e.code === 'off') { setView('off'); return; } L.msg = errText(e); L.msgBad = true; render(); });
@@ -1133,7 +1187,8 @@
     ref: svg('M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4'), copy: svg('M8 8h11v11H8zM5 16V5h11'), out: svg('M14 5h5v14h-5M10 8l-4 4 4 4M6 12h10'),
     // (móvil) compartir, siguiente / anterior, ✕ y las tres reglas de la sala de espera
     share: svg('M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V20h14v-7.5'), next: svg('M9.5 5.5 16 12l-6.5 6.5'), prev: svg('M14.5 5.5 8 12l6.5 6.5'), x: svg('M6.5 6.5l11 11M17.5 6.5l-11 11'),
-    nopause: svg('M8 5v14M16 5v14M4 4l16 16'), clock: svg('M12 4a8 8 0 1 0 .01 0zM12 8v4.5l3 2'), flag: svg('M6 21V4M6 4h11l-2.5 4L17 12H6')
+    nopause: svg('M8 5v14M16 5v14M4 4l16 16'), clock: svg('M12 4a8 8 0 1 0 .01 0zM12 8v4.5l3 2'), flag: svg('M6 21V4M6 4h11l-2.5 4L17 12H6'),
+    rep: svg('M12 3.5a8.5 8.5 0 1 0 .01 0zM12 7.5v6M12 16.6v.4')   // («Denunciar nombre»: círculo con exclamación)
   };
   function ic(k) { return '<span class="sp-ic ol-ic">' + IC[k] + '</span>'; }
   /* ---------------- escribir el nombre y el código ----------------
@@ -1263,6 +1318,7 @@
       if (L.listAt) L.seenAt = now;
       if (rl) h += '<p class="ol-rec ol-recl">Tu récord online: <b>' + esc(rl) + '</b></p>';   // (al final de la cartelera: no quita sitio a las salas)
       h += '</div><div class="ol-bar ol-bar2 ol-dock" data-nav>' +
+        (n ? '<button class="ol-act ol-ico sp-btn sp-ink sp-sq" data-shape="2" data-a="report" aria-label="Denunciar nombre">' + ic('rep') + '</button>' : '') +
         '<button class="ol-act sp-btn sp-alt" data-shape="1" data-a="code" aria-label="Entrar con código">' + ic('hash') + '<span class="sp-t">Código</span></button>' +
         '<button class="ol-act ol-new sp-btn sp-kit" data-shape="0" data-a="new"' + (L.busy ? ' disabled' : '') + '>' + ic('plus') + '<span class="sp-t">Crear sala</span></button></div>';
       if (L.edit === 'name' || L.edit === 'code') h += editHTML(myName());
@@ -1302,6 +1358,7 @@
         // (móvil: el estado va fuera del desplazamiento, justo encima de la barra, siempre a la vista y opaco)
         '<p class="ol-st ol-st-pin' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' +
         '<div class="ol-bar ol-bar2 ol-dock" data-nav><button class="ol-act ol-out sp-btn sp-danger sp-dock-l" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir de la sala</span></button>' +
+        (riv && rivalUid() ? '<button class="ol-act ol-ico sp-btn sp-ink sp-sq" data-shape="2" data-a="report" aria-label="' + esc('Denunciar nombre de ' + riv) + '">' + ic('rep') + '</button>' : '') +
         (host ? '<button class="ol-act ol-new sp-btn sp-kit" data-shape="0" data-a="share">' + ic('share') + '<span class="sp-t">Compartir</span></button>' : '') + '</div>';
     }
     return h;
@@ -1336,7 +1393,8 @@
         act('code', ic('hash') + '<span class="sp-t">Código</span>', 'sp-alt', 'Entrar con código', false, 1) +
         act('name', ic('pen') + '<span class="sp-t ol-me">' + esc(nm) + '</span>', 'ol-nm sp-ink sp-wide', 'Tu nombre: ' + nm + '. Cambiar', false, 2) +
         act('refresh', ic('ref'), 'ol-ico sp-ink sp-sq' + (L.loading ? ' spin' : ''), 'Actualizar', false, 0) +
-        act('help', '<span class="ol-q">?</span>', 'ol-ico sp-gold sp-sq', 'Cómo funciona', false, 1) + '</div>';
+        act('help', '<span class="ol-q">?</span>', 'ol-ico sp-gold sp-sq', 'Cómo funciona', false, 1) +
+        (L.rooms.length ? act('report', ic('rep'), 'ol-ico sp-ink sp-sq', 'Denunciar nombre', false, 2) : '') + '</div>';
       if (L.edit === 'name' || L.edit === 'code') h += editHTML(nm);
       if (L.osk) return h;   // (teclado en pantalla abierto: ocupa el sitio de la cartelera, sobre todo en un teléfono apaisado)
       // (fase 3: tu récord online, aparte del de Partido rápido; abandonar cuenta como derrota)
@@ -1397,7 +1455,8 @@
         '<p class="ol-st' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' +
         (L.started ? '' : '<p class="ol-tip">Llevas a tu n.º 1 y la IA a tu pareja. No hay pausa durante el juego: entre sets, 10 s de descanso. Abandonar cuenta como derrota.</p>') + '</div>' +
         '<div class="ol-bar ol-bar2" data-nav>' + (host ? '<button class="ol-act sp-btn sp-teal" data-shape="0" data-a="copy">' + ic('copy') + '<span class="sp-t">Copiar código</span></button>' : '') +
-        '<button class="ol-act ol-out sp-btn sp-danger" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir de la sala</span></button></div>';
+        '<button class="ol-act ol-out sp-btn sp-danger" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir de la sala</span></button>' +
+        (riv && rivalUid() ? '<button class="ol-act sp-btn sp-ink" data-shape="2" data-a="report">' + ic('rep') + '<span class="sp-t">Denunciar nombre</span></button>' : '') + '</div>';
     }
     return h;
   }
@@ -1498,6 +1557,7 @@
     else if (a === 'refresh') refreshList(true);
     else if (a === 'leave') { leaveRoom(); L.msg = ''; setView('list'); refreshList(true); focusA('new'); }
     else if (a === 'copy') copyCode();
+    else if (a === 'report') { var rc = L.mx && L.mx.room ? L.mx.room.code : L.room ? L.room.code : ''; reportOpen(L.view === 'list' ? listPeople() : others(), rc); }
     // online de varios (sala de espera con plazas)
     else if (a === 'chair') mChair(+b.getAttribute('data-id'));
     else if (a === 'ready') mReady();
@@ -1727,7 +1787,7 @@
       if (!r) { mxEnd(E, 'gone'); return; }
       E.room = r;
       var seats = r.seats || {}, now = Date.now(), u;
-      for (u in seats) if (u !== E.myU && !E.peers[u] && !(E.ban[u] > now)) mxConnect(E, u, seats[u] && seats[u].n);
+      for (u in seats) if (u !== E.myU && !E.peers[u] && !(E.ban[u] > now)) { if (isBlocked(u) && !E.started) { E.ban[u] = Infinity; if (!E.mock) api().kick(u).catch(noop); continue; } mxConnect(E, u, seats[u] && seats[u].n); }   // (bloqueado: fuera)
       // (se levantó de la sala: leaveMulti o bye; solo si la lectura empezó después de ofrecerle la conexión)
       for (u in E.peers) if (!(u in seats) && E.peers[u].t0 < t) mxRelease(E, u, 'left', true);
       mxCnt(E);
@@ -2302,7 +2362,8 @@
       dock += '<button class="ol-act sp-btn sp-ink sp-dock-l" data-shape="2" data-a="unpick"><span class="sp-t">Cancelar</span></button>' + stD +
         '<button class="ol-act ol-new sp-btn sp-danger" data-shape="1" data-a="kick">' + ic('out') + '<span class="sp-t">Sacar de la sala</span></button>';
     } else {
-      dock += '<button class="ol-act ol-out sp-btn sp-danger sp-dock-l" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir</span></button>' + stD;
+      dock += '<button class="ol-act ol-out sp-btn sp-danger sp-dock-l" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir</span></button>' + stD +
+        (others().length ? '<button class="ol-act ol-ico sp-btn sp-ink sp-sq" data-shape="2" data-a="report" aria-label="Denunciar nombre">' + ic('rep') + '</button>' : '');
       if (host) {
         var cs = mxCanStart(E);
         dock += (PH ? '<button class="ol-act ol-ico sp-btn sp-teal sp-sq" data-shape="2" data-a="share" aria-label="Compartir la sala">' + ic('share') + '</button>' : '') +
@@ -2926,7 +2987,7 @@
   VB.NetLobby = {
     menuOn: function () { return MENU_ON || Q.online === '1' || !!EMU; },
     open: open, leave: leave, back: back, side: side, focus: first,
-    myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook, _ver: ver, backAlive: mxBackAlive,   // (_ver: pruebas, la versión de sala que publica; backAlive: main.js, página oculta)
+    myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook, others: others, report: function () { reportOpen(others(), L.mx && L.mx.room ? L.mx.room.code : L.room ? L.room.code : ''); }, _ver: ver, backAlive: mxBackAlive,   // (_ver: pruebas, la versión de sala que publica; backAlive: main.js, página oculta)
     _state: function () {
       var E = L.mx, st = { view: L.view, role: L.role, rival: L.rival, status: L.status, started: L.started, rooms: L.rooms.map(function (r) { return { id: r.id, name: r.name, other: r.other, multi: !!r.multi, fmt: r.fmt, cap: r.cap, nseat: r.nseat }; }), room: L.room && { id: L.room.id, code: L.room.code, state: L.room.state, multi: !!L.room.multi, fmt: L.room.fmt, cap: L.room.cap }, link: L.link && L.link.state, linkInfo: L.link && L.link.info(), msg: L.msg, fail: L.fail, emu: EMU };
       // (online de varios) la sala: quién está, sitios, listos, pings; los enlaces por uid; ¿se puede empezar?

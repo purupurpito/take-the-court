@@ -117,7 +117,16 @@
   /** «Jugador NNNN» para un nombre que no se puede enseñar (seed: el uid si se sabe; si no, el propio nombre). */
   function mask(name, seed) { return 'Jugador ' + (1000 + hash(seed || name || 'x') % 9000); }
   /** El nombre tal cual, o «Jugador NNNN» si lleva un insulto. */
-  function shown(name, seed) { return name && bad(name) ? mask(name, seed) : name; }
+  /** «Nombres de otros jugadores: Ocultar» (Ajustes · Juego, ctx.settings.hideNames; auditoría legal, 25-nov-2026): todos los nombres que
+   *  llegan de otros salen como «Jugador NNNN». El tuyo no (si el seed es tu uid, o el nombre es tu apodo o tu nombre anónimo). */
+  function hiding(name, seed) {
+    var C = VB.ctx; if (!C || !C.settings || C.settings.hideNames !== true) return false;
+    var A = VB.Account, i = null; try { i = A && A.netInfo ? A.netInfo() : null; } catch (e) { i = null; }
+    if (seed && i && i.uid && seed === i.uid) return false;
+    return !(name === nick() || name === anonName());
+  }
+  /** El nombre tal cual, o «Jugador NNNN» si lleva un insulto (o si están ocultos los nombres de los demás). */
+  function shown(name, seed) { return name && (bad(name) || hiding(name, seed)) ? mask(name, seed) : name; }
 
   function LS() { try { return root.localStorage || null; } catch (e) { return null; } }
   var memAnon = 0;

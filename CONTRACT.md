@@ -1058,7 +1058,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 ## 7. Terminología (castellano, árbitro FCVB)
 saque, recepción, colocación, remate, bloqueo, toque, red, fuera, antena, dobles, 4 toques, set, punto de set,
 punto de partido, cambio de saque. El bloqueo no cuenta como toque del equipo. Sets a 25 (3º a 15) con 2 de diferencia.
-Arte y nombres originales; marcas de las vallas ficticias (NÓRDIKA, VOLTA, ALBA SPORT, MARINA FM, TERRA, SALT 9; pabellón "PALAU DEL MAR").
+Arte y nombres originales; marcas de las vallas ficticias (BLOQUIVERN, REMATEX, SAQUESOL, ONDARRED FM, TOQUE VERD, KOLOKA 9, inventadas y buscadas entre comillas el 25-nov-2026; KOLOKA 9 también en la red y el balón; pabellón "PALAU DEL MAR").
 
 ### VB.TOON (sprint cartoon, integración 9-nov-2026)
 - Lo crea arena.js al cargar: `{ gradientMap (DataTexture de 3 pasos, NEAREST), ink 0x1d1530, shadow 0x2b2547, enabled, rank, px, toonMat(p), outline(mesh, m, opts), drop(o), setQuality(q), frame(cam, h) }`.

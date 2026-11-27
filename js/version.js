@@ -174,8 +174,10 @@
   VB.CREDITS = {
     by: 'Ferran',
     tools: [
-      'three.js r149 para el 3D (licencia MIT)',
-      'Firebase para las cuentas y las partidas en la nube'
+      'three.js r149 (motor 3D, licencia MIT)',
+      'Sonido y gráficos generados por código, sin grabaciones',
+      'Guardado en la nube con Firebase (Firebase JS SDK, licencia Apache 2.0)',
+      'App de Android con Android Browser Helper y AndroidX (licencia Apache 2.0)'
     ],
     fonts: 'Big Shoulders Display (Patric King), Chivo (Omnibus-Type) y Doto, con la SIL Open Font License 1.1. ' +
       'El rótulo de carga usa Barlow Condensed (The Barlow Project Authors), y el logo, Anton (Vernon Adams) y Bungee ' +
@@ -186,6 +188,6 @@
       ofl: OFL
     },
     thanks: [],
-    note: 'Clubes, jugadores y patrocinadores son inventados. Si alguno te suena, es casualidad.'
+    note: 'Clubes, jugadores, competiciones, árbitros y patrocinadores son ficticios. Cualquier parecido con personas, clubes o competiciones reales es pura coincidencia.'
   };
 })();

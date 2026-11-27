@@ -3034,6 +3034,8 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .menu-foot .ver:hover{color:var(--fg);background:rgba(255,255,255,.08)}
 .menu-foot .ver.new::after{content:"";position:absolute;right:2px;top:3px;width:7px;height:7px;border-radius:50%;background:#ffd23f;box-shadow:none}
 .menu-foot .ver+.rec{margin-left:0}
+/* «Legal» (auditoría legal, 25-nov-2026): junto a la versión, abre Ajustes › Info (aviso legal, condiciones, privacidad, licencias) */
+.menu-foot .ver.legal+.ver{margin-left:0}
 /* Controles editables */
 .ctl-pane{display:flex;flex-direction:column;gap:8px}
 .ctl-pane>.ctl{margin:0}
@@ -4210,7 +4212,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full:not([data-page="main"]):not([data-page="play"]) .live{display:none}
 /* pie: perfil y versión abajo a la derecha; la versión, solo en la portada */
 :root.ph:not(#_):not(#_):not(#_) #menu.mj.sp-full .menu-foot{left:auto;right:var(--ph-g);bottom:var(--ph-gb);gap:var(--ph-hit-gap);align-items:center}
-:root.ph:not(#_):not(#_):not(#_) #menu.sp-full[data-page]:not([data-page="main"]) .menu-foot #btnVer{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full[data-page]:not([data-page="main"]) .menu-foot #btnVer,:root.ph:not(#_):not(#_):not(#_) #menu.sp-full[data-page]:not([data-page="main"]) .menu-foot #btnLegal{display:none}
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full .menu-foot .ver{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:0;padding:0 8px;font-size:var(--ph-cap);color:var(--sp-cream);
   text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
 :root.ph:not(#_):not(#_):not(#_) #btnProf.pf-chip{height:44px;padding:0 14px 0 5px;font-size:var(--ph-label)}
@@ -9222,6 +9224,7 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
     <div class="menu-foot" id="menuFoot">
       <span class="navhint" id="navHint"></span>
       <span class="pf-wrap" data-nav><button type="button" class="pf-chip" id="btnProf" aria-label="Perfil" hidden></button></span>
+      <button type="button" class="ver legal" id="btnLegal" aria-label="Legal: aviso legal, condiciones, privacidad y licencias">Legal</button>
       <button type="button" class="ver" id="btnVer" aria-label="Novedades de la versión" hidden></button>
       <span class="rec" id="menuRecord"></span>
     </div>
@@ -9419,8 +9422,11 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
             <button class="opt" data-opt="jsetAim" data-need="Sim"><span><span class="ot">Diana en el salto</span><small>Sí: en salto, mueves la diana y la colocación va donde la pongas. No: como siempre</small></span><span class="seg sp-seg" data-seg="jsetAim"></span></button>
             <button class="opt" data-opt="msTiming"><span>Golpe al milisegundo<small>El sello dice cuántos ms llegas pronto o tarde</small></span><span class="seg sp-seg" data-seg="msTiming"></span></button>
             <button class="opt" data-opt="replays"><span>Repeticiones<small>Con botón: tras los puntos grandes, unos segundos para pedirla. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
+            <button class="opt" data-opt="hideNames"><span><span data-ph-short="Nombres de otros">Nombres de otros jugadores</span><small>Ocultar: en el online ves «Jugador» y un número en vez de sus nombres</small></span><span class="seg sp-seg" data-seg="hideNames"></span></button>
+            <button class="opt" data-opt="netReport"><span><span data-ph-short="Informe del online">Informe técnico del online</span><small>Datos de la conexión de cada partido para mejorar el online. Mira la Privacidad</small></span><span class="seg sp-seg" data-seg="netReport"></span></button>
             <button class="opt opt-go" data-go="ctl"><span>Controles<small>Ver y cambiar teclas y botones</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button type="button" class="opt-reset sp-pill" data-reset="game">Restablecer este apartado</button>
+            <button type="button" class="opt-reset sp-pill" id="optUnblock" hidden>Desbloquear jugadores</button>
           </div>
           <div class="opt-g" id="optA11y" data-tab="a11y">
             <p class="opt-h">Accesibilidad</p>
@@ -9454,6 +9460,9 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
             <button class="opt opt-go" data-go="news"><span>Novedades<small>Lo último que he tocado</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button class="opt opt-go" data-go="credits"><span>Créditos<small>Quién y con qué</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button class="opt opt-go" data-go="priv"><span>Privacidad<small>Qué datos usa el juego y cómo borrar tu cuenta</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></span></button>
+            <button class="opt opt-go" data-go="legal"><span>Aviso legal<small>Quién hay detrás del juego y cómo contactar</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></span></button>
+            <button class="opt opt-go" data-go="terms"><span>Condiciones<small>Las reglas para usar el juego y el online</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></span></button>
+            <button class="opt opt-go" data-go="lic"><span>Licencias<small>Librerías y tipografías de otros</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></span></button>
             <button class="opt opt-go" data-go="mig"><span>Traer tu partida<small>Si venías de Make the Cut</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <!-- Opiniones (1.22.1, js/feedback.js, notes/feedback.md): sugerencias y bugs; «Buzón de opiniones» solo con la cuenta del autor (ui.js fbVis) -->
             <button class="opt opt-go" data-go="fbsug"><span>Sugerir una mejora<small>Si echas algo en falta, dímelo</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
@@ -9558,6 +9567,7 @@ html #mpLook .lk-r[aria-disabled=true]{cursor:url("data:image/svg+xml,%3Csvg xml
 <script src="js/sw-reg.js"></script>
 <script src="js/account.js"></script>
 <script src="js/namefilter.js"></script>
+<script src="js/report.js"></script>
 <script src="js/sim.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/ai6.js"></script>

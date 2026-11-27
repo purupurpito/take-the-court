@@ -85,6 +85,11 @@ const SCREENS = [
   // ---------------- PORTADA (menú)
   { id: 'home', area: 'portada', q: M0, open: 'return M.ensureMenu();', exit: '', primary: '#btnPlay' },
   { id: 'jugar', area: 'portada', q: M0, open: "return M.page('play');", primary: '' },
+  // «Ábrelo en el navegador» (js/install.js, 25-nov-2026): la hoja de los navegadores de app (Instagram en iPhone, TikTok en iPhone
+  // sin botón de abrir, Facebook en Android); cada una con su carga (la hoja tapa la portada)
+  { id: 'inapp-ig-ios', area: 'portada', q: M0 + '&ma=ia1', open: "await M.ensureMenu(); VB.Install._escAs('ios','ig'); return VB.Install.escIsOpen();", exit: '#inappHelp [data-ia="stay"]', primary: '#inappHelp [data-ia="open"]' },
+  { id: 'inapp-tt-ios', area: 'portada', q: M0 + '&ma=ia2', open: "await M.ensureMenu(); VB.Install._escAs('ios','tt'); return VB.Install.escIsOpen();", exit: '#inappHelp [data-ia="stay"]', primary: '#inappHelp [data-ia="copy"]' },
+  { id: 'inapp-fb-android', area: 'portada', q: M0 + '&ma=ia3', open: "await M.ensureMenu(); VB.Install._escAs('android','fb'); return VB.Install.escIsOpen();", exit: '#inappHelp [data-ia="stay"]', primary: '#inappHelp [data-ia="open"]' },
   { id: 'quick-2v2', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','2v2'); return M.page('quick');" },
   { id: 'quick-6v6', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','6v6'); return M.page('quick');" },
   // (partidos cortos, informe 4.5: los valores más largos de Dificultad y Duración)

@@ -256,6 +256,7 @@
     var o = null, raw = null, s = null;
     try { s = store(); raw = s ? s.getItem(KEY) : null; o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
     seen[KEY] = s ? raw : undefined;   // (antes de sane: lo que guarde al repararla ya cuenta como de esta pestaña)
+    try { o = renameClubs(o); } catch (e) { }   // (clubes renombrados el 25-nov-2026: lo que la Carrera de playa lleve de las ligas de pista)
     cur = sane(o);
     if (!cur && raw) {
       lost = true;
@@ -2552,9 +2553,87 @@
     var o = null, raw = null, s = null;
     try { s = store(); raw = s ? s.getItem(KEY6) : null; o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
     seen[KEY6] = s ? raw : undefined;
-    try { cur6 = sane6(o); } catch (e) { cur6 = null; }
+    try { cur6 = sane6(renameClubs(renameComps6(o))); } catch (e) { cur6 = null; }
     if (!cur6 && raw) { lost6 = true; try { if (s) { s.setItem(KEY6 + '.bak', raw); s.removeItem(KEY6); seen[KEY6] = null; } } catch (e) { } }
     return cur6;
+  }
+  /** Competiciones renombradas (25-nov-2026): «Champions Cup» es marca de otras competiciones. Los guardados viejos las llevan en
+   *  copas en curso, palmarés y buzón; se cambian todas las apariciones (texto incluido). */
+  var COMP_REN6 = [[/Champions Cup VEC/g, 'Copa de Campeones VEC'], [/Champions Cup Asia/g, 'Copa de Campeones Asia']];
+  function renameComps6(o) {
+    if (!o || typeof o !== 'object') return o;
+    var t = JSON.stringify(o), u = t;
+    COMP_REN6.forEach(function (r) { u = u.replace(r[0], r[1]); });
+    return u === t ? o : JSON.parse(u);
+  }
+  /** Clubes y ligas renombrados (25-nov-2026, riesgo de marca: nombres a una o dos letras del real, apodos de clubes famosos, el
+   *  nombre real sin «Al», PlusLiga…). El guardado lleva una copia de los clubes (nombre, nombre base y siglas) y los nombres salen
+   *  en el palmarés, el historial, el buzón, las ofertas y las cesiones. Las siglas se cambian por campos (solo en el objeto del club
+   *  o la liga renombrados: hay siglas de 3 letras en todas partes) y los nombres en todo el texto. [viejo, nuevo, siglas viejas, nuevas] */
+  var CLUB_REN = [
+    ['Milano Power', 'Navigli Milano', 'MIL', 'NAV'], ['Frisco Pulse', 'Frisco Heartbeat', 'FRI', 'FHB'],
+    ['Bluzeon Osaka', 'Aonami Osaka', 'BLZ', 'AON'], ['Stingz Aichi', 'Hachi Aichi', 'STZ', 'HAC'],
+    ['Tokyo Grand Bears', 'Edo Kumas', 'TGB', 'EDK'], ['Vittorina Himeji', 'Tenshu Himeji', 'VIT', 'TEN'],
+    ['Spearz Osaka', 'Hoko Osaka', 'SPZ', 'HOK'], ['Queenzy Kariya', 'Tiara Kariya', 'QZK', 'TIK'],
+    ['Riorena Gifu', 'Nagara Gifu', 'RIO', 'NAG'], ['Red Spirals Kawasaki', 'Akaoni Kawasaki', 'RSP', 'AKO'],
+    ['Kool Smashers Manila', 'Sorbetes Manila', 'KSM', 'SBT'], ['Spin Medics', 'Ikot Manila', 'SPM', 'IKO'],
+    ['Voley Cisterna', 'Cisterna Pontina', 'CIS', 'PON'], ['Volley Trento', 'Adige Trento', 'TRE', 'ADI'],
+    ['Belogor Belgorod', 'Melovik Belgorod', 'BLG', 'MEL'], ['Galata Voleybol', 'Kuledibi Voleybol', 'GAL', 'KUL'],
+    ['Kanarya Kadıköy', 'Bahariye Kadıköy', 'KAN', 'BAH'], ['Arabi Doha', 'Corniche Doha', 'ARB', 'CRN'],
+    ['Sadd Doha', 'Musheireb Doha', 'SAD', 'MSH'], ['Ahliya Doha', 'Dafna Doha', 'AHL', 'DAF'],
+    ['Shurta Doha', 'Doha Sentinels', 'SHU', 'SEN'], ['Xeneize Vóley', 'Vuelta de Rocha Vóley', 'XEN', 'VDR'],
+    ['Núñez Millonario', 'Vóley Núñez', 'NUN', 'VNU'], ['Leão Lisboa', 'Telheiras Lisboa', 'LEA', 'TEL'],
+    ['Águia Lisboa', 'Monsanto Lisboa', 'AGL', 'MSL'], ['Dragão Porto', 'Ribeira Porto', 'DRA', 'RIB'],
+    ['Thrylos Pireo', 'Voley Pireo', 'THR', 'PIR'], ['Panatenea Atenas', 'Licabeto Atenas', 'PNT', 'LIC'],
+    ['Fénix Syros', 'Voley Ermúpoli', 'FNX', 'ERM'], ['Ares Tesalónica', 'Voley Salónica', 'ARE', 'VSA'],
+    ['Crvena Zora', 'Kalemegdan Beograd', 'CZO', 'KAL'], ['Stelele București', 'Cotroceni Bucarest', 'STE', 'COT'],
+    ['Urubu Rio', 'Lagoa Rio', 'URU', 'LGR'], ['Dynamik Moskva', 'Petrovsky Moskva', 'DYM', 'PET'],
+    ['Dinamika Kazan', 'Kaban Kazan', 'DIK', 'KAB'], ['Rezovia', 'Wisłok Rzeszów', 'RES', 'WIS'],
+    ['Rur Power Düren', 'Rurwelle Düren', 'RUR', 'RWD'], ['Netzspringer KW', 'Dahme Volley KW', 'NSP', 'DVK'],
+    ['Peelpower Meijel', 'Voley Meijel', 'PPW', 'MEI'], ['Edmonton Golden Pandas', 'Edmonton Pumas', 'EGP', 'EPU'],
+    ['Hwaseong Altissimo', 'Hwaseong Seohae', 'HAL', 'HSH'], ['Omaha Hypernovas', 'Omaha Quasars', 'OMA', 'OQS'],
+    // segunda tanda (25-nov-2026): apodos de clubes famosos, nombres a una letra y traducciones del nombre real
+    ['Ciclón de Boedo', 'Vóley Boedo', 'CIC', 'VBO'], ['Fortín Liniers', 'Vóley Versalles', 'FOR', 'VVE'],
+    ['Lobo Platense', 'Diagonales La Plata', 'LOB', 'DLP'], ['Pincha Platense', 'Catedral La Plata', 'PIN', 'CTL'],
+    ['Laranjeiras Tricolor', 'Vôlei Corcovado', 'LTR', 'COV'], ['Dikéfalos Salónica', 'Torre Blanca Salónica', 'DKS', 'TBS'],
+    ['Prosfyges Nea Smirni', 'Voley Nea Smirni', 'MNS', 'VNS'], ['Crno-Beli Beograd', 'Voley Dorćol', 'CBB', 'DOR'],
+    ['Ferroviario Lajkovac', 'Voley Lajkovac', 'FER', 'LAJ'], ['Câinii Bucarest', 'Voley Tei', 'CAI', 'TEI'],
+    ['Arsenalistas Braga', 'Vólei Bracara', 'ARS', 'BRC'], ['Conquistadores Guimarães', 'Vólei Guimarães', 'GUI', 'VGU'],
+    ['Tigres Espinho', 'Vólei Paramos', 'TIG', 'PRM'], ['Íntimos Lima', 'Vóley La Victoria', 'INT', 'VLV'],
+    ['Cremas Lima', 'Vóley Barranco', 'CRE', 'BRN'], ['Gemelos Comas', 'Vóley Comas', 'GEM', 'COM'],
+    ['Sin Par Lima', 'Vóley Surco', 'SPL', 'SUR'], ['Narenji Tehran', 'Darband Tehran', 'NRT', 'DAR'],
+    ['Parovoz Novosibirsk', 'Volei Novosibirsk', 'PAR', 'NSK'], ['Dolmabahçe Voleybol', 'Çırağan Voleybol', 'DOL', 'CIR'],
+    ['Fragola Kagoshima', 'Sakurajima Kagoshima', 'FRA', 'SKR'], ['Thundra Hiroshima', 'Raijin Hiroshima', 'THU', 'RAI'],
+    ['Sprinx Saga', 'Izumi Saga', 'SPX', 'IZU'], ['Marvelia Osaka', 'Dotonbori Osaka', 'MRV', 'DOT'],
+    ['Rêveurs Tochigi', 'Kinugawa Tochigi', 'RVT', 'KIN'], ['Vierzehn Mie', 'Ise Mie', 'VZM', 'ISE'],
+    ['Québec Rouge-Doré', 'Québec Flambeaux', 'QRD', 'QFL'], ['Langley Espartanos', 'Langley Cedros', 'LAN', 'LCE'],
+    ['Winnipeg Bisontes', 'Winnipeg Pradera', 'WPG', 'WPR'], ['Leones de Praga', 'Voley Vyšehrad', 'LEO', 'VYS'],
+    ['Fieras Brno', 'Voley Špilberk', 'FIE', 'SPI'], ['Falke Wien', 'Voley Prater', 'FAL', 'PRT']
+  ];
+  var LG_REN = [['PlusPlus Liga 2', 'Liga Bursztynowa 2', 'PP2', 'LB2'], ['PlusPlus Liga', 'Liga Bursztynowa', 'PPL', 'LBU']];
+  function endsWith(s, x) { return typeof s === 'string' && s.length >= x.length && s.slice(s.length - x.length) === x; }
+  function renShorts(x, d) {
+    if (!x || typeof x !== 'object' || d > 12) return;
+    if (Array.isArray(x)) { for (var i = 0; i < x.length; i++) renShorts(x[i], d + 1); return; }
+    var i2, r;
+    if (typeof x.short === 'string') {
+      for (i2 = 0; i2 < CLUB_REN.length; i2++) { r = CLUB_REN[i2]; if (x.short === r[2] && (x.nameBase === r[0] || endsWith(x.name, r[0]))) { x.short = r[3]; break; } }
+      for (i2 = 0; i2 < LG_REN.length; i2++) { r = LG_REN[i2]; if (x.short === r[2] && x.name === r[0]) { x.short = r[3]; break; } }
+    }
+    if (typeof x.lgShort === 'string') for (i2 = 0; i2 < LG_REN.length; i2++) { r = LG_REN[i2]; if (x.lgShort === r[2] && (x.league === r[0] || /^PL[12]$/.test(String(x.lid || '')))) { x.lgShort = r[3]; break; } }
+    for (var k in x) if (Object.prototype.hasOwnProperty.call(x, k) && x[k] && typeof x[k] === 'object') renShorts(x[k], d + 1);
+  }
+  function renameClubs(o) {
+    if (!o || typeof o !== 'object') return o;
+    var t = JSON.stringify(o), u = t;
+    CLUB_REN.forEach(function (r) { u = u.split(r[0]).join(r[1]); });
+    if (u.indexOf('PlusPlus Liga') >= 0) u = u.split('PlusPlus Liga').join('Liga Bursztynowa');   // («… 2» queda «Liga Bursztynowa 2»)
+    if (u === t) return o;
+    var p = JSON.parse(t);
+    renShorts(p, 0);   // (con los nombres viejos: así se sabe de quién son las siglas)
+    t = JSON.stringify(p);
+    CLUB_REN.forEach(function (r) { t = t.split(r[0]).join(r[1]); });
+    return JSON.parse(t.split('PlusPlus Liga').join('Liga Bursztynowa'));
   }
   function abandon6() { cur6 = null; M = null; lost6 = false; try { var s = store(); if (s) { s.removeItem(KEY6); seen[KEY6] = null; } } catch (e) { } return true; }
   /** Repara lo reparable de un guardado de pista; lo irreparable (ligas, clubes, tu club) → null (copia en KEY6 + '.bak'). */
@@ -4191,6 +4270,8 @@
     // ambiente de Carrera (notes/ambiente.md §4.6): estado del partido g y contexto (cs.amb) del próximo partido de la Carrera c
     amb: amb, ambCtx: function (c, n, cs) { c = c || (mode() === 'hall' ? load6() : load()); if (!c) return null; n = n || (isHallC(c) ? next6(c) : next(c)); try { return ambCtx(c, n, cs); } catch (e) { try { console.error('Career.ambCtx', e); } catch (e2) { } return null; } },
     _reset: function () { cur = null; cur6 = null; M = null; seen = {}; },
+    /** Clubes y ligas renombrados (25-nov-2026): o (guardado, ficha del Salón de la Fama…) con los nombres y siglas nuevos. */
+    renameClubs: renameClubs,
     /** Carrera cooperativa (js/career-coop.js): s = almacén en memoria {getItem, setItem, removeItem} del invitado (la Carrera del
      *  anfitrión) o null = localStorage otra vez. Vacía lo cargado (cur, cur6, M) y lo visto (seen: el texto de otro almacén). Devuelve si queda un almacén en memoria. */
     _useStore: function (s) { memStore = s && typeof s.getItem === 'function' && typeof s.setItem === 'function' ? s : null; cur = null; cur6 = null; M = null; seen = {}; return !!memStore; },

@@ -10,7 +10,7 @@ del mismo origen (farolillo, emPat…), no borra nada, las empaqueta y salta a `
 
 | Archivo | Para qué |
 |---|---|
-| `index.html` | el puente (todo en línea, sin dependencias salvo Google Fonts, que puede fallar sin problema) |
+| `index.html` | el puente (todo en línea; las letras Rubik y Titan One se piden a `https://takethecourt.com/vendor/fonts/` —las mismas del juego, con CORS abierto—; si fallan, sale la del sistema). Nada de Google Fonts. Si cambian los nombres de los woff2 en `vendor/fonts`, cambia también los cuatro `@font-face` de aquí |
 | `404.html` | copia EXACTA de `index.html`: enlaces profundos (`/make-the-cut/netlogs.html`, `/make-the-cut/loquesea`) llevan la ruta |
 | `version.json` | `{"v":"<versión del juego>"}` (igual que VB.VERSION, lo exige build-pages): las pestañas viejas (1.15.1+) que siguen abiertas ven «Hay una versión nueva» → «Reiniciar» → puente |
 | `.nojekyll` | que Pages no pase Jekyll |

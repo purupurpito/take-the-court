@@ -324,8 +324,8 @@
             {
               "real": "Peelpush (Meijel)",
               "official": "VC Peelpush (Summa Peelpush, Meijel)",
-              "name": "Peelpower Meijel",
-              "short": "PPW",
+              "name": "Voley Meijel",
+              "short": "MEI",
               "city": "Meijel",
               "gender": "W",
               "colors": {
@@ -335,7 +335,7 @@
               },
               "liberoEstimated": true,
               "ovr": 57,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Peelpower Meijel\". Resultado: Sin resultados. El real es Peelpush. No coincide con ningún club de las listas de la Eredivisie de hombres (Wikipedia) y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia en/nl/es. Se quita el patrocinador Summa; guiño: Peel«push» → Peel«power». Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Peelpower» estaba a una sílaba de «Peelpush». Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Meijel\" OR \"Volley Meijel\". Resultado: ningún club con ese nombre (solo Peelpush Meijel). (Antes: «Peelpower Meijel» (PPW); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Peelpower Meijel\". Resultado: Sin resultados. El real es Peelpush. No coincide con ningún club de las listas de la Eredivisie de hombres (Wikipedia) y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia en/nl/es. Se quita el patrocinador Summa; guiño: Peel«push» → Peel«power». Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": true,
               "sponsor": "Seguros Tie-Break",
               "sponsorCheck": "Marca recurrente del gag (inventada, común a todo el juego). Recurrente, no se comprueba por separado."
@@ -359,8 +359,8 @@
             {
               "real": "Panathinaikos",
               "official": "Panathinaikos A.O. (sección de voleibol)",
-              "name": "Panatenea Atenas",
-              "short": "PNT",
+              "name": "Licabeto Atenas",
+              "short": "LIC",
               "city": "Atenas",
               "gender": "MW",
               "colors": {
@@ -370,14 +370,14 @@
               },
               "liberoEstimated": false,
               "ovr": 70,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Panatenea Atenas\" OR \"Panathenaea Athens\" club. Resultado: Solo salen Panathinaikos A.O. y la fiesta antigua de las Panateneas. Ningún club se llama así. No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: «Panathinaikos» (todo-ateniense) → Panateneas, la fiesta de Atenas. Líbero: morado (femenino) (2024-25/2025-26, buscado 12-nov-2026: foto de WorldofVolley).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Panatenea» estaba a pocas letras de «Panathinaikos». Ahora el monte Licabeto. Descartado «Ambelókipi»: el Ampelokipoi histórico tuvo vóley y es el barrio del estadio de Panathinaikos. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Licabeto Atenas\" OR \"Lycabettus Athens\" volleyball OR club; \"Λυκαβηττός\" βόλεϊ σύλλογος. Resultado: ningún club con ese nombre. (Antes: «Panatenea Atenas» (PNT); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Panatenea Atenas\" OR \"Panathenaea Athens\" club. Resultado: Solo salen Panathinaikos A.O. y la fiesta antigua de las Panateneas. Ningún club se llama así. No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: «Panathinaikos» (todo-ateniense) → Panateneas, la fiesta de Atenas. Líbero: morado (femenino) (2024-25/2025-26, buscado 12-nov-2026: foto de WorldofVolley).)",
               "realSponsor": false
             },
             {
               "real": "Olympiacos",
               "official": "Olympiacos S.F.P. (Olympiacos Syndesmos Filathlon Peiraios)",
-              "name": "Thrylos Pireo",
-              "short": "THR",
+              "name": "Voley Pireo",
+              "short": "PIR",
               "city": "El Pireo",
               "gender": "MW",
               "colors": {
@@ -387,14 +387,14 @@
               },
               "liberoEstimated": false,
               "ovr": 70,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Thrylos Pireo\" OR \"Thrylos Piraeus\" club. Resultado: «Thrylos» es solo el apodo de Olympiacos. No existe ningún club con ese nombre. No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: «Thrylos» (la leyenda) es su apodo. Líbero: azul marino (2025-26, buscado 12-nov-2026: fotos de plantilla de Volleyland).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Thrylos» (la leyenda) es el apodo de Olympiacos. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Pireo\" OR \"Vóley Pireo\". Resultado: ningún club con ese nombre (Olympiacos y Peiraikos Syndesmos se llaman de otra forma). (Antes: «Thrylos Pireo» (THR); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Thrylos Pireo\" OR \"Thrylos Piraeus\" club. Resultado: «Thrylos» es solo el apodo de Olympiacos. No existe ningún club con ese nombre. No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: «Thrylos» (la leyenda) es su apodo. Líbero: azul marino (2025-26, buscado 12-nov-2026: fotos de plantilla de Volleyland).)",
               "realSponsor": false
             },
             {
               "real": "PAOK",
               "official": "PAOK Thessaloniki (sección de voleibol)",
-              "name": "Dikéfalos Salónica",
-              "short": "DKS",
+              "name": "Torre Blanca Salónica",
+              "short": "TBS",
               "city": "Salónica",
               "gender": "MW",
               "colors": {
@@ -404,14 +404,14 @@
               },
               "liberoEstimated": true,
               "ovr": 68,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Dikefalos Thessaloniki\" OR \"Dikéfalos Salónica\" club. Resultado: Es el apodo de PAOK. Existió «Dikefalos Asteras» (DIKE.AS.) en Nea Ionia, un club de balonmano disuelto en 2017, que no es igual. No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: el águila bicéfala de su escudo. Líbero probable: blanco (2024-25/2025-26, fotos de prensa). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dikéfalos» (el águila bicéfala) es el apodo de PAOK. Ahora la Torre Blanca. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Torre Blanca Salónica\" OR \"White Tower Thessaloniki\" volleyball club. Resultado: ningún club con ese nombre (el HANTH tiene el gimnasio cerca de la torre, pero se llama de otra forma). (Antes: «Dikéfalos Salónica» (DKS); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Dikefalos Thessaloniki\" OR \"Dikéfalos Salónica\" club. Resultado: Es el apodo de PAOK. Existió «Dikefalos Asteras» (DIKE.AS.) en Nea Ionia, un club de balonmano disuelto en 2017, que no es igual. No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: el águila bicéfala de su escudo. Líbero probable: blanco (2024-25/2025-26, fotos de prensa). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).)",
               "realSponsor": false
             },
             {
               "real": "Milon",
               "official": "A.O.N.S. Milon (Nea Smyrni)",
-              "name": "Prosfyges Nea Smirni",
-              "short": "MNS",
+              "name": "Voley Nea Smirni",
+              "short": "VNS",
               "city": "Nea Smyrni (Atenas)",
               "gender": "MW",
               "colors": {
@@ -421,14 +421,14 @@
               },
               "liberoEstimated": false,
               "ovr": 63,
-              "check": "Búsqueda web del nombre exacto entre comillas (decisión 12-nov): no existe ningún club ni competición con ese nombre. Nombre anterior: «Milo Nea Smirni». Nota anterior: […] como libre (oleada final 12-nov): DUDOSO. Método: WebSearch \"Milo Nea Smirni\" volley. Resultado: El real figura en la CEV como «AONS Milon Nea Smyrni Athens». «Milo Nea Smirni» cambia dos letras (Milon→Milo, Smyrni→Smirni) y quita AONS: no es igual, pero se parece mucho. Alternativas sin buscar: «Smyrni Prosfyges», «Milon Alexandreia». Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Milo Nea Smirni\" OR \"Milo Nea Smyrni\". Resultado: El real es «AONS Milon» (Nea Smyrni) y la CEV lo inscribe como «AONS Milon Nea Smyrni». «Milo Nea Smirni» se queda a una letra (Milon/Milo) y a una transliteración (Smyrni/Smirni): muy cerca, casi un choque. Propuesta: Prosfyges Nea Smirni (prosfyges = «refugiados», guiño a la fundación del Milon por refugiados en 1928; WebSearch \"Prosfyges Nea Smirni\": sin ningún club). No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: Milón → Milo. Líbero: rosa (2025-26, buscado 12-nov-2026: fotos de Volleyland).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Prósfyges» (los refugiados) es apodo de clubes como AEK y Panionios. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Nea Smirni\" OR \"Volley Nea Smyrni\" club. Resultado: ningún club con ese nombre (Panionios y Milon se llaman de otra forma). (Antes: «Prosfyges Nea Smirni» (MNS); nota anterior: Búsqueda web del nombre exacto entre comillas (decisión 12-nov): no existe ningún club ni competición con ese nombre. Nombre anterior: «Milo Nea Smirni». Nota anterior: […] como libre (oleada final 12-nov): DUDOSO. Método: WebSearch \"Milo Nea Smirni\" volley. Resultado: El real figura en la CEV como «AONS Milon Nea Smyrni Athens». «Milo Nea Smirni» cambia dos letras (Milon→Milo, Smyrni→Smirni) y quita AONS: no es igual, pero se parece mucho. Alternativas sin buscar: «Smyrni Prosfyges», «Milon Alexandreia». Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Milo Nea Smirni\" OR \"Milo Nea Smyrni\". Resultado: El real es «AONS Milon» (Nea Smyrni) y la CEV lo inscribe como «AONS Milon Nea Smyrni». «Milo Nea Smirni» se queda a una letra (Milon/Milo) y a una transliteración (Smyrni/Smirni): muy cerca, casi un choque. Propuesta: Prosfyges Nea Smirni (prosfyges = «refugiados», guiño a la fundación del Milon por refugiados en 1928; WebSearch \"Prosfyges Nea Smirni\": sin ningún club). No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: Milón → Milo. Líbero: rosa (2025-26, buscado 12-nov-2026: fotos de Volleyland).)",
               "realSponsor": false
             },
             {
               "real": "Foinikas Syros",
               "official": "A.O. Foinikas Syrou",
-              "name": "Fénix Syros",
-              "short": "FNX",
+              "name": "Voley Ermúpoli",
+              "short": "ERM",
               "city": "Ermúpoli (Siros)",
               "gender": "M",
               "colors": {
@@ -438,7 +438,7 @@
               },
               "liberoEstimated": false,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Fenix Syros\" OR \"Fénix Syros\". Resultado: Sin ningún club. El real es Foinikas Syros (traducido, no transliterado). No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: «Foinikas» significa fénix. Líbero: blanco (2025-26, buscado 12-nov-2026: fotos de partido y de plantilla).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fénix» es la traducción de Foinikas. Ahora «Voley [Ciudad]» (Ermúpoli, capital de Siros). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Ermúpoli\" OR \"Voley Ermoupoli\". Resultado: ningún club; todo es turismo de Ermúpoli. (Antes: «Fénix Syros» (FNX); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Fenix Syros\" OR \"Fénix Syros\". Resultado: Sin ningún club. El real es Foinikas Syros (traducido, no transliterado). No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: «Foinikas» significa fénix. Líbero: blanco (2025-26, buscado 12-nov-2026: fotos de partido y de plantilla).)",
               "realSponsor": false
             },
             {
@@ -512,8 +512,8 @@
             {
               "real": "Aris Thessaloniki",
               "official": "Aris Thessaloniki V.C.",
-              "name": "Ares Tesalónica",
-              "short": "ARE",
+              "name": "Voley Salónica",
+              "short": "VSA",
               "city": "Salónica",
               "gender": "W",
               "colors": {
@@ -523,7 +523,7 @@
               },
               "liberoEstimated": true,
               "ovr": 58,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ares Tesalónica\". Resultado: Solo aparece Aris Thessaloniki (Ares es el dios de su escudo). No hay ningún club que se llame oficialmente «Ares Tesalónica». No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: Aris = el dios Ares. Líbero probable: naranja (2024-25/2025-26, fotos de prensa).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ares» es Aris traducido. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Salónica\" OR \"Vóley Salónica\". Resultado: ningún club con ese nombre (Aris, PAOK e Iraklis se llaman de otra forma). (Antes: «Ares Tesalónica» (ARE); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ares Tesalónica\". Resultado: Solo aparece Aris Thessaloniki (Ares es el dios de su escudo). No hay ningún club que se llame oficialmente «Ares Tesalónica». No coincide con ningún club de las lista oficial de la A1 de mujeres 2025-26 (the-sports.org) y equipos de la Volley League de hombres (Sofascore/Sportradar); no hay artículo con ese título en Wikipedia en/el/es. Guiño: Aris = el dios Ares. Líbero probable: naranja (2024-25/2025-26, fotos de prensa).)",
               "realSponsor": false
             }
           ]
@@ -545,8 +545,8 @@
             {
               "real": "Sporting CP",
               "official": "Sporting Clube de Portugal (voleibol)",
-              "name": "Leão Lisboa",
-              "short": "LEA",
+              "name": "Telheiras Lisboa",
+              "short": "TEL",
               "city": "Lisboa",
               "gender": "MW",
               "colors": {
@@ -556,14 +556,14 @@
               },
               "liberoEstimated": false,
               "ovr": 66,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Leão Lisboa\" clube. Resultado: No hay ningún club con ese nombre. Hay cosas parecidas: Leões de Porto Salvo (futsal, Oeiras), «Leões» es el apodo del Sporting y Léo Lisboa es un futbolista. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el león de su escudo. Líbero: negro (2025-26, buscado 12-nov-2026: vídeo Sporting-Benfica y fichas CEV CL 2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Leão» es el apodo de Sporting. Ahora Telheiras, barrio junto a Alvalade. Descartado «Lumiar»: el Estádio do Lumiar fue de Sporting. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Telheiras Lisboa\" voleibol OR clube. Resultado: ningún club de vóley en Telheiras (solo un pádel). (Antes: «Leão Lisboa» (LEA); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Leão Lisboa\" clube. Resultado: No hay ningún club con ese nombre. Hay cosas parecidas: Leões de Porto Salvo (futsal, Oeiras), «Leões» es el apodo del Sporting y Léo Lisboa es un futbolista. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el león de su escudo. Líbero: negro (2025-26, buscado 12-nov-2026: vídeo Sporting-Benfica y fichas CEV CL 2026).)",
               "realSponsor": false
             },
             {
               "real": "SL Benfica",
               "official": "Sport Lisboa e Benfica (voleibol)",
-              "name": "Águia Lisboa",
-              "short": "AGL",
+              "name": "Monsanto Lisboa",
+              "short": "MSL",
               "city": "Lisboa",
               "gender": "MW",
               "colors": {
@@ -573,14 +573,14 @@
               },
               "liberoEstimated": false,
               "ovr": 66,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Águia Lisboa\" clube. Resultado: No hay ningún club deportivo con ese nombre. Se parecen: un bar de snooker de Lisboa que antes se llamaba «Snooker Águia Club», el GD Águias de Camarate y el apodo «Águias» del Benfica. Ninguno es igual. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el águila, su símbolo. Líbero: beige (2025-26, buscado 12-nov-2026: foto de A Bola, Supertaça 11-oct-2025).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Águia» es el apodo de Benfica. Ahora el parque de Monsanto. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Monsanto Lisboa\" voleibol OR clube OR equipa. Resultado: ningún equipo de vóley (solo el Monsanto Running Team, de atletismo, otro nombre). (Antes: «Águia Lisboa» (AGL); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Águia Lisboa\" clube. Resultado: No hay ningún club deportivo con ese nombre. Se parecen: un bar de snooker de Lisboa que antes se llamaba «Snooker Águia Club», el GD Águias de Camarate y el apodo «Águias» del Benfica. Ninguno es igual. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el águila, su símbolo. Líbero: beige (2025-26, buscado 12-nov-2026: foto de A Bola, Supertaça 11-oct-2025).)",
               "realSponsor": false
             },
             {
               "real": "FC Porto",
               "official": "Futebol Clube do Porto (voleibol)",
-              "name": "Dragão Porto",
-              "short": "DRA",
+              "name": "Ribeira Porto",
+              "short": "RIB",
               "city": "Oporto",
               "gender": "W",
               "colors": {
@@ -590,14 +590,14 @@
               },
               "liberoEstimated": false,
               "ovr": 63,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Dragão Porto\" clube. Resultado: Solo salen el FC Porto (apodo «Dragões») y el Estádio do Dragão. No hay ningún club oficial que se llame «Dragão Porto». No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: los «Dragões». Líbero: granate (2025-26, buscado 12-nov-2026: galería CEV Cup 2026 (ccw-19)).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Dragão» es el apodo y el estadio del FC Porto. Ahora la Ribeira, la orilla del Duero. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Ribeira Porto\" voleibol OR clube OR equipa. Resultado: ningún club con ese nombre. (Antes: «Dragão Porto» (DRA); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Dragão Porto\" clube. Resultado: Solo salen el FC Porto (apodo «Dragões») y el Estádio do Dragão. No hay ningún club oficial que se llame «Dragão Porto». No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: los «Dragões». Líbero: granate (2025-26, buscado 12-nov-2026: galería CEV Cup 2026 (ccw-19)).)",
               "realSponsor": false
             },
             {
               "real": "SC Braga",
               "official": "Sporting Clube de Braga (voleibol)",
-              "name": "Arsenalistas Braga",
-              "short": "ARS",
+              "name": "Vólei Bracara",
+              "short": "BRC",
               "city": "Braga",
               "gender": "W",
               "colors": {
@@ -607,7 +607,7 @@
               },
               "liberoEstimated": false,
               "ovr": 60,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Arsenalistas Braga\". Resultado: «Arsenalistas» es el apodo del SC Braga, no su nombre oficial. No existe ningún club ni competición con ese nombre. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el apodo «Arsenalistas». Líbero: blanco con detalles rojos (2025-26, buscado 12-nov-2026: galería CEV Challenge 2026 (chcw-52)). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Arsenalistas» es el apodo de SC Braga. Ahora Bracara (Augusta), el nombre romano de Braga. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vólei Bracara\" OR \"Voley Bracara\" OR \"Bracara Voleibol\". Resultado: ningún club con ese nombre. (Antes: «Arsenalistas Braga» (ARS); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Arsenalistas Braga\". Resultado: «Arsenalistas» es el apodo del SC Braga, no su nombre oficial. No existe ningún club ni competición con ese nombre. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el apodo «Arsenalistas». Líbero: blanco con detalles rojos (2025-26, buscado 12-nov-2026: galería CEV Challenge 2026 (chcw-52)). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).)",
               "realSponsor": false
             },
             {
@@ -647,8 +647,8 @@
             {
               "real": "SC Espinho",
               "official": "Sporting Clube de Espinho",
-              "name": "Tigres Espinho",
-              "short": "TIG",
+              "name": "Vólei Paramos",
+              "short": "PRM",
               "city": "Espinho",
               "gender": "M",
               "colors": {
@@ -658,14 +658,14 @@
               },
               "liberoEstimated": true,
               "ovr": 56,
-              "check": "No comprobado por búsqueda como libre (oleada final 12-nov): DUDOSO. Método: WebSearch \"Tigres Espinho\" OR \"Tigres de Espinho\". Resultado: No existe ningún club oficial con ese nombre exacto, pero «Os Tigres (da Costa Verde)» es el apodo del SC Espinho, y el club de balonmano playa «Escola de Formação de Espinho – Os Tigres» (EHF) lleva Espinho y Os Tigres en el nombre oficial. Alternativa sin buscar: «Costa Verde Espinho». Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Tigres Espinho\". Resultado: «Tigres da Costa Verde» es el apodo del SC Espinho. Además existe un club de balonmano playa cuyo nombre oficial es «Escola de Formação de Espinho - Os Tigres» (campeón del European Beach Tour 2024). Comparte las palabras Tigres y Espinho, pero el nombre no es igual. Lo dejo marcado por si el dueño lo quiere evitar. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el apodo «Tigres». Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Tigres» es el apodo de SC Espinho («Tigres da Costa Verde»). Ahora Paramos, parroquia de Espinho. Descartados «Costa Verde» (el mismo apodo) y «Silvalde» (existe el SC Silvalde). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vólei Paramos\" OR \"Paramos Espinho\" voleibol OR clube. Resultado: ningún club con ese nombre. (Antes: «Tigres Espinho» (TIG); nota anterior: sin comprobar entonces como libre (oleada final 12-nov): DUDOSO. Método: WebSearch \"Tigres Espinho\" OR \"Tigres de Espinho\". Resultado: No existe ningún club oficial con ese nombre exacto, pero «Os Tigres (da Costa Verde)» es el apodo del SC Espinho, y el club de balonmano playa «Escola de Formação de Espinho – Os Tigres» (EHF) lleva Espinho y Os Tigres en el nombre oficial. Alternativa sin buscar: «Costa Verde Espinho». Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Tigres Espinho\". Resultado: «Tigres da Costa Verde» es el apodo del SC Espinho. Además existe un club de balonmano playa cuyo nombre oficial es «Escola de Formação de Espinho - Os Tigres» (campeón del European Beach Tour 2024). Comparte las palabras Tigres y Espinho, pero el nombre no es igual. Lo dejo marcado por si el dueño lo quiere evitar. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el apodo «Tigres». Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
               "real": "Vitória SC",
               "official": "Vitória Sport Clube (Guimarães)",
-              "name": "Conquistadores Guimarães",
-              "short": "GUI",
+              "name": "Vólei Guimarães",
+              "short": "VGU",
               "city": "Guimarães",
               "gender": "MW",
               "colors": {
@@ -675,7 +675,7 @@
               },
               "liberoEstimated": true,
               "ovr": 56,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Conquistadores Guimarães\". Resultado: «Conquistadores» es el apodo del Vitória SC y además hay un hotel Conquistador Palace. No hay ningún club oficial con ese nombre. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el apodo «Conquistadores». Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Conquistadores» es el apodo de Vitória SC. Ahora «Vólei [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Guimarães\" OR \"Vólei Guimarães\" clube. Resultado: ningún club con ese nombre (el real es Vitória SC). (Antes: «Conquistadores Guimarães» (GUI); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Conquistadores Guimarães\". Resultado: «Conquistadores» es el apodo del Vitória SC y además hay un hotel Conquistador Palace. No hay ningún club oficial con ese nombre. No coincide con ningún club de las clasificaciones oficiales 2025-26 de la FPV (dataproject: Liga UNA Seguros y Liga Solverde); no hay artículo con ese título en Wikipedia en/pt/es. Guiño: el apodo «Conquistadores». Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -997,8 +997,8 @@
             {
               "real": "Sokol/Post",
               "official": "SG Sokol/Post (Niederösterreich/Viena)",
-              "name": "Falke Wien",
-              "short": "FAL",
+              "name": "Voley Prater",
+              "short": "PRT",
               "city": "Viena",
               "gender": "MW",
               "colors": {
@@ -1008,7 +1008,7 @@
               },
               "liberoEstimated": true,
               "ovr": 56,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Falke Wien\". Resultado: Sin clubes ni competiciones con ese nombre; solo halcones, Falkestraße, Café Falk. No coincide con ningún club de las tablas 2025-26 de la AVL de hombres y de mujeres (Sportradar, 365Scores); no hay artículo con ese título en Wikipedia en; sin respuesta de Wikipedia de/es. Guiño: «sokol» es halcón (Falke). Líbero probable: amarillo (2024-25, fichas CEV Challenge 2025 (chcw-39)). Ojo: casi igual que la 2ª camiseta (#FFD200); se deja porque es el real (el juego tiene plan B si choca).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Falke» (halcón) era Sokol traducido. Ahora el Prater. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Prater\" OR \"Prater Wien\" Volleyball Verein. Resultado: ningún club con ese nombre (en el Prater solo hay pistas públicas de playa). (Antes: «Falke Wien» (FAL); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Falke Wien\". Resultado: Sin clubes ni competiciones con ese nombre; solo halcones, Falkestraße, Café Falk. No coincide con ningún club de las tablas 2025-26 de la AVL de hombres y de mujeres (Sportradar, 365Scores); no hay artículo con ese título en Wikipedia en; sin respuesta de Wikipedia de/es. Guiño: «sokol» es halcón (Falke). Líbero probable: amarillo (2024-25, fichas CEV Challenge 2025 (chcw-39)). Ojo: casi igual que la 2ª camiseta (#FFD200); se deja porque es el real (el juego tiene plan B si choca).)",
               "realSponsor": false
             },
             {
@@ -1085,8 +1085,8 @@
             {
               "real": "VK Lvi Praha",
               "official": "VK Lvi Praha",
-              "name": "Leones de Praga",
-              "short": "LEO",
+              "name": "Voley Vyšehrad",
+              "short": "VYS",
               "city": "Praga",
               "gender": "MW",
               "colors": {
@@ -1096,7 +1096,7 @@
               },
               "liberoEstimated": true,
               "ovr": 61,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Leones de Praga\". Resultado: Sin resultados de club. Es la traducción al español de «Lvi Praha» (guiño), no el nombre oficial. No coincide con ningún club de las listas 2025-26 de la Extraliga de hombres y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/cs. Guiño: «Lvi» significa leones. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Leones» era Lvi traducido. Ahora la fortaleza de Vyšehrad. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Vyšehrad\" OR \"VK Vyšehrad\" volejbal. Resultado: ningún club de vóley (Vyšehrad solo sale en baloncesto y hockey, otros nombres). (Antes: «Leones de Praga» (LEO); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Leones de Praga\". Resultado: Sin resultados de club. Es la traducción al español de «Lvi Praha» (guiño), no el nombre oficial. No coincide con ningún club de las listas 2025-26 de la Extraliga de hombres y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/cs. Guiño: «Lvi» significa leones. Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -1155,8 +1155,8 @@
             {
               "real": "VK Šelmy Brno",
               "official": "VK Šelmy Brno",
-              "name": "Fieras Brno",
-              "short": "FIE",
+              "name": "Voley Špilberk",
+              "short": "SPI",
               "city": "Brno",
               "gender": "W",
               "colors": {
@@ -1166,7 +1166,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Fieras Brno\". Resultado: Sin club con ese nombre; solo el zoo y la feria de Brno. Traducción libre de «Šelmy». No coincide con ningún club de las listas 2025-26 de la Extraliga de hombres y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/cs. Guiño: «šelmy» significa fieras. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fieras» era Šelmy traducido. Ahora el castillo de Špilberk. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Špilberk\" OR \"VK Špilberk\" OR \"Špilberk Brno\" volejbal. Resultado: ningún club con ese nombre. (Antes: «Fieras Brno» (FIE); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Fieras Brno\". Resultado: Sin club con ese nombre; solo el zoo y la feria de Brno. Traducción libre de «Šelmy». No coincide con ningún club de las listas 2025-26 de la Extraliga de hombres y de mujeres (BetExplorer); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/cs. Guiño: «šelmy» significa fieras. Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -1259,8 +1259,8 @@
             {
               "real": "OK Partizan",
               "official": "Odbojkaški klub Partizan",
-              "name": "Crno-Beli Beograd",
-              "short": "CBB",
+              "name": "Voley Dorćol",
+              "short": "DOR",
               "city": "Belgrado",
               "gender": "MW",
               "colors": {
@@ -1270,14 +1270,14 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): «Crno-Beli Beograd» no existe como club ni competición oficial. Método: WebSearch \"Crno-Beli Beograd\" klub: ningún club ni competición, solo el apodo «blanquinegros» de Partizan. Se cambió porque el nombre anterior, «Partisan Beograd», chocaba: Los resultados llevan directamente a FK/OK/KK Partizan Beograd (nombre oficial «Partizan Beograd»). Solo cambia z→s, y «Partisan» es la grafía alemana o inglesa habitual del mismo club, así que es prácticamente el mismo nombre. Nota anterior: No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Se quitan los patrocinadores; el guiño es mínimo (z → s). Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Crno-beli» (los blanquinegros) es el apodo de Partizan. Ahora el barrio de Dorćol. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Dorćol\" OR \"OK Dorćol\" OR \"Dorćol Beograd\" odbojka. Resultado: ningún club de vóley (hay fútbol, rugby y waterpolo con Dorćol en el nombre, otros nombres). (Antes: «Crno-Beli Beograd» (CBB); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): «Crno-Beli Beograd» no existe como club ni competición oficial. Método: WebSearch \"Crno-Beli Beograd\" klub: ningún club ni competición, solo el apodo «blanquinegros» de Partizan. Se cambió porque el nombre anterior, «Partisan Beograd», chocaba: Los resultados llevan directamente a FK/OK/KK Partizan Beograd (nombre oficial «Partizan Beograd»). Solo cambia z→s, y «Partisan» es la grafía alemana o inglesa habitual del mismo club, así que es prácticamente el mismo nombre. Nota anterior: No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Se quitan los patrocinadores; el guiño es mínimo (z → s). Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
               "real": "OK Crvena Zvezda",
               "official": "Odbojkaški klub / Ženski odbojkaški klub Crvena zvezda",
-              "name": "Crvena Zora",
-              "short": "CZO",
+              "name": "Kalemegdan Beograd",
+              "short": "KAL",
               "city": "Belgrado",
               "gender": "MW",
               "colors": {
@@ -1287,7 +1287,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Crvena Zora\" klub. Resultado: Todos los resultados son clubes «Crvena Zvezda»; ningún club «Crvena Zora». No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «estrella roja» → «aurora roja». Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Crvena Zora» estaba a una palabra de «Crvena Zvezda». Ahora la fortaleza de Kalemegdan (el Estrella Roja ha celebrado títulos allí, pero ningún club se llama así). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Kalemegdan Beograd\" odbojka OR klub OR volleyball. Resultado: ningún club; Kalemegdan solo sale como lugar. (Antes: «Crvena Zora» (CZO); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Crvena Zora\" klub. Resultado: Todos los resultados son clubes «Crvena Zvezda»; ningún club «Crvena Zora». No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «estrella roja» → «aurora roja». Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -1363,8 +1363,8 @@
             {
               "real": "ŽOK Železničar Lajkovac",
               "official": "Ženski odbojkaški klub Železničar Lajkovac",
-              "name": "Ferroviario Lajkovac",
-              "short": "FER",
+              "name": "Voley Lajkovac",
+              "short": "LAJ",
               "city": "Lajkovac",
               "gender": "W",
               "colors": {
@@ -1374,7 +1374,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ferroviario Lajkovac\". Resultado: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «železničar» significa ferroviario. Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ferroviario» era Železničar traducido. Ahora «Voley [Ciudad]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Lajkovac\" OR \"OK Lajkovac\" odbojka. Resultado: ningún club con ese nombre (el real es ŽOK Železničar). (Antes: «Ferroviario Lajkovac» (FER); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ferroviario Lajkovac\". Resultado: Sin club con ese nombre; solo FK/ŽOK Železničar Lajkovac (traducción como guiño, nombre distinto). No coincide con ningún club de las listas oficiales 2025-26 de la OSS (dataproject: Superliga hombres ID 91 y mujeres ID 92); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/sr. Guiño: «železničar» significa ferroviario. Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -1599,8 +1599,8 @@
             {
               "real": "CSA Steaua București",
               "official": "Clubul Sportiv al Armatei Steaua București (voleibol)",
-              "name": "Stelele București",
-              "short": "STE",
+              "name": "Cotroceni Bucarest",
+              "short": "COT",
               "city": "Bucarest",
               "gender": "M",
               "colors": {
@@ -1610,7 +1610,7 @@
               },
               "liberoEstimated": true,
               "ovr": 59,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch: \"Stelele București\" club sportiv. Resultado: Sin coincidencia exacta; solo sale CSA Steaua București (el singular). «Stelele» en plural no es el nombre de ningún club. No coincide con ningún club de las listas oficiales 2025-26 de la FRV (dataproject: Divizia A1 hombres y mujeres); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/ro. Guiño: «steaua» (la estrella) → «stelele» (las estrellas). Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Stelele» (las estrellas) era Steaua en plural. Ahora el barrio de Cotroceni. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Cotroceni Bucarest\" OR \"Cotroceni București\" volei OR club sportiv. Resultado: ningún club con ese nombre (solo el estadio Cotroceni, del antiguo Progresul). (Antes: «Stelele București» (STE); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch: \"Stelele București\" club sportiv. Resultado: Sin coincidencia exacta; solo sale CSA Steaua București (el singular). «Stelele» en plural no es el nombre de ningún club. No coincide con ningún club de las listas oficiales 2025-26 de la FRV (dataproject: Divizia A1 hombres y mujeres); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/ro. Guiño: «steaua» (la estrella) → «stelele» (las estrellas). Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -1684,8 +1684,8 @@
             {
               "real": "CS Dinamo București",
               "official": "Clubul Sportiv Dinamo București (voleibol)",
-              "name": "Câinii Bucarest",
-              "short": "CAI",
+              "name": "Voley Tei",
+              "short": "TEI",
               "city": "Bucarest",
               "gender": "MW",
               "colors": {
@@ -1695,7 +1695,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): «Câinii Bucarest» no existe como club ni competición oficial. Método: WebSearch \"Câinii Bucarest\" OR \"Cainii Bucarest\" club y WebFetch a la búsqueda de ro.wikipedia «Câinii București»: ningún club; solo el apodo «Câinii roșii» de Dinamo. Se cambió porque el nombre anterior, «Dínamo Bucarest», chocaba: En es.wikipedia, «Dinamo Bucarest» redirige a FC Dinamo de Bucarest, y las tablas de la Divizia A1 de vóley de ro.wikipedia listan el equipo como «Dinamo Bucarest». Es el nombre real (CS/FC Dinamo București) traducido; solo cambia la tilde. Nota anterior: No coincide con ningún club de las listas oficiales 2025-26 de la FRV (dataproject: Divizia A1 hombres y mujeres); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/ro. El guiño es mínimo (forma española). Líbero: no encontrado en internet (12-nov-2026).",
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Câinii» (los perros) es el apodo de Dinamo Bucarest. Ahora el barrio y el lago de Tei. Descartado «Colentina»: Colentina A.C. București fue un club real. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Voley Tei\" OR \"Tei București\" volei club. Resultado: ningún club con ese nombre. (Antes: «Câinii Bucarest» (CAI); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): «Câinii Bucarest» no existe como club ni competición oficial. Método: WebSearch \"Câinii Bucarest\" OR \"Cainii Bucarest\" club y WebFetch a la búsqueda de ro.wikipedia «Câinii București»: ningún club; solo el apodo «Câinii roșii» de Dinamo. Se cambió porque el nombre anterior, «Dínamo Bucarest», chocaba: En es.wikipedia, «Dinamo Bucarest» redirige a FC Dinamo de Bucarest, y las tablas de la Divizia A1 de vóley de ro.wikipedia listan el equipo como «Dinamo Bucarest». Es el nombre real (CS/FC Dinamo București) traducido; solo cambia la tilde. Nota anterior: No coincide con ningún club de las listas oficiales 2025-26 de la FRV (dataproject: Divizia A1 hombres y mujeres); no hay artículo con ese título en Wikipedia es; sin respuesta de Wikipedia en/ro. El guiño es mínimo (forma española). Líbero: no encontrado en internet (12-nov-2026).)",
               "realSponsor": false
             },
             {
@@ -1740,9 +1740,9 @@
   "competitions": [
     {
       "real": "CEV Champions League (las dos)",
-      "name": "Champions Cup VEC",
+      "name": "Copa de Campeones VEC",
       "short": "CCV",
-      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Champions Cup VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. Unificado por el integrador (11-nov-2026): mismo nombre y sigla en todos los ficheros. Antes «Champions Cup» (CHC).",
+      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Copa de Campeones VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. Unificado por el integrador (11-nov-2026): mismo nombre y sigla en todos los ficheros. Antes «Champions Cup» (CHC).",
       "kind": "intl",
       "rank": 1
     },

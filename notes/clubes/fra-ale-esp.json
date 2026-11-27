@@ -487,11 +487,11 @@
             {
               "real": "SWD Powervolleys Düren",
               "official": "SWD Powervolleys Düren",
-              "name": "Rur Power Düren",
+              "name": "Rurwelle Düren",
               "realSponsor": true,
               "sponsor": "Rodilleras Rodríguez",
               "sponsorCheck": "Marca recurrente del gag (mismo nombre en todo el juego). WebSearch del nombre exacto entre comillas (patrocinadores 11-nov): WebSearch \"Rodilleras Rodríguez\" OR \"Chanclas Supersónicas\" OR \"Seguros Tie-Break\": ninguna coincide con una empresa conocida.",
-              "short": "RUR",
+              "short": "RWD",
               "city": "Düren",
               "gender": "M",
               "colors": {
@@ -501,7 +501,7 @@
               },
               "liberoEstimated": false,
               "ovr": 82,
-              "check": "Búsqueda web del nombre exacto entre comillas (patrocinadores 11-nov): no existe. Método: WebSearch \"Rur Power Düren\". Resultado: ningún club; solo RWE Power (empresa energética de la zona, nombre distinto). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (tablas de la VBL vía the-sports.org y Sportschau): no coincide con ninguno. Se quita el patrocinador SWD. Guiño a «Power» y al río Rur. Líbero: turquesa (2026-27, buscado 12-nov-2026: foto de equipo en swd-powervolleys.de). Ojo: casi igual que la 1ª camiseta (#099DAD); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rur Power» guiñaba a «Powervolleys». Ahora «Rurwelle» (ola del Rur). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Rurwelle Düren\" OR \"Rurwelle\" Volleyball OR Verein. Resultado: ningún club ni equipo con ese nombre. (Antes: «Rur Power Düren» (RUR); nota anterior: Búsqueda web del nombre exacto entre comillas (patrocinadores 11-nov): no existe. Método: WebSearch \"Rur Power Düren\". Resultado: ningún club; solo RWE Power (empresa energética de la zona, nombre distinto). Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (tablas de la VBL vía the-sports.org y Sportschau): no coincide con ninguno. Se quita el patrocinador SWD. Guiño a «Power» y al río Rur. Líbero: turquesa (2026-27, buscado 12-nov-2026: foto de equipo en swd-powervolleys.de). Ojo: casi igual que la 1ª camiseta (#099DAD); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Helios Grizzlys Giesen",
@@ -695,9 +695,9 @@
             {
               "real": "Netzhoppers KW",
               "official": "Netzhoppers Königs Wusterhausen",
-              "name": "Netzspringer KW",
+              "name": "Dahme Volley KW",
               "realSponsor": false,
-              "short": "NSP",
+              "short": "DVK",
               "city": "Königs Wusterhausen",
               "gender": "M",
               "colors": {
@@ -707,7 +707,7 @@
               },
               "liberoEstimated": true,
               "ovr": 70,
-              "check": "Búsqueda web del nombre exacto entre comillas (patrocinadores 11-nov): no existe. Método: WebSearch \"Netzspringer KW\" OR \"Netzspringer Königs Wusterhausen\". Resultado: ningún resultado con ese nombre. Ojo: es casi traducción literal de «Netzhoppers»; dudoso por parecido, no por coincidencia. Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (tablas de la VBL vía the-sports.org y Sportschau): no coincide con ninguno. Guiño a «Netzhoppers» (hopper → springer). Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Netzspringer» era «Netzhoppers» traducido. Ahora el río Dahme. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Dahme Volley\" OR \"Dahme Volleys\" Königs Wusterhausen. Resultado: ningún equipo (solo los Netzhoppers). (Antes: «Netzspringer KW» (NSP); nota anterior: Búsqueda web del nombre exacto entre comillas (patrocinadores 11-nov): no existe. Método: WebSearch \"Netzspringer KW\" OR \"Netzspringer Königs Wusterhausen\". Resultado: ningún resultado con ese nombre. Ojo: es casi traducción literal de «Netzhoppers»; dudoso por parecido, no por coincidencia. Contrastado solo con las listas oficiales de equipos 2025-26 consultadas (tablas de la VBL vía the-sports.org y Sportschau): no coincide con ninguno. Guiño a «Netzhoppers» (hopper → springer). Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Baden Volleys SSC Karlsruhe",
@@ -1370,9 +1370,9 @@
     },
     {
       "real": "CEV Champions League (las dos)",
-      "name": "Champions Cup VEC",
+      "name": "Copa de Campeones VEC",
       "short": "CCV",
-      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Champions Cup VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. Unificado con elite-europa.json (allí ya se llama «Champions Cup VEC», CCV).",
+      "note": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Copa de Campeones VEC\" volleyball. Resultado: No sale nada exacto. La CEV Champions League se llamó «CEV European Champions Cup» entre 1959 y 2000, pero lleva CEV y no VEC, y el orden es otro. Unificado con elite-europa.json (allí ya se llama «Copa de Campeones VEC», CCV).",
       "kind": "intl",
       "rank": 1
     },

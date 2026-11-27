@@ -408,7 +408,7 @@
     look: LOOK, floor: floor, floorLine: '#ffffff',
     score: { x: 0, y: 0, z: FZ, w: SCR_W, h: SCR_H },
     brands: { 'PALAU DEL MAR': { name: 'CÚPULA DEL FAR', fg: '#39e0ff', bg: ['#0b0920', '#2a1f6a'], deco: 'star8' },
-      'MARINA FM': { name: 'MARINA FM', fg: '#ffffff', bg: ['#b8287a', '#ff4fa0'], deco: 'wave' } },
+      'ONDARRED FM': { name: 'ONDARRED FM', fg: '#ffffff', bg: ['#b8287a', '#ff4fa0'], deco: 'wave' } },
     flagPal: FLAGS,
     screen: { a: '#1e1850', b: '#3a2f8a', fg: '#ffe08a' },
     build: build, quality: quality, step: step, dispose: dispose

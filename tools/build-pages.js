@@ -16,7 +16,9 @@
  * Se escribe igual para que el artefacto diga dónde vive y por si un día se publica desde una rama.
  * Google Play (24-nov-2026, notes/playstore/privacidad.md): pages/privacidad.html y pages/borrar-cuenta.html se copian a _site como el
  * resto de pages/ (https://takethecourt.com/privacidad.html y /borrar-cuenta.html). Llevan los huecos {{RESPONSABLE}} y
- * {{CONTACTO_EMAIL}} hasta que el dueño los rellene. Por defecto el build solo AVISA si faltan o si quedan huecos {{...}};
+ * {{CONTACTO_EMAIL}} hasta que el dueño los rellene. Auditoría legal (25-nov-2026): también pages/aviso-legal.html (sin NIF ni domicilio desde el
+ * 25-nov-2026), pages/condiciones.html y pages/licencias.html (generada por
+ * tools/build-licencias.js); las cinco son POLICY_PAGES: misma comprobación de huecos y van al service worker como páginas. Por defecto el build solo AVISA si faltan o si quedan huecos {{...}};
  * con STRICT_POLICY=1 FALLA (úsalo antes de mandar la ficha a Google Play: STRICT_POLICY=1 node tools/build-pages.js).
  * pages/ se copia ENTERA y con subcarpetas (pages/.well-known/assetlinks.json → /.well-known/assetlinks.json para la TWA); el
  * .nojekyll de _site hace que GitHub Pages sirva las carpetas que empiezan por punto.
@@ -124,7 +126,7 @@ catch (e) { if (fs.existsSync(path.join(ROOT, 'bridge', 'version.json'))) fail('
 if (!fs.existsSync(path.join(ROOT, 'pages', 'og.png'))) fail('falta pages/og.png (se genera con node tools/og-image.js)');
 // páginas legales de Google Play: con STRICT_POLICY=1 tienen que estar y sin huecos {{...}}; sin él, solo se avisa
 const STRICT_POLICY = process.env.STRICT_POLICY === '1';
-const POLICY_PAGES = ['privacidad.html', 'borrar-cuenta.html'];
+const POLICY_PAGES = ['privacidad.html', 'borrar-cuenta.html', 'aviso-legal.html', 'condiciones.html', 'licencias.html'];   // (las tres últimas: auditoría legal del 25-nov-2026)
 const policyNotes = [];
 for (const f of POLICY_PAGES) {
   const pf = path.join(ROOT, 'pages', f);

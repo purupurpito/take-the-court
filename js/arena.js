@@ -20,7 +20,7 @@
   var root, keyLight, rimLight, fillLight, hemi;
   var FONT = '"Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
   var FONT0 = FONT;
-  var FONT_TXT = '"Chivo", system-ui, sans-serif';          // vallas de letra fina (MARINA FM, TERRA, ALBA SPORT)
+  var FONT_TXT = '"Chivo", system-ui, sans-serif';          // vallas de letra fina (ONDARRED FM, TOQUE VERD, SAQUESOL)
   var FONT_LED = '"Doto", ui-monospace, monospace';          // marcador LED del pabellón y la valla de la autoescuela
   /** Las texturas pintadas con letra propia esperan a sus fuentes (tope 1,5 s, como doll.js) y se repintan; si no llegan,
    *  se quedan con el respaldo. Una sola promesa para todo el pabellón. */
@@ -497,7 +497,7 @@
     } else {
       // marca del fabricante (ficticia) en la banda superior
       g.fillStyle = 'rgba(20,40,70,0.55)'; g.font = '800 ' + Math.round(top * 0.78) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('SALT 9  PRO NET', Wd * 0.5, top * 0.55);
+      g.fillText('KOLOKA 9  PRO NET', Wd * 0.5, top * 0.55);
     }
     // bandas laterales sobre las líneas laterales (5 cm x 1 m)
     function bandAt(yy) { var u0 = (yy + NET_W / 2) * ppm; g.fillStyle = beach ? bandCol : '#f7f4ee'; g.fillRect(u0, 0, 0.05 * ppm, Ht); }
@@ -2822,16 +2822,16 @@
    * VALLAS LED (marcas ficticias) y mensajes de partido
    * ===================================================================== */
   /* Cada marca con su letra (type): w = peso, f = familia, low = minúsculas, sp = espacio entre letras (px a 128 de alto),
-   * sx = estirado horizontal, it = cursiva, lines = en dos renglones. NÓRDIKA es la valla cutre (Arial Black estirada), adrede.
+   * sx = estirado horizontal, it = cursiva, lines = en dos renglones. BLOQUIVERN es la valla cutre (Arial Black estirada), adrede.
    * PALAU DEL MAR sigue en el puesto 4 (skinRepaint lo usa para el mensaje de reposo). */
   var BRANDS = [
-    { name: 'NÓRDIKA', fg: '#ffd23f', bg: ['#0d1b2a', '#16324f'], deco: 'flake', type: { w: 900, f: '"Arial Black", Arial, sans-serif', it: true, sx: 1.2 } },
-    { name: 'VOLTA', fg: '#ffffff', bg: ['#ff5b3a', '#ff8a3d'], deco: 'bolt', type: { w: 900 } },
-    { name: 'ALBA SPORT', fg: '#0d1b2a', bg: ['#7ee0c3', '#bff3e2'], deco: 'sun', type: { w: 700, f: 'txt' } },
-    { name: 'MARINA FM', fg: '#ffffff', bg: ['#0c4a4f', '#14666b'], deco: 'wave', type: { w: 700, f: 'txt', low: true } },
+    { name: 'BLOQUIVERN', fg: '#ffd23f', bg: ['#0d1b2a', '#16324f'], deco: 'flake', type: { w: 900, f: '"Arial Black", Arial, sans-serif', it: true, sx: 1.2 } },
+    { name: 'REMATEX', fg: '#ffffff', bg: ['#ff5b3a', '#ff8a3d'], deco: 'bolt', type: { w: 900 } },
+    { name: 'SAQUESOL', fg: '#0d1b2a', bg: ['#7ee0c3', '#bff3e2'], deco: 'sun', type: { w: 700, f: 'txt' } },
+    { name: 'ONDARRED FM', fg: '#ffffff', bg: ['#2a55c9', '#3f7cf0'], deco: 'wave', type: { w: 700, f: 'txt', low: true } },
     { name: 'PALAU DEL MAR', fg: '#ffffff', bg: ['#0b3a4f', '#146a86'], deco: 'wave', type: { w: 800 } },
-    { name: 'TERRA', fg: '#5a3a1e', bg: ['#efe3c8', '#f7eedb'], deco: 'leaf', type: { w: 300, f: 'txt', sp: 14 } },
-    { name: 'SALT 9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
+    { name: 'TOQUE VERD', fg: '#ffd23f', bg: ['#2a1a0d', '#4a2f17'], deco: 'leaf', type: { w: 300, f: 'txt', sp: 14 } },
+    { name: 'KOLOKA 9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
     { name: 'TAKE THE COURT', fg: '#0e1118', bg: ['#ffd23f', '#ffb03d'], deco: 'ball' },
     { name: 'AUTOESCUELA LA ROTACIÓN', fg: '#14110a', bg: ['#ffd400', '#ffe14d'], deco: 'dots', type: { w: 800, f: 'led', lines: ['AUTOESCUELA', 'LA ROTACIÓN'] } }
   ];

@@ -130,11 +130,11 @@
             {
               "real": "Sesc RJ Flamengo",
               "official": "Sesc RJ Flamengo (Serviço Social do Comércio RJ + Clube de Regatas do Flamengo)",
-              "name": "Urubu Rio",
+              "name": "Lagoa Rio",
               "realSponsor": true,
               "sponsor": "Biscoito Largadinha",
               "sponsorCheck": "Juego de palabras: largada (finta). Búsqueda web del nombre exacto entre comillas (WebSearch, 11-nov-2026): ninguna empresa ni marca real con ese nombre; solo resultados genéricos.",
-              "short": "URU",
+              "short": "LGR",
               "city": "Rio de Janeiro",
               "gender": "W",
               "colors": {
@@ -144,14 +144,14 @@
               },
               "liberoEstimated": false,
               "ovr": 88,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Urubu Rio\" clube. Resultado: Ningún club se llama así. «Urubu» es el apodo/mascota del Flamengo y hay ríos Urubu; no es nombre oficial de nada. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Urubu» es la mascota del Flamengo; se quita Sesc. Líbero: azul celeste (2026-27, buscado 12-nov-2026: foto de Terra (final del Carioca, oct-2026))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Urubu» es la mascota de Flamengo. Ahora la Lagoa Rodrigo de Freitas. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Lagoa Rio\" vôlei OR clube OR time. Resultado: ningún equipo con ese nombre. (Antes: «Urubu Rio» (URU); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Urubu Rio\" clube. Resultado: Ningún club se llama así. «Urubu» es el apodo/mascota del Flamengo y hay ríos Urubu; no es nombre oficial de nada. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Urubu» es la mascota del Flamengo; se quita Sesc. Líbero: azul celeste (2026-27, buscado 12-nov-2026: foto de Terra (final del Carioca, oct-2026)).)"
             },
             {
               "real": "Fluminense",
               "official": "Fluminense Football Club",
-              "name": "Laranjeiras Tricolor",
+              "name": "Vôlei Corcovado",
               "realSponsor": false,
-              "short": "LTR",
+              "short": "COV",
               "city": "Rio de Janeiro",
               "gender": "W",
               "colors": {
@@ -161,7 +161,7 @@
               },
               "liberoEstimated": false,
               "ovr": 83,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Laranjeiras Tricolor» no existe como club oficial. Método: WebSearch \"Laranjeiras Tricolor\". Resultado: No hay ningún club con ese nombre. Solo salen referencias al Fluminense (el «Tricolor», con sede en Laranjeiras) y a eventos como el «Arraiá Tricolor nas Laranjeiras». Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Laranjeiras Tricolor\" clube. Resultado: No hay club oficial con ese nombre, pero «Tricolor das Laranjeiras» es el apodo muy conocido del Fluminense (mismas palabras en otro orden). No es el nombre oficial, así que no choca con la regla; se deja como guiño reconocible. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Laranjeiras es el barrio de su sede; «Tricolor» es su apodo. Líbero: blanco con granate (2025-26, buscado 12-nov-2026: foto de Volleyball World (Marcelle Arruda)). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Tricolor» es el apodo de Fluminense y Laranjeiras su sede. Ahora el Corcovado. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vôlei Corcovado\" OR \"Corcovado Vôlei\". Resultado: ningún club; Corcovado solo sale como monte y como canción. (Antes: «Laranjeiras Tricolor» (LTR); nota anterior: Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Laranjeiras Tricolor» no existe como club oficial. Método: WebSearch \"Laranjeiras Tricolor\". Resultado: No hay ningún club con ese nombre. Solo salen referencias al Fluminense (el «Tricolor», con sede en Laranjeiras) y a eventos como el «Arraiá Tricolor nas Laranjeiras». Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Laranjeiras Tricolor\" clube. Resultado: No hay club oficial con ese nombre, pero «Tricolor das Laranjeiras» es el apodo muy conocido del Fluminense (mismas palabras en otro orden). No es el nombre oficial, así que no choca con la regla; se deja como guiño reconocible. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Laranjeiras es el barrio de su sede; «Tricolor» es su apodo. Líbero: blanco con granate (2025-26, buscado 12-nov-2026: foto de Volleyball World (Marcelle Arruda)). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Monte Carmelo Vôlei",
@@ -511,9 +511,9 @@
             {
               "real": "River Plate",
               "official": "Club Atlético River Plate",
-              "name": "Núñez Millonario",
+              "name": "Vóley Núñez",
               "realSponsor": false,
-              "short": "NUN",
+              "short": "VNU",
               "city": "Buenos Aires (Núñez)",
               "gender": "MW",
               "colors": {
@@ -523,14 +523,14 @@
               },
               "liberoEstimated": true,
               "ovr": 66,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Núñez Millonario\". Resultado: Solo sale el futbolista Maximiliano Núñez (jugó en Millonarios), el barrio de Núñez y la canción «Millonario». No hay ningún club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Millonario» es su apodo y Núñez su barrio. Evito «Millonarios» a secas, que es un club colombiano. [Integrador: abreviatura NUM → NUN, para que no se repita con otro club del juego.] Líbero probable: rojo (2025, foto del Torneo Metropolitano). Ojo: casi igual que la 2ª camiseta (#E1001A); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Millonario» es el apodo de River Plate. Ahora «Vóley [barrio]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Núñez\" OR \"Voley Nuñez\" club. Resultado: ningún club (solo jugadores apellidados Núñez). (Antes: «Núñez Millonario» (NUN); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Núñez Millonario\". Resultado: Solo sale el futbolista Maximiliano Núñez (jugó en Millonarios), el barrio de Núñez y la canción «Millonario». No hay ningún club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Millonario» es su apodo y Núñez su barrio. Evito «Millonarios» a secas, que es un club colombiano. [Integrador: abreviatura NUM → NUN, para que no se repita con otro club del juego.] Líbero probable: rojo (2025, foto del Torneo Metropolitano). Ojo: casi igual que la 2ª camiseta (#E1001A); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Boca Juniors",
               "official": "Club Atlético Boca Juniors",
-              "name": "Xeneize Vóley",
+              "name": "Vuelta de Rocha Vóley",
               "realSponsor": false,
-              "short": "XEN",
+              "short": "VDR",
               "city": "Buenos Aires (La Boca)",
               "gender": "MW",
               "colors": {
@@ -540,14 +540,14 @@
               },
               "liberoEstimated": false,
               "ovr": 67,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Xeneize Vóley\". Resultado: Ningún resultado con ese nombre exacto. «Xeneize» es solo el apodo de Boca Juniors, y su sección de vóley se llama oficialmente Boca Juniors. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Xeneize» es su apodo. Líbero: amarillo oro (2025-26, buscado 12-nov-2026: vídeo Boca-Ferro y foto de plantel). Ojo: casi igual que la 2ª camiseta (#FDB913); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Xeneize» es el apodo de Boca Juniors. Ahora la Vuelta de Rocha, el recodo del Riachuelo en La Boca. Descartado «Riachuelo Vóley»: Riachuelo es una cadena brasileña que patrocina la selección de vóley. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vuelta de Rocha Vóley\" OR \"Club Vuelta de Rocha\". Resultado: ningún club (solo una película de 1937, «La vuelta de Rocha»). (Antes: «Xeneize Vóley» (XEN); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Xeneize Vóley\". Resultado: Ningún resultado con ese nombre exacto. «Xeneize» es solo el apodo de Boca Juniors, y su sección de vóley se llama oficialmente Boca Juniors. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Xeneize» es su apodo. Líbero: amarillo oro (2025-26, buscado 12-nov-2026: vídeo Boca-Ferro y foto de plantel). Ojo: casi igual que la 2ª camiseta (#FDB913); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "San Lorenzo",
               "official": "Club Atlético San Lorenzo de Almagro",
-              "name": "Ciclón de Boedo",
+              "name": "Vóley Boedo",
               "realSponsor": false,
-              "short": "CIC",
+              "short": "VBO",
               "city": "Buenos Aires (Boedo)",
               "gender": "MW",
               "colors": {
@@ -557,14 +557,14 @@
               },
               "liberoEstimated": true,
               "ovr": 64,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ciclón de Boedo\" club. Resultado: Es un apodo popular de San Lorenzo de Almagro, no un nombre oficial. Existen Club Atlético Ciclón (Tarija, Bolivia) y otro en La Pampa, pero ninguno se llama «Ciclón de Boedo». Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «El Ciclón» es su apodo y Boedo su barrio. Líbero probable: blanco (2025-26, foto de partido de la LVA)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Ciclón» es el apodo de San Lorenzo. Ahora «Vóley [barrio]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Boedo\" OR \"Voley Boedo\" club. Resultado: ningún club con ese nombre (Boedo solo sale como lugar de una celebración de Lomas Vóley). (Antes: «Ciclón de Boedo» (CIC); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Ciclón de Boedo\" club. Resultado: Es un apodo popular de San Lorenzo de Almagro, no un nombre oficial. Existen Club Atlético Ciclón (Tarija, Bolivia) y otro en La Pampa, pero ninguno se llama «Ciclón de Boedo». Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «El Ciclón» es su apodo y Boedo su barrio. Líbero probable: blanco (2025-26, foto de partido de la LVA).)"
             },
             {
               "real": "Vélez Sarsfield",
               "official": "Club Atlético Vélez Sarsfield",
-              "name": "Fortín Liniers",
+              "name": "Vóley Versalles",
               "realSponsor": false,
-              "short": "FOR",
+              "short": "VVE",
               "city": "Buenos Aires (Liniers)",
               "gender": "M",
               "colors": {
@@ -574,7 +574,7 @@
               },
               "liberoEstimated": true,
               "ovr": 62,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Fortín Liniers\" club. Resultado: Combina dos apodos de Vélez Sarsfield («El Fortín», del barrio de Liniers). Existen CSyD Liniers, Liniers de Bahía Blanca y CA El Fortín (Colón), pero ninguno se llama «Fortín Liniers». Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «El Fortín» es su apodo y Liniers su barrio. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Fortín» es el apodo de Vélez Sarsfield. Ahora Versalles, barrio vecino de Liniers. Descartados «Vóley Liniers» (Liniers de Bahía Blanca tiene vóley) y «Villa Luro» («El Fortín de Villa Luro» fue el de Vélez). Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Versalles\" OR \"Voley Versalles\" Buenos Aires. Resultado: ningún club de vóley con ese nombre (existe el Versalles Athletic Club, otro nombre). (Antes: «Fortín Liniers» (FOR); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Fortín Liniers\" club. Resultado: Combina dos apodos de Vélez Sarsfield («El Fortín», del barrio de Liniers). Existen CSyD Liniers, Liniers de Bahía Blanca y CA El Fortín (Colón), pero ninguno se llama «Fortín Liniers». Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «El Fortín» es su apodo y Liniers su barrio. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Monteros Vóley",
@@ -596,9 +596,9 @@
             {
               "real": "Gimnasia y Esgrima La Plata",
               "official": "Club de Gimnasia y Esgrima La Plata",
-              "name": "Lobo Platense",
+              "name": "Diagonales La Plata",
               "realSponsor": false,
-              "short": "LOB",
+              "short": "DLP",
               "city": "La Plata",
               "gender": "W",
               "colors": {
@@ -608,14 +608,14 @@
               },
               "liberoEstimated": true,
               "ovr": 65,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Lobo Platense\" club. Resultado: Ningún club con ese nombre. «El Lobo» es el apodo de Gimnasia y Esgrima La Plata. Existen CA Platense (Vicente López), Platense de Uruguay y Platense FC de Honduras, pero ninguno se llama «Lobo Platense». Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «El Lobo» es su apodo. Líbero probable: azul marino (2025, fotos de gimnasia.org.ar). Ojo: casi igual que la 2ª camiseta (#001F5B); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Lobo» es el apodo de Gimnasia y Esgrima La Plata (y «Platense» es otro club real). Ahora las diagonales de La Plata. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Diagonales La Plata\" club OR vóley OR equipo. Resultado: ningún club ni equipo; «la ciudad de las diagonales» es un apodo de La Plata. (Antes: «Lobo Platense» (LOB); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Lobo Platense\" club. Resultado: Ningún club con ese nombre. «El Lobo» es el apodo de Gimnasia y Esgrima La Plata. Existen CA Platense (Vicente López), Platense de Uruguay y Platense FC de Honduras, pero ninguno se llama «Lobo Platense». Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «El Lobo» es su apodo. Líbero probable: azul marino (2025, fotos de gimnasia.org.ar). Ojo: casi igual que la 2ª camiseta (#001F5B); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Estudiantes de La Plata",
               "official": "Club Estudiantes de La Plata",
-              "name": "Pincha Platense",
+              "name": "Catedral La Plata",
               "realSponsor": false,
-              "short": "PIN",
+              "short": "CTL",
               "city": "La Plata",
               "gender": "W",
               "colors": {
@@ -625,7 +625,7 @@
               },
               "liberoEstimated": true,
               "ovr": 64,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Pincha Platense\" club. Resultado: Ningún club con ese nombre. «Pincha» es el apodo de Estudiantes de La Plata, y CA Platense es otro club distinto. Nota: «Platense» puede recordar a CA Platense, pero no es el mismo nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Pincha» (pincharratas) es su apodo. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Pincha» es el apodo de Estudiantes de La Plata. Ahora la catedral de La Plata. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Catedral La Plata\" club OR vóley OR equipo deportivo. Resultado: ningún club ni equipo con ese nombre. (Antes: «Pincha Platense» (PIN); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Pincha Platense\" club. Resultado: Ningún club con ese nombre. «Pincha» es el apodo de Estudiantes de La Plata, y CA Platense es otro club distinto. Nota: «Platense» puede recordar a CA Platense, pero no es el mismo nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Pincha» (pincharratas) es su apodo. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "CEF 5 La Rioja",
@@ -714,9 +714,9 @@
             {
               "real": "Dallas Pulse",
               "official": "Dallas Pulse (Major League Volleyball)",
-              "name": "Frisco Pulse",
+              "name": "Frisco Heartbeat",
               "realSponsor": false,
-              "short": "FRI",
+              "short": "FHB",
               "city": "Frisco (Dallas)",
               "gender": "W",
               "colors": {
@@ -726,14 +726,14 @@
               },
               "liberoEstimated": false,
               "ovr": 72,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Frisco Pulse» no existe como club oficial. Método: WebSearch \"Frisco Pulse\". Resultado: No existe ningún equipo llamado así. El real es Dallas Pulse (MLV), que juega en Frisco: el guiño está claro, pero el nombre es distinto. Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Frisco Pulse\" volleyball; 2ª búsqueda \"Frisco Pulsar\". Resultado: No existe un equipo llamado «Frisco Pulse». Pero el real, Dallas Pulse (MLV, campeón en 2026), juega como local en el Comerica Center de Frisco, y la prensa lo llama a menudo «Frisco's Dallas Pulse». Al cambiar solo la ciudad, se identifica casi directamente con el real. Propuesta: Frisco Pulsar (comprobado: no hay ningún equipo con ese nombre). Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Juega en Frisco; guiño a «Pulse» con otra ciudad. Líbero: blanco (2026, buscado 12-nov-2026: fotos de partido de la MLV)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Frisco Pulse» copiaba «Pulse» (Dallas Pulse, que juega en Frisco). Ahora pulso → latido. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Frisco Heartbeat\" volleyball OR team / sports. Resultado: ningún equipo; solo una página de la ciudad usa «heartbeat» como figura. (Antes: «Frisco Pulse» (FRI); nota anterior: Búsqueda web del nombre exacto entre comillas (oleada final 12-nov): «Frisco Pulse» no existe como club oficial. Método: WebSearch \"Frisco Pulse\". Resultado: No existe ningún equipo llamado así. El real es Dallas Pulse (MLV), que juega en Frisco: el guiño está claro, pero el nombre es distinto. Nota anterior: Oleadas 11-nov: dudoso. Método: WebSearch \"Frisco Pulse\" volleyball; 2ª búsqueda \"Frisco Pulsar\". Resultado: No existe un equipo llamado «Frisco Pulse». Pero el real, Dallas Pulse (MLV, campeón en 2026), juega como local en el Comerica Center de Frisco, y la prensa lo llama a menudo «Frisco's Dallas Pulse». Al cambiar solo la ciudad, se identifica casi directamente con el real. Propuesta: Frisco Pulsar (comprobado: no hay ningún equipo con ese nombre). Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Juega en Frisco; guiño a «Pulse» con otra ciudad. Líbero: blanco (2026, buscado 12-nov-2026: fotos de partido de la MLV).)"
             },
             {
               "real": "Omaha Supernovas",
               "official": "Omaha Supernovas (Major League Volleyball)",
-              "name": "Omaha Hypernovas",
+              "name": "Omaha Quasars",
               "realSponsor": false,
-              "short": "OMA",
+              "short": "OQS",
               "city": "Omaha",
               "gender": "W",
               "colors": {
@@ -743,7 +743,7 @@
               },
               "liberoEstimated": true,
               "ovr": 71,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Omaha Hypernovas\". Resultado: Ningún resultado con «Hypernovas». Solo sale el real, Omaha Supernovas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Supernova → hipernova, como Superliga → Hiperliga. Líbero probable: blanco con rosa (2026, foto de Elena Oglivie). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Hypernovas» calcaba «Supernovas» (super → hyper). Ahora cuásares. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Omaha Quasars\" volleyball OR team. Resultado: ningún equipo con ese nombre. (Antes: «Omaha Hypernovas» (OMA); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Omaha Hypernovas\". Resultado: Ningún resultado con «Hypernovas». Solo sale el real, Omaha Supernovas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Supernova → hipernova, como Superliga → Hiperliga. Líbero probable: blanco con rosa (2026, foto de Elena Oglivie). Ojo: casi igual que la 2ª camiseta (#FFFFFF); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Orlando Valkyries",
@@ -849,9 +849,9 @@
             {
               "real": "Trinity Western Spartans",
               "official": "Trinity Western University (Spartans)",
-              "name": "Langley Espartanos",
+              "name": "Langley Cedros",
               "realSponsor": false,
-              "short": "LAN",
+              "short": "LCE",
               "city": "Langley (BC)",
               "gender": "MW",
               "colors": {
@@ -861,7 +861,7 @@
               },
               "liberoEstimated": true,
               "ovr": 61,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Langley Espartanos\". Resultado: No sale nada que una «Langley» y «Espartanos». Solo existe Los Espartanos de Pacasmayo, un club de fútbol de Perú con otro nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Ciudad + traducción del apodo. Líbero probable: blanco (2025-26, fotos de twuspartans.ca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Espartanos» era Spartans traducido. Ahora cedros. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Langley Cedros\" OR \"Langley Cedars\" volleyball OR team. Resultado: ningún equipo con ese nombre. (Antes: «Langley Espartanos» (LAN); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Langley Espartanos\". Resultado: No sale nada que una «Langley» y «Espartanos». Solo existe Los Espartanos de Pacasmayo, un club de fútbol de Perú con otro nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Ciudad + traducción del apodo. Líbero probable: blanco (2025-26, fotos de twuspartans.ca).)"
             },
             {
               "real": "UBC Thunderbirds",
@@ -883,9 +883,9 @@
             {
               "real": "Alberta Golden Bears / Pandas",
               "official": "University of Alberta (Golden Bears y Pandas)",
-              "name": "Edmonton Golden Pandas",
+              "name": "Edmonton Pumas",
               "realSponsor": false,
-              "short": "EGP",
+              "short": "EPU",
               "city": "Edmonton",
               "gender": "MW",
               "colors": {
@@ -895,14 +895,14 @@
               },
               "liberoEstimated": true,
               "ovr": 60,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Edmonton Golden Pandas\". Resultado: Ningún equipo con ese nombre. El real es Alberta Golden Bears and Pandas (los equipos femeninos son las «Pandas», sin «Golden»). También existe el club juvenil de hockey Edmonton Pandas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Mezcla de sus dos apodos (Golden Bears y Pandas). Líbero probable: blanco (2025-26, fotos del club)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Golden Pandas» es literalmente uno de los nombres reales (Alberta Golden Bears y Pandas). Ahora puma, como los animales de las demás canadienses. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Edmonton Golden Pumas\" OR \"Edmonton Pumas\". Resultado: ningún equipo con ese nombre. (Antes: «Edmonton Golden Pandas» (EGP); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Edmonton Golden Pandas\". Resultado: Ningún equipo con ese nombre. El real es Alberta Golden Bears and Pandas (los equipos femeninos son las «Pandas», sin «Golden»). También existe el club juvenil de hockey Edmonton Pandas, que se llama distinto. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Mezcla de sus dos apodos (Golden Bears y Pandas). Líbero probable: blanco (2025-26, fotos del club).)"
             },
             {
               "real": "Manitoba Bisons",
               "official": "University of Manitoba (Bisons)",
-              "name": "Winnipeg Bisontes",
+              "name": "Winnipeg Pradera",
               "realSponsor": false,
-              "short": "WPG",
+              "short": "WPR",
               "city": "Winnipeg",
               "gender": "MW",
               "colors": {
@@ -912,7 +912,7 @@
               },
               "liberoEstimated": false,
               "ovr": 57,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Winnipeg Bisontes\". Resultado: Ningún equipo con ese nombre. Los reales son Manitoba Bisons (Universidad de Manitoba) y los antiguos Winnipeg Whips. Es una traducción parcial con otra ciudad, así que no coincide. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Ciudad + traducción del apodo. Líbero: negro (2024-25/2025-26, buscado 12-nov-2026: foto de Julia Arnold en gobisons.ca). Ojo: casi igual que la 1ª camiseta (#4A2C2A); se deja porque es el real (el juego tiene plan B si choca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Bisontes» era Bisons traducido. Ahora la pradera. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Winnipeg Pradera\" OR \"Winnipeg Prairie\" volleyball team. Resultado: ningún equipo con ese nombre. (Antes: «Winnipeg Bisontes» (WPG); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Winnipeg Bisontes\". Resultado: Ningún equipo con ese nombre. Los reales son Manitoba Bisons (Universidad de Manitoba) y los antiguos Winnipeg Whips. Es una traducción parcial con otra ciudad, así que no coincide. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Ciudad + traducción del apodo. Líbero: negro (2024-25/2025-26, buscado 12-nov-2026: foto de Julia Arnold en gobisons.ca). Ojo: casi igual que la 1ª camiseta (#4A2C2A); se deja porque es el real (el juego tiene plan B si choca).)"
             },
             {
               "real": "Sherbrooke Vert & Or",
@@ -951,9 +951,9 @@
             {
               "real": "Laval Rouge et Or",
               "official": "Université Laval (Rouge et Or)",
-              "name": "Québec Rouge-Doré",
+              "name": "Québec Flambeaux",
               "realSponsor": false,
-              "short": "QRD",
+              "short": "QFL",
               "city": "Quebec",
               "gender": "MW",
               "colors": {
@@ -963,7 +963,7 @@
               },
               "liberoEstimated": true,
               "ovr": 55,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Québec Rouge-Doré\" OR \"Rouge-Doré\" équipe. Resultado: Ningún equipo con «Rouge-Doré». El real es Rouge et Or (Universidad Laval), con otras palabras («Doré» frente a «Or»). Es un guiño claro, pero no coincide. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Or (oro) → doré (dorado), con la ciudad. Líbero probable: blanco (reciente, foto de rougeetor.ulaval.ca)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Rouge-Doré» estaba a una palabra de «Rouge et Or». Ahora antorchas. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Québec Flambeaux\" OR \"Flambeaux de Québec\" volleyball OR équipe. Resultado: ningún equipo con ese nombre. (Antes: «Québec Rouge-Doré» (QRD); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Québec Rouge-Doré\" OR \"Rouge-Doré\" équipe. Resultado: Ningún equipo con «Rouge-Doré». El real es Rouge et Or (Universidad Laval), con otras palabras («Doré» frente a «Or»). Es un guiño claro, pero no coincide. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Or (oro) → doré (dorado), con la ciudad. Líbero probable: blanco (reciente, foto de rougeetor.ulaval.ca).)"
             },
             {
               "real": "Calgary Dinos",
@@ -1035,9 +1035,9 @@
             {
               "real": "Alianza Lima",
               "official": "Club Alianza Lima",
-              "name": "Íntimos Lima",
+              "name": "Vóley La Victoria",
               "realSponsor": false,
-              "short": "INT",
+              "short": "VLV",
               "city": "Lima (La Victoria)",
               "gender": "W",
               "colors": {
@@ -1047,7 +1047,7 @@
               },
               "liberoEstimated": true,
               "ovr": 66,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Íntimos Lima\" club. Resultado: No hay ningún club oficial con ese nombre. «Los Íntimos» es el apodo de Alianza Lima y también el nombre de su programa de socios «Íntimo», pero no es el nombre oficial del club. Es un guiño claro, no una coincidencia con un nombre oficial. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Los Íntimos de La Victoria» es su apodo. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Íntimos» es el apodo de Alianza Lima. Ahora «Vóley [distrito]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley La Victoria\" Lima OR \"Voley La Victoria\" club. Resultado: ningún club con ese nombre (el real es Alianza Lima). (Antes: «Íntimos Lima» (INT); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Íntimos Lima\" club. Resultado: No hay ningún club oficial con ese nombre. «Los Íntimos» es el apodo de Alianza Lima y también el nombre de su programa de socios «Íntimo», pero no es el nombre oficial del club. Es un guiño claro, no una coincidencia con un nombre oficial. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Los Íntimos de La Victoria» es su apodo. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Universidad San Martín",
@@ -1069,9 +1069,9 @@
             {
               "real": "Universitario de Deportes",
               "official": "Club Universitario de Deportes",
-              "name": "Cremas Lima",
+              "name": "Vóley Barranco",
               "realSponsor": false,
-              "short": "CRE",
+              "short": "BRN",
               "city": "Lima",
               "gender": "W",
               "colors": {
@@ -1081,14 +1081,14 @@
               },
               "liberoEstimated": false,
               "ovr": 63,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Cremas Lima\" club. Resultado: No hay ningún club con ese nombre. «Cremas» es el apodo de Universitario y también de Sporting Pizarro (Tumbes). Existió «Cremas Esports», pero no coincide. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Los Cremas» es su apodo. Líbero: naranja (2026-27, buscado 12-nov-2026: nota de RPP (21-sep-2026))."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Cremas» es el apodo de Universitario de Deportes. Ahora el distrito de Barranco. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Barranco\" OR \"Voley Barranco\" Lima club. Resultado: ningún club de vóley (Juventud Barranco es de fútbol y de Huacho). (Antes: «Cremas Lima» (CRE); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Cremas Lima\" club. Resultado: No hay ningún club con ese nombre. «Cremas» es el apodo de Universitario y también de Sporting Pizarro (Tumbes). Existió «Cremas Esports», pero no coincide. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. «Los Cremas» es su apodo. Líbero: naranja (2026-27, buscado 12-nov-2026: nota de RPP (21-sep-2026)).)"
             },
             {
               "real": "Deportivo Géminis",
               "official": "Club Deportivo Cultural Géminis",
-              "name": "Gemelos Comas",
+              "name": "Vóley Comas",
               "realSponsor": false,
-              "short": "GEM",
+              "short": "COM",
               "city": "Lima (Comas)",
               "gender": "W",
               "colors": {
@@ -1098,7 +1098,7 @@
               },
               "liberoEstimated": true,
               "ovr": 61,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Gemelos Comas\". Resultado: Sin resultados de ningún club; solo artículos sobre gemelos y sobre el distrito de Comas. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Géminis → gemelos, con el distrito de Comas. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Gemelos» era Géminis traducido. Ahora «Vóley [distrito]». Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Comas\" OR \"Voley Comas\" club. Resultado: ningún club con ese nombre (el real es Deportivo Géminis). (Antes: «Gemelos Comas» (GEM); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Gemelos Comas\". Resultado: Sin resultados de ningún club; solo artículos sobre gemelos y sobre el distrito de Comas. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Géminis → gemelos, con el distrito de Comas. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Regatas Lima",
@@ -1171,9 +1171,9 @@
             {
               "real": "Vamos Peerless",
               "official": "Vamos Peerless",
-              "name": "Sin Par Lima",
+              "name": "Vóley Surco",
               "realSponsor": false,
-              "short": "SPL",
+              "short": "SUR",
               "city": "Lima",
               "gender": "M",
               "colors": {
@@ -1183,7 +1183,7 @@
               },
               "liberoEstimated": true,
               "ovr": 52,
-              "check": "Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Sin Par Lima\" club. Resultado: Ningún resultado menciona un club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Peerless → sin par. Líbero: no encontrado en internet (12-nov-2026)."
+              "check": "Nombre cambiado (25-nov-2026, riesgo de marca): «Sin Par» era Peerless traducido. Ahora el distrito de Surco. Búsqueda web del nombre exacto entre comillas (25-nov-2026). Método: WebSearch \"Vóley Surco\" OR \"Voley Surco\" club Lima. Resultado: ningún club con ese nombre (solo una selección municipal de Surco en la Liga Metropolitana). (Antes: «Sin Par Lima» (SPL); nota anterior: Búsqueda web del nombre exacto entre comillas (oleadas 11-nov): no existe ningún club ni competición oficial con ese nombre. Método: WebSearch \"Sin Par Lima\" club. Resultado: Ningún resultado menciona un club con ese nombre. Lo construí a partir de un apodo, barrio o gentilicio, y no conozco ningún club oficial con ese nombre. Peerless → sin par. Líbero: no encontrado en internet (12-nov-2026).)"
             },
             {
               "real": "Litovoley",

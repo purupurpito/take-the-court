@@ -659,6 +659,34 @@
     if (I._ready) FIND[mk] = best;
     return best;
   }
+  // Clubes renombrados el 25-nov-2026 (riesgo de marca; js/career.js CLUB_REN): su sede sale del nombre de antes, que aquí solo es
+  // la SEMILLA (nunca se enseña: el nombre y las siglas de las pancartas son los nuevos). Así ninguna sede cambia de aspecto.
+  var SEED_AS = {
+    'Navigli Milano': 'Milano Power', 'Frisco Heartbeat': 'Frisco Pulse', 'Aonami Osaka': 'Bluzeon Osaka', 'Hachi Aichi': 'Stingz Aichi',
+    'Edo Kumas': 'Tokyo Grand Bears', 'Tenshu Himeji': 'Vittorina Himeji', 'Hoko Osaka': 'Spearz Osaka', 'Tiara Kariya': 'Queenzy Kariya',
+    'Nagara Gifu': 'Riorena Gifu', 'Akaoni Kawasaki': 'Red Spirals Kawasaki', 'Sorbetes Manila': 'Kool Smashers Manila',
+    'Ikot Manila': 'Spin Medics', 'Cisterna Pontina': 'Voley Cisterna', 'Adige Trento': 'Volley Trento',
+    'Melovik Belgorod': 'Belogor Belgorod', 'Kuledibi Voleybol': 'Galata Voleybol', 'Bahariye Kadıköy': 'Kanarya Kadıköy',
+    'Corniche Doha': 'Arabi Doha', 'Musheireb Doha': 'Sadd Doha', 'Dafna Doha': 'Ahliya Doha', 'Doha Sentinels': 'Shurta Doha',
+    'Vuelta de Rocha Vóley': 'Xeneize Vóley', 'Vóley Núñez': 'Núñez Millonario', 'Telheiras Lisboa': 'Leão Lisboa',
+    'Monsanto Lisboa': 'Águia Lisboa', 'Ribeira Porto': 'Dragão Porto', 'Voley Pireo': 'Thrylos Pireo',
+    'Licabeto Atenas': 'Panatenea Atenas', 'Voley Ermúpoli': 'Fénix Syros', 'Voley Salónica': 'Ares Tesalónica',
+    'Kalemegdan Beograd': 'Crvena Zora', 'Cotroceni Bucarest': 'Stelele București', 'Lagoa Rio': 'Urubu Rio',
+    'Petrovsky Moskva': 'Dynamik Moskva', 'Kaban Kazan': 'Dinamika Kazan', 'Wisłok Rzeszów': 'Rezovia',
+    'Rurwelle Düren': 'Rur Power Düren', 'Dahme Volley KW': 'Netzspringer KW', 'Voley Meijel': 'Peelpower Meijel',
+    'Edmonton Pumas': 'Edmonton Golden Pandas', 'Hwaseong Seohae': 'Hwaseong Altissimo', 'Omaha Quasars': 'Omaha Hypernovas',
+    'Vóley Boedo': 'Ciclón de Boedo', 'Vóley Versalles': 'Fortín Liniers', 'Diagonales La Plata': 'Lobo Platense',
+    'Catedral La Plata': 'Pincha Platense', 'Vôlei Corcovado': 'Laranjeiras Tricolor', 'Torre Blanca Salónica': 'Dikéfalos Salónica',
+    'Voley Nea Smirni': 'Prosfyges Nea Smirni', 'Voley Dorćol': 'Crno-Beli Beograd', 'Voley Lajkovac': 'Ferroviario Lajkovac',
+    'Voley Tei': 'Câinii Bucarest', 'Vólei Bracara': 'Arsenalistas Braga', 'Vólei Guimarães': 'Conquistadores Guimarães',
+    'Vólei Paramos': 'Tigres Espinho', 'Vóley La Victoria': 'Íntimos Lima', 'Vóley Barranco': 'Cremas Lima',
+    'Vóley Comas': 'Gemelos Comas', 'Vóley Surco': 'Sin Par Lima', 'Darband Tehran': 'Narenji Tehran',
+    'Volei Novosibirsk': 'Parovoz Novosibirsk', 'Çırağan Voleybol': 'Dolmabahçe Voleybol', 'Sakurajima Kagoshima': 'Fragola Kagoshima',
+    'Raijin Hiroshima': 'Thundra Hiroshima', 'Izumi Saga': 'Sprinx Saga', 'Dotonbori Osaka': 'Marvelia Osaka',
+    'Kinugawa Tochigi': 'Rêveurs Tochigi', 'Ise Mie': 'Vierzehn Mie', 'Québec Flambeaux': 'Québec Rouge-Doré',
+    'Langley Cedros': 'Langley Espartanos', 'Winnipeg Pradera': 'Winnipeg Bisontes', 'Voley Vyšehrad': 'Leones de Praga',
+    'Voley Špilberk': 'Fieras Brno', 'Voley Prater': 'Falke Wien'
+  };
   function seedOf(kind, cc, name, city, salt) { return fnv('v' + V + '|' + kind + '|' + cc + '|' + norm(name) + '|' + norm(city) + (salt ? '|' + salt : '')); }
 
   /** Roster de plantillas de un país (pista o playa), con el tier de cada club. Cacheado. */
@@ -762,10 +790,10 @@
   /** PELOTA (15-nov-2026, tools/balltest.js; «¿hay algún pabellón en el que se vea mal la pelota?»): el balón clásico es turquesa
    *  #1cc4b4 / turquesa oscuro #0b8a86 / crema. Las superficies grandes que quedan DETRÁS de la pelota en la cámara de juego (pista,
    *  zona libre, pared, zócalo, asientos y franja de letras del fondo) se mantienen a ΔE76 ≥ SEP.ball de los dos turquesas: una pista
-   *  verde menta (JP:BRH #2dd2ab), una zona libre verde con sodio (ES:NIV, ES:VEG, AR:FOR) o una franja de letras turquesa (GR:DKS)
+   *  verde menta (JP:BRH #2dd2ab), una zona libre verde con sodio (ES:NIV, ES:VEG, AR:VVE) o una franja de letras turquesa (GR:TBS)
    *  dejaban la pelota con solo su contorno. */
-  // (el turquesa claro y el medio entre él y el oscuro, GR:DKS #35a0b6; el oscuro #0b8a86 no: es el panel pequeño y con él los verdes
-  // oscuros, que se ven bien, huían a un verde menta claro, que se ve peor: CN:FUJ, CA:SAS, PT:LEA)
+  // (el turquesa claro y el medio entre él y el oscuro, GR:TBS #35a0b6; el oscuro #0b8a86 no: es el panel pequeño y con él los verdes
+  // oscuros, que se ven bien, huían a un verde menta claro, que se ve peor: CN:FUJ, CA:SAS, PT:TEL)
   var BALL = ['#1cc4b4', '#14a79d'];
   function ballD(h, tint) {
     function tn(c) { return tint ? [c[0] * tint[0], c[1] * tint[1], c[2] * tint[2]] : c; }
@@ -957,7 +985,7 @@
   function clubCtx(club, kind, opt) {
     var known = findClub(club), cc = (known ? known.cc : club.cc ? String(club.cc).toUpperCase() : 'XX'), env = ENV[cc] || ENV.XX;
     var name = known ? known.base : String(club.name || club.short || 'Club'), city = known ? known.city : String(club.city || '');
-    var seed = seedOf(kind, cc, name, city, opt && opt.salt);
+    var seed = seedOf(kind, cc, known && Object.prototype.hasOwnProperty.call(SEED_AS, name) ? SEED_AS[name] : name, city, opt && opt.salt);
     var p = known ? 0.5 * known.strength + 0.5 * known.ovr : prestige(club, kind);
     var c = { known: known, cc: cc, env: env, name: name, base: name, city: city, seed: seed, p: p, tier: tierOfP(p), ovr: known ? known.ovr : +club.ovr || 0,
       short: known ? known.short : String(club.short || name.slice(0, 3)).toUpperCase(), kit: known ? kitOf({ colors: known.colors }) : kitOf(club),
@@ -1235,7 +1263,7 @@
     var stageE = p.back === 'stage' ? 2 : sp.flavor === 'jpkr' && !SE && p.back !== 'view' ? 1 : 0;
     var dado = p.dado || 1.2, zSc = SE ? Math.max(4.6, topE + 2.6) : (stageE ? 6.9 : p.back === 'mural' || p.back === 'letters' ? Math.max(5.4, dado + 3.0 + 0.925) : 4.6);
     // (dientes de sierra: las cerchas cuelgan 0,95 m bajo el alero, a lo ancho de la nave; por debajo de la cámara de televisión del
-    // 6v6 —x 14,2, z 7,8, js/camera.js tvShot— una de ellas cruzaba el encuadre: CZ:FIE, PE:REM, TR:ANG, ES:SRQ, JP:SPZ. tools/cam6clip.js)
+    // 6v6 —x 14,2, z 7,8, js/camera.js tvShot— una de ellas cruzaba el encuadre: CZ:SPI, PE:REM, TR:ANG, ES:SRQ, JP:HOK. tools/cam6clip.js)
     var eave = Math.max(p.eave, topS + 3.6, topN + 3.6, zSc + 2.2, rf.t === 'saw' ? SAW_EAVE : rf.t === 'flat' || rf.t === 'louvre' || rf.t === 'octagon' ? 7.2 : 7.5);
     WX = R2(WX); eave = R2(eave);
     var hs = (R2(yn) + R2(ys)) / 2;
@@ -1419,15 +1447,15 @@
     'IT:PRA': { arch: 'H3', stands: 'one' },   // = IT:VAL (H6 cristalera, misma pista crema sobre azul); con gradas en U, = IT:MOD
     'PL:JAS': { arch: 'H7' },     // = PL:ZAW (H6 cristalera nublada, Jastrzębie y Zawiercie con los mismos colores)
     'BR:GRU': { arch: 'H7' },     // = BR:CEL (H6 cristalera, azul sobre amarillo)
-    'RU:PLA': { arch: 'H3' },     // = RU:DYM (H6 cristalera de noche con sodio)
-    'JP:LAF': { arch: 'H3', light: 'led' },   // = JP:RIO (H5 madera con telón); con sodio, verde menta sobre gris como JP:BRH
+    'RU:PLA': { arch: 'H3' },     // = RU:PET (H6 cristalera de noche con sodio)
+    'JP:LAF': { arch: 'H3', light: 'led' },   // = JP:NAG (H5 madera con telón); con sodio, verde menta sobre gris como JP:BRH
     'BR:CDG': { arch: 'H4' },     // = BR:MOC (H5 madera con mural; BR no tenía ninguna H4)
     // ES tiene cinco clubes azul sobre amarillo (LAG, TAM, BND, SRQ, CHT): cada uno con su arquetipo (H2, H4, H5, H1, H3)
     'ES:BND': { arch: 'H5' },
     'ES:SRQ': { arch: 'H1' },
     'ES:CHT': { arch: 'H3' },
     // segunda revisión (gemelas en el umbral: Hamming 10-14 con casi el mismo color)
-    'AR:PIN': { arch: 'H5', light: 'led', stands: 'U' }, // H5: AR:LOB (misma ciudad) ya es H4. = AR:NUN (H2 bóveda con sodio, pista roja sobre madera naranja, pared marrón; misma liga)
+    'AR:CTL': { arch: 'H5', light: 'led', stands: 'U' }, // H5: AR:DLP (misma ciudad) ya es H4. = AR:VNU (H2 bóveda con sodio, pista roja sobre madera naranja, pared marrón; misma liga)
     'IT:CHI': { arch: 'H3' },     // = IT:VER (H8/H9 de noche con LED, azul sobre naranja: con otra luz seguían gemelas)
     'PL:MUR': { arch: 'H3' }      // = PL:WAR (H8/H9 de noche con luces de espectáculo, azul sobre amarillo)
   };

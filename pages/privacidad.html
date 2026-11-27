@@ -74,7 +74,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
   <div class="hero">
     <p class="k">Política de privacidad</p>
     <h1>Tu privacidad en Take the Court</h1>
-    <p>En vigor desde el 24 de noviembre de 2026.</p>
+    <p>En vigor desde el 25 de noviembre de 2026.</p>
   </div>
 
   <section class="card sum" aria-labelledby="es-sum">
@@ -98,7 +98,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <h2 id="es-2">Qué datos usamos y para qué</h2>
 
     <h3>En tu dispositivo (con cuenta o sin ella)</h3>
-    <p>El juego guarda en el almacenamiento de tu navegador para takethecourt.com (en la app de Android, el de Chrome) tu progreso: jugadores, Carreras, perfil, Vestuario, récords, retos y ajustes. También tu nombre del online (o el número de tu nombre anónimo) y una lista de tus 10 últimos rivales online (nombre, resultado y fecha). Además guarda una copia de los archivos del juego para poder jugar sin conexión (no lleva datos tuyos). Esto no sale del dispositivo, salvo lo que se explica más abajo.</p>
+    <p>El juego guarda en el almacenamiento de tu navegador para takethecourt.com (en la app de Android, el de Chrome) tu progreso: jugadores, Carreras, perfil, Vestuario, récords, retos y ajustes. También tu nombre del online (o el número de tu nombre anónimo) una lista de tus 10 últimos rivales online (nombre, resultado y fecha) y la lista de los jugadores que bloquees (su identificador de cuenta y su nombre). Además guarda una copia de los archivos del juego para poder jugar sin conexión (no lleva datos tuyos). Esto no sale del dispositivo, salvo lo que se explica más abajo.</p>
 
     <h3>Al abrir el juego</h3>
     <p>Como en cualquier web, estos servicios reciben tu dirección IP, los datos de tu navegador y la página que pides: GitHub Pages (aloja la web, con la librería 3D y las letras del juego) y Cloudflare (gestiona el dominio). Al abrir el panel «Cuenta» sin haber entrado, el juego carga además el inicio de sesión de Google (Firebase) para tenerlo listo, y Google recibe esos mismos datos. Nosotros no usamos esos datos. Cada servicio los guarda en sus registros según sus propias normas.</p>
@@ -116,10 +116,12 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <ul>
       <li><b>Nombre visible</b> (de 2 a 16 caracteres). Si no escribes uno, sales como «Jugador» y un número, el mismo siempre en ese dispositivo: no se usa el nombre de tu cuenta ni el de tu personaje. Lo ven tu rival y cualquier jugador con cuenta que abra la lista de salas. Puedes cambiarlo en el online, en «Tu nombre en el online» (si lo dejas vacío, vuelves al anónimo). No pongas tu nombre real ni otros datos personales. Un filtro básico de palabras no deja poner nombres con insultos, y el juego enseña como «Jugador» y un número los nombres con insultos que lleguen de otros jugadores. El filtro no es perfecto: si ves un nombre ofensivo, escríbenos.</li>
       <li><b>Sala:</b> código, nombres visibles del anfitrión y de quien entra (en las salas de 2 contra 2 y de 6 contra 6, los de todos los que se sientan), sus identificadores de cuenta y las opciones del partido. Cualquier jugador con cuenta puede ver las salas, también las que ya están en juego, con esos nombres e identificadores. La sala se borra al cerrarla y al borrar la cuenta. Si el juego se cierra de golpe, se borra cuando otro jugador abre la lista de salas, a partir de 5 minutos sin señal; si nadie la abre, puede quedarse más tiempo.</li>
-      <li><b>Conexión directa con tu rival:</b> para conectaros, vuestros dispositivos intercambian sus direcciones IP y puertos a través de nuestra base de datos y de servidores STUN de Google y de Cloudflare. Esos datos se borran de la base de datos al conectar o al salir. Tu rival podría ver tu dirección IP con herramientas técnicas, aunque el juego no la enseña. La conexión va cifrada. Durante el partido, tu rival recibe también tu nombre visible, tu aspecto (Vestuario y colores), los atributos e insignias de tu jugador y tus jugadas. En las salas de varios (2 contra 2 y 6 contra 6) cada invitado se conecta solo con el anfitrión: el anfitrión recibe la dirección IP de todos los invitados y reenvía a cada uno lo que hacen los demás; un invitado no recibe la IP de los otros invitados. Ahora mismo no usamos servidores de retransmisión.</li>
+      <li><b>Conexión directa con tu rival:</b> para conectaros, vuestros dispositivos intercambian sus direcciones IP y puertos a través de nuestra base de datos y de servidores STUN de Google y de Cloudflare. Esos datos se borran de la base de datos al conectar o al salir. Tu rival podría ver tu dirección IP con herramientas técnicas, aunque el juego no la enseña. Si vuestras redes no dejan conectar directamente, la conexión pasa por un servidor de retransmisión (TURN) de Cloudflare: para eso el juego pide a nuestro servicio en Cloudflare unas credenciales temporales, que caducan en 1 hora, con el token de tu sesión, y Cloudflare recibe tu dirección IP y los datos cifrados del partido, que no puede leer. Solo se usa cuando la conexión directa no sale. La conexión va cifrada. Durante el partido, tu rival recibe también tu nombre visible, tu aspecto (Vestuario y colores), los atributos e insignias de tu jugador y tus jugadas. En las salas de varios (2 contra 2 y 6 contra 6) cada invitado se conecta solo con el anfitrión: el anfitrión recibe la dirección IP de todos los invitados y reenvía a cada uno lo que hacen los demás; un invitado no recibe la IP de los otros invitados. Ahora mismo no usamos servidores de retransmisión.</li>
       <li><b>Carrera cooperativa:</b> si juegas la Carrera de otro jugador con él, ves el nombre de su personaje (con los insultos tapados), su nivel y sus atributos, la marcha de su Carrera y los números de vuestros partidos, y él ve tu jugador y tus números. El anfitrión guarda en su Carrera (en su dispositivo y, si tiene cuenta, en su nube) tu identificador de cuenta, tu nombre visible, tu jugador y tus números, para que sigas donde lo dejaste si vuelves; guarda así hasta las 3 últimas parejas y no se las enseña a las siguientes. Al borrar tu cuenta eso no se borra de su Carrera, porque es suya: se va cuando borra esa Carrera o su cuenta. Tu dispositivo guarda una copia de tu jugador con el nombre del anfitrión.</li>
-      <li><b>Informe de red de cada partido online:</b> al acabar, se guarda un informe técnico para mejorar el online. Lleva tu identificador de cuenta, la versión del juego, la fecha, tu nombre visible y el de tu rival, el navegador y el sistema (y sus versiones), si es un móvil, el tamaño de la pantalla, los núcleos y la memoria del dispositivo, el tipo y la calidad de la red, el ajuste de calidad gráfica, el tipo de conexión, el ping, las imágenes por segundo, las esperas y el resultado. No guarda tu IP ni tu correo. Solo lo puede leer el responsable. Se guarda en un ordenador del responsable y se borra solo a los 90 días. Ahora mismo no se puede desactivar en el juego: si no quieres que se guarde, no juegues online o escríbenos para oponerte.</li>
-      <li><b>Informe de un fallo de conexión antes del partido:</b> si la conexión con una sala de varios o con la Carrera cooperativa no llega a abrirse, se guarda un informe pequeño, aunque no haya partido: tu identificador de cuenta, la versión, la fecha, el tipo de sala, si eras el anfitrión o un invitado, en qué paso falló, cuánto tardó, el estado y el tipo de la conexión (sin direcciones ni puertos) y los mismos datos del dispositivo y de la red. No lleva nombres. Se guarda y se borra igual que el informe del partido.</li>
+      <li><b>Informe de red de cada partido online:</b> al acabar, se guarda un informe técnico para mejorar el online. Lleva tu identificador de cuenta, la versión del juego, la fecha, tu nombre visible y el de tu rival, el navegador y el sistema (y sus versiones), si es un móvil, el tamaño de la pantalla, los núcleos y la memoria del dispositivo, el tipo y la calidad de la red, el ajuste de calidad gráfica, el tipo de conexión, el ping, las imágenes por segundo, las esperas y el resultado. No guarda tu IP ni tu correo. Solo lo puede leer el responsable. Se guarda en un ordenador del responsable y se borra solo a los 90 días. Se envía salvo que lo desactives en «Ajustes» › «Juego» › «Informe técnico del online» (viene activado); también puedes escribirnos para oponerte.</li>
+      <li><b>Informe de un fallo de conexión antes del partido:</b> si la conexión con una sala de varios o con la Carrera cooperativa no llega a abrirse, se guarda un informe pequeño, aunque no haya partido: tu identificador de cuenta, la versión, la fecha, el tipo de sala, si eras el anfitrión o un invitado, en qué paso falló, cuánto tardó, el estado y el tipo de la conexión (sin direcciones ni puertos) y los mismos datos del dispositivo y de la red. No lleva nombres. Se guarda y se borra igual que el informe del partido, y el mismo ajuste lo apaga.</li>
+      <li><b>Denuncias de nombres:</b> si denuncias el nombre de otro jugador con «Denunciar nombre», guardamos tu identificador de cuenta, el identificador de cuenta y el nombre del denunciado, el código de la sala, la versión del juego y la fecha. Al denunciado no se le dice quién le ha denunciado. Solo lo puede leer el responsable, para revisar el nombre y, si incumple las <a href="condiciones.html">condiciones</a>, actuar. Se borra solo a los 6 meses.</li>
+      <li><b>Bloquear y ocultar nombres:</b> si bloqueas a un jugador, su identificador y su nombre se guardan solo en tu dispositivo, para no enseñarte sus salas ni dejarle entrar en las tuyas; él no se entera. «Nombres de otros jugadores» (en «Ajustes» › «Juego») cambia en tu pantalla los nombres de los demás por «Jugador» y un número.</li>
     </ul>
 
     <h3>Si compartes algo</h3>
@@ -134,6 +136,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <ul>
       <li><b>Cuenta, nube y online:</b> para darte el servicio que pides al crear la cuenta (art. 6.1.b del RGPD).</li>
       <li><b>Informes de red y registros técnicos de los servicios:</b> nuestro interés legítimo en que el juego funcione bien, sea seguro y el online mejore (art. 6.1.f del RGPD). Puedes oponerte.</li>
+      <li><b>Denuncias de nombres:</b> nuestro interés legítimo en que el online sea un sitio seguro y se cumplan las condiciones (art. 6.1.f del RGPD).</li>
       <li><b>Lo que se guarda solo en tu dispositivo:</b> es lo estrictamente necesario para que el juego funcione.</li>
     </ul>
   </section>
@@ -146,6 +149,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
       <li><b>Datos para conectar con tu rival:</b> se borran al conectar o al salir.</li>
       <li><b>Tu jugador en la Carrera cooperativa de otro:</b> en la Carrera del anfitrión, hasta que la borra o borra su cuenta (mira arriba).</li>
       <li><b>Informes de red:</b> 90 días. El informe pasa por la base de datos solo hasta que lo descargamos (normalmente menos de un día; algo más si el ordenador del responsable está apagado), se guarda en un ordenador del responsable y un proceso automático lo borra a los 90 días. Al borrar la cuenta no se borran antes de tiempo; si nos lo pides, borramos los tuyos ya.</li>
+      <li><b>Denuncias de nombres:</b> 6 meses; luego se borran solas.</li>
       <li><b>Datos de tu dispositivo:</b> hasta que los borras tú, borrando los datos del sitio en el navegador o desinstalando la app. En Ajustes puedes borrar tus Carreras.</li>
       <li><b>Registros de los servicios</b> (GitHub, Cloudflare, Google): según las normas de cada uno.</li>
     </ul>
@@ -157,7 +161,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <div class="who">
       <div><b>Google</b>Firebase Authentication (la cuenta: correo o usuario, contraseña cifrada e identificador), Cloud Firestore (el progreso en la nube, en la Unión Europea, región eur3), inicio de sesión con Google y un servidor STUN.</div>
       <div><b>GitHub</b>Aloja la web (GitHub Pages).</div>
-      <div><b>Cloudflare</b>Gestiona el dominio y tiene un servidor STUN.</div>
+      <div><b>Cloudflare</b>Gestiona el dominio, tiene un servidor STUN y, si no hay conexión directa, el servidor de retransmisión (TURN) del online.</div>
       <div><b>Otros jugadores</b>Solo en el online, lo que se cuenta arriba: nombre visible, aspecto, jugador y la dirección IP para la conexión directa (en las salas de varios, el anfitrión recibe la de todos). En la Carrera cooperativa, también lo de la Carrera que se cuenta arriba.</div>
     </div>
     <p>Solo daríamos datos a una autoridad si la ley nos obliga.</p>
@@ -186,7 +190,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
   <section class="card" aria-labelledby="es-9">
     <h2 id="es-9">Menores</h2>
     <p>La cuenta y el online son para mayores de 14 años, la edad a partir de la cual en España se puede dar el consentimiento sin permiso de la familia. Sin cuenta se puede jugar a todo lo demás y no guardamos nada en servidores.</p>
-    <p>No pedimos la edad ni la comprobamos. Si eres madre, padre o tutor y crees que un menor de 14 años ha creado una cuenta, escríbenos y la borramos.</p>
+    <p>Al crear la cuenta te pedimos que confirmes que tienes 14 años o más, pero no comprobamos la edad ni la guardamos. Si eres madre, padre o tutor y crees que un menor de 14 años ha creado una cuenta, escríbenos y la borramos.</p>
   </section>
 
   <section class="card" aria-labelledby="es-10">
@@ -201,7 +205,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
   <div class="hero">
     <p class="k">Privacy policy</p>
     <h1>Your privacy in Take the Court</h1>
-    <p>Effective from 24 November 2026. This is an English translation of the Spanish policy above.</p>
+    <p>Effective from 25 November 2026. This is an English translation of the Spanish policy above.</p>
   </div>
 
   <section class="card sum" aria-labelledby="en-sum">
@@ -225,7 +229,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <h2 id="en-2">What data we use and why</h2>
 
     <h3>On your device (with or without an account)</h3>
-    <p>The game keeps your progress in your browser storage for takethecourt.com (in the Android app, Chrome's storage): players, Careers, profile, Locker room, records, challenges and settings. It also keeps your online name (or the number of your anonymous name) and a list of your last 10 online opponents (name, result and date). It also keeps a copy of the game files so you can play offline (it holds no data about you). This does not leave your device, except as explained below.</p>
+    <p>The game keeps your progress in your browser storage for takethecourt.com (in the Android app, Chrome's storage): players, Careers, profile, Locker room, records, challenges and settings. It also keeps your online name (or the number of your anonymous name) a list of your last 10 online opponents (name, result and date) and the list of players you block (their account identifier and name). It also keeps a copy of the game files so you can play offline (it holds no data about you). This does not leave your device, except as explained below.</p>
 
     <h3>When you open the game</h3>
     <p>As with any website, these services receive your IP address, browser details and the page requested: GitHub Pages (hosts the website, including the game's 3D library and fonts) and Cloudflare (runs the domain). When you open the "Cuenta" (Account) panel while signed out, the game also loads Google sign-in (Firebase) so it is ready, and Google receives the same data. We do not use that data. Each service keeps it in its logs under its own terms.</p>
@@ -243,10 +247,12 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <ul>
       <li><b>Display name</b> (2 to 16 characters). If you do not type one, you appear as "Jugador" plus a number, always the same on that device: your account name and your character's name are not used. Your opponent and any signed-in player who opens the room list can see it. You can change it in the online menu ("Tu nombre en el online"; leave it empty to go back to the anonymous one). Do not use your real name or other personal data. A basic word filter does not allow names with insults, and the game shows names with insults received from other players as "Jugador" plus a number. The filter is not perfect: if you see an offensive name, write to us.</li>
       <li><b>Room:</b> code, display names of the host and the guest (in 2 vs 2 and 6 vs 6 rooms, those of everyone who takes a seat), their account identifiers and the match options. Any signed-in player can see the rooms, including those already in play, with those names and identifiers. The room is deleted when it is closed and when you delete your account. If the game closes suddenly, it is deleted when another player opens the room list, after 5 minutes without a signal; if nobody does, it may stay longer.</li>
-      <li><b>Direct connection with your opponent:</b> to connect, both devices exchange their IP addresses and ports through our database and through STUN servers run by Google and Cloudflare. That data is deleted from the database on connecting or leaving. Your opponent could see your IP address with technical tools, although the game does not show it. The connection is encrypted. During the match your opponent also receives your display name, your look (Locker room and colours), your player's attributes and badges, and your moves. In rooms for several players (2 vs 2 and 6 vs 6) each guest connects only to the host: the host receives the IP address of every guest and passes on to each one what the others do; a guest does not receive the other guests' IP addresses. We do not use relay servers at the moment.</li>
+      <li><b>Direct connection with your opponent:</b> to connect, both devices exchange their IP addresses and ports through our database and through STUN servers run by Google and Cloudflare. That data is deleted from the database on connecting or leaving. Your opponent could see your IP address with technical tools, although the game does not show it. If your networks do not allow a direct connection, it goes through a Cloudflare relay server (TURN): for this the game asks our Cloudflare service for temporary credentials, which expire after 1 hour, using your session token, and Cloudflare receives your IP address and the encrypted match data, which it cannot read. It is only used when a direct connection fails. The connection is encrypted. During the match your opponent also receives your display name, your look (Locker room and colours), your player's attributes and badges, and your moves. In rooms for several players (2 vs 2 and 6 vs 6) each guest connects only to the host: the host receives the IP address of every guest and passes on to each one what the others do; a guest does not receive the other guests' IP addresses. We do not use relay servers at the moment.</li>
       <li><b>Co-op Career:</b> if you play another player's Career with them, you see their character's name (with insults hidden), level and attributes, how their Career is going and the numbers of your matches, and they see your player and your numbers. The host keeps in their Career (on their device and, if they have an account, in their cloud) your account identifier, display name, player and numbers, so you can pick up where you left off if you come back; it keeps up to the last 3 partners this way and does not show them to later ones. Deleting your account does not delete this from their Career, because it is theirs: it goes when they delete that Career or their account. Your device keeps a copy of your player with the host's name.</li>
-      <li><b>Network report for each online match:</b> at the end, a technical report is stored to improve online play. It contains your account identifier, game version, date, your display name and your opponent's, browser and operating system (and versions), whether it is a mobile device, screen size, device cores and memory, network type and quality, graphics quality setting, connection type, ping, frames per second, waits and result. It does not store your IP address or your email. Only the controller can read it. It is stored on a computer of the controller and deleted automatically after 90 days. At the moment it cannot be turned off in the game: if you do not want it stored, do not play online, or write to us to object.</li>
-      <li><b>Report of a connection failure before a match:</b> if the connection with a room for several players or with the co-op Career never opens, a small report is stored, even without a match: your account identifier, game version, date, room type, whether you were the host or a guest, which step failed, how long it took, the connection state and type (no addresses or ports) and the same device and network details. It contains no names. It is stored and deleted like the match report.</li>
+      <li><b>Network report for each online match:</b> at the end, a technical report is stored to improve online play. It contains your account identifier, game version, date, your display name and your opponent's, browser and operating system (and versions), whether it is a mobile device, screen size, device cores and memory, network type and quality, graphics quality setting, connection type, ping, frames per second, waits and result. It does not store your IP address or your email. Only the controller can read it. It is stored on a computer of the controller and deleted automatically after 90 days. It is sent unless you turn it off in "Ajustes" › "Juego" › "Informe técnico del online" (Settings › Game › Online technical report; on by default); you can also write to us to object.</li>
+      <li><b>Report of a connection failure before a match:</b> if the connection with a room for several players or with the co-op Career never opens, a small report is stored, even without a match: your account identifier, game version, date, room type, whether you were the host or a guest, which step failed, how long it took, the connection state and type (no addresses or ports) and the same device and network details. It contains no names. It is stored and deleted like the match report, and the same setting turns it off.</li>
+      <li><b>Name reports:</b> if you report another player's name with "Denunciar nombre" (Report name), we store your account identifier, the reported player's account identifier and name, the room code, the game version and the date. The reported player is not told who reported them. Only the controller can read it, to review the name and act if it breaks the <a href="condiciones.html#en">terms</a>. It is deleted automatically after 6 months.</li>
+      <li><b>Blocking and hiding names:</b> if you block a player, their identifier and name are stored only on your device, so their rooms are not shown to you and they cannot join yours; they are not told. "Nombres de otros jugadores" (Other players' names, in Settings › Game) replaces other players' names on your screen with "Jugador" plus a number.</li>
     </ul>
 
     <h3>If you share something</h3>
@@ -261,6 +267,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <ul>
       <li><b>Account, cloud and online play:</b> to provide the service you ask for when you create an account (Art. 6(1)(b) GDPR).</li>
       <li><b>Network reports and technical logs of the services:</b> our legitimate interest in the game working well, being secure and improving online play (Art. 6(1)(f) GDPR). You can object.</li>
+      <li><b>Name reports:</b> our legitimate interest in keeping online play safe and the terms respected (Art. 6(1)(f) GDPR).</li>
       <li><b>Data kept only on your device:</b> strictly necessary for the game to work.</li>
     </ul>
   </section>
@@ -273,6 +280,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
       <li><b>Your player in someone else's co-op Career:</b> in the host's Career, until they delete it or their account (see above).</li>
       <li><b>Connection data with your opponent:</b> deleted on connecting or leaving.</li>
       <li><b>Network reports:</b> 90 days. A report stays in the database only until we download it (usually less than a day; somewhat longer if the controller's computer is off), is then stored on a computer of the controller and an automatic process deletes it after 90 days. Deleting your account does not delete them earlier; if you ask us, we delete yours straight away.</li>
+      <li><b>Name reports:</b> 6 months; then they are deleted automatically.</li>
       <li><b>Data on your device:</b> until you delete it, by clearing the site data in your browser or by uninstalling the app. You can delete your Careers in Settings.</li>
       <li><b>Service logs</b> (GitHub, Cloudflare, Google): according to each provider's terms.</li>
     </ul>
@@ -284,7 +292,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
     <div class="who">
       <div><b>Google</b>Firebase Authentication (the account: email or username, hashed password and identifier), Cloud Firestore (cloud progress, in the European Union, eur3 region), Google sign-in and a STUN server.</div>
       <div><b>GitHub</b>Hosts the website (GitHub Pages).</div>
-      <div><b>Cloudflare</b>Runs the domain and has a STUN server.</div>
+      <div><b>Cloudflare</b>Runs the domain, has a STUN server and, when there is no direct connection, the online relay server (TURN).</div>
       <div><b>Other players</b>Online only, as described above: display name, look, player and the IP address for the direct connection (in rooms for several players, the host receives everyone's). In the co-op Career, also the Career details described above.</div>
     </div>
     <p>We would only give data to an authority if the law requires it.</p>
@@ -313,7 +321,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
   <section class="card" aria-labelledby="en-9">
     <h2 id="en-9">Children</h2>
     <p>Accounts and online play are for people aged 14 or over, the age from which consent can be given without parental permission in Spain. Without an account you can play everything else and we store nothing on servers.</p>
-    <p>We do not ask for or check age. If you are a parent or guardian and think a child under 14 has created an account, write to us and we will delete it.</p>
+    <p>When you create an account we ask you to confirm that you are 14 or over, but we do not check or store your age. If you are a parent or guardian and think a child under 14 has created an account, write to us and we will delete it.</p>
   </section>
 
   <section class="card" aria-labelledby="en-10">
@@ -324,7 +332,7 @@ main{max-width:780px;margin:0 auto;padding:18px 16px 56px}
   <p><a class="back" href="./">Back to the game</a></p>
 </article>
 
-<p class="foot"><a href="borrar-cuenta.html">Borrar la cuenta</a>&emsp;<a href="#es">Español</a>&emsp;<a href="#en">English</a></p>
+<p class="foot"><a href="borrar-cuenta.html">Borrar la cuenta</a>&emsp;<a href="aviso-legal.html">Aviso legal</a>&emsp;<a href="condiciones.html">Condiciones</a>&emsp;<a href="licencias.html">Licencias</a>&emsp;<a href="#es">Español</a>&emsp;<a href="#en">English</a></p>
 </main>
 </body>
 </html>

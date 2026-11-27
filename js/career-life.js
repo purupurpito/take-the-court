@@ -680,7 +680,8 @@
   }
   var RETIRE_AGE = 30, DECLINE_AGE = 32;
   function canRetire(c) { return !!(c && c.player && (c.player.age | 0) >= RETIRE_AGE && c.phase !== 'pick'); }
-  function legends() { try { var s = root.localStorage && root.localStorage.getItem(LEG_KEY); var a = s ? JSON.parse(s) : []; return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  // (clubes renombrados el 25-nov-2026: las fichas viejas llevan el nombre del club de entonces; se enseñan con el nuevo)
+  function legends() { try { var s = root.localStorage && root.localStorage.getItem(LEG_KEY); var a = s ? JSON.parse(s) : []; if (!Array.isArray(a)) return []; var rn = VB.Career && VB.Career.renameClubs; return typeof rn === 'function' ? rn(a) : a; } catch (e) { return []; } }
   /** Te retiras: la carrera pasa al Salón de la Fama del dispositivo y se borra (como abandonar, pero con homenaje). */
   function retire() {
     // (Carrera cooperativa, js/career-coop.js: el invitado ve la Carrera del anfitrión en memoria; ni retirarla ni escribir el Salón de la Fama)

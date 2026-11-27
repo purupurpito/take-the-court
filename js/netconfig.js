@@ -4,7 +4,7 @@
  * es directa (cada rival puede ver la dirección de red del otro dentro de la negociación de WebRTC; el juego nunca la enseña).
  *
  * TURN de respaldo (Imprescindible 4.1, notes/turn.md): con VB.NET_TURN_URL = 'https://turn.takethecourt.com/ice' el lobby pide,
- * justo antes de cada oferta/respuesta, credenciales TURN temporales (2 h) al Worker de turn-worker/ (que comprueba la sesión de
+ * justo antes de cada oferta/respuesta, credenciales TURN temporales (1 h) al Worker de turn-worker/ (que comprueba la sesión de
  * Firebase y las saca de Cloudflare Realtime TURN). Si no contesta en VB.NetRtc.TURN_WAIT_MS (2 s) se sigue solo con STUN. Con
  * credenciales, VB.NET_ICE = {turn, relayOnly:false, exp}: iceTransportPolicy 'all' (lo directo primero; el TURN solo si no hay
  * otra forma, así no sube el ping). Vacía ('') = apagado: no se hace ninguna petición. NO pongas aquí la URL hasta que el Worker
@@ -23,5 +23,5 @@
   var root = (typeof window !== 'undefined') ? window : globalThis;
   var VB = root.VB = root.VB || {};
   if (!VB.NET_ICE) VB.NET_ICE = null;              // (sin TURN fijo)
-  if (!VB.NET_TURN_URL) VB.NET_TURN_URL = '';      // (sin Worker de TURN: apagado. Cuando esté: 'https://turn.takethecourt.com/ice')
+  if (!VB.NET_TURN_URL) VB.NET_TURN_URL = 'https://turn.takethecourt.com/ice';   // (Worker desplegado el 25-nov-2026, con tope de gasto: turn-worker/README.md)
 })();
