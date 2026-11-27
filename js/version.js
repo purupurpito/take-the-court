@@ -17,11 +17,7 @@
         'La repetición ya no sale sola: si el punto lo merece, la pides tú. También en 6 contra 6.',
         'Cuando sacas, la cámara se está quieta.',
         'Si rematas siempre por el mismo lado, el bloqueo rival se acaba enterando.',
-        'Premios nuevos del nivel 40 al 99. El del 99 es un pelo arcoíris.',
-        'En PC se juega con teclado y ratón: el ratón apunta. Solo teclado sigue en Ajustes.',
-        'El cursor es una flecha con un balón, para no perderlo de vista.',
-        'Letras nuevas en todo el juego, más fáciles de leer.',
-        'Algunos clubes y copas cambian de nombre. Tu Carrera se pone al día sola.'
+        'Premios nuevos del nivel 40 al 99. El del 99 es un pelo arcoíris.'
       ]
     },
     {
