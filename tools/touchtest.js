@@ -12,7 +12,8 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
 (async () => {
   const page = await CDP.open({ size: SIZE, touch: true, throttle: +(process.env.THROTTLE || 1), dpr: +(process.env.DPR || 1) });
   const { w: W, h: H } = CDP.parseSize(SIZE);
-  const dbg = () => page.evalJs('VB.Input._debug()');
+  // (mx/my salen de poll(), una vez por fotograma: se lee tras dos fotogramas para no ver el del toque anterior)
+  const dbg = () => page.evalJs('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(VB.Input._debug()))))', true);
   const wait = ms => CDP.sleep(ms || 60);
   const touch = async (type, pts) => { await page.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(p => ({ x: p[0], y: p[1], id: p[2], radiusX: 6, radiusY: 6, force: 1 })) }); await wait(50); };
   try {

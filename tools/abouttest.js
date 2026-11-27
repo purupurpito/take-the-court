@@ -143,7 +143,9 @@ async function browser() {
     pg = await CDP.open({ size: '1280x720', init: [returning] });
     await pg.navigate(''); await ready(pg);
     // (24-nov-2026) la ventana de «La jugada del día» sale la primera al entrar y Novedades espera a que se cierre
-    if (await waitFor(pg, 'VB.UI.semPopOpen&&VB.UI.semPopOpen()', 5000)) {
+    // espera a que la cola de ventanas decida (la ventana del modo diario espera a que acabe el telón; con el PC cargado pasa de 5 s)
+    await waitFor(pg, 'VB.UI._about().auto!=="off"&&!(VB.UI.popWaiting&&VB.UI.popWaiting())', 20000);
+    if (await pg.evalJs('!!(VB.UI.semPopOpen&&VB.UI.semPopOpen())')) {
       check(!(await pg.evalJs(vis('#pnAbout'))), '(b) la jugada del día sale antes y Novedades espera');
       await pg.evalJs('document.getElementById("btnSemPopNo").click()');
     }

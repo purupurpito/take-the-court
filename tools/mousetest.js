@@ -110,12 +110,13 @@ const KEYS = { ArrowLeft: ['ArrowLeft', 37], ArrowUp: ['ArrowUp', 38], KeyJ: ['j
         h.x=2.2;h.y=0.4;m.x=6;m.y=2;Object.assign(b,{x:1.25,y:0.4,z:5.2,vx:0,vy:0,vz:0.6,dip:0,wobA:0});
         g.touchTeam=0;g.touches=2;g.lastPlayer=m;g.lastTeam=0;g.lastKind='set';g.lastTouchT=g.time;g.ctrl=h;window.__ev.length=0;VB.CameraRig.snap(g);return 1;})()`);
       await sleep(60);   // (cámara ya en la jugada: snap y un frame pintado, si no el píxel sale de la cámara del saque)
-      const P3 = await px(T3[0], T3[1]);
+      let P3 = await px(T3[0], T3[1]);
       await move(P3.x, P3.y); await sleep(30);
       let jumped = false, hitDone = false; const t0 = Date.now(); air0 = null;
       while (Date.now() - t0 < 3000 && !hitDone) {
         const w = await g("(function(){var w=VB.Sim.hitWindow(g,g.ctrl);return {at:w.attack,jt:w.jumpT,t:w.t,reach:w.reach,z:g.ctrl.z,a3:g.aim3.on?[g.aim3.x,g.aim3.y]:null,mode:g.mode};})()");
         if (w.mode !== 'rally') break;
+        if (!jumped) { P3 = await px(T3[0], T3[1]); await move(P3.x, P3.y); }   // (antes del salto la cámara viva se mueve: la mano sigue el punto hasta despegar; en el aire, quieta)
         if (!jumped && w.at && w.jt <= 0.02) { await tap('Space', 30); jumped = true; continue; }
         if (jumped && w.z > 0.05 && !air0) air0 = await E('VB.ctx.simAim && [VB.ctx.simAim[0], VB.ctx.simAim[1]]');
         if (jumped && w.z > 0.3 && w.t <= 0.27 && w.t > -0.05) { if (!shotDone || tr === 0) await shot('3-remate-km-diana'); await sleep(Math.max(0, w.t * 1000 - 230)); await mclick(P3.x, P3.y, 'left', 30); hitDone = true; }
@@ -129,7 +130,7 @@ const KEYS = { ArrowLeft: ['ArrowLeft', 37], ArrowUp: ['ArrowUp', 38], KeyJ: ['j
     // (en el aire el rayo sale de la cámara del despegue: con la mano quieta, el punto del golpe es el que había bajo el cursor al saltar)
     const cl3 = a => a && [Math.max(-8.3, Math.min(-1.4, a[0])), Math.max(-3.9, Math.min(3.9, a[1]))];   // (la diana se queda dentro de sus límites)
     check('3a km: con la mano quieta, el punto del cursor al golpear es el del despegue (la cámara que sube en el salto no lo arrastra)', !!spk && d2(spk.aim, airAim) < 0.15 && d2(spk.aim, T3) < 1.5,
-      spk && { golpe: spk.aim, despegue: airAim, apuntado: T3 });
+      spk && { golpe: spk.aim, despegue: airAim, apuntado: T3, dist: +d2(spk.aim, T3).toFixed(2) });
     check('3b km: remate en el aire hacia el cursor (la diana sigue al cursor y el bote previsto cae cerca)', !!spk && d2(spk.a3, cl3(spk.aim)) < 1.2 && d2(spk.pl, spk.a3) < 2.4,
       spk && { bote: spk.pl.map(v => +v.toFixed(2)), cursor: spk.aim, diana: spk.a3 });
     // ---------------- 5a. glifos en km ----------------
